@@ -25,12 +25,8 @@ SECRET_KEY = 'django-insecure-wy^e8-9rtbmavzs(4j^45tm+aw$o-s(!4!p@@_xdbb7-8)vw4i
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-#ALLOWED_HOSTS = [*]
+ALLOWED_HOSTS = []
 
-ALLOWED_HOSTS = ["13.235.247.150", "localhost", "127.0.0.1"]
-CSRF_TRUSTED_ORIGINS = [
-    "http://13.235.247.150:8000",
-]
 
 
 # Application definition
@@ -78,29 +74,18 @@ WSGI_APPLICATION = 'myproject.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/5.2/ref/settings/#databases
 
-# DATABASES = {
-#     'default': {
-#         'ENGINE': 'django.db.backends.mysql',
-#         'NAME': 'mydb',           # apna DB name
-#         'USER': 'root',           # MySQL username
-#         'PASSWORD': '123456',  # MySQL password
-#         'HOST': '127.0.0.1',      # local
-#         'PORT': '3306',           # default port
-#     }
-# }
-
-
 DATABASES = {
-  'default': {
-    'ENGINE': 'django.db.backends.mysql',
-    'NAME': 'crm',
-    'USER': 'crmuser',
-    'PASSWORD': '123456',   # (dev only; change later)
-    'HOST': '127.0.0.1',    # not 'localhost'
-    'PORT': '3306',
-    'OPTIONS': {'init_command': "SET sql_mode='STRICT_TRANS_TABLES'"},
-  }
+    'default': {
+        'ENGINE': 'django.db.backends.mysql',
+        'NAME': 'mydb',           # apna DB name
+        'USER': 'root',           # MySQL username
+        'PASSWORD': '123456',  # MySQL password
+        'HOST': '127.0.0.1',      # local
+        'PORT': '3306',           # default port
+    }
 }
+
+
 
 
 
