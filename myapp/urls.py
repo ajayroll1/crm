@@ -9,6 +9,10 @@ urlpatterns =[
   path('careers/',views.careers,name='careers'),
   path('contact/',views.contact,name='contact'),
   path('quote/',views.quote,name='quote'),
+  path('dashboard/',views.dashboard,name='dashboard'),
+  
+
+  
 
 
   # // this is for footer urls 

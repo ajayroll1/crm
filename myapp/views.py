@@ -29,3 +29,8 @@ def quote(request):
   return HttpResponse('Get a Quote Page ')
 
 
+def dashboard(request):
+  return render(request, 'dashboard/dashboard.html')
+
+
+

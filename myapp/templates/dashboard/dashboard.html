@@ -1,0 +1,187 @@
+{% extends "dashboard/dashboard_base.html" %}
+{% block title %}Dashboard - Sujata Associates{% endblock %}
+
+{% block content %}
+<div class="dashboard-container">
+  <div class="dashboard-header">
+    <h1>Welcome, Superuser!</h1>
+  </div>
+  
+  <!-- Key Metrics Row -->
+  <div class="metrics-row">
+    <div class="metric-card">
+      <div class="metric-title">Total Leads</div>
+      <div class="metric-value">350</div>
+      <div class="metric-subtitle">42 This Month</div>
+    </div>
+    
+    <div class="metric-card">
+      <div class="metric-title">Deals In Progress</div>
+      <div class="metric-value">80</div>
+      <div class="metric-subtitle">15 Closing Soon</div>
+    </div>
+    
+    <div class="metric-card">
+      <div class="metric-title">Projects In Progress</div>
+      <div class="metric-value">12</div>
+      <div class="metric-subtitle">3 Overdue</div>
+    </div>
+    
+    <div class="metric-card">
+      <div class="metric-title">Open Tickets</div>
+      <div class="metric-value">18</div>
+      <div class="metric-subtitle">7 SLA Breaches</div>
+    </div>
+  </div>
+  
+  <!-- Charts and Tasks Row -->
+  <div class="charts-row">
+    <div class="chart-card">
+      <h3>Lead Source Chart</h3>
+      <div class="donut-chart">
+        <div class="chart-container">
+          <div class="donut-segment web" data-percentage="45"></div>
+          <div class="donut-segment referral" data-percentage="25"></div>
+          <div class="donut-segment cold-call" data-percentage="20"></div>
+          <div class="donut-segment social" data-percentage="10"></div>
+          <div class="chart-center">
+            <span class="chart-total">100%</span>
+          </div>
+        </div>
+        <div class="chart-legend">
+          <div class="legend-item">
+            <span class="legend-color web"></span>
+            <span>Web</span>
+          </div>
+          <div class="legend-item">
+            <span class="legend-color referral"></span>
+            <span>Referral</span>
+          </div>
+          <div class="legend-item">
+            <span class="legend-color cold-call"></span>
+            <span>Cold Call</span>
+          </div>
+          <div class="legend-item">
+            <span class="legend-color social"></span>
+            <span>Social</span>
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <div class="chart-card">
+      <h3>Sales Funnel</h3>
+      <div class="funnel-chart">
+        <div class="funnel-stage prospect">
+          <div class="stage-label">Prospect</div>
+          <div class="stage-value">25</div>
+        </div>
+        <div class="funnel-stage proposal">
+          <div class="stage-label">Proposal Sent</div>
+          <div class="stage-value">17</div>
+        </div>
+        <div class="funnel-stage negotiation">
+          <div class="stage-label">Negotiation</div>
+          <div class="stage-value">8</div>
+        </div>
+      </div>
+    </div>
+    
+    <div class="chart-card">
+      <h3>Pending Tasks (Top 5)</h3>
+      <div class="tasks-list">
+        <div class="task-item">Client Proposal</div>
+        <div class="task-item">Invoice to Client B</div>
+        <div class="task-item">Review Lead Details</div>
+        <div class="task-item">Update Project Plan</div>
+        <div class="task-item">Meet with Client C</div>
+      </div>
+    </div>
+  </div>
+  
+  <!-- Bottom Row -->
+  <div class="bottom-row">
+    <div class="chart-card">
+      <h3>Employee Distribution by Department</h3>
+      <div class="bar-chart">
+        <div class="bar-item">
+          <span class="bar-label">Sales</span>
+          <div class="bar-container">
+            <div class="bar-fill" style="width: 80%"></div>
+            <span class="bar-value">32</span>
+          </div>
+        </div>
+        <div class="bar-item">
+          <span class="bar-label">Engineering</span>
+          <div class="bar-container">
+            <div class="bar-fill" style="width: 60%"></div>
+            <span class="bar-value">24</span>
+          </div>
+        </div>
+        <div class="bar-item">
+          <span class="bar-label">HR</span>
+          <div class="bar-container">
+            <div class="bar-fill" style="width: 37.5%"></div>
+            <span class="bar-value">15</span>
+          </div>
+        </div>
+        <div class="bar-item">
+          <span class="bar-label">Support</span>
+          <div class="bar-container">
+            <div class="bar-fill" style="width: 45%"></div>
+            <span class="bar-value">18</span>
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <div class="chart-card">
+      <h3>Live Activity Feed</h3>
+      <div class="activity-table">
+        <div class="table-header">
+          <div class="header-cell">Employees</div>
+          <div class="header-cell">Status</div>
+          <div class="header-cell">Last Bunch in</div>
+        </div>
+        <div class="table-row">
+          <div class="table-cell">N. Gupta</div>
+          <div class="table-cell status-present">Present</div>
+          <div class="table-cell">8:03 AM</div>
+        </div>
+        <div class="table-row">
+          <div class="table-cell">S. Mehta</div>
+          <div class="table-cell status-present">Present</div>
+          <div class="table-cell">8:42 AM</div>
+        </div>
+        <div class="table-row">
+          <div class="table-cell">R. Patel</div>
+          <div class="table-cell status-present">Present</div>
+          <div class="table-cell">8:02 AM</div>
+        </div>
+      </div>
+    </div>
+    
+    <div class="chart-card">
+      <h3>Upcoming Contract Renewals</h3>
+      <div class="contracts-table">
+        <div class="table-header">
+          <div class="header-cell">Client</div>
+          <div class="header-cell">Next Renewal</div>
+        </div>
+        <div class="table-row">
+          <div class="table-cell">Client A</div>
+          <div class="table-cell">May 5, 2024</div>
+        </div>
+        <div class="table-row">
+          <div class="table-cell">Client B</div>
+          <div class="table-cell">Dec 1, 2024</div>
+        </div>
+        <div class="table-row">
+          <div class="table-cell">Client C</div>
+          <div class="table-cell">Jan 4, 2025</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
