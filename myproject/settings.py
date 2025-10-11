@@ -86,15 +86,17 @@ WSGI_APPLICATION = 'myproject.wsgi.application'
 
 
 DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.mysql',
-        'NAME': 'crm',
-        'USER': 'crmuser',
-        'PASSWORD': '123456',  # <- yaha sahi spelling
-        'HOST': 'localhost',
-        'PORT': '3306',
-    }
+  'default': {
+    'ENGINE': 'django.db.backends.mysql',
+    'NAME': 'crm',
+    'USER': 'crmuser',
+    'PASSWORD': '123456',   # (dev only; change later)
+    'HOST': '127.0.0.1',    # not 'localhost'
+    'PORT': '3306',
+    'OPTIONS': {'init_command': "SET sql_mode='STRICT_TRANS_TABLES'"},
+  }
 }
+
 
 
 
