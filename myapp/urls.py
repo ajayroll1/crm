@@ -10,5 +10,8 @@ urlpatterns =[
   path('contact/',views.contact,name='contact'),
   path('quote/',views.quote,name='quote'),
 
+
+  # // this is for footer urls 
+
  ]
 
