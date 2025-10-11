@@ -73,16 +73,29 @@ WSGI_APPLICATION = 'myproject.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/5.2/ref/settings/#databases
 
+# DATABASES = {
+#     'default': {
+#         'ENGINE': 'django.db.backends.mysql',
+#         'NAME': 'mydb',           # apna DB name
+#         'USER': 'root',           # MySQL username
+#         'PASSWORD': '123456',  # MySQL password
+#         'HOST': '127.0.0.1',      # local
+#         'PORT': '3306',           # default port
+#     }
+# }
+
+
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.mysql',
-        'NAME': 'mydb',           # apna DB name
-        'USER': 'root',           # MySQL username
-        'PASSWORD': '123456',  # MySQL password
-        'HOST': '127.0.0.1',      # local
-        'PORT': '3306',           # default port
+        'NAME': 'crm',
+        'USER': 'crmuser',
+        'PASSWORD': 'StrongPassword123',
+        'HOST': 'localhost',
+        'PORT': '3306',
     }
 }
+
 
 
 # Password validation
