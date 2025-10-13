@@ -11,6 +11,7 @@ urlpatterns =[
   path('quote/',views.quote,name='quote'),
   path('dashboard/',views.dashboard,name='dashboard'),
   path('leads/',views.leads,name='leads'),
+  path('quotes/',views.quotes,name='quotes'),
   
 
   

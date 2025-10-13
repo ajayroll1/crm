@@ -431,6 +431,8 @@
         const modalEl = document.getElementById('filterModal');
         const modal = bootstrap.Modal.getInstance(modalEl) || new bootstrap.Modal(modalEl);
         modal.hide();
+        // Re-evaluate scroll after filtering
+        updateTableScroll();
       });
     }
 
@@ -439,6 +441,22 @@
     const createTabBtn = document.getElementById('create-tab');
     const listTabBtn = document.getElementById('list-tab');
     const leadForm = document.getElementById('createLeadForm');
+    const tableWrapper = document.querySelector('#list .card .table-responsive');
+
+    function updateTableScroll() {
+      if (!table || !tableWrapper) return;
+      const visibleRows = Array.from(table.querySelectorAll('tbody tr')).filter(r => r.style.display !== 'none');
+      if (visibleRows.length > 10) {
+        tableWrapper.style.maxHeight = '480px'; // approx height for ~10 rows
+        tableWrapper.style.overflowY = 'auto';
+      } else {
+        tableWrapper.style.maxHeight = '';
+        tableWrapper.style.overflowY = '';
+      }
+    }
+
+    // Initial scroll setup based on current rows
+    updateTableScroll();
     function getRowData(tr) {
       return {
         name: tr.querySelector('[data-label="Name"]').textContent.trim(),
