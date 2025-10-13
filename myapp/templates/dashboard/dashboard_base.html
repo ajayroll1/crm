@@ -399,11 +399,87 @@
       font-weight: 500;
     }
     
+    /* Mobile Header */
+    .mobile-header {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      padding: 1rem;
+      background: var(--card-bg);
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+      margin-bottom: 1rem;
+      position: sticky;
+      top: 0;
+      z-index: 999;
+      border-bottom: 1px solid #eee;
+    }
+    
+    .hamburger-btn {
+      background: none;
+      border: none;
+      cursor: pointer;
+      padding: 0.5rem;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      transition: all 0.3s ease;
+    }
+    
+    .hamburger-btn span {
+      width: 25px;
+      height: 3px;
+      background-color: var(--primary-color);
+      border-radius: 2px;
+      transition: all 0.3s ease;
+      transform-origin: center;
+    }
+    
+    .hamburger-btn.active span:nth-child(1) {
+      transform: rotate(45deg) translate(6px, 6px);
+    }
+    
+    .hamburger-btn.active span:nth-child(2) {
+      opacity: 0;
+
+    }
+    
+    .hamburger-btn.active span:nth-child(3) {
+      transform: rotate(-45deg) translate(6px, -6px);
+    }
+    
+    .mobile-title {
+      font-size: 1.5rem;
+      font-weight: 600;
+      color: var(--primary-color);
+      margin: 0;
+    }
+    
+    /* Sidebar Overlay */
+    .sidebar-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background-color: rgba(0, 0, 0, 0.5);
+      z-index: 998;
+      opacity: 0;
+      visibility: hidden;
+      transition: all 0.3s ease;
+    }
+    
+    .sidebar-overlay.active {
+      opacity: 1;
+      visibility: visible;
+    }
+
     /* Responsive Design */
     @media (max-width: 768px) {
       .sidebar {
         transform: translateX(-100%);
         transition: transform 0.3s ease;
+        width: 280px;
+        z-index: 1001;
       }
       
       .sidebar.open {
@@ -412,7 +488,11 @@
       
       .main-content {
         margin-left: 0;
-        padding: 1rem;
+        padding: 0;
+      }
+      
+      .dashboard-header {
+        display: none;
       }
       
       .metrics-row {
@@ -422,19 +502,71 @@
       .charts-row, .bottom-row {
         grid-template-columns: 1fr;
       }
+      
+      /* Ensure content is properly spaced on mobile */
+      .main-content > * {
+        padding: 0 1rem;
+      }
     }
   </style>
 </head>
 <body>
   <div class="dashboard-layout">
+    <!-- Sidebar Overlay for Mobile -->
+    <div class="sidebar-overlay" id="sidebarOverlay"></div>
+    
     {% include "sidebar.html" %}
     
     <main class="main-content">
+      <!-- Mobile Header with Hamburger Menu -->
+      <div class="mobile-header d-md-none">
+        <button class="hamburger-btn" id="hamburgerBtn">
+          <span></span>
+          <span></span>
+          <span></span>
+        </button>
+        <h1 class="mobile-title">Dashboard</h1>
+      </div>
+      
       {% block content %}{% endblock %}
     </main>
   </div>
   
   <!-- Bootstrap JS -->
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+  
+  <!-- Mobile Sidebar Toggle Script -->
+  <script>
+    document.addEventListener('DOMContentLoaded', function() {
+      const hamburgerBtn = document.getElementById('hamburgerBtn');
+      const sidebar = document.querySelector('.sidebar');
+      const sidebarOverlay = document.getElementById('sidebarOverlay');
+      
+      if (hamburgerBtn && sidebar && sidebarOverlay) {
+        // Toggle sidebar when hamburger button is clicked
+        hamburgerBtn.addEventListener('click', function() {
+          sidebar.classList.toggle('open');
+          sidebarOverlay.classList.toggle('active');
+          hamburgerBtn.classList.toggle('active');
+        });
+        
+        // Close sidebar when overlay is clicked
+        sidebarOverlay.addEventListener('click', function() {
+          sidebar.classList.remove('open');
+          sidebarOverlay.classList.remove('active');
+          hamburgerBtn.classList.remove('active');
+        });
+        
+        // Close sidebar when window is resized to desktop size
+        window.addEventListener('resize', function() {
+          if (window.innerWidth > 768) {
+            sidebar.classList.remove('open');
+            sidebarOverlay.classList.remove('active');
+            hamburgerBtn.classList.remove('active');
+          }
+        });
+      }
+    });
+  </script>
 </body>
 </html>
