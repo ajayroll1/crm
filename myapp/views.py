@@ -33,4 +33,9 @@ def dashboard(request):
   return render(request, 'dashboard/dashboard.html')
 
 
+def leads(request):
+     print("Leads view is being called!")  # Debug print
+     return render(request, 'dashboard/leads.html')
+
+
 

@@ -515,7 +515,7 @@
     <!-- Sidebar Overlay for Mobile -->
     <div class="sidebar-overlay" id="sidebarOverlay"></div>
     
-    {% include "sidebar.html" %}
+    {% include "dashboard/sidebar.html" %}
     
     <main class="main-content">
       <!-- Mobile Header with Hamburger Menu -->
@@ -564,6 +564,18 @@
             sidebarOverlay.classList.remove('active');
             hamburgerBtn.classList.remove('active');
           }
+        });
+        
+        // Close sidebar when navigation links are clicked (mobile only)
+        const navLinks = document.querySelectorAll('.sidebar .nav-link');
+        navLinks.forEach(link => {
+          link.addEventListener('click', function() {
+            if (window.innerWidth <= 768) {
+              sidebar.classList.remove('open');
+              sidebarOverlay.classList.remove('active');
+              hamburgerBtn.classList.remove('active');
+            }
+          });
         });
       }
     });

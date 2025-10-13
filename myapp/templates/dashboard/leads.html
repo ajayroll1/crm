@@ -1,0 +1,29 @@
+{% extends "dashboard/dashboard_base.html"%}
+{% block title %}Leads -Sujata Associates {% endblock %}
+
+
+{% block content %}
+<div class="dashboard-header">
+  <h1 style="color: red; font-size: 3rem;">LEADS PAGE IS WORKING!</h1>
+  <p class="text-muted">If you can see this, the leads page is loading correctly</p>
+</div>
+
+<div class="row">
+  <div class="col-12">
+    <div class="card" style="border: 3px solid green;">
+      <div class="card-header" style="background-color: lightgreen;">
+        <h5 class="card-title mb-0">✅ Leads Page Test</h5>
+      </div>
+      <div class="card-body">
+        <h3 style="color: blue;">This is the leads page content!</h3>
+        <p>If you can see this message, the leads page is working correctly.</p>
+        <div class="alert alert-success">
+          <i class="bi bi-check-circle"></i>
+          <strong>SUCCESS:</strong> Leads page is now working! The sidebar navigation is functioning properly.
+        </div>
+        <a href="{% url 'dashboard' %}" class="btn btn-primary">← Back to Dashboard</a>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

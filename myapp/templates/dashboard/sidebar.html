@@ -13,7 +13,7 @@
       <h3 class="nav-section-title">LEAD MANAGEMENT</h3>
       <ul class="nav-list">
         <li class="nav-item">
-          <a href="#" class="nav-link">
+          <a href="{% url 'leads' %}" class="nav-link" onclick="console.log('Leads link clicked!')">
             <i class="bi bi-person-plus"></i>
             <span>Leads</span>
           </a>
@@ -102,9 +102,9 @@
   
   <div class="sidebar-footer">
     <div class="nav-item">
-      <a href="#" class="nav-link">
-        <i class="bi bi-plus-circle"></i>
-        <span>+ Dashboard</span>
+      <a href="{% url 'dashboard' %}" class="nav-link">
+        <i class="bi bi-house"></i>
+        <span>Dashboard</span>
       </a>
     </div>
     <div class="nav-item">
