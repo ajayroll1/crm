@@ -4,26 +4,516 @@
 
 {% block content %}
 <div class="dashboard-header">
-  <h1 style="color: red; font-size: 3rem;">LEADS PAGE IS WORKING!</h1>
-  <p class="text-muted">If you can see this, the leads page is loading correctly</p>
+  <h1>Leads</h1>
+  <p class="text-muted">Add new leads and manage them here</p>
 </div>
 
-<div class="row">
-  <div class="col-12">
-    <div class="card" style="border: 3px solid green;">
-      <div class="card-header" style="background-color: lightgreen;">
-        <h5 class="card-title mb-0">✅ Leads Page Test</h5>
-      </div>
-      <div class="card-body">
-        <h3 style="color: blue;">This is the leads page content!</h3>
-        <p>If you can see this message, the leads page is working correctly.</p>
-        <div class="alert alert-success">
-          <i class="bi bi-check-circle"></i>
-          <strong>SUCCESS:</strong> Leads page is now working! The sidebar navigation is functioning properly.
+<!-- Local style override: keep tab text black by default and when active -->
+<style>
+  .nav-tabs .nav-link { color: #000 !important; }
+  .nav-tabs .nav-link.active { color: #000 !important; }
+  .nav-tabs .nav-link:hover { color: #fff !important; background-color: var(--primary-color) !important; }
+
+  /* Mobile responsive table - convert to card layout */
+  @media (max-width: 768px) {
+    .leads-table { border: 0; }
+    .leads-table thead { display: none; }
+    .leads-table tbody tr { display: block; margin: 0 0 1rem 0; border: 1px solid #eee; border-radius: 8px; background: #fff; }
+    .leads-table tbody tr td { display: flex; justify-content: space-between; align-items: center; gap: 1rem; padding: 0.5rem 1rem; border-bottom: 1px solid #f1f1f1; }
+    .leads-table tbody tr td:last-child { border-bottom: 0; }
+    .leads-table tbody tr td::before { content: attr(data-label); font-weight: 600; color: #666; }
+    .leads-table .btn { padding: .25rem .5rem; }
+    /* Actions row: keep label on left and icons on right under Due */
+    .leads-table tbody tr td[data-label="Actions"] { justify-content: space-between; gap: .5rem; }
+    /* Push only the first action (view) to the far right; edit follows next to it */
+    .leads-table tbody tr td[data-label="Actions"] .btn-view { margin-left: auto; }
+  }
+</style>
+
+<!-- Tabs: List | Create -->
+<ul class="nav nav-tabs" id="leadsTabs" role="tablist">
+  <li class="nav-item" role="presentation">
+    <button class="nav-link active" id="list-tab" data-bs-toggle="tab" data-bs-target="#list" type="button" role="tab" aria-controls="list" aria-selected="true">
+      <i class="bi bi-table"></i> List
+    </button>
+  </li>
+  <li class="nav-item" role="presentation">
+    <button class="nav-link" id="create-tab" data-bs-toggle="tab" data-bs-target="#create" type="button" role="tab" aria-controls="create" aria-selected="false">
+      <i class="bi bi-plus-circle"></i> Create Lead
+    </button>
+  </li>
+</ul>
+
+<div class="tab-content pt-3" id="leadsTabsContent">
+  <!-- List Tab -->
+  <div class="tab-pane fade show active" id="list" role="tabpanel" aria-labelledby="list-tab">
+    <div class="card">
+      <div class="card-header d-flex align-items-center justify-content-between">
+        <h5 class="card-title mb-0">All Leads</h5>
+        <div class="d-flex gap-2">
+          <input class="form-control form-control-sm" style="max-width: 220px;" type="search" placeholder="Search leads...">
+          <button class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" data-bs-target="#filterModal"><i class="bi bi-funnel"></i> Filter</button>
+          <button class="btn btn-sm btn-outline-primary"><i class="bi bi-download"></i> Export</button>
         </div>
-        <a href="{% url 'dashboard' %}" class="btn btn-primary">← Back to Dashboard</a>
+      </div>
+      <div class="card-body p-0">
+        <div class="table-responsive">
+          <table class="table table-hover align-middle mb-0 leads-table">
+            <thead class="table-light">
+              <tr>
+                <th>Name</th>
+                <th>Email</th>
+                <th>Phone</th>
+                <th>Company</th>
+                <th>Owner</th>
+                <th>Priority</th>
+                <th>Next Action</th>
+                <th>Due</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr data-due="2025-10-14T11:30">
+                <td data-label="Name">Rahul Shah</td>
+                <td data-label="Email">rahul@acme.com</td>
+                <td data-label="Phone">-</td>
+                <td data-label="Company">Acme Ltd</td>
+                <td data-label="Owner">Ajay</td>
+                <td data-label="Priority"><span class="badge bg-danger">High</span></td>
+                <td data-label="Next Action">Call</td>
+                <td data-label="Due">14-Oct-2025 11:30</td>
+                <td data-label="Actions">
+                  <button class="btn btn-sm btn-outline-primary btn-view"><i class="bi bi-eye"></i></button>
+                  <button class="btn btn-sm btn-outline-primary btn-edit"><i class="bi bi-pencil"></i></button>
+                </td>
+              </tr>
+              <tr class="table-warning" data-due="2025-10-16T15:00">
+                <td data-label="Name">Neha Gupta</td>
+                <td data-label="Email">-</td>
+                <td data-label="Phone">+91 98765 43210</td>
+                <td data-label="Company">BrightWorks</td>
+                <td data-label="Owner">Vikas</td>
+                <td data-label="Priority"><span class="badge bg-warning text-dark">Med</span></td>
+                <td data-label="Next Action">Email</td>
+                <td data-label="Due">16-Oct-2025 15:00</td>
+                <td data-label="Actions">
+                  <button class="btn btn-sm btn-outline-primary btn-view"><i class="bi bi-eye"></i></button>
+                  <button class="btn btn-sm btn-outline-primary btn-edit"><i class="bi bi-pencil"></i></button>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Create Tab -->
+  <div class="tab-pane fade" id="create" role="tabpanel" aria-labelledby="create-tab">
+    <form id="createLeadForm" method="post" novalidate>
+      {% csrf_token %}
+      <div class="card">
+        <div class="card-header">
+          <h5 class="card-title mb-0">Add a new lead</h5>
+        </div>
+        <div class="card-body">
+          <div class="row g-3">
+            <div class="col-md-6">
+              <label class="form-label">Name<span class="text-danger">*</span></label>
+              <input type="text" name="name" class="form-control" placeholder="Full name" required>
+            </div>
+            <div class="col-md-3">
+              <label class="form-label">Email</label>
+              <input type="email" name="email" class="form-control" placeholder="name@example.com">
+            </div>
+            <div class="col-md-3">
+              <label class="form-label">Phone</label>
+              <input type="tel" name="phone" class="form-control" placeholder="e.g. +91 98765 43210">
+            </div>
+
+            <div class="col-md-4">
+              <label class="form-label">Company</label>
+              <input type="text" name="company" class="form-control" placeholder="Company name">
+            </div>
+            <div class="col-md-4">
+              <label class="form-label">Source<span class="text-danger">*</span></label>
+              <select name="source" class="form-select" required>
+                <option value="" selected disabled>Select source</option>
+                <option>Website</option>
+                <option>Referral</option>
+                <option>Cold Call</option>
+                <option>Social</option>
+                <option>Event</option>
+                <option>Other</option>
+              </select>
+            </div>
+            <div class="col-md-4">
+              <label class="form-label">Priority</label>
+              <select name="priority" class="form-select">
+                <option>Low</option>
+                <option selected>Med</option>
+                <option>High</option>
+              </select>
+            </div>
+
+            <div class="col-md-8">
+              <label class="form-label">Use-case (1–2 lines)<span class="text-danger">*</span></label>
+              <textarea name="use_case" class="form-control" rows="2" placeholder="What do they need?" required></textarea>
+            </div>
+            <div class="col-md-4">
+              <label class="form-label">Owner (assignee)<span class="text-danger">*</span></label>
+              <input type="text" name="owner" class="form-control" placeholder="Assigned to" required>
+            </div>
+
+            <div class="col-md-4">
+              <label class="form-label">Next Action</label>
+              <select name="next_action" class="form-select">
+                <option value="">None</option>
+                <option>Call</option>
+                <option>Email</option>
+                <option>Demo</option>
+                <option>Meeting</option>
+              </select>
+            </div>
+            <div class="col-md-4">
+              <label class="form-label">Due Date</label>
+              <input type="date" name="due_date" class="form-control">
+            </div>
+            <div class="col-md-4">
+              <label class="form-label">Due Time</label>
+              <input type="time" name="due_time" class="form-control">
+            </div>
+          </div>
+
+          <!-- Optional fields toggle -->
+          <div class="mt-4">
+            <button class="btn btn-outline-secondary" type="button" data-bs-toggle="collapse" data-bs-target="#optionalFields" aria-expanded="false" aria-controls="optionalFields">
+              <i class="bi bi-sliders"></i> Optional fields
+            </button>
+          </div>
+
+          <div class="collapse mt-3" id="optionalFields">
+            <div class="row g-3">
+              <div class="col-md-6">
+                <label class="form-label">Website</label>
+                <input type="url" name="website" class="form-control" placeholder="https://...">
+              </div>
+              <div class="col-md-6">
+                <label class="form-label">Industry</label>
+                <input type="text" name="industry" class="form-control" placeholder="e.g. BFSI, Retail">
+              </div>
+              <div class="col-md-4">
+                <label class="form-label">City</label>
+                <input type="text" name="city" class="form-control">
+              </div>
+              <div class="col-md-4">
+                <label class="form-label">Country</label>
+                <input type="text" name="country" class="form-control">
+              </div>
+              <div class="col-md-4">
+                <label class="form-label">Budget</label>
+                <input type="text" name="budget" class="form-control" placeholder="e.g. 1–2 Lakh">
+              </div>
+              <div class="col-md-6">
+                <label class="form-label">Decision Timeline</label>
+                <input type="text" name="timeline" class="form-control" placeholder="e.g. 2 months">
+              </div>
+              <div class="col-md-6">
+                <label class="form-label">Tags</label>
+                <input type="text" name="tags" class="form-control" placeholder="Comma separated e.g. BFSI, Enterprise">
+              </div>
+              <div class="col-12">
+                <label class="form-label">Notes</label>
+                <textarea name="notes" class="form-control" rows="3"></textarea>
+              </div>
+              <div class="col-12">
+                <label class="form-label">Files</label>
+                <input type="file" name="files" class="form-control" multiple>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="card-footer d-flex justify-content-end gap-2">
+          <button type="reset" class="btn btn-outline-secondary">Reset</button>
+          <button type="submit" class="btn btn-primary"><i class="bi bi-save"></i> Save Lead</button>
+        </div>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- View Lead Modal -->
+<div class="modal fade" id="viewLeadModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title"><i class="bi bi-person-badge"></i> Lead Details</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <div class="row g-3" id="leadDetails">
+          <!-- populated by JS -->
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Close</button>
       </div>
     </div>
   </div>
 </div>
+
+<!-- Filter Modal -->
+<div class="modal fade" id="filterModal" tabindex="-1" aria-labelledby="filterModalLabel" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="filterModalLabel"><i class="bi bi-funnel"></i> Filter Leads by Due</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <form id="filterForm">
+        <div class="modal-body">
+          <div class="mb-3">
+            <label class="form-label">Filter Type</label>
+            <div class="d-flex flex-wrap gap-3">
+              <div class="form-check">
+                <input class="form-check-input" type="radio" name="filter_type" id="ft_date" value="date" checked>
+                <label class="form-check-label" for="ft_date">Date</label>
+              </div>
+              <div class="form-check">
+                <input class="form-check-input" type="radio" name="filter_type" id="ft_month" value="month">
+                <label class="form-check-label" for="ft_month">Month</label>
+              </div>
+              <div class="form-check">
+                <input class="form-check-input" type="radio" name="filter_type" id="ft_year" value="year">
+                <label class="form-check-label" for="ft_year">Year</label>
+              </div>
+              <div class="form-check">
+                <input class="form-check-input" type="radio" name="filter_type" id="ft_between" value="between">
+                <label class="form-check-label" for="ft_between">Between</label>
+              </div>
+            </div>
+          </div>
+
+          <div class="row g-3">
+            <div class="col-12" data-ft="date">
+              <label class="form-label">Select date</label>
+              <input type="date" name="single_date" class="form-control">
+            </div>
+            <div class="col-12 d-none" data-ft="month">
+              <label class="form-label">Select month</label>
+              <input type="month" name="month" class="form-control">
+            </div>
+            <div class="col-12 d-none" data-ft="year">
+              <label class="form-label">Select year</label>
+              <input type="number" name="year" class="form-control" min="2000" max="2100" placeholder="e.g. 2025">
+            </div>
+            <div class="col-12 d-none" data-ft="between">
+              <div class="row g-3">
+                <div class="col-6">
+                  <label class="form-label">From</label>
+                  <input type="date" name="from_date" class="form-control">
+                </div>
+                <div class="col-6">
+                  <label class="form-label">To</label>
+                  <input type="date" name="to_date" class="form-control">
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Close</button>
+          <button type="submit" class="btn btn-primary">Apply</button>
+        </div>
+      </form>
+    </div>
+  </div>
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      const form = document.getElementById('filterForm');
+      if (!form) return;
+      const typeRadios = form.querySelectorAll('input[name="filter_type"]');
+      const sections = form.querySelectorAll('[data-ft]');
+      function updateSections() {
+        const selected = form.querySelector('input[name="filter_type"]:checked').value;
+        sections.forEach(sec => {
+          sec.classList.toggle('d-none', sec.getAttribute('data-ft') !== selected);
+        });
+      }
+      typeRadios.forEach(r => r.addEventListener('change', updateSections));
+      updateSections();
+    });
+  </script>
+</div>
+<!-- Client-side validation -->
+<script>
+  document.addEventListener('DOMContentLoaded', function () {
+    const form = document.getElementById('createLeadForm');
+    if (!form) return;
+
+    form.addEventListener('submit', function (e) {
+      const name = form.querySelector('[name="name"]').value.trim();
+      const source = form.querySelector('[name="source"]').value.trim();
+      const useCase = form.querySelector('[name="use_case"]').value.trim();
+      const owner = form.querySelector('[name="owner"]').value.trim();
+      const email = form.querySelector('[name="email"]').value.trim();
+      const phone = form.querySelector('[name="phone"]').value.trim();
+
+      let messages = [];
+      if (!name) messages.push('Name is required');
+      if (!source) messages.push('Source is required');
+      if (!useCase) messages.push('Use-case is required');
+      if (!owner) messages.push('Owner is required');
+      if (!email && !phone) messages.push('Either Email or Phone is required');
+
+      if (email) {
+        const emailOk = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+        if (!emailOk) messages.push('Enter a valid email');
+      }
+
+      if (phone) {
+        const phoneOk = /^[0-9+\-()\s]{7,20}$/.test(phone);
+        if (!phoneOk) messages.push('Enter a valid phone number');
+      }
+
+      if (messages.length) {
+        e.preventDefault();
+        const alert = document.createElement('div');
+        alert.className = 'alert alert-danger';
+        alert.innerHTML = '<strong>Please fix the following:</strong><ul class="mb-0">' + messages.map(m => `<li>${m}</li>`).join('') + '</ul>';
+
+        // Remove any old alerts
+        form.querySelectorAll('.alert-danger').forEach(x => x.remove());
+        form.querySelector('.card-body').prepend(alert);
+        alert.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }
+    });
+
+    // Filtering logic for All Leads table
+    const filterForm = document.getElementById('filterForm');
+    if (filterForm) {
+      filterForm.addEventListener('submit', function (e) {
+        e.preventDefault();
+        const type = filterForm.querySelector('[name="filter_type"]:checked').value;
+        const date = filterForm.querySelector('[name="single_date"]').value;
+        const month = filterForm.querySelector('[name="month"]').value; // format YYYY-MM
+        const year = filterForm.querySelector('[name="year"]').value;   // format YYYY
+        const from = filterForm.querySelector('[name="from_date"]').value;
+        const to = filterForm.querySelector('[name="to_date"]').value;
+
+        const rows = document.querySelectorAll('.leads-table tbody tr');
+        rows.forEach(row => {
+          const dueIso = row.getAttribute('data-due');
+          if (!dueIso) { row.style.display = ''; return; }
+          const due = new Date(dueIso);
+          let show = true;
+
+          if (type === 'date' && date) {
+            const d = new Date(date);
+            show = due.getFullYear() === d.getFullYear() && due.getMonth() === d.getMonth() && due.getDate() === d.getDate();
+          } else if (type === 'month' && month) {
+            const [y, m] = month.split('-').map(n => parseInt(n, 10));
+            show = due.getFullYear() === y && (due.getMonth() + 1) === m;
+          } else if (type === 'year' && year) {
+            const y = parseInt(year, 10);
+            show = due.getFullYear() === y;
+          } else if (type === 'between' && from && to) {
+            const f = new Date(from);
+            const t = new Date(to);
+            // inclusive range
+            show = due >= new Date(f.setHours(0,0,0,0)) && due <= new Date(t.setHours(23,59,59,999));
+          }
+
+          row.style.display = show ? '' : 'none';
+        });
+
+        // Close modal
+        const modalEl = document.getElementById('filterModal');
+        const modal = bootstrap.Modal.getInstance(modalEl) || new bootstrap.Modal(modalEl);
+        modal.hide();
+      });
+    }
+
+    // View/Edit actions from table
+    const table = document.querySelector('.leads-table');
+    const createTabBtn = document.getElementById('create-tab');
+    const listTabBtn = document.getElementById('list-tab');
+    const leadForm = document.getElementById('createLeadForm');
+    function getRowData(tr) {
+      return {
+        name: tr.querySelector('[data-label="Name"]').textContent.trim(),
+        email: tr.querySelector('[data-label="Email"]').textContent.trim(),
+        phone: tr.querySelector('[data-label="Phone"]').textContent.trim(),
+        company: tr.querySelector('[data-label="Company"]').textContent.trim(),
+        owner: tr.querySelector('[data-label="Owner"]').textContent.trim(),
+        priority: tr.querySelector('[data-label="Priority"]').innerText.trim(),
+        nextAction: tr.querySelector('[data-label="Next Action"]').textContent.trim(),
+        dueIso: tr.getAttribute('data-due'),
+        dueText: tr.querySelector('[data-label="Due"]').textContent.trim(),
+      };
+    }
+
+    if (table) {
+      table.addEventListener('click', function (e) {
+        const btnView = e.target.closest('.btn-view');
+        const btnEdit = e.target.closest('.btn-edit');
+        const tr = e.target.closest('tr');
+        if (!tr) return;
+        const data = getRowData(tr);
+
+        if (btnView) {
+          const container = document.getElementById('leadDetails');
+          if (container) {
+            container.innerHTML = `
+              <div class="col-md-6"><strong>Name:</strong> ${data.name}</div>
+              <div class="col-md-6"><strong>Company:</strong> ${data.company}</div>
+              <div class="col-md-6"><strong>Email:</strong> ${data.email}</div>
+              <div class="col-md-6"><strong>Phone:</strong> ${data.phone}</div>
+              <div class="col-md-6"><strong>Owner:</strong> ${data.owner}</div>
+              <div class="col-md-6"><strong>Priority:</strong> ${data.priority}</div>
+              <div class="col-md-6"><strong>Next Action:</strong> ${data.nextAction}</div>
+              <div class="col-md-6"><strong>Due:</strong> ${data.dueText}</div>
+            `;
+            const modal = new bootstrap.Modal(document.getElementById('viewLeadModal'));
+            modal.show();
+          }
+        }
+
+        if (btnEdit && createTabBtn && leadForm) {
+          // Switch to Create tab
+          const tab = new bootstrap.Tab(createTabBtn);
+          tab.show();
+
+          // Prefill form
+          leadForm.querySelector('[name="name"]').value = data.name !== '-' ? data.name : '';
+          leadForm.querySelector('[name="email"]').value = data.email !== '-' ? data.email : '';
+          leadForm.querySelector('[name="phone"]').value = data.phone !== '-' ? data.phone : '';
+          leadForm.querySelector('[name="company"]').value = data.company !== '-' ? data.company : '';
+          leadForm.querySelector('[name="owner"]').value = data.owner !== '-' ? data.owner : '';
+          // Priority badge text may include spaces; fallback Med
+          const prio = (data.priority || 'Med').toLowerCase();
+          const prioSel = leadForm.querySelector('[name="priority"]');
+          if (prio.includes('high')) prioSel.value = 'High'; else if (prio.includes('low')) prioSel.value = 'Low'; else prioSel.value = 'Med';
+          const nextSel = leadForm.querySelector('[name="next_action"]');
+          if (data.nextAction) nextSel.value = ['Call','Email','Demo','Meeting'].includes(data.nextAction) ? data.nextAction : '';
+          if (data.dueIso) {
+            const d = new Date(data.dueIso);
+            const yyyy = d.getFullYear();
+            const mm = String(d.getMonth()+1).padStart(2,'0');
+            const dd = String(d.getDate()).padStart(2,'0');
+            const hh = String(d.getHours()).padStart(2,'0');
+            const mi = String(d.getMinutes()).padStart(2,'0');
+            leadForm.querySelector('[name="due_date"]').value = `${yyyy}-${mm}-${dd}`;
+            leadForm.querySelector('[name="due_time"]').value = `${hh}:${mi}`;
+          } else {
+            leadForm.querySelector('[name="due_date"]').value = '';
+            leadForm.querySelector('[name="due_time"]').value = '';
+          }
+          // Scroll to top of form for better UX on mobile
+          leadForm.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+      });
+    }
+  });
+</script>
 {% endblock %}

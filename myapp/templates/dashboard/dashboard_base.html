@@ -123,6 +123,28 @@
       width: 20px;
       text-align: center;
     }
+
+    /* Button color overrides: align buttons with sidebar background */
+    .btn-primary {
+      background-color: var(--sidebar-bg) !important;
+      border-color: var(--sidebar-bg) !important;
+      color: #fff !important;
+    }
+    .btn-primary:hover, .btn-primary:focus {
+      background-color: #141b3a !important; /* slightly lighter/different shade */
+      border-color: #141b3a !important;
+      color: #fff !important;
+    }
+    .btn-outline-primary {
+      color: var(--sidebar-bg) !important;
+      border-color: var(--sidebar-bg) !important;
+      background-color: transparent !important;
+    }
+    .btn-outline-primary:hover, .btn-outline-primary:focus {
+      background-color: var(--sidebar-bg) !important;
+      border-color: var(--sidebar-bg) !important;
+      color: #fff !important;
+    }
     
     {% comment %} .sidebar-footer {
       position: absolute;
