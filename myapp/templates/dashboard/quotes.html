@@ -27,6 +27,19 @@
 
   .currency { font-variant-numeric: tabular-nums; }
   .table tfoot th, .table tfoot td { border-top: 2px solid #e9ecef; }
+
+  /* Create Quote - Line items mobile layout */
+  @media (max-width: 768px) {
+    #q-items thead { display: none; }
+    #q-items tbody tr { display: block; border: 1px solid #eee; border-radius: 8px; margin-bottom: 1rem; background: #fff; }
+    #q-items tbody tr td { display: flex; justify-content: space-between; align-items: center; gap: 1rem; padding: .5rem 1rem; border-bottom: 1px solid #f1f1f1; }
+    #q-items tbody tr td:last-child { border-bottom: 0; }
+    #q-items tbody tr td::before { content: attr(data-label); font-weight: 600; color: #666; }
+    #q-items tbody input.form-control-sm { width: 60%; }
+    #q-items tfoot { display: block; }
+    #q-items tfoot tr { display: grid; grid-template-columns: 1fr 1fr; padding: .25rem 0; }
+    #q-items tfoot td, #q-items tfoot th { border-top: 0; }
+  }
 </style>
 
 <!-- Tabs: List | Create -->
@@ -117,11 +130,6 @@
       <div class="card">
         <div class="card-header d-flex flex-wrap align-items-center justify-content-between gap-2">
           <h5 class="card-title mb-0">Create quotation</h5>
-          <div class="d-flex gap-2">
-            <button class="btn btn-outline-primary" type="button" id="q-send"><i class="bi bi-envelope"></i> Send Email</button>
-            <button class="btn btn-outline-secondary" type="reset">Reset</button>
-            <button class="btn btn-primary" type="submit"><i class="bi bi-save"></i> Save Quote</button>
-          </div>
         </div>
         <div class="card-body">
           <div class="row g-3">
@@ -235,9 +243,8 @@
             </div>
           </div>
         </div>
-        <div class="card-footer d-flex justify-content-end gap-2">
-          <button type="reset" class="btn btn-outline-secondary">Reset</button>
-          <button type="submit" class="btn btn-primary"><i class="bi bi-save"></i> Save Quote</button>
+        <div class="card-footer d-flex justify-content-end">
+          <button class="btn btn-primary" type="button" id="q-send"><i class="bi bi-envelope"></i> Send Email</button>
         </div>
       </div>
     </form>
@@ -518,20 +525,20 @@
     function createItemRow(){
       const tr = document.createElement('tr');
       tr.innerHTML = `
-        <td>
+        <td data-label="Item">
           <input type="text" class="form-control form-control-sm" name="item_desc" placeholder="Description" required>
         </td>
-        <td>
+        <td data-label="Qty">
           <input type="number" class="form-control form-control-sm" name="item_qty" min="1" step="1" value="1" required>
         </td>
-        <td>
+        <td data-label="Unit Price">
           <input type="number" class="form-control form-control-sm" name="item_price" min="0" step="0.01" value="0" required>
         </td>
-        <td>
-          <input type="number" class="form-control form-control-sm" name="item_tax" min="0" step="0.01" value="0" placeholder="GST %">
+        <td data-label="GST %">
+          <input type="number" class="form-control form-control-sm" name="item_tax" min="0" max="28" step="0.01" value="0" placeholder="GST %">
         </td>
-        <td class="currency"><span class="item_amount">₹0</span></td>
-        <td class="text-end">
+        <td class="currency" data-label="Amount"><span class="item_amount">₹0</span></td>
+        <td class="text-end" data-label="Remove">
           <button type="button" class="btn btn-sm btn-outline-danger q-remove-item"><i class="bi bi-x"></i></button>
         </td>`;
       return tr;
@@ -541,16 +548,28 @@
       let subtotal = 0;
       const rows = qItemsBody.querySelectorAll('tr');
       rows.forEach(row => {
-        const qty = parseNum(row.querySelector('[name="item_qty"]').value);
-        const price = parseNum(row.querySelector('[name="item_price"]').value);
-        const tax = parseNum(row.querySelector('[name="item_tax"]').value); // GST %
+        let qty = parseNum(row.querySelector('[name="item_qty"]').value);
+        let price = parseNum(row.querySelector('[name="item_price"]').value);
+        let tax = parseNum(row.querySelector('[name="item_tax"]').value); // GST %
+        // clamp values to sane ranges
+        qty = Math.max(1, Math.floor(qty));
+        price = Math.max(0, price);
+        tax = Math.min(28, Math.max(0, tax));
+        row.querySelector('[name="item_qty"]').value = qty;
+        row.querySelector('[name="item_price"]').value = price;
+        row.querySelector('[name="item_tax"]').value = tax;
         const base = qty * price;
         const amount = base + (base * tax / 100);
         row.querySelector('.item_amount').textContent = formatINR(amount);
         subtotal += amount;
       });
       qSubtotalEl.textContent = formatINR(subtotal);
-      const discount = parseNum(qDiscountEl.value);
+      let discount = parseNum(qDiscountEl.value);
+      // discount cannot exceed subtotal
+      if (discount > subtotal) {
+        discount = subtotal;
+        qDiscountEl.value = subtotal.toFixed(2);
+      }
       const total = Math.max(0, subtotal - discount);
       qTotalEl.textContent = formatINR(total);
     }
@@ -686,6 +705,13 @@
           const sizeOk = pdf.size <= 10 * 1024 * 1024; // 10MB
           if (!isPdf) messages.push('Project Details must be a PDF');
           if (!sizeOk) messages.push('Project PDF must be ≤ 10MB');
+        }
+
+        // Valid Until must be today or future
+        if (validUntil) {
+          const today = new Date(); today.setHours(0,0,0,0);
+          const v = new Date(validUntil); v.setHours(0,0,0,0);
+          if (v < today) messages.push('Valid Until cannot be in the past');
         }
 
         if (messages.length) {
