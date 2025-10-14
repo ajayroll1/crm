@@ -34,7 +34,7 @@ def dashboard(request):
 
 
 def leads(request):
-     return render(request, 'dashboard/leads.html')
+  return render(request, 'leads_section/leads.html')
 
 def quotes(request):
   return render(request, 'dashboard/quotes.html')
@@ -42,3 +42,16 @@ def quotes(request):
 
 
 
+
+def accounts(request):
+  return render(request, 'accounnts/accounts.html')
+## Kanban removed
+
+
+def leads_import_export(request):
+  export_fields = ['name','email','phone','company','owner','source','priority','stage','use_case','next_action','due_date','due_time','city','country','industry','tags']
+  return render(request, 'leads_section/leads_import_export.html', { 'export_fields': export_fields })
+
+
+def employees(request):
+  return render(request, 'human_resource/employee.html')

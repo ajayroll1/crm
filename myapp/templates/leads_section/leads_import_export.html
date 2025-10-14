@@ -1,0 +1,151 @@
+{% extends "dashboard/dashboard_base.html" %}
+{% block title %}Leads Import/Export - Sujata Associates{% endblock %}
+
+{% block content %}
+<div class="dashboard-header">
+  <h1>Leads Import / Export</h1>
+  <p class="text-muted">Upload CSV to import leads or export current view</p>
+</div>
+
+<div class="row g-3">
+  <div class="col-lg-6">
+    <div class="card">
+      <div class="card-header d-flex align-items-center justify-content-between">
+        <h5 class="mb-0">Import Leads</h5>
+        <a class="btn btn-sm btn-outline-secondary" href="#"><i class="bi bi-filetype-csv"></i> Download Sample CSV</a>
+      </div>
+      <div class="card-body">
+        <form id="importForm" enctype="multipart/form-data" novalidate>
+          <div class="mb-3">
+            <label class="form-label">CSV File</label>
+            <input type="file" class="form-control" name="csv" accept=".csv" required>
+          </div>
+          <div class="row g-3">
+            <div class="col-md-6">
+              <label class="form-label">Duplicate Handling</label>
+              <select class="form-select" name="duplicate">
+                <option value="skip" selected>Skip duplicates</option>
+                <option value="update">Update existing</option>
+                <option value="create">Create anyway</option>
+              </select>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">Owner</label>
+              <input type="text" class="form-control" name="owner" placeholder="Assign to (optional)">
+            </div>
+          </div>
+          <div class="mt-3">
+            <button type="submit" class="btn btn-primary"><i class="bi bi-upload"></i> Import</button>
+          </div>
+        </form>
+      </div>
+      <div class="card-footer small text-muted">
+        Expected columns: name, email, phone, company, source, priority, owner, use_case, next_action, due_date, due_time
+      </div>
+    </div>
+  </div>
+  <div class="col-lg-6">
+    <div class="card">
+      <div class="card-header d-flex align-items-center justify-content-between">
+        <h5 class="mb-0">Export Leads</h5>
+        <a href="{% url 'leads' %}" class="btn btn-sm btn-outline-secondary"><i class="bi bi-table"></i> Back to List</a>
+      </div>
+      <div class="card-body">
+        <form id="exportForm">
+          <div class="row g-3">
+            <div class="col-md-6">
+              <label class="form-label">Format</label>
+              <select class="form-select" name="format">
+                <option value="csv" selected>CSV</option>
+                <option value="xlsx">Excel (XLSX)</option>
+              </select>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">Fields</label>
+              <select class="form-select" name="fields">
+                <option value="basic" selected>Basic (recommended)</option>
+                <option value="all">All fields</option>
+                <option value="custom">Custom selection</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="mt-3 d-none" id="customFields">
+            <label class="form-label">Choose fields</label>
+            <div class="row g-2">
+              {% for f in export_fields %}
+              <div class="col-sm-6">
+                <div class="form-check">
+                  <input class="form-check-input" type="checkbox" id="f_{{ f }}" checked>
+                  <label class="form-check-label" for="f_{{ f }}">{{ f|capfirst }}</label>
+                </div>
+              </div>
+              {% endfor %}
+            </div>
+          </div>
+
+          <div class="mt-3">
+            <button type="submit" class="btn btn-outline-primary"><i class="bi bi-download"></i> Export</button>
+          </div>
+        </form>
+      </div>
+      <div class="card-footer small text-muted">
+        Export respects current filters on the Leads list (UI only for now)
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  document.addEventListener('DOMContentLoaded', () => {
+    const exportForm = document.getElementById('exportForm');
+    const customFields = document.getElementById('customFields');
+    if (exportForm) {
+      exportForm.addEventListener('change', () => {
+        const fieldsMode = exportForm.querySelector('[name="fields"]').value;
+        customFields.classList.toggle('d-none', fieldsMode !== 'custom');
+      });
+      exportForm.addEventListener('submit', (e) => {
+        e.preventDefault();
+        const btn = exportForm.querySelector('button[type="submit"]');
+        btn.disabled = true;
+        btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Preparing...';
+        setTimeout(() => {
+          btn.disabled = false;
+          btn.innerHTML = '<i class="bi bi-download"></i> Export';
+          const toast = document.createElement('div');
+          toast.className = 'alert alert-success mt-3';
+          toast.textContent = 'Export ready (demo)';
+          exportForm.appendChild(toast);
+        }, 800);
+      });
+    }
+
+    const importForm = document.getElementById('importForm');
+    if (importForm) {
+      importForm.addEventListener('submit', (e) => {
+        e.preventDefault();
+        const file = importForm.querySelector('input[type="file"]').files[0];
+        if (!file) {
+          alert('Please select a CSV file');
+          return;
+        }
+        const btn = importForm.querySelector('button[type="submit"]');
+        btn.disabled = true;
+        btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Importing...';
+        setTimeout(() => {
+          btn.disabled = false;
+          btn.innerHTML = '<i class="bi bi-upload"></i> Import';
+          const toast = document.createElement('div');
+          toast.className = 'alert alert-success mt-3';
+          toast.textContent = 'Imported 2 of 2 leads (demo)';
+          importForm.appendChild(toast);
+        }, 1000);
+      });
+    }
+  });
+  
+</script>
+{% endblock %}
+
+

@@ -1,0 +1,296 @@
+{% extends "dashboard/dashboard_base.html" %}
+{% block title %}Accounts - Sujata Associates{% endblock %}
+
+{% block content %}
+<div class="dashboard-header">
+  <h1>Accounts</h1>
+  <p class="text-muted">Client receivables and Employee account details</p>
+  
+</div>
+
+<style>
+  .nav-tabs .nav-link { color: #000 !important; }
+  .nav-tabs .nav-link.active { color: #000 !important; }
+  .nav-tabs .nav-link:hover { color: #fff !important; background-color: var(--primary-color) !important; }
+  /* right align the Actions column contents */
+  table .btn { padding: .25rem .5rem; }
+  td:last-child { width: 120px; }
+
+  /* Mobile card layout for tables */
+  @media (max-width: 768px) {
+    .accounts-table { border: 0; }
+    .accounts-table thead { display: none; }
+    .accounts-table tbody tr { display: block; margin: 0 0 1rem 0; border: 1px solid #eee; border-radius: 10px; background: #fff; }
+    .accounts-table tbody tr td { display: flex; justify-content: space-between; align-items: center; gap: 1rem; padding: .5rem 1rem; border-bottom: 1px solid #f1f1f1; }
+    .accounts-table tbody tr td:last-child { border-bottom: 0; }
+    .accounts-table tbody tr td::before { content: attr(data-label); font-weight: 600; color: #666; }
+    .accounts-table .d-flex { justify-content: flex-start !important; }
+  }
+</style>
+
+<ul class="nav nav-tabs" id="accountsTabs" role="tablist">
+  <li class="nav-item" role="presentation">
+    <button class="nav-link active" id="clients-tab" data-bs-toggle="tab" data-bs-target="#clients" type="button" role="tab">Clients</button>
+  </li>
+  <li class="nav-item" role="presentation">
+    <button class="nav-link" id="employees-tab" data-bs-toggle="tab" data-bs-target="#employees" type="button" role="tab">Employees</button>
+  </li>
+</ul>
+
+<div class="tab-content pt-3" id="accountsTabsContent">
+  <!-- Clients Tab -->
+  <div class="tab-pane fade show active" id="clients" role="tabpanel" aria-labelledby="clients-tab">
+    <div class="card">
+      <div class="card-header d-flex align-items-center justify-content-between">
+        <h5 class="mb-0">Client Accounts</h5>
+        <div class="d-flex gap-2">
+          <input type="search" class="form-control form-control-sm" style="max-width: 240px;" placeholder="Search client, email, invoice...">
+          <button class="btn btn-sm btn-outline-primary"><i class="bi bi-funnel"></i> Filter</button>
+          <button class="btn btn-sm btn-outline-primary"><i class="bi bi-download"></i> Export</button>
+        </div>
+      </div>
+      <div class="card-body p-0">
+        <div class="table-responsive">
+          <table class="table table-hover align-middle mb-0 accounts-table clients-table">
+            <thead class="table-light">
+              <tr>
+                <th>Client</th>
+                <th>Email</th>
+                <th>Phone</th>
+                <th>Total Quoted</th>
+                <th>Amount Invoiced</th>
+                <th>Amount Received</th>
+                <th>Outstanding</th>
+                <th>Last Payment</th>
+                <th>Status</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              <!-- Demo rows -->
+              <tr>
+                <td data-label="Client">Acme Ltd</td>
+                <td data-label="Email">accounts@acme.com</td>
+                <td data-label="Phone">+91 98765 43210</td>
+                <td data-label="Total Quoted">₹ 3,50,000</td>
+                <td data-label="Amount Invoiced">₹ 3,00,000</td>
+                <td data-label="Amount Received">₹ 2,20,000</td>
+                <td data-label="Outstanding"><span class="text-danger fw-semibold">₹ 80,000</span></td>
+                <td data-label="Last Payment">12 Oct 2025</td>
+                <td data-label="Status"><span class="badge bg-warning text-dark">Partially Paid</span></td>
+                <td data-label="Actions">
+                  <div class="d-flex justify-content-end gap-2">
+                    <button class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" data-bs-target="#clientDetailModal" data-bs-title="View">
+                      <i class="bi bi-eye"></i>
+                    </button>
+                    <button class="btn btn-sm btn-outline-primary" data-bs-title="Edit">
+                      <i class="bi bi-pencil"></i>
+                    </button>
+                  </div>
+                </td>
+              </tr>
+              <tr>
+                <td data-label="Client">BrightWorks</td>
+                <td data-label="Email">ap@brightworks.com</td>
+                <td data-label="Phone">+91 99887 66554</td>
+                <td data-label="Total Quoted">₹ 1,80,000</td>
+                <td data-label="Amount Invoiced">₹ 1,80,000</td>
+                <td data-label="Amount Received">₹ 1,80,000</td>
+                <td data-label="Outstanding"><span class="text-success fw-semibold">₹ 0</span></td>
+                <td data-label="Last Payment">28 Sep 2025</td>
+                <td data-label="Status"><span class="badge bg-success">Paid</span></td>
+                <td data-label="Actions">
+                  <div class="d-flex justify-content-end gap-2">
+                    <button class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" data-bs-target="#clientDetailModal" data-bs-title="View">
+                      <i class="bi bi-eye"></i>
+                    </button>
+                    <button class="btn btn-sm btn-outline-primary" data-bs-title="Edit">
+                      <i class="bi bi-pencil"></i>
+                    </button>
+                  </div>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+      <div class="card-footer d-flex justify-content-between align-items-center">
+        <div class="small text-muted">Showing 1–2 of 2</div>
+        <nav>
+          <ul class="pagination pagination-sm mb-0">
+            <li class="page-item disabled"><span class="page-link">Prev</span></li>
+            <li class="page-item active"><span class="page-link">1</span></li>
+            <li class="page-item disabled"><span class="page-link">Next</span></li>
+          </ul>
+        </nav>
+      </div>
+    </div>
+
+    <!-- Client Detail Modal -->
+    <div class="modal fade" id="clientDetailModal" tabindex="-1" aria-hidden="true">
+      <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title"><i class="bi bi-person-badge"></i> Client Account</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+          </div>
+          <div class="modal-body">
+            <div class="row g-3">
+              <div class="col-md-6"><strong>Client:</strong> Acme Ltd</div>
+              <div class="col-md-6"><strong>Email:</strong> accounts@acme.com</div>
+              <div class="col-md-6"><strong>Total Quoted:</strong> ₹ 3,50,000</div>
+              <div class="col-md-6"><strong>Amount Invoiced:</strong> ₹ 3,00,000</div>
+              <div class="col-md-6"><strong>Amount Received:</strong> ₹ 2,20,000</div>
+              <div class="col-md-6"><strong>Outstanding:</strong> ₹ 80,000</div>
+            </div>
+
+            <hr>
+            <h6 class="mb-2">Recent Invoices</h6>
+            <div class="table-responsive">
+              <table class="table table-sm table-striped">
+                <thead>
+                  <tr>
+                    <th>#</th><th>Date</th><th>Amount</th><th>Paid</th><th>Balance</th><th>Status</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr><td>INV-1012</td><td>10 Oct 2025</td><td>₹ 40,000</td><td>₹ 0</td><td>₹ 40,000</td><td><span class="badge bg-danger">Unpaid</span></td></tr>
+                  <tr><td>INV-1008</td><td>20 Sep 2025</td><td>₹ 1,20,000</td><td>₹ 1,20,000</td><td>₹ 0</td><td><span class="badge bg-success">Paid</span></td></tr>
+                </tbody>
+              </table>
+            </div>
+
+            <h6 class="mt-3 mb-2">Quote Summary</h6>
+            <ul class="mb-0">
+              <li>Quotes sent: 3 (₹ 3,50,000 total)</li>
+              <li>Accepted: 2 (₹ 3,00,000), Rejected: 1 (₹ 50,000)</li>
+            </ul>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Close</button>
+            <button type="button" class="btn btn-primary"><i class="bi bi-plus"></i> Add Payment</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Employees Tab -->
+  <div class="tab-pane fade" id="employees" role="tabpanel" aria-labelledby="employees-tab">
+    <div class="card">
+      <div class="card-header d-flex align-items-center justify-content-between">
+        <h5 class="mb-0">Employee Account Details</h5>
+        <div class="d-flex gap-2">
+          <input type="search" class="form-control form-control-sm" style="max-width: 220px;" placeholder="Search employee, dept, UPI...">
+          <button class="btn btn-sm btn-outline-primary"><i class="bi bi-download"></i> Export</button>
+        </div>
+      </div>
+      <div class="card-body p-0">
+        <div class="table-responsive">
+          <table class="table table-hover align-middle mb-0 accounts-table employees-table">
+            <thead class="table-light">
+              <tr>
+                <th>Employee</th>
+                <th>Dept</th>
+                <th>Email</th>
+                <th>Phone</th>
+                <th>Bank</th>
+                <th>Account No.</th>
+                <th>IFSC</th>
+                <th>UPI</th>
+                <th>Salary</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td data-label="Employee">Ajay Kumar</td>
+                <td data-label="Dept">Sales</td>
+                <td data-label="Email">ajay@sujataassociates.com</td>
+                <td data-label="Phone">+91 98989 98989</td>
+                <td data-label="Bank">HDFC Bank</td>
+                <td data-label="Account No.">1234 5678 9012</td>
+                <td data-label="IFSC">HDFC0001234</td>
+                <td data-label="UPI">ajay@okhdfc</td>
+                <td data-label="Salary">₹ 45,000</td>
+                <td data-label="Actions">
+                  <div class="d-flex justify-content-end gap-2">
+                    <button class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" data-bs-target="#employeeDetailModal" data-bs-title="View">
+                      <i class="bi bi-eye"></i>
+                    </button>
+                    <button class="btn btn-sm btn-outline-primary" data-bs-title="Edit">
+                      <i class="bi bi-pencil"></i>
+                    </button>
+                  </div>
+                </td>
+              </tr>
+              <tr>
+                <td data-label="Employee">Neha Gupta</td>
+                <td data-label="Dept">Accounts</td>
+                <td data-label="Email">neha@sujataassociates.com</td>
+                <td data-label="Phone">+91 90000 11111</td>
+                <td data-label="Bank">ICICI Bank</td>
+                <td data-label="Account No.">9988 7766 5544</td>
+                <td data-label="IFSC">ICIC0009876</td>
+                <td data-label="UPI">neha@okicici</td>
+                <td data-label="Salary">₹ 52,000</td>
+                <td data-label="Actions">
+                  <div class="d-flex justify-content-end gap-2">
+                    <button class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" data-bs-target="#employeeDetailModal" data-bs-title="View">
+                      <i class="bi bi-eye"></i>
+                    </button>
+                    <button class="btn btn-sm btn-outline-primary" data-bs-title="Edit">
+                      <i class="bi bi-pencil"></i>
+                    </button>
+                  </div>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+      <div class="card-footer d-flex justify-content-between align-items-center">
+        <div class="small text-muted">Showing 1–2 of 2</div>
+        <nav>
+          <ul class="pagination pagination-sm mb-0">
+            <li class="page-item disabled"><span class="page-link">Prev</span></li>
+            <li class="page-item active"><span class="page-link">1</span></li>
+            <li class="page-item disabled"><span class="page-link">Next</span></li>
+          </ul>
+        </nav>
+      </div>
+    </div>
+
+    <!-- Employee Detail Modal -->
+    <div class="modal fade" id="employeeDetailModal" tabindex="-1" aria-hidden="true">
+      <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title"><i class="bi bi-person-vcard"></i> Employee Account</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+          </div>
+          <div class="modal-body">
+            <div class="row g-3">
+              <div class="col-md-4"><strong>Name:</strong> Ajay Kumar</div>
+              <div class="col-md-4"><strong>Dept:</strong> Sales</div>
+              <div class="col-md-4"><strong>Email:</strong> ajay@sujataassociates.com</div>
+              <div class="col-md-4"><strong>Phone:</strong> +91 98989 98989</div>
+              <div class="col-md-4"><strong>Bank:</strong> HDFC Bank</div>
+              <div class="col-md-4"><strong>Account No.:</strong> 1234 5678 9012</div>
+              <div class="col-md-4"><strong>IFSC:</strong> HDFC0001234</div>
+              <div class="col-md-4"><strong>UPI:</strong> ajay@okhdfc</div>
+              <div class="col-md-4"><strong>Salary:</strong> ₹ 45,000</div>
+            </div>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Close</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+{% endblock %}
+
+

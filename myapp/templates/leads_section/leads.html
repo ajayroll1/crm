@@ -3,9 +3,14 @@
 
 
 {% block content %}
-<div class="dashboard-header">
-  <h1>Leads</h1>
-  <p class="text-muted">Add new leads and manage them here</p>
+<div class="dashboard-header d-flex align-items-center justify-content-between">
+  <div>
+    <h1>Leads</h1>
+    <p class="text-muted">Add new leads and manage them here</p>
+  </div>
+  <div class="d-flex gap-2">
+    <a href="{% url 'leads_import_export' %}" class="btn btn-outline-primary btn-sm"><i class="bi bi-upload"></i> Import/Export</a>
+  </div>
 </div>
 
 <!-- Local style override: keep tab text black by default and when active -->
@@ -251,8 +256,48 @@
         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
       </div>
       <div class="modal-body">
-        <div class="row g-3" id="leadDetails">
-          <!-- populated by JS -->
+        <ul class="nav nav-tabs" id="leadDetailTabs" role="tablist">
+          <li class="nav-item" role="presentation">
+            <button class="nav-link active" id="overview-tab" data-bs-toggle="tab" data-bs-target="#ld-overview" type="button" role="tab">Overview</button>
+          </li>
+          <li class="nav-item" role="presentation">
+            <button class="nav-link" id="activity-tab" data-bs-toggle="tab" data-bs-target="#ld-activity" type="button" role="tab">Activity</button>
+          </li>
+          <li class="nav-item" role="presentation">
+            <button class="nav-link" id="files-tab" data-bs-toggle="tab" data-bs-target="#ld-files" type="button" role="tab">Files</button>
+          </li>
+          <li class="nav-item" role="presentation">
+            <button class="nav-link" id="history-tab" data-bs-toggle="tab" data-bs-target="#ld-history" type="button" role="tab">History</button>
+          </li>
+        </ul>
+        <div class="tab-content pt-3">
+          <div class="tab-pane fade show active" id="ld-overview" role="tabpanel">
+            <div class="row g-3" id="leadDetails"></div>
+            <div class="d-flex gap-2 mt-3">
+              <button class="btn btn-outline-primary btn-sm" id="ld-change-stage"><i class="bi bi-arrow-left-right"></i> Change Stage</button>
+              <button class="btn btn-outline-primary btn-sm" id="ld-assign-owner"><i class="bi bi-person-check"></i> Assign</button>
+              <button class="btn btn-outline-primary btn-sm" id="ld-schedule"><i class="bi bi-calendar-event"></i> Schedule</button>
+              <button class="btn btn-outline-primary btn-sm" id="ld-add-note"><i class="bi bi-journal-plus"></i> Add Note</button>
+            </div>
+          </div>
+          <div class="tab-pane fade" id="ld-activity" role="tabpanel">
+            <div class="list-group small" id="ld-activity-list">
+              <div class="list-group-item">[Demo] 10:30 AM - Note added by Ajay</div>
+              <div class="list-group-item">[Demo] Yesterday - Email sent</div>
+            </div>
+          </div>
+          <div class="tab-pane fade" id="ld-files" role="tabpanel">
+            <div class="border rounded p-3 text-center">
+              <p class="mb-2">Drag & drop files here</p>
+              <input type="file" class="form-control" multiple>
+            </div>
+          </div>
+          <div class="tab-pane fade" id="ld-history" role="tabpanel">
+            <ul class="small mb-0">
+              <li>[Demo] Stage changed Prospect → Proposal</li>
+              <li>[Demo] Owner assigned to Vikas</li>
+            </ul>
+          </div>
         </div>
       </div>
       <div class="modal-footer">
@@ -395,7 +440,7 @@
       filterForm.addEventListener('submit', function (e) {
         e.preventDefault();
         const type = filterForm.querySelector('[name="filter_type"]:checked').value;
-        const date = filterForm.querySelector('[name="single_date"]').value;
+        const date = filterForm.querySelector('[name="single_date"]').value; // format YYYY-MM-DD
         const month = filterForm.querySelector('[name="month"]').value; // format YYYY-MM
         const year = filterForm.querySelector('[name="year"]').value;   // format YYYY
         const from = filterForm.querySelector('[name="from_date"]').value;
@@ -488,7 +533,8 @@
               <div class="col-md-6"><strong>Email:</strong> ${data.email}</div>
               <div class="col-md-6"><strong>Phone:</strong> ${data.phone}</div>
               <div class="col-md-6"><strong>Owner:</strong> ${data.owner}</div>
-              <div class="col-md-6"><strong>Priority:</strong> ${data.priority}</div>
+              <div class="col-md-3"><strong>Priority:</strong> ${data.priority}</div>
+              <div class="col-md-3"><strong>Stage:</strong> Proposal</div>
               <div class="col-md-6"><strong>Next Action:</strong> ${data.nextAction}</div>
               <div class="col-md-6"><strong>Due:</strong> ${data.dueText}</div>
             `;
@@ -535,3 +581,5 @@
   });
 </script>
 {% endblock %}
+
+

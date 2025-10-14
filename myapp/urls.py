@@ -11,7 +11,10 @@ urlpatterns =[
   path('quote/',views.quote,name='quote'),
   path('dashboard/',views.dashboard,name='dashboard'),
   path('leads/',views.leads,name='leads'),
+  path('leads/import-export/',views.leads_import_export,name='leads_import_export'),
   path('quotes/',views.quotes,name='quotes'),
+  path('accounts/',views.accounts,name='accounts'),
+  path('employees/',views.employees,name='employees'),
   
 
   

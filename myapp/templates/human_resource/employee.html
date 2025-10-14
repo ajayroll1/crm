@@ -1,0 +1,501 @@
+{% extends "dashboard/dashboard_base.html"%}
+{% block title %}Employees -Sujata Associates{% endblock%}
+
+{% block content %}
+<div class="dashboard-header">
+  <h1>Employee Master</h1>
+  <p class="text-muted">Add and manage complete employee records</p>
+</div>
+
+<style>
+  .nav-tabs .nav-link { color: #000 !important; }
+  .nav-tabs .nav-link.active { color: #000 !important; }
+  .nav-tabs .nav-link:hover { color: #fff !important; background-color: var(--primary-color) !important; }
+  .form-section-title { font-weight: 600; margin: .25rem 0 1rem; color: var(--primary-color); }
+  /* Mobile responsiveness */
+  .tab-content .card { border-radius: 10px; }
+  .tab-content .card-header { background: #fff; }
+  /* Make tabs horizontally scrollable on mobile */
+  @media (max-width: 768px){
+    /* Hide desktop tabs; use dropdown menu */
+    #empTabs { display: none !important; }
+    .emp-tabs-menu { display: block; }
+    .card-body .row.g-3 > [class*="col-"] { padding-bottom: .25rem; }
+    /* Ensure inputs and selects are comfortably tappable */
+    .form-control, .form-select { font-size: 16px; }
+    /* Reduce inner spacing a bit for small screens */
+    .card-body { padding: .75rem !important; }
+    .card-header { padding: .75rem 1rem !important; }
+    .dashboard-header { padding: 0 0 .5rem 0; margin-bottom: 1rem; }
+    .dashboard-header h1 { font-size: 1.5rem; }
+    label.form-label { margin-bottom: .25rem; }
+    /* Avoid overflow of long values */
+    input, select, textarea { word-break: break-word; }
+    /* Two-column rows collapse to one on small screens (safety even if classes change) */
+    .row.g-3 > [class*="col-md-"] { flex: 0 0 100%; max-width: 100%; }
+    /* File inputs spacing */
+    input[type="file"].form-control { padding-top: .4rem; padding-bottom: .4rem; }
+  }
+
+  /* Extra-small devices */
+  @media (max-width: 576px){
+    #empTabs .nav-link { font-size: .9rem; }
+    .form-section-title { font-size: .95rem; }
+  }
+</style>
+
+<!-- Mobile tabs hamburger -->
+<div class="d-md-none mb-2 emp-tabs-menu">
+  <div class="dropdown">
+    <button class="btn btn-outline-primary btn-sm dropdown-toggle w-100" type="button" id="empTabsMenuBtn" data-bs-toggle="dropdown" aria-expanded="false">
+      Sections
+    </button>
+    <ul class="dropdown-menu w-100" aria-labelledby="empTabsMenuBtn">
+      <li><a class="dropdown-item" data-tab="#personal" href="#">Personal</a></li>
+      <li><a class="dropdown-item" data-tab="#job" href="#">Job</a></li>
+      <li><a class="dropdown-item" data-tab="#payroll" href="#">Payroll</a></li>
+      <li><a class="dropdown-item" data-tab="#banking" href="#">Banking</a></li>
+      <li><a class="dropdown-item" data-tab="#tax" href="#">Tax/IDs</a></li>
+      <li><a class="dropdown-item" data-tab="#docs" href="#">Documents</a></li>
+      <li><a class="dropdown-item" data-tab="#emergency" href="#">Emergency</a></li>
+      <li><a class="dropdown-item" data-tab="#assets" href="#">Assets</a></li>
+      <li><a class="dropdown-item" data-tab="#access" href="#">Access</a></li>
+      <li><a class="dropdown-item" data-tab="#notes" href="#">Notes</a></li>
+    </ul>
+  </div>
+</div>
+
+<ul class="nav nav-tabs d-none d-md-flex" id="empTabs" role="tablist">
+  <li class="nav-item" role="presentation">
+    <button class="nav-link active" id="personal-tab" data-bs-toggle="tab" data-bs-target="#personal" type="button" role="tab">Personal</button>
+  </li>
+  <li class="nav-item" role="presentation">
+    <button class="nav-link" id="job-tab" data-bs-toggle="tab" data-bs-target="#job" type="button" role="tab">Job</button>
+  </li>
+  <li class="nav-item" role="presentation">
+    <button class="nav-link" id="payroll-tab" data-bs-toggle="tab" data-bs-target="#payroll" type="button" role="tab">Payroll</button>
+  </li>
+  <li class="nav-item" role="presentation">
+    <button class="nav-link" id="banking-tab" data-bs-toggle="tab" data-bs-target="#banking" type="button" role="tab">Banking</button>
+  </li>
+  <li class="nav-item" role="presentation">
+    <button class="nav-link" id="tax-tab" data-bs-toggle="tab" data-bs-target="#tax" type="button" role="tab">Tax/IDs</button>
+  </li>
+  <li class="nav-item" role="presentation">
+    <button class="nav-link" id="docs-tab" data-bs-toggle="tab" data-bs-target="#docs" type="button" role="tab">Documents</button>
+  </li>
+  <li class="nav-item" role="presentation">
+    <button class="nav-link" id="emergency-tab" data-bs-toggle="tab" data-bs-target="#emergency" type="button" role="tab">Emergency</button>
+  </li>
+  <li class="nav-item" role="presentation">
+    <button class="nav-link" id="assets-tab" data-bs-toggle="tab" data-bs-target="#assets" type="button" role="tab">Assets</button>
+  </li>
+  <li class="nav-item" role="presentation">
+    <button class="nav-link" id="access-tab" data-bs-toggle="tab" data-bs-target="#access" type="button" role="tab">Access</button>
+  </li>
+  <li class="nav-item" role="presentation">
+    <button class="nav-link" id="notes-tab" data-bs-toggle="tab" data-bs-target="#notes" type="button" role="tab">Notes</button>
+  </li>
+</ul>
+
+<form id="employeeForm" class="mt-3" novalidate>
+  <div class="tab-content" id="empTabsContent">
+    <!-- Personal -->
+    <div class="tab-pane fade show active" id="personal" role="tabpanel">
+      <div class="card">
+        <div class="card-header"><h6 class="form-section-title">Personal Information</h6></div>
+        <div class="card-body">
+          <div class="row g-3">
+            <div class="col-md-4">
+              <label class="form-label">First Name<span class="text-danger">*</span></label>
+              <input type="text" class="form-control" name="first_name" required>
+            </div>
+            <div class="col-md-4">
+              <label class="form-label">Last Name<span class="text-danger">*</span></label>
+              <input type="text" class="form-control" name="last_name" required>
+            </div>
+            <div class="col-md-4">
+              <label class="form-label">Employee Code</label>
+              <input type="text" class="form-control" name="emp_code" placeholder="EMP-0012">
+            </div>
+
+            <div class="col-md-3">
+              <label class="form-label">Gender</label>
+              <select class="form-select" name="gender">
+                <option value="">Select</option>
+                <option>Male</option>
+                <option>Female</option>
+                <option>Other</option>
+              </select>
+            </div>
+            <div class="col-md-3">
+              <label class="form-label">Date of Birth</label>
+              <input type="date" class="form-control" name="dob">
+            </div>
+            <div class="col-md-3">
+              <label class="form-label">Email<span class="text-danger">*</span></label>
+              <input type="email" class="form-control" name="email" required>
+            </div>
+            <div class="col-md-3">
+              <label class="form-label">Phone<span class="text-danger">*</span></label>
+              <input type="tel" class="form-control" name="phone" required>
+            </div>
+
+            <div class="col-md-6">
+              <label class="form-label">Current Address</label>
+              <input type="text" class="form-control" name="address_current" placeholder="Street, City, State, PIN">
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">Permanent Address</label>
+              <input type="text" class="form-control" name="address_permanent" placeholder="Street, City, State, PIN">
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Job -->
+    <div class="tab-pane fade" id="job" role="tabpanel">
+      <div class="card">
+        <div class="card-header"><h6 class="form-section-title">Job Details</h6></div>
+        <div class="card-body">
+          <div class="row g-3">
+            <div class="col-md-4">
+              <label class="form-label">Designation<span class="text-danger">*</span></label>
+              <input type="text" class="form-control" name="designation" required>
+            </div>
+            <div class="col-md-4">
+              <label class="form-label">Department<span class="text-danger">*</span></label>
+              <input type="text" class="form-control" name="department" required>
+            </div>
+            <div class="col-md-4">
+              <label class="form-label">Reporting Manager</label>
+              <input type="text" class="form-control" name="manager">
+            </div>
+            <div class="col-md-3">
+              <label class="form-label">Employment Type</label>
+              <select class="form-select" name="employment_type">
+                <option>Full-time</option><option>Part-time</option><option>Contract</option><option>Intern</option>
+              </select>
+            </div>
+            <div class="col-md-3">
+              <label class="form-label">Location</label>
+              <input type="text" class="form-control" name="location" placeholder="Office/Remote/Hybrid">
+            </div>
+            <div class="col-md-3">
+              <label class="form-label">Joining Date</label>
+              <input type="date" class="form-control" name="joining_date">
+            </div>
+            <div class="col-md-3">
+              <label class="form-label">Probation (months)</label>
+              <input type="number" class="form-control" name="probation" min="0" max="12">
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Payroll -->
+    <div class="tab-pane fade" id="payroll" role="tabpanel">
+      <div class="card">
+        <div class="card-header"><h6 class="form-section-title">Payroll</h6></div>
+        <div class="card-body">
+          <div class="row g-3">
+            <div class="col-md-3">
+              <label class="form-label">CTC (Annual)</label>
+              <input type="text" class="form-control" name="ctc" placeholder="₹">
+            </div>
+            <div class="col-md-3">
+              <label class="form-label">Basic</label>
+              <input type="text" class="form-control" name="basic">
+            </div>
+            <div class="col-md-3">
+              <label class="form-label">HRA</label>
+              <input type="text" class="form-control" name="hra">
+            </div>
+            <div class="col-md-3">
+              <label class="form-label">Allowances</label>
+              <input type="text" class="form-control" name="allowances">
+            </div>
+            <div class="col-md-3">
+              <label class="form-label">Deductions</label>
+              <input type="text" class="form-control" name="deductions">
+            </div>
+            <div class="col-md-3">
+              <label class="form-label">Variable/Bonus</label>
+              <input type="text" class="form-control" name="variable">
+            </div>
+            <div class="col-md-3">
+              <label class="form-label">Pay Cycle</label>
+              <select class="form-select" name="pay_cycle"><option>Monthly</option><option>Bi-weekly</option></select>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Banking -->
+    <div class="tab-pane fade" id="banking" role="tabpanel">
+      <div class="card">
+        <div class="card-header"><h6 class="form-section-title">Banking Details</h6></div>
+        <div class="card-body">
+          <div class="row g-3">
+            <div class="col-md-4">
+              <label class="form-label">Bank Name</label>
+              <input type="text" class="form-control" name="bank_name">
+            </div>
+            <div class="col-md-4">
+              <label class="form-label">Account Number</label>
+              <input type="text" class="form-control" name="account_number">
+            </div>
+            <div class="col-md-4">
+              <label class="form-label">IFSC</label>
+              <input type="text" class="form-control" name="ifsc">
+            </div>
+            <div class="col-md-4">
+              <label class="form-label">UPI ID</label>
+              <input type="text" class="form-control" name="upi">
+            </div>
+            <div class="col-md-4">
+              <label class="form-label">PAN</label>
+              <input type="text" class="form-control" name="pan">
+            </div>
+            <div class="col-md-4">
+              <label class="form-label">Aadhaar</label>
+              <input type="text" class="form-control" name="aadhaar">
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Tax/IDs -->
+    <div class="tab-pane fade" id="tax" role="tabpanel">
+      <div class="card">
+        <div class="card-header"><h6 class="form-section-title">Statutory Details</h6></div>
+        <div class="card-body">
+          <div class="row g-3">
+            <div class="col-md-4">
+              <label class="form-label">UAN (PF)</label>
+              <input type="text" class="form-control" name="uan">
+            </div>
+            <div class="col-md-4">
+              <label class="form-label">ESIC No</label>
+              <input type="text" class="form-control" name="esic">
+            </div>
+            <div class="col-md-4">
+              <label class="form-label">GST (if any)</label>
+              <input type="text" class="form-control" name="gst">
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Documents -->
+    <div class="tab-pane fade" id="docs" role="tabpanel">
+      <div class="card">
+        <div class="card-header"><h6 class="form-section-title">Documents</h6></div>
+        <div class="card-body">
+          <div class="row g-3">
+            <div class="col-md-6">
+              <label class="form-label">Aadhaar Card</label>
+              <input type="file" class="form-control" name="doc_aadhaar" accept="image/*,application/pdf">
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">PAN Card</label>
+              <input type="file" class="form-control" name="doc_pan" accept="image/*,application/pdf">
+            </div>
+
+            <div class="col-md-6">
+              <label class="form-label">Bank Passbook/Cancelled Cheque</label>
+              <input type="file" class="form-control" name="doc_bank" accept="image/*,application/pdf">
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">Experience Letter(s)</label>
+              <input type="file" class="form-control" name="doc_experience" multiple accept="image/*,application/pdf">
+            </div>
+
+            <div class="col-md-6">
+              <label class="form-label">Education Certificates (10/12/Graduation)</label>
+              <input type="file" class="form-control" name="doc_education" multiple accept="image/*,application/pdf">
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">Previous Company Offer/Relieving Letter</label>
+              <input type="file" class="form-control" name="doc_prev_offer_relieve" multiple accept="image/*,application/pdf">
+            </div>
+
+            <div class="col-md-6">
+              <label class="form-label">Current Company Offer/Appointment Letter</label>
+              <input type="file" class="form-control" name="doc_current_offer" accept="image/*,application/pdf">
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">Latest Month Salary Slips</label>
+              <input type="file" class="form-control" name="doc_salary_slips" multiple accept="image/*,application/pdf">
+            </div>
+
+            <div class="col-md-12">
+              <label class="form-label">Other Docs / Notes</label>
+              <textarea class="form-control" rows="2" placeholder="Any additional document details"></textarea>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Emergency -->
+    <div class="tab-pane fade" id="emergency" role="tabpanel">
+      <div class="card">
+        <div class="card-header"><h6 class="form-section-title">Emergency Contacts</h6></div>
+        <div class="card-body">
+          <div class="row g-3">
+            <div class="col-md-6">
+              <label class="form-label">Primary Contact Name</label>
+              <input type="text" class="form-control" name="emg_name1">
+            </div>
+            <div class="col-md-3">
+              <label class="form-label">Relation</label>
+              <input type="text" class="form-control" name="emg_relation1">
+            </div>
+            <div class="col-md-3">
+              <label class="form-label">Phone</label>
+              <input type="tel" class="form-control" name="emg_phone1">
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">Secondary Contact Name</label>
+              <input type="text" class="form-control" name="emg_name2">
+            </div>
+            <div class="col-md-3">
+              <label class="form-label">Relation</label>
+              <input type="text" class="form-control" name="emg_relation2">
+            </div>
+            <div class="col-md-3">
+              <label class="form-label">Phone</label>
+              <input type="tel" class="form-control" name="emg_phone2">
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Assets -->
+    <div class="tab-pane fade" id="assets" role="tabpanel">
+      <div class="card">
+        <div class="card-header"><h6 class="form-section-title">Company Assets</h6></div>
+        <div class="card-body">
+          <div class="row g-3">
+            <div class="col-md-4">
+              <label class="form-label">Laptop</label>
+              <input type="text" class="form-control" name="asset_laptop" placeholder="Model / Serial">
+            </div>
+            <div class="col-md-4">
+              <label class="form-label">Phone</label>
+              <input type="text" class="form-control" name="asset_phone" placeholder="Model / Serial">
+            </div>
+            <div class="col-md-4">
+              <label class="form-label">Other</label>
+              <input type="text" class="form-control" name="asset_other" placeholder="Access card, etc.">
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Access -->
+    <div class="tab-pane fade" id="access" role="tabpanel">
+      <div class="card">
+        <div class="card-header"><h6 class="form-section-title">System Access</h6></div>
+        <div class="card-body">
+          <div class="row g-3">
+            <div class="col-md-4">
+              <label class="form-label">Work Email</label>
+              <input type="email" class="form-control" name="work_email">
+            </div>
+            <div class="col-md-4">
+              <label class="form-label">Git/GitHub</label>
+              <input type="text" class="form-control" name="github">
+            </div>
+            <div class="col-md-4">
+              <label class="form-label">Jira/PM Tool</label>
+              <input type="text" class="form-control" name="pm_tool">
+            </div>
+            <div class="col-md-4">
+              <label class="form-label">VPN Access</label>
+              <select class="form-select" name="vpn"><option>Yes</option><option>No</option></select>
+            </div>
+            <div class="col-md-4">
+              <label class="form-label">Access Level</label>
+              <select class="form-select" name="access_level"><option>User</option><option>Manager</option><option>Admin</option></select>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Notes -->
+    <div class="tab-pane fade" id="notes" role="tabpanel">
+      <div class="card">
+        <div class="card-header"><h6 class="form-section-title">Notes & History</h6></div>
+        <div class="card-body">
+          <div class="row g-3">
+            <div class="col-12">
+              <label class="form-label">Notes</label>
+              <textarea class="form-control" rows="3" name="notes"></textarea>
+            </div>
+          </div>
+        </div>
+        <div class="card-footer d-flex justify-content-end gap-2">
+          <button type="reset" class="btn btn-outline-secondary">Reset</button>
+          <button type="submit" class="btn btn-primary"><i class="bi bi-save"></i> Save Employee</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</form>
+
+<script>
+  document.addEventListener('DOMContentLoaded', () => {
+    const form = document.getElementById('employeeForm');
+    if (!form) return;
+    // Mobile tabs menu switching
+    document.querySelectorAll('.emp-tabs-menu .dropdown-item').forEach(item => {
+      item.addEventListener('click', (e) => {
+        e.preventDefault();
+        const target = item.getAttribute('data-tab');
+        const tabBtn = document.querySelector(`[data-bs-target="${target}"]`);
+        if (tabBtn) {
+          const tab = new bootstrap.Tab(tabBtn);
+          tab.show();
+          const label = item.textContent.trim();
+          const btn = document.getElementById('empTabsMenuBtn');
+          if (btn) btn.textContent = label;
+        }
+      });
+    });
+    form.addEventListener('submit', (e) => {
+      const first = form.querySelector('[name="first_name"]').value.trim();
+      const last = form.querySelector('[name="last_name"]').value.trim();
+      const email = form.querySelector('[name="email"]').value.trim();
+      const phone = form.querySelector('[name="phone"]').value.trim();
+      const designation = form.querySelector('[name="designation"]').value.trim();
+      const department = form.querySelector('[name="department"]').value.trim();
+      const messages = [];
+      if (!first) messages.push('First name is required');
+      if (!last) messages.push('Last name is required');
+      if (!email) messages.push('Email is required');
+      if (!phone) messages.push('Phone is required');
+      if (!designation) messages.push('Designation is required');
+      if (!department) messages.push('Department is required');
+      if (messages.length){
+        e.preventDefault();
+        const alert = document.createElement('div');
+        alert.className = 'alert alert-danger';
+        alert.innerHTML = '<strong>Please fix the following:</strong><ul class="mb-0">' + messages.map(m => `<li>${m}</li>`).join('') + '</ul>';
+        form.querySelectorAll('.alert-danger').forEach(x => x.remove());
+        form.querySelector('.tab-pane.active .card-body').prepend(alert);
+        alert.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }
+    });
+  });
+</script>
+{% endblock%}
