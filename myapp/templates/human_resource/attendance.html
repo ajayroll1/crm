@@ -1,0 +1,280 @@
+{% extends "dashboard/dashboard_base.html"%}
+{% block title %}Attendance -Sujata Associates{% endblock%}
+
+{% block content %}
+<div class="dashboard-header">
+  <h1>Attendance</h1>
+  <p class="text-muted">Track daily attendance in a fast, Excel-like grid</p>
+  <div class="d-flex flex-wrap gap-2">
+    <div class="input-group input-group-sm" style="max-width: 280px;">
+      <span class="input-group-text"><i class="bi bi-calendar3"></i></span>
+      <input id="monthPicker" type="month" class="form-control">
+    </div>
+    <div class="btn-group btn-group-sm" role="group">
+      <button id="btnExportCsv" class="btn btn-outline-primary"><i class="bi bi-download"></i> Export CSV</button>
+      <label class="btn btn-outline-secondary mb-0" for="importCsvInput"><i class="bi bi-upload"></i> Import CSV</label>
+      <input id="importCsvInput" type="file" accept=".csv" hidden>
+    </div>
+  </div>
+</div>
+
+<style>
+  .att-wrapper { display: grid; grid-template-columns: 320px 1fr; gap: 1rem; }
+  .employee-list { height: 70vh; overflow: auto; }
+  .sheet-wrap { height: 70vh; overflow: auto; border: 1px solid #dee2e6; border-radius: 8px; background: #fff; }
+  .sheet { min-width: 720px; }
+  .sheet thead th { position: sticky; top: 0; z-index: 2; background: #f8f9fa; }
+  .sheet .freeze-col { position: sticky; left: 0; z-index: 3; background: #fff; box-shadow: 2px 0 0 rgba(0,0,0,.05); }
+  .sheet td, .sheet th { white-space: nowrap; }
+  .status-badge { font-size: .7rem; }
+  @media (max-width: 992px){ .att-wrapper { grid-template-columns: 1fr; } .employee-list, .sheet-wrap { height: auto; } }
+</style>
+
+<ul class="nav nav-tabs" id="attendanceTabs" role="tablist">
+  <li class="nav-item" role="presentation">
+    <button class="nav-link active" id="all-tab" data-bs-toggle="tab" data-bs-target="#allEmployees" type="button" role="tab">All Employees</button>
+  </li>
+</ul>
+
+<div class="tab-content mt-3">
+  <div class="tab-pane fade show active" id="allEmployees" role="tabpanel">
+    <div class="att-wrapper">
+      <!-- Left: Employees -->
+      <div class="card">
+        <div class="card-header d-flex justify-content-between align-items-center">
+          <h6 class="mb-0">Employees</h6>
+          <div class="input-group input-group-sm" style="max-width: 220px;">
+            <span class="input-group-text"><i class="bi bi-search"></i></span>
+            <input id="empSearch" class="form-control" placeholder="Search name or dept">
+          </div>
+        </div>
+        <div id="employeeList" class="list-group list-group-flush employee-list"></div>
+      </div>
+
+      <!-- Right: Excel-like sheet -->
+      <div class="card">
+        <div class="card-header d-flex align-items-center gap-2 flex-wrap">
+          <h6 class="mb-0">Attendance Sheet</h6>
+          <div class="ms-auto d-flex gap-2">
+            <div class="form-check form-switch">
+              <input class="form-check-input" type="checkbox" id="toggleWeekends" checked>
+              <label class="form-check-label" for="toggleWeekends">Show weekends</label>
+            </div>
+          </div>
+        </div>
+        <div class="sheet-wrap">
+          <table id="attSheet" class="table table-sm table-bordered align-middle sheet mb-0">
+            <thead></thead>
+            <tbody></tbody>
+          </table>
+        </div>
+        <div class="card-footer text-muted small">Tap cell to cycle: P (Present) / A (Absent) / L (Leave) / H (Half)</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  document.addEventListener('DOMContentLoaded', () => {
+    // Demo employee data; replace with backend data later
+    const employees = [
+      { id: 1, name: 'John Doe', department: 'IT' },
+      { id: 2, name: 'Jane Smith', department: 'Operations' },
+      { id: 3, name: 'Mike Johnson', department: 'HR' },
+      { id: 4, name: 'Priya Sharma', department: 'Finance' },
+      { id: 5, name: 'Arun Kumar', department: 'Sales' }
+    ];
+
+    const monthPicker = document.getElementById('monthPicker');
+    // Determine latest month from storage, else default to current month
+    const lsKeys = Object.keys(localStorage).filter(k => k.startsWith('attendance_month_'));
+    const latestKey = lsKeys.sort().pop();
+    const today = new Date();
+    const defaultMonth = `${today.getFullYear()}-${String(today.getMonth()+1).padStart(2,'0')}`;
+    monthPicker.value = latestKey ? latestKey.replace('attendance_month_','') : defaultMonth;
+
+    const employeeListEl = document.getElementById('employeeList');
+    const empSearch = document.getElementById('empSearch');
+    const sheet = document.getElementById('attSheet');
+    const showWeekends = document.getElementById('toggleWeekends');
+    const importCsvInput = document.getElementById('importCsvInput');
+    const exportBtn = document.getElementById('btnExportCsv');
+
+    // In-memory attendance map: key `${empId}_${YYYY-MM-DD}` -> value 'P'|'A'|'L'|'H'
+    let attendance = {};
+
+    function storageKeyForMonth(){
+      return `attendance_month_${monthPicker.value}`;
+    }
+
+    function loadMonthFromStorage(){
+      try {
+        const raw = localStorage.getItem(storageKeyForMonth());
+        attendance = raw ? JSON.parse(raw) : {};
+      } catch { attendance = {}; }
+    }
+
+    function saveMonthToStorage(){
+      try { localStorage.setItem(storageKeyForMonth(), JSON.stringify(attendance)); } catch {}
+    }
+
+    function getDays(year, month){
+      const d = new Date(year, month, 0).getDate();
+      const list = [];
+      for(let i=1;i<=d;i++){
+        const date = new Date(year, month-1, i);
+        list.push({
+          day: i,
+          dateStr: `${year}-${String(month).padStart(2,'0')}-${String(i).padStart(2,'0')}`,
+          dow: date.getDay() // 0 Sun ... 6 Sat
+        });
+      }
+      return list;
+    }
+
+    function renderEmployees(filter=''){
+      const q = filter.trim().toLowerCase();
+      employeeListEl.innerHTML = '';
+      employees
+        .filter(e => !q || `${e.name} ${e.department}`.toLowerCase().includes(q))
+        .forEach(e => {
+          const initials = e.name.split(' ').map(p=>p[0]).slice(0,2).join('').toUpperCase();
+          const item = document.createElement('button');
+          item.type = 'button';
+          item.className = 'list-group-item list-group-item-action d-flex align-items-center gap-2';
+          item.dataset.empId = e.id;
+          item.innerHTML = `
+            <div class="rounded-circle bg-primary text-white d-flex align-items-center justify-content-center" style="width:32px;height:32px;">${initials}</div>
+            <div class="text-start flex-grow-1">
+              <div class="fw-semibold">${e.name}</div>
+              <small class="text-muted">${e.department}</small>
+            </div>
+            <span class="badge bg-light text-dark border">ID ${e.id}</span>
+          `;
+          item.addEventListener('click', () => {
+            // Scroll to employee row in sheet
+            const row = sheet.querySelector(`tbody tr[data-emp-id="${e.id}"]`);
+            if (row) row.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            row?.classList.add('table-active');
+            setTimeout(()=>row?.classList.remove('table-active'), 800);
+          });
+          employeeListEl.appendChild(item);
+        });
+    }
+
+    function renderSheet(){
+      const [y,m] = monthPicker.value.split('-').map(Number);
+      const days = getDays(y,m).filter(d => showWeekends.checked || (d.dow !== 0 && d.dow !== 6));
+
+      // Header
+      const thead = sheet.querySelector('thead');
+      const headTop = document.createElement('tr');
+      headTop.innerHTML = `<th class="freeze-col" rowspan="2">Employee</th>${days.map(d=>`<th class="text-center">${String(d.day).padStart(2,'0')}</th>`).join('')}`;
+      const headBottom = document.createElement('tr');
+      headBottom.innerHTML = `${days.map(d=>`<th class="text-center text-muted">${['Sun','Mon','Tue','Wed','Thu','Fri','Sat'][d.dow]}</th>`).join('')}`;
+      thead.innerHTML = '';
+      thead.appendChild(headTop);
+      thead.appendChild(headBottom);
+
+      // Body
+      const tbody = sheet.querySelector('tbody');
+      tbody.innerHTML = '';
+      employees.forEach(e => {
+        const tr = document.createElement('tr');
+        tr.dataset.empId = e.id;
+        const nameCell = document.createElement('td');
+        nameCell.className = 'freeze-col';
+        nameCell.innerHTML = `<div class="fw-semibold">${e.name}</div><small class="text-muted">${e.department}</small>`;
+        tr.appendChild(nameCell);
+        days.forEach(d => {
+          const key = `${e.id}_${d.dateStr}`;
+          const td = document.createElement('td');
+          td.className = 'text-center';
+          td.tabIndex = 0;
+          td.dataset.date = d.dateStr;
+          td.dataset.empId = e.id;
+          td.textContent = attendance[key] || '';
+          applyCellStyle(td);
+          td.addEventListener('click', () => cycle(td));
+          td.addEventListener('keydown', (ev) => { if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); cycle(td); } });
+          tr.appendChild(td);
+        });
+        tbody.appendChild(tr);
+      });
+    }
+
+    function cycle(td){
+      const seq = ['', 'P', 'A', 'L', 'H'];
+      const cur = td.textContent || '';
+      const next = seq[(seq.indexOf(cur) + 1) % seq.length];
+      td.textContent = next;
+      const key = `${td.dataset.empId}_${td.dataset.date}`;
+      if (next) attendance[key] = next; else delete attendance[key];
+      applyCellStyle(td);
+      saveMonthToStorage();
+    }
+
+    function applyCellStyle(td){
+      td.classList.remove('table-danger','table-warning');
+      td.style.backgroundColor = '';
+      const val = (td.textContent || '').toUpperCase();
+      if (val === 'A') {
+        // Absent -> red
+        td.classList.add('table-danger');
+        if (!('CSS' in window)) td.style.backgroundColor = '#f8d7da';
+      } else if (val === 'L') {
+        // Leave -> yellow
+        td.classList.add('table-warning');
+        if (!('CSS' in window)) td.style.backgroundColor = '#fff3cd';
+      }
+    }
+
+    // CSV export/import
+    exportBtn.addEventListener('click', () => {
+      const [y,m] = monthPicker.value.split('-');
+      const rows = [['emp_id','date','status']];
+      Object.entries(attendance).forEach(([k,v]) => {
+        const [empId, date] = k.split('_');
+        if (date.startsWith(`${y}-${m}`)) rows.push([empId,date,v]);
+      });
+      const csv = rows.map(r => r.map(x=>`"${String(x).replaceAll('"','""')}"`).join(',')).join('\n');
+      const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url; a.download = `attendance_${y}-${m}.csv`; a.click();
+      URL.revokeObjectURL(url);
+    });
+
+    importCsvInput.addEventListener('change', async (e) => {
+      const file = e.target.files?.[0];
+      if (!file) return;
+      const text = await file.text();
+      const lines = text.split(/\r?\n/).filter(Boolean);
+      const header = lines.shift();
+      if (!header) return;
+      lines.forEach(line => {
+        const cols = line.split(',').map(s => s.replace(/^\"|\"$/g,'').replaceAll('""','"'));
+        const [emp_id, date, status] = cols;
+        if (emp_id && date) attendance[`${emp_id}_${date}`] = status || '';
+      });
+      loadMonthFromStorage();
+      renderSheet();
+      saveMonthToStorage();
+      e.target.value = '';
+    });
+
+    // Re-render on changes
+    monthPicker.addEventListener('change', () => { loadMonthFromStorage(); renderSheet(); });
+    showWeekends.addEventListener('change', renderSheet);
+    empSearch.addEventListener('input', () => renderEmployees(empSearch.value));
+
+    // Initial render
+    renderEmployees();
+    loadMonthFromStorage();
+    renderSheet();
+    saveMonthToStorage();
+  });
+</script>
+{% endblock %}
+
+

@@ -42,6 +42,72 @@
     #empTabs .nav-link { font-size: .9rem; }
     .form-section-title { font-size: .95rem; }
   }
+
+  /* Employee table mobile responsiveness */
+  @media (max-width: 768px) {
+    .table-responsive {
+      border: none;
+    }
+    
+    .table thead {
+      display: none;
+    }
+    
+    .table tbody tr {
+      display: block;
+      border: 1px solid #dee2e6;
+      border-radius: 8px;
+      margin-bottom: 10px;
+      padding: 15px;
+      background: #fff;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    
+    .table tbody td {
+      display: block;
+      border: none;
+      padding: 5px 0;
+      text-align: left !important;
+    }
+    
+    .table tbody td:before {
+      content: attr(data-label) ": ";
+      font-weight: 600;
+      color: #6c757d;
+      display: inline-block;
+      width: 100px;
+    }
+    
+    .table tbody td[data-label="Employee"]:before {
+      content: "";
+      display: none;
+    }
+    
+    .table tbody td[data-label="Actions"]:before {
+      content: "";
+      display: none;
+    }
+    
+    .table tbody td[data-label="Actions"] {
+      text-align: center !important;
+      padding-top: 10px;
+      border-top: 1px solid #dee2e6;
+      margin-top: 10px;
+    }
+    
+    .btn-group .btn {
+      margin: 0 2px;
+    }
+    
+    .card-header .d-flex {
+      flex-direction: column;
+      gap: 10px;
+    }
+    
+    .card-header .input-group {
+      width: 100% !important;
+    }
+  }
 </style>
 
 <!-- Mobile tabs hamburger -->
@@ -453,10 +519,264 @@
   </div>
 </form>
 
+<!-- Employee List Table -->
+<div class="mt-4">
+  <div class="card">
+    <div class="card-header d-flex justify-content-between align-items-center">
+      <h6 class="form-section-title mb-0">Employee List</h6>
+      <div class="d-flex gap-2">
+        <div class="input-group input-group-sm" style="width: 250px;">
+          <input type="text" class="form-control" placeholder="Search employees..." id="employeeSearch">
+          <button class="btn btn-outline-secondary" type="button">
+            <i class="bi bi-search"></i>
+          </button>
+        </div>
+        <button class="btn btn-primary btn-sm">
+          <i class="bi bi-plus"></i> Add Employee
+        </button>
+      </div>
+    </div>
+    <div class="card-body p-0">
+      <div class="table-responsive">
+        <table class="table table-hover mb-0" id="employeeTable">
+          <thead class="table-light">
+            <tr>
+              <th>Employee</th>
+              <th>Designation</th>
+              <th>Department</th>
+              <th>Contact</th>
+              <th>Status</th>
+              <th width="120">Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            <!-- Sample data - replace with actual data from backend -->
+            <tr>
+              <td data-label="Employee">
+                <div class="d-flex align-items-center">
+                  <div class="avatar-sm bg-primary text-white rounded-circle d-flex align-items-center justify-content-center me-2" style="width: 35px; height: 35px;">
+                    <span class="fw-bold">JD</span>
+                  </div>
+                  <div>
+                    <div class="fw-semibold">John Doe</div>
+                    <small class="text-muted">EMP-001</small>
+                  </div>
+                </div>
+              </td>
+              <td data-label="Designation">
+                <span class="badge bg-info">Software Engineer</span>
+              </td>
+              <td data-label="Department">IT</td>
+              <td data-label="Contact">
+                <div>
+                  <div class="small">john.doe@company.com</div>
+                  <div class="small text-muted">+91 98765 43210</div>
+                </div>
+              </td>
+              <td data-label="Status">
+                <span class="badge bg-success">Active</span>
+              </td>
+              <td data-label="Actions">
+                <div class="btn-group" role="group">
+                  <button type="button" class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" data-bs-target="#viewEmployeeModal" data-employee-id="1">
+                    <i class="bi bi-eye"></i>
+                  </button>
+                  <div class="btn-group" role="group">
+                    <button type="button" class="btn btn-sm btn-outline-secondary dropdown-toggle" data-bs-toggle="dropdown">
+                      <i class="bi bi-three-dots-vertical"></i>
+                    </button>
+                    <ul class="dropdown-menu">
+                      <li><a class="dropdown-item" href="#"><i class="bi bi-pencil me-2"></i>Edit</a></li>
+                      <li><a class="dropdown-item" href="#"><i class="bi bi-file-earmark-text me-2"></i>View Details</a></li>
+                      <li><a class="dropdown-item" href="#"><i class="bi bi-download me-2"></i>Export</a></li>
+                      <li><hr class="dropdown-divider"></li>
+                      <li><a class="dropdown-item text-danger" href="#"><i class="bi bi-trash me-2"></i>Delete</a></li>
+                    </ul>
+                  </div>
+                </div>
+              </td>
+            </tr>
+            <tr>
+              <td data-label="Employee">
+                <div class="d-flex align-items-center">
+                  <div class="avatar-sm bg-success text-white rounded-circle d-flex align-items-center justify-content-center me-2" style="width: 35px; height: 35px;">
+                    <span class="fw-bold">JS</span>
+                  </div>
+                  <div>
+                    <div class="fw-semibold">Jane Smith</div>
+                    <small class="text-muted">EMP-002</small>
+                  </div>
+                </div>
+              </td>
+              <td data-label="Designation">
+                <span class="badge bg-warning">Project Manager</span>
+              </td>
+              <td data-label="Department">Operations</td>
+              <td data-label="Contact">
+                <div>
+                  <div class="small">jane.smith@company.com</div>
+                  <div class="small text-muted">+91 98765 43211</div>
+                </div>
+              </td>
+              <td data-label="Status">
+                <span class="badge bg-success">Active</span>
+              </td>
+              <td data-label="Actions">
+                <div class="btn-group" role="group">
+                  <button type="button" class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" data-bs-target="#viewEmployeeModal" data-employee-id="2">
+                    <i class="bi bi-eye"></i>
+                  </button>
+                  <div class="btn-group" role="group">
+                    <button type="button" class="btn btn-sm btn-outline-secondary dropdown-toggle" data-bs-toggle="dropdown">
+                      <i class="bi bi-three-dots-vertical"></i>
+                    </button>
+                    <ul class="dropdown-menu">
+                      <li><a class="dropdown-item" href="#"><i class="bi bi-pencil me-2"></i>Edit</a></li>
+                      <li><a class="dropdown-item" href="#"><i class="bi bi-file-earmark-text me-2"></i>View Details</a></li>
+                      <li><a class="dropdown-item" href="#"><i class="bi bi-download me-2"></i>Export</a></li>
+                      <li><hr class="dropdown-divider"></li>
+                      <li><a class="dropdown-item text-danger" href="#"><i class="bi bi-trash me-2"></i>Delete</a></li>
+                    </ul>
+                  </div>
+                </div>
+              </td>
+            </tr>
+            <tr>
+              <td data-label="Employee">
+                <div class="d-flex align-items-center">
+                  <div class="avatar-sm bg-danger text-white rounded-circle d-flex align-items-center justify-content-center me-2" style="width: 35px; height: 35px;">
+                    <span class="fw-bold">MJ</span>
+                  </div>
+                  <div>
+                    <div class="fw-semibold">Mike Johnson</div>
+                    <small class="text-muted">EMP-003</small>
+                  </div>
+                </div>
+              </td>
+              <td data-label="Designation">
+                <span class="badge bg-secondary">HR Manager</span>
+              </td>
+              <td data-label="Department">Human Resources</td>
+              <td data-label="Contact">
+                <div>
+                  <div class="small">mike.johnson@company.com</div>
+                  <div class="small text-muted">+91 98765 43212</div>
+                </div>
+              </td>
+              <td data-label="Status">
+                <span class="badge bg-warning">On Leave</span>
+              </td>
+              <td data-label="Actions">
+                <div class="btn-group" role="group">
+                  <button type="button" class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" data-bs-target="#viewEmployeeModal" data-employee-id="3">
+                    <i class="bi bi-eye"></i>
+                  </button>
+                  <div class="btn-group" role="group">
+                    <button type="button" class="btn btn-sm btn-outline-secondary dropdown-toggle" data-bs-toggle="dropdown">
+                      <i class="bi bi-three-dots-vertical"></i>
+                    </button>
+                    <ul class="dropdown-menu">
+                      <li><a class="dropdown-item" href="#"><i class="bi bi-pencil me-2"></i>Edit</a></li>
+                      <li><a class="dropdown-item" href="#"><i class="bi bi-file-earmark-text me-2"></i>View Details</a></li>
+                      <li><a class="dropdown-item" href="#"><i class="bi bi-download me-2"></i>Export</a></li>
+                      <li><hr class="dropdown-divider"></li>
+                      <li><a class="dropdown-item text-danger" href="#"><i class="bi bi-trash me-2"></i>Delete</a></li>
+                    </ul>
+                  </div>
+                </div>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+    <div class="card-footer">
+      <div class="d-flex justify-content-between align-items-center">
+        <div class="text-muted small">
+          Showing 1-3 of 3 employees
+        </div>
+        <nav>
+          <ul class="pagination pagination-sm mb-0">
+            <li class="page-item disabled">
+              <a class="page-link" href="#" tabindex="-1">Previous</a>
+            </li>
+            <li class="page-item active">
+              <a class="page-link" href="#">1</a>
+            </li>
+            <li class="page-item disabled">
+              <a class="page-link" href="#">Next</a>
+            </li>
+          </ul>
+        </nav>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- View Employee Modal -->
+<div class="modal fade" id="viewEmployeeModal" tabindex="-1" aria-labelledby="viewEmployeeModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="viewEmployeeModalLabel">Employee Details</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <div class="row">
+          <div class="col-md-4 text-center mb-3">
+            <div class="avatar-lg bg-primary text-white rounded-circle d-flex align-items-center justify-content-center mx-auto mb-2" style="width: 80px; height: 80px;">
+              <span class="fw-bold fs-4">JD</span>
+            </div>
+            <h6 class="mb-1">John Doe</h6>
+            <small class="text-muted">EMP-001</small>
+          </div>
+          <div class="col-md-8">
+            <div class="row g-3">
+              <div class="col-sm-6">
+                <label class="form-label fw-semibold">Email</label>
+                <p class="mb-0">john.doe@company.com</p>
+              </div>
+              <div class="col-sm-6">
+                <label class="form-label fw-semibold">Phone</label>
+                <p class="mb-0">+91 98765 43210</p>
+              </div>
+              <div class="col-sm-6">
+                <label class="form-label fw-semibold">Designation</label>
+                <p class="mb-0">Software Engineer</p>
+              </div>
+              <div class="col-sm-6">
+                <label class="form-label fw-semibold">Department</label>
+                <p class="mb-0">IT</p>
+              </div>
+              <div class="col-sm-6">
+                <label class="form-label fw-semibold">Joining Date</label>
+                <p class="mb-0">15 Jan 2024</p>
+              </div>
+              <div class="col-sm-6">
+                <label class="form-label fw-semibold">Status</label>
+                <p class="mb-0"><span class="badge bg-success">Active</span></p>
+              </div>
+              <div class="col-12">
+                <label class="form-label fw-semibold">Address</label>
+                <p class="mb-0">123 Main Street, City, State, 12345</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+        <button type="button" class="btn btn-primary">Edit Employee</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <script>
   document.addEventListener('DOMContentLoaded', () => {
     const form = document.getElementById('employeeForm');
     if (!form) return;
+    
     // Mobile tabs menu switching
     document.querySelectorAll('.emp-tabs-menu .dropdown-item').forEach(item => {
       item.addEventListener('click', (e) => {
@@ -472,6 +792,8 @@
         }
       });
     });
+    
+    // Form validation
     form.addEventListener('submit', (e) => {
       const first = form.querySelector('[name="first_name"]').value.trim();
       const last = form.querySelector('[name="last_name"]').value.trim();
@@ -496,6 +818,106 @@
         alert.scrollIntoView({ behavior: 'smooth', block: 'center' });
       }
     });
+    
+    // Employee search functionality
+    const searchInput = document.getElementById('employeeSearch');
+    const employeeTable = document.getElementById('employeeTable');
+    
+    if (searchInput && employeeTable) {
+      searchInput.addEventListener('input', function() {
+        const searchTerm = this.value.toLowerCase();
+        const rows = employeeTable.querySelectorAll('tbody tr');
+        
+        rows.forEach(row => {
+          const text = row.textContent.toLowerCase();
+          if (text.includes(searchTerm)) {
+            row.style.display = '';
+          } else {
+            row.style.display = 'none';
+          }
+        });
+      });
+    }
+    
+    // View employee modal functionality
+    const viewModal = document.getElementById('viewEmployeeModal');
+    if (viewModal) {
+      viewModal.addEventListener('show.bs.modal', function(event) {
+        const button = event.relatedTarget;
+        const employeeId = button.getAttribute('data-employee-id');
+        
+        // Here you would typically fetch employee data based on employeeId
+        // For now, we'll use the sample data
+        const employeeData = {
+          1: {
+            name: 'John Doe',
+            code: 'EMP-001',
+            initials: 'JD',
+            email: 'john.doe@company.com',
+            phone: '+91 98765 43210',
+            designation: 'Software Engineer',
+            department: 'IT',
+            joiningDate: '15 Jan 2024',
+            status: 'Active',
+            address: '123 Main Street, City, State, 12345'
+          },
+          2: {
+            name: 'Jane Smith',
+            code: 'EMP-002',
+            initials: 'JS',
+            email: 'jane.smith@company.com',
+            phone: '+91 98765 43211',
+            designation: 'Project Manager',
+            department: 'Operations',
+            joiningDate: '20 Feb 2024',
+            status: 'Active',
+            address: '456 Oak Avenue, City, State, 12345'
+          },
+          3: {
+            name: 'Mike Johnson',
+            code: 'EMP-003',
+            initials: 'MJ',
+            email: 'mike.johnson@company.com',
+            phone: '+91 98765 43212',
+            designation: 'HR Manager',
+            department: 'Human Resources',
+            joiningDate: '10 Mar 2024',
+            status: 'On Leave',
+            address: '789 Pine Street, City, State, 12345'
+          }
+        };
+        
+        const employee = employeeData[employeeId];
+        if (employee) {
+          const modalTitle = viewModal.querySelector('.modal-title');
+          const avatar = viewModal.querySelector('.avatar-lg span');
+          const name = viewModal.querySelector('.col-md-4 h6');
+          const code = viewModal.querySelector('.col-md-4 small');
+          const email = viewModal.querySelector('label[for="email"] + p');
+          const phone = viewModal.querySelector('label[for="phone"] + p');
+          const designation = viewModal.querySelector('label[for="designation"] + p');
+          const department = viewModal.querySelector('label[for="department"] + p');
+          const joiningDate = viewModal.querySelector('label[for="joining"] + p');
+          const status = viewModal.querySelector('label[for="status"] + p span');
+          const address = viewModal.querySelector('label[for="address"] + p');
+          
+          if (modalTitle) modalTitle.textContent = `${employee.name} - Employee Details`;
+          if (avatar) avatar.textContent = employee.initials;
+          if (name) name.textContent = employee.name;
+          if (code) code.textContent = employee.code;
+          if (email) email.textContent = employee.email;
+          if (phone) phone.textContent = employee.phone;
+          if (designation) designation.textContent = employee.designation;
+          if (department) department.textContent = employee.department;
+          if (joiningDate) joiningDate.textContent = employee.joiningDate;
+          if (status) {
+            status.textContent = employee.status;
+            status.className = employee.status === 'Active' ? 'badge bg-success' : 'badge bg-warning';
+          }
+          if (address) address.textContent = employee.address;
+        }
+      });
+    }
   });
 </script>
 {% endblock%}

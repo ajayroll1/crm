@@ -1,0 +1,404 @@
+{% extends "dashboard/dashboard_base.html"%}
+{% block title %}Leave Management -Sujata Associates{% endblock%}
+
+{% block content %}
+<div class="dashboard-header">
+  <h1>Leave Management</h1>
+  <p class="text-muted">View balances, calendar and manage leave requests</p>
+  <div class="d-flex gap-2 flex-wrap">
+    <div class="input-group input-group-sm" style="max-width: 280px;">
+      <span class="input-group-text"><i class="bi bi-calendar3"></i></span>
+      <input id="leaveMonthPicker" type="month" class="form-control">
+    </div>
+  </div>
+  <small class="text-muted">Select an employee to see details</small>
+  <hr class="mt-2 mb-0">
+</div>
+
+<style>
+  .leave-wrapper { display: grid; grid-template-columns: 320px 1fr; gap: 1rem; }
+  .employee-list { height: 70vh; overflow: auto; }
+  .calendar { border: 1px solid #dee2e6; border-radius: 8px; overflow: hidden; background: #fff; }
+  .calendar .cal-head { background: #f8f9fa; padding: .5rem .75rem; font-weight: 600; }
+  .calendar .cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); }
+  .calendar .cal-cell { min-height: 70px; border: 1px solid #f1f3f5; padding: .25rem .35rem; position: relative; }
+  .calendar .cal-cell .day { font-size: .8rem; color: #6c757d; }
+  .calendar .leave-badge { position: absolute; right: .35rem; bottom: .35rem; }
+  .calendar .off { background: #fcfcfd; color: #adb5bd; }
+  .calendar .type-CL { background: #e7f5ff; border-color: #d0ebff; }
+  .calendar .type-PL { background: #fff3bf; border-color: #ffe066; }
+  .calendar .type-SL { background: #ffdce0; border-color: #ffb3bd; }
+  .calendar .type-LOP { background: #f8f9fa; border-color: #e9ecef; }
+  /* Orange highlight for selected leave range */
+  .calendar .cal-highlight { background: #ffe8cc !important; border-color: #ffd8a8 !important; }
+  /* Notifications: show about two items then scroll */
+  .notif-list { max-height: 150px; overflow: auto; -webkit-overflow-scrolling: touch; }
+  @media (max-width: 992px){ .leave-wrapper { grid-template-columns: 1fr; } .employee-list { height: auto; } }
+</style>
+
+<div class="leave-wrapper">
+  <!-- Left: Employees -->
+  <div class="card">
+    <div class="card-header d-flex justify-content-between align-items-center">
+      <h6 class="mb-0">Employees</h6>
+      <div class="input-group input-group-sm" style="max-width: 220px;">
+        <span class="input-group-text"><i class="bi bi-search"></i></span>
+        <input id="leaveEmpSearch" class="form-control" placeholder="Search name or dept">
+      </div>
+    </div>
+    <div id="leaveEmployeeList" class="list-group list-group-flush employee-list"></div>
+  </div>
+
+  <!-- Right: Notifications + Summary + Calendar -->
+  <div class="d-flex flex-column gap-3">
+    <!-- Notifications (moved to top) -->
+    <div class="card">
+      <div class="card-header d-flex justify-content-between align-items-center">
+        <h6 class="mb-0">Notifications</h6>
+        <span class="text-muted small" id="notifCount">0</span>
+      </div>
+      <div id="notificationList" class="list-group list-group-flush notif-list"></div>
+    </div>
+
+    <!-- Summary -->
+    <div class="row g-3">
+      <div class="col-sm-4">
+        <div class="card h-100">
+          <div class="card-body">
+            <div class="text-muted">Entitled</div>
+            <div class="display-6" id="sumEntitled">0</div>
+          </div>
+        </div>
+      </div>
+      <div class="col-sm-4">
+        <div class="card h-100">
+          <div class="card-body">
+            <div class="text-muted">Used</div>
+            <div class="display-6" id="sumUsed">0</div>
+          </div>
+        </div>
+      </div>
+      <div class="col-sm-4">
+        <div class="card h-100">
+          <div class="card-body">
+            <div class="text-muted">Remaining</div>
+            <div class="display-6" id="sumRemaining">0</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Calendar -->
+    <div class="calendar">
+      <div class="cal-head d-flex justify-content-between align-items-center">
+        <div id="calTitle">Month</div>
+        <div class="small text-muted">Legend: <span class="badge bg-info">CL</span> Casual <span class="badge bg-warning text-dark ms-1">PL</span> Privileged <span class="badge bg-danger ms-1">SL</span> Sick <span class="badge bg-secondary ms-1">LOP</span> Loss of Pay</div>
+      </div>
+      <div class="cal-grid" id="calGrid"></div>
+    </div>
+  </div>
+</div>
+
+
+<!-- Notification Modal -->
+<div class="modal fade" id="notifModal" tabindex="-1" aria-labelledby="notifModalLabel" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="notifModalLabel">Request Details</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <div class="mb-2"><span class="text-muted">Employee</span><div id="nmEmp" class="fw-semibold"></div></div>
+        <div class="mb-2"><span class="text-muted">Department</span><div id="nmDept"></div></div>
+        <div class="mb-2"><span class="text-muted">Type</span><div id="nmType"></div></div>
+        <div class="mb-2"><span class="text-muted">Dates</span><div id="nmDates"></div></div>
+        <div class="mb-2"><span class="text-muted">Reason</span><div id="nmReason"></div></div>
+      </div>
+      <div class="modal-footer">
+        <button id="nmHold" type="button" class="btn btn-outline-secondary">Hold</button>
+        <button id="nmReject" type="button" class="btn btn-outline-danger">Reject</button>
+        <button id="nmApprove" type="button" class="btn btn-primary">Accept</button>
+      </div>
+    </div>
+  </div>
+  </div>
+
+
+<script>
+  document.addEventListener('DOMContentLoaded', () => {
+    // Demo employees; plug your backend later
+    const employees = [
+      { id: 1, name: 'John Doe', department: 'IT', entitled: 24 },
+      { id: 2, name: 'Jane Smith', department: 'Operations', entitled: 24 },
+      { id: 3, name: 'Mike Johnson', department: 'HR', entitled: 24 },
+      { id: 4, name: 'Priya Sharma', department: 'Finance', entitled: 24 },
+      { id: 5, name: 'Arun Kumar', department: 'Sales', entitled: 24 }
+    ];
+
+    const leaveMonthPicker = document.getElementById('leaveMonthPicker');
+    const today = new Date();
+    leaveMonthPicker.value = `${today.getFullYear()}-${String(today.getMonth()+1).padStart(2,'0')}`;
+
+    const empSearch = document.getElementById('leaveEmpSearch');
+    const empList = document.getElementById('leaveEmployeeList');
+    const calTitle = document.getElementById('calTitle');
+    const calGrid = document.getElementById('calGrid');
+    const notifList = document.getElementById('notificationList');
+    const notifCount = document.getElementById('notifCount');
+    const sumEntitled = document.getElementById('sumEntitled');
+    const sumUsed = document.getElementById('sumUsed');
+    const sumRemaining = document.getElementById('sumRemaining');
+
+    // No request modal now; notifications list instead
+    // Currently highlighted range from notification click
+    let activeHighlight = null; // { from: 'YYYY-MM-DD', to: 'YYYY-MM-DD' }
+    let activeNotifId = null;
+
+    let activeEmpId = employees[0].id;
+
+    // Storage helpers
+    function storageKey(){ return `leave_requests`; }
+    function storageKeyNotif(){ return `notifications`; }
+    function readRequests(){
+      try { return JSON.parse(localStorage.getItem(storageKey())) || []; } catch { return []; }
+    }
+    function writeRequests(list){
+      try { localStorage.setItem(storageKey(), JSON.stringify(list)); } catch {}
+    }
+    function readNotifications(){
+      try { return JSON.parse(localStorage.getItem(storageKeyNotif())) || []; } catch { return []; }
+    }
+    function writeNotifications(list){
+      try { localStorage.setItem(storageKeyNotif(), JSON.stringify(list)); } catch {}
+    }
+
+    function getDays(year, month){
+      const d = new Date(year, month, 0).getDate();
+      const arr = [];
+      for(let i=1;i<=d;i++){
+        const dt = new Date(year, month-1, i);
+        arr.push({ day:i, dow: dt.getDay(), dateStr: `${year}-${String(month).padStart(2,'0')}-${String(i).padStart(2,'0')}` });
+      }
+      return arr;
+    }
+
+    function renderEmployees(filter=''){
+      const q = filter.trim().toLowerCase();
+      empList.innerHTML = '';
+      employees
+        .filter(e => !q || `${e.name} ${e.department}`.toLowerCase().includes(q))
+        .forEach(e => {
+          const initials = e.name.split(' ').map(p=>p[0]).slice(0,2).join('').toUpperCase();
+          const btn = document.createElement('button');
+          btn.type = 'button';
+          btn.className = 'list-group-item list-group-item-action d-flex align-items-center gap-2' + (e.id===activeEmpId?' active':'');
+          btn.innerHTML = `
+            <div class="rounded-circle bg-primary text-white d-flex align-items-center justify-content-center" style="width:32px;height:32px;">${initials}</div>
+            <div class="text-start flex-grow-1">
+              <div class="fw-semibold">${e.name}</div>
+              <small class="text-muted">${e.department}</small>
+            </div>
+            <span class="badge bg-light text-dark border">ID ${e.id}</span>
+          `;
+          btn.addEventListener('click', () => { activeEmpId = e.id; renderEmployees(q); renderRight(); });
+          empList.appendChild(btn);
+        });
+    }
+
+    function computeUsage(empId){
+      const list = readRequests().filter(r => r.empId === empId && r.status !== 'Rejected');
+      const used = list.reduce((sum,r) => sum + r.days, 0);
+      const entitled = employees.find(e => e.id===empId)?.entitled || 0;
+      return { entitled, used, remaining: Math.max(entitled - used, 0) };
+    }
+
+    function renderCalendar(empId){
+      const [y,m] = leaveMonthPicker.value.split('-').map(Number);
+      const days = getDays(y,m);
+      calTitle.textContent = new Date(y, m-1, 1).toLocaleString(undefined,{ month:'long', year:'numeric' });
+      calGrid.innerHTML = '';
+      // Weekday headers
+      ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'].forEach(d => {
+        const hd = document.createElement('div');
+        hd.className = 'cal-cell fw-semibold text-center off';
+        hd.textContent = d;
+        calGrid.appendChild(hd);
+      });
+      // Leading blanks for first weekday
+      const firstDow = new Date(y,m-1,1).getDay();
+      for(let i=0;i<firstDow;i++){ const b=document.createElement('div'); b.className='cal-cell off'; calGrid.appendChild(b); }
+
+      const requests = readRequests().filter(r => r.empId===empId);
+      days.forEach(d => {
+        const cell = document.createElement('div');
+        cell.className = 'cal-cell';
+        cell.innerHTML = `<div class="day">${String(d.day).padStart(2,'0')}</div>`;
+        const hits = requests.filter(r => new Date(r.from) <= new Date(d.dateStr) && new Date(r.to) >= new Date(d.dateStr));
+        if (hits.length){
+          const type = hits[0].type; // show first type badge
+          const badge = document.createElement('span');
+          badge.className = `badge leave-badge ${type==='CL'?'bg-info': type==='PL'?'bg-warning text-dark': type==='SL'?'bg-danger':'bg-secondary'}`;
+          badge.textContent = type;
+          cell.appendChild(badge);
+          cell.classList.add(`type-${type}`);
+        }
+        // Apply orange highlight for active selected notification range
+        if (activeHighlight){
+          const cur = new Date(d.dateStr);
+          const from = new Date(activeHighlight.from);
+          const to = new Date(activeHighlight.to);
+          if (cur >= from && cur <= to){
+            cell.classList.add('cal-highlight');
+          }
+        }
+        calGrid.appendChild(cell);
+      });
+    }
+
+    function renderNotifications(){
+      const list = readNotifications().sort((a,b)=> new Date(b.time) - new Date(a.time));
+      notifList.innerHTML = '';
+      const unreadCount = list.filter(n => !n.read).length;
+      notifCount.textContent = unreadCount;
+      if (!list.length){
+        const empty = document.createElement('div');
+        empty.className = 'list-group-item text-muted';
+        empty.textContent = 'No notifications yet';
+        notifList.appendChild(empty);
+        return;
+      }
+      list.forEach(n => {
+        const item = document.createElement('button');
+        item.type = 'button';
+        item.className = 'list-group-item list-group-item-action d-flex align-items-start gap-2' + (n.read ? ' opacity-75' : '');
+        const badgeCls = n.type==='LeaveRequest' ? 'bg-warning text-dark' : n.type==='Approved' ? 'bg-success' : n.type==='Rejected' ? 'bg-danger' : 'bg-secondary';
+        item.innerHTML = `
+          <div><span class="badge ${badgeCls}">${n.type}</span></div>
+          <div class="flex-grow-1 text-start">
+            <div class="fw-semibold">${n.title}</div>
+            <div class="small text-muted">${new Date(n.time).toLocaleString()}</div>
+            <div class="small">${n.message||''}</div>
+          </div>
+        `;
+        item.addEventListener('click', () => {
+          // mark as read on open
+          const all = readNotifications();
+          const idx = all.findIndex(x => x.id === n.id);
+          if (idx !== -1) {
+            all[idx].read = true;
+            writeNotifications(all);
+          }
+          // Parse date range from notification if available
+          // Prefer explicit from/to fields; else try to parse from message like "From YYYY-MM-DD to YYYY-MM-DD"
+          let from = n.from, to = n.to;
+          if (!from || !to){
+            const m = (n.message||'').match(/(\d{4}-\d{2}-\d{2}).*?(\d{4}-\d{2}-\d{2})/);
+            if (m){ from = m[1]; to = m[2]; }
+          }
+          if (from && to){
+            activeHighlight = { from, to };
+            // Jump month picker if different month
+            const monthStr = from.slice(0,7);
+            if (leaveMonthPicker.value !== monthStr){
+              leaveMonthPicker.value = monthStr;
+            }
+            renderCalendar(activeEmpId);
+          }
+          // re-render to update unread count and styling
+          renderNotifications();
+          openNotifModal(n);
+        });
+        notifList.appendChild(item);
+      });
+    }
+
+    // Modal controls and actions
+    const nmEmp = document.getElementById('nmEmp');
+    const nmDept = document.getElementById('nmDept');
+    const nmType = document.getElementById('nmType');
+    const nmDates = document.getElementById('nmDates');
+    const nmReason = document.getElementById('nmReason');
+    const nmApprove = document.getElementById('nmApprove');
+    const nmReject = document.getElementById('nmReject');
+    const nmHold = document.getElementById('nmHold');
+
+    function openNotifModal(n){
+      activeNotifId = n.id;
+      const emp = employees.find(e => e.id === (n.empId || employees[0].id)) || employees[0];
+      nmEmp.textContent = emp.name;
+      nmDept.textContent = emp.department;
+      nmType.textContent = n.leaveType || (n.type === 'LeaveRequest' ? 'PL' : (n.type || ''));
+      let from = n.from, to = n.to;
+      if (!from || !to){
+        const m = (n.message||'').match(/(\d{4}-\d{2}-\d{2}).*?(\d{4}-\d{2}-\d{2})/);
+        if (m){ from = m[1]; to = m[2]; }
+      }
+      nmDates.textContent = (from && to) ? `${from} to ${to}` : (n.message || '—');
+      nmReason.textContent = n.reason || '—';
+      const modal = new bootstrap.Modal(document.getElementById('notifModal'));
+      modal.show();
+    }
+
+    function updateNotifStatus(status){
+      if (activeNotifId == null) return;
+      const list = readNotifications();
+      const idx = list.findIndex(x => x.id === activeNotifId);
+      if (idx !== -1){
+        // If approved, also write to leave requests so calendar and usage update
+        const n = list[idx];
+        let from = n.from, to = n.to;
+        if (!from || !to){
+          const m = (n.message||'').match(/(\d{4}-\d{2}-\d{2}).*?(\d{4}-\d{2}-\d{2})/);
+          if (m){ from = m[1]; to = m[2]; }
+        }
+        if (status === 'Approved' && from && to){
+          const empId = n.empId || employees[0].id;
+          const days = Math.max(1, Math.ceil((new Date(to) - new Date(from)) / (1000*60*60*24)) + 1);
+          const reqs = readRequests();
+          reqs.push({ id: Date.now(), empId, type: n.leaveType || 'PL', from, to, days, status: 'Approved', reason: n.reason || '' });
+          writeRequests(reqs);
+        }
+        list[idx].type = status; // reflect decision
+        list[idx].time = new Date().toISOString();
+        writeNotifications(list);
+      }
+      renderNotifications();
+      renderRight();
+      const m = bootstrap.Modal.getInstance(document.getElementById('notifModal'));
+      m?.hide();
+    }
+
+    nmApprove?.addEventListener('click', () => updateNotifStatus('Approved'));
+    nmReject?.addEventListener('click', () => updateNotifStatus('Rejected'));
+    nmHold?.addEventListener('click', () => updateNotifStatus('On Hold'));
+
+    function renderRight(){
+      const usage = computeUsage(activeEmpId);
+      sumEntitled.textContent = usage.entitled;
+      sumUsed.textContent = usage.used;
+      sumRemaining.textContent = usage.remaining;
+      renderCalendar(activeEmpId);
+      renderNotifications();
+    }
+
+    // Seed sample notifications once
+    if (!readNotifications().length){
+      writeNotifications([
+        { id: 1, type: 'LeaveRequest', title: 'Jane Smith requested PL (2 days)', message: 'From 2025-10-06 to 2025-10-07', time: new Date().toISOString(), read: false },
+        { id: 2, type: 'Approved', title: 'Mike Johnson SL approved', message: '1 day', time: new Date(Date.now()-86400000).toISOString(), read: false }
+      ]);
+    }
+
+    // Hooks
+    leaveMonthPicker.addEventListener('change', () => renderRight());
+    empSearch.addEventListener('input', () => renderEmployees(empSearch.value));
+
+    // Init
+    renderEmployees();
+    renderRight();
+  });
+</script>
+{% endblock %}
+
+
