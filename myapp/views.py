@@ -61,4 +61,8 @@ def attendance(request):
   return render(request,'human_resource/attendance.html')
 
 def leave(request):
-  return render(request,'human_resource/leave.html')  
+    return render(request,'human_resource/leave.html')
+
+def reports(request):
+    return render(request, 'dashboard/reports.html')
+    

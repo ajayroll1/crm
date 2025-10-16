@@ -92,6 +92,30 @@
         </li>
       </ul>
     </div>
+    
+    <div class="nav-section">
+      <h3 class="nav-section-title">ANALYTICS & REPORTS</h3>
+      <ul class="nav-list">
+        <li class="nav-item">
+          <a href="{% url 'reports' %}" class="nav-link">
+            <i class="bi bi-graph-up"></i>
+            <span>Reports & Analytics</span>
+          </a>
+        </li>
+        <li class="nav-item">
+          <a href="#" class="nav-link">
+            <i class="bi bi-pie-chart"></i>
+            <span>Financial Reports</span>
+          </a>
+        </li>
+        <li class="nav-item">
+          <a href="#" class="nav-link">
+            <i class="bi bi-bar-chart"></i>
+            <span>Performance Metrics</span>
+          </a>
+        </li>
+      </ul>
+    </div>
   </nav>
   
   <div class="sidebar-footer">
@@ -102,7 +126,7 @@
       </a>
     </div>
     <div class="nav-item">
-      <a href="#" class="nav-link">
+      <a href="{% url 'reports' %}" class="nav-link">
         <i class="bi bi-bar-chart"></i>
         <span>Reports</span>
       </a>
