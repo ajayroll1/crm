@@ -1,0 +1,324 @@
+{% extends "dashboard/dashboard_base.html"%}
+{% block title %}In/Out - Sujata Associates{% endblock%}
+
+{% block content %}
+<div class="dashboard-header">
+  <h1>In / Out</h1>
+  <p class="text-muted">Record employee check-in and check-out with location and photo</p>
+</div>
+
+<style>
+  .io-grid { display: grid; grid-template-columns: 380px 1fr; gap: 1rem; }
+  .preview { width: 100%; max-height: 240px; object-fit: cover; border-radius: 8px; border: 1px solid #dee2e6; }
+  .status-dot { width: 8px; height: 8px; display: inline-block; border-radius: 50%; margin-right: 6px; }
+  .status-in { background: #28a745; }
+  .status-out { background: #dc3545; }
+  .map-badge { font-weight: 600; }
+  @media (max-width: 992px){ .io-grid { grid-template-columns: 1fr; } }
+</style>
+
+<div class="io-grid">
+  <!-- Left: Capture Panel -->
+  <div class="card">
+    <div class="card-header d-flex align-items-center justify-content-between flex-wrap gap-2">
+      <h6 class="mb-0">Capture</h6>
+      <div class="small text-muted">
+        <span id="clock"></span>
+      </div>
+    </div>
+    <div class="card-body">
+      <div class="row g-3">
+        <div class="col-12">
+          <div class="ratio ratio-4x3 bg-light rounded position-relative overflow-hidden">
+            <video id="camera" autoplay playsinline class="position-absolute top-0 start-0 w-100 h-100" style="object-fit: cover;"></video>
+            <img id="photo" class="position-absolute top-0 start-0 w-100 h-100 d-none" alt="snapshot" />
+          </div>
+        </div>
+
+        <div class="col-12">
+          <div class="d-flex align-items-center gap-2 flex-wrap">
+            <div class="badge bg-light text-dark border">
+              <i class="bi bi-geo"></i> <span id="locStatus">Detecting location...</span>
+            </div>
+            <div class="badge bg-light text-dark border map-badge d-none" id="locLinkWrap">
+              <a id="locLink" href="#" target="_blank" rel="noopener">Open Map</a>
+            </div>
+          </div>
+          <input type="hidden" id="latitude">
+          <input type="hidden" id="longitude">
+          <input type="hidden" id="address">
+        </div>
+
+        <div class="col-12">
+          <div class="input-group">
+            <label class="input-group-text" for="empSelect"><i class="bi bi-person-badge"></i></label>
+            <select class="form-select" id="empSelect">
+              <option selected disabled>Select employee</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="col-12 d-flex gap-2 flex-wrap">
+          <button id="btnIn" class="btn btn-success"><i class="bi bi-box-arrow-in-right"></i> Check In</button>
+          <button id="btnOut" class="btn btn-danger"><i class="bi bi-box-arrow-right"></i> Check Out</button>
+          <button id="btnRetake" class="btn btn-outline-secondary d-none"><i class="bi bi-camera"></i> Retake</button>
+        </div>
+
+        <div class="col-12">
+          <small class="text-muted">Your photo and GPS location are captured to maintain accurate attendance logs.</small>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Right: Logs -->
+  <div class="card">
+    <div class="card-header d-flex align-items-center justify-content-between flex-wrap gap-2">
+      <h6 class="mb-0">Today's In/Out Logs</h6>
+      <div class="d-flex gap-2 flex-wrap">
+        <input id="logDate" type="date" class="form-control form-control-sm" style="width: 160px;">
+        <select id="actionFilter" class="form-select form-select-sm" style="width: 140px;">
+          <option value="ALL">All</option>
+          <option value="IN">IN</option>
+          <option value="OUT">OUT</option>
+        </select>
+        <div class="input-group input-group-sm" style="width: 240px;">
+          <span class="input-group-text"><i class="bi bi-search"></i></span>
+          <input id="searchLogs" class="form-control" placeholder="Search employee name">
+        </div>
+        <button id="exportCsv" class="btn btn-outline-primary btn-sm"><i class="bi bi-download"></i> Export</button>
+      </div>
+    </div>
+    <div class="card-body p-0">
+      <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0" id="logTable">
+          <thead class="table-light">
+            <tr>
+              <th>Employee</th>
+              <th>Action</th>
+              <th>Date & Time</th>
+              <th>Working Hours</th>
+              <th>Photo</th>
+              <th>Location</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </div>
+    <div class="card-footer text-muted small">Entries are stored locally for demo. Integrate API to persist in DB.</div>
+  </div>
+</div>
+
+<script>
+  document.addEventListener('DOMContentLoaded', () => {
+    // Demo employee list; replace with backend data as needed
+    const employees = [
+      { id: 1, name: 'John Doe' },
+      { id: 2, name: 'Jane Smith' },
+      { id: 3, name: 'Mike Johnson' },
+      { id: 4, name: 'Priya Sharma' }
+    ];
+
+    const empSelect = document.getElementById('empSelect');
+    employees.forEach(e => {
+      const opt = document.createElement('option');
+      opt.value = e.id; opt.textContent = `${e.name} (ID ${e.id})`;
+      empSelect.appendChild(opt);
+    });
+
+    // Camera setup
+    const video = document.getElementById('camera');
+    const photo = document.getElementById('photo');
+    const btnRetake = document.getElementById('btnRetake');
+    let mediaStream = null;
+
+    async function startCamera(){
+      try {
+        mediaStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' } });
+        video.srcObject = mediaStream;
+        photo.classList.add('d-none');
+        video.classList.remove('d-none');
+      } catch (e) {
+        console.warn('Camera error', e);
+      }
+    }
+
+    function takeSnapshot(){
+      const canvas = document.createElement('canvas');
+      canvas.width = video.videoWidth || 640;
+      canvas.height = video.videoHeight || 480;
+      const ctx = canvas.getContext('2d');
+      ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+      photo.src = canvas.toDataURL('image/jpeg', 0.85);
+      photo.classList.remove('d-none');
+      video.classList.add('d-none');
+      btnRetake.classList.remove('d-none');
+      return photo.src;
+    }
+
+    btnRetake.addEventListener('click', () => { btnRetake.classList.add('d-none'); startCamera(); });
+    startCamera();
+
+    // Clock
+    const clockEl = document.getElementById('clock');
+    function tick(){
+      const now = new Date();
+      const opts = { weekday: 'short', year: 'numeric', month: 'short', day: '2-digit', hour: '2-digit', minute: '2-digit', second: '2-digit' };
+      clockEl.textContent = now.toLocaleString(undefined, opts);
+    }
+    tick(); setInterval(tick, 1000);
+
+    // Geolocation
+    const latEl = document.getElementById('latitude');
+    const lngEl = document.getElementById('longitude');
+    const addrEl = document.getElementById('address');
+    const locStatus = document.getElementById('locStatus');
+    const locLinkWrap = document.getElementById('locLinkWrap');
+    const locLink = document.getElementById('locLink');
+
+    function setLocation(lat, lng){
+      latEl.value = lat; lngEl.value = lng;
+      locStatus.textContent = `${Number(lat).toFixed(5)}, ${Number(lng).toFixed(5)}`;
+      const url = `https://maps.google.com/?q=${lat},${lng}`;
+      locLink.href = url; locLinkWrap.classList.remove('d-none');
+    }
+
+    if ('geolocation' in navigator){
+      navigator.geolocation.getCurrentPosition(
+        pos => setLocation(pos.coords.latitude, pos.coords.longitude),
+        () => { locStatus.textContent = 'Location permission denied'; },
+        { enableHighAccuracy: true, timeout: 10000, maximumAge: 30000 }
+      );
+    } else {
+      locStatus.textContent = 'Geolocation not supported';
+    }
+
+    // Logs handling (localStorage for demo)
+    const logDateInput = document.getElementById('logDate');
+    const actionFilter = document.getElementById('actionFilter');
+    const logTableBody = document.querySelector('#logTable tbody');
+    const searchLogs = document.getElementById('searchLogs');
+    const exportBtn = document.getElementById('exportCsv');
+
+    // Init selected date to today
+    const todayStr = new Date().toISOString().slice(0,10);
+    logDateInput.value = todayStr;
+
+    function storageKeyFor(dateStr){
+      return 'inout_logs_' + (dateStr || logDateInput.value || todayStr);
+    }
+
+    function loadLogs(dateStr){
+      try { return JSON.parse(localStorage.getItem(storageKeyFor(dateStr)) || '[]'); }
+      catch { return []; }
+    }
+    function saveLogs(list, dateStr){
+      localStorage.setItem(storageKeyFor(dateStr), JSON.stringify(list));
+    }
+
+    function formatHMS(totalMinutes){
+      if (!totalMinutes && totalMinutes !== 0) return '—';
+      const mins = Math.max(0, Math.round(totalMinutes));
+      const h = Math.floor(mins / 60).toString().padStart(2,'0');
+      const m = (mins % 60).toString().padStart(2,'0');
+      return `${h}:${m}`;
+    }
+
+    function renderLogs(filter=''){
+      const logs = loadLogs();
+      const q = filter.trim().toLowerCase();
+      logTableBody.innerHTML = '';
+      logs
+        .filter(l => (actionFilter.value === 'ALL' || l.action === actionFilter.value))
+        .filter(l => !q || `${l.name}`.toLowerCase().includes(q))
+        .forEach(l => {
+          const tr = document.createElement('tr');
+          const img = l.photo ? `<img src="${l.photo}" alt="${l.name}" style="width:40px;height:40px;object-fit:cover;border-radius:6px;border:1px solid #dee2e6;"/>` : '<span class="text-muted">—</span>';
+          const loc = l.lat && l.lng ? `<a href="https://maps.google.com/?q=${l.lat},${l.lng}" target="_blank" rel="noopener">${Number(l.lat).toFixed(5)}, ${Number(l.lng).toFixed(5)}</a>` : '<span class="text-muted">—</span>';
+          const dt = new Date(l.time);
+          const day = dt.toLocaleDateString(undefined, { weekday: 'short' });
+          const dateStr = dt.toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: '2-digit' });
+          const timeStr = dt.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+          tr.innerHTML = `
+            <td>${l.name}</td>
+            <td>${l.action === 'IN' ? '<span class="status-dot status-in"></span>IN' : '<span class="status-dot status-out"></span>OUT'}</td>
+            <td>${day}, ${dateStr} ${timeStr}</td>
+            <td>${l.action === 'OUT' ? (l.sessionMinutes ? formatHMS(l.sessionMinutes) : '—') : '—'}</td>
+            <td>${img}</td>
+            <td>${loc}</td>
+          `;
+          logTableBody.appendChild(tr);
+        });
+    }
+
+    function sumDailyMinutes(logs, empId){
+      return logs.filter(x => x.empId === empId && x.action === 'OUT' && x.sessionMinutes)
+        .reduce((acc, x) => acc + (x.sessionMinutes || 0), 0);
+    }
+
+    function findUnpairedIn(logs, empId){
+      // logs are newest first; find first IN without pairedWith
+      for (const l of logs){
+        if (l.empId === empId && l.action === 'IN' && !l.pairedWith){
+          return l;
+        }
+      }
+      return null;
+    }
+
+    function submit(action){
+      const empId = parseInt(empSelect.value || '0', 10);
+      if (!empId) { alert('Please select an employee'); return; }
+      const employee = employees.find(e => e.id === empId);
+      const snapshot = takeSnapshot();
+      const lat = latEl.value, lng = lngEl.value;
+      const nowIso = new Date().toISOString();
+      const log = { id: Date.now(), empId, name: employee.name, action, time: nowIso, photo: snapshot, lat, lng };
+      const logs = loadLogs();
+
+      if (action === 'OUT'){
+        const inLog = findUnpairedIn(logs, empId);
+        if (inLog){
+          const minutes = (new Date(nowIso) - new Date(inLog.time)) / 60000;
+          log.sessionMinutes = Math.max(0, Math.round(minutes));
+          inLog.pairedWith = log.id;
+        }
+        log.dailyTotalMinutes = sumDailyMinutes([log, ...logs], empId);
+      }
+
+      logs.unshift(log);
+      saveLogs(logs);
+      renderLogs(searchLogs.value);
+    }
+
+    document.getElementById('btnIn').addEventListener('click', () => submit('IN'));
+    document.getElementById('btnOut').addEventListener('click', () => submit('OUT'));
+    searchLogs.addEventListener('input', () => renderLogs(searchLogs.value));
+    actionFilter.addEventListener('change', () => renderLogs(searchLogs.value));
+    logDateInput.addEventListener('change', () => { renderLogs(searchLogs.value); });
+
+    exportBtn.addEventListener('click', () => {
+      const logs = loadLogs();
+      const rows = [['emp_id','name','action','day','date','time','session_minutes','daily_total_minutes','latitude','longitude','photo_base64']];
+      logs.forEach(l => {
+        const dt = new Date(l.time);
+        const day = dt.toLocaleDateString(undefined, { weekday: 'short' });
+        const dateStr = dt.toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: '2-digit' });
+        const timeStr = dt.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+        rows.push([l.empId, l.name, l.action, day, dateStr, timeStr, l.sessionMinutes||'', l.dailyTotalMinutes||'', l.lat||'', l.lng||'', (l.photo||'').slice(0,60) + '...']);
+      });
+      const csv = rows.map(r => r.map(x => `"${String(x).replaceAll('"','""')}"`).join(',')).join('\n');
+      const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a'); a.href = url; a.download = 'inout_logs_today.csv'; a.click();
+      URL.revokeObjectURL(url);
+    });
+
+    // Initial render
+    renderLogs();
+  });
+</script>
+{% endblock %}
+
+

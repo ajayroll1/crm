@@ -560,6 +560,22 @@
   <!-- Mobile Sidebar Toggle Script -->
   <script>
     document.addEventListener('DOMContentLoaded', function() {
+      // Safety: remove unwanted sidebar sections if still present
+      try {
+        document.querySelectorAll('.sidebar .nav-section').forEach(sec => {
+          const title = (sec.querySelector('.nav-section-title')?.textContent || '').trim().toUpperCase();
+          if (title === 'SUPPORT SYSTEM' || title === 'ANALYTICS & REPORTS') {
+            sec.remove();
+          }
+        });
+        // Remove footer "Reports" item if present
+        document.querySelectorAll('.sidebar-footer .nav-item .nav-link').forEach(a => {
+          if ((a.textContent || '').trim().toUpperCase() === 'REPORTS') {
+            a.closest('.nav-item')?.remove();
+          }
+        });
+      } catch (e) { /* no-op */ }
+
       const hamburgerBtn = document.getElementById('hamburgerBtn');
       const sidebar = document.querySelector('.sidebar');
       const sidebarOverlay = document.getElementById('sidebarOverlay');

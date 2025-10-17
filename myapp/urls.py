@@ -16,8 +16,10 @@ urlpatterns =[
   path('accounts/',views.accounts,name='accounts'),
   path('employees/',views.employees,name='employees'),
   path('attendance/',views.attendance,name='attendance'),
+  path('in-out/',views.in_out,name='in_out'),
   path('leave/',views.leave,name='leave'),
   path('reports/',views.reports,name='reports'),
+  path('settings/',views.settings_view,name='settings'),
   
 
   

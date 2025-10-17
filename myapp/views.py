@@ -66,3 +66,9 @@ def leave(request):
 def reports(request):
     return render(request, 'dashboard/reports.html')
     
+
+def settings_view(request):
+  return render(request, 'setting.html')
+
+def in_out(request):
+  return render(request, 'human_resource/in_out.html')

@@ -46,30 +46,6 @@
     </div>
     
     <div class="nav-section">
-      <h3 class="nav-section-title">SUPPORT SYSTEM</h3>
-      <ul class="nav-list">
-        <li class="nav-item">
-          <a href="#" class="nav-link">
-            <i class="bi bi-ticket"></i>
-            <span>Tickets</span>
-          </a>
-        </li>
-        <li class="nav-item">
-          <a href="#" class="nav-link">
-            <i class="bi bi-graph-up-arrow"></i>
-            <span>SLA Reports</span>
-          </a>
-        </li>
-        <li class="nav-item">
-          <a href="#" class="nav-link">
-            <i class="bi bi-person-check"></i>
-            <span>Clients</span>
-          </a>
-        </li>
-      </ul>
-    </div>
-    
-    <div class="nav-section">
       <h3 class="nav-section-title">HUMAN RESOURCES</h3>
       <ul class="nav-list">
         <li class="nav-item">
@@ -85,33 +61,15 @@
           </a>
         </li>
         <li class="nav-item">
+          <a href="{% url 'in_out' %}" class="nav-link">
+            <i class="bi bi-geo-alt"></i>
+            <span>In/Out</span>
+          </a>
+        </li>
+        <li class="nav-item">
           <a href="{% url 'leave'%}" class="nav-link">
             <i class="bi bi-calendar-event"></i>
             <span>Leave Requests</span>
-          </a>
-        </li>
-      </ul>
-    </div>
-    
-    <div class="nav-section">
-      <h3 class="nav-section-title">ANALYTICS & REPORTS</h3>
-      <ul class="nav-list">
-        <li class="nav-item">
-          <a href="{% url 'reports' %}" class="nav-link">
-            <i class="bi bi-graph-up"></i>
-            <span>Reports & Analytics</span>
-          </a>
-        </li>
-        <li class="nav-item">
-          <a href="#" class="nav-link">
-            <i class="bi bi-pie-chart"></i>
-            <span>Financial Reports</span>
-          </a>
-        </li>
-        <li class="nav-item">
-          <a href="#" class="nav-link">
-            <i class="bi bi-bar-chart"></i>
-            <span>Performance Metrics</span>
           </a>
         </li>
       </ul>
@@ -126,13 +84,7 @@
       </a>
     </div>
     <div class="nav-item">
-      <a href="{% url 'reports' %}" class="nav-link">
-        <i class="bi bi-bar-chart"></i>
-        <span>Reports</span>
-      </a>
-    </div>
-    <div class="nav-item">
-      <a href="#" class="nav-link">
+      <a href="{% url 'settings' %}" class="nav-link">
         <i class="bi bi-gear"></i>
         <span>Settings</span>
       </a>
