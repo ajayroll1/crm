@@ -72,3 +72,8 @@ def settings_view(request):
 
 def in_out(request):
   return render(request, 'human_resource/in_out.html')
+
+
+def project_management(request):
+  # UI-only projects dashboard (localStorage demo)
+  return render(request, "project_managemnet'/project.html")

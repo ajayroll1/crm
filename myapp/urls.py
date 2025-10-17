@@ -20,6 +20,7 @@ urlpatterns =[
   path('leave/',views.leave,name='leave'),
   path('reports/',views.reports,name='reports'),
   path('settings/',views.settings_view,name='settings'),
+  path('project-management/',views.project_management,name='project_management'),
   
 
   

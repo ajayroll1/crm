@@ -1,0 +1,336 @@
+{% extends "dashboard/dashboard_base.html"%}
+{% block title %}Projects - Sujata Associates{% endblock%}
+
+{% block content %}
+<div class="dashboard-header">
+  <h1>Projects</h1>
+  <p class="text-muted">Track projects, budgets, duration and allocations</p>
+</div>
+
+<style>
+  html, body { overflow-x: hidden; }
+  .kpi-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; }
+  .kpi .value { font-size: 1.6rem; font-weight: 700; }
+  .avatar { width: 28px; height: 28px; border-radius: 50%; background:#e9ecef; display:inline-flex; align-items:center; justify-content:center; font-size:.8rem; font-weight:600; }
+  /* Icons-only actions on all viewports */
+  .actions .btn-text { display: none; }
+  .actions .btn { padding: .35rem .5rem; }
+  @media (max-width: 992px){ .kpi-grid { grid-template-columns: 1fr; } }
+  /* Improve table readability on small screens */
+  @media (max-width: 576px){
+    #projectTable td, #projectTable th { white-space: normal; }
+    .actions .btn { padding: .25rem .45rem; }
+    .avatar { width: 24px; height: 24px; font-size:.7rem; }
+    .hide-xs { display: none; }
+    /* Remove fixed width on Actions to allow wrap */
+    #projectTable th[style] { width: auto !important; }
+    .actions { min-width: 0; }
+    .actions .btn-group { gap: .25rem; }
+  }
+  .table-responsive{ -webkit-overflow-scrolling: touch; }
+  /* Strong mobile override to prevent right-side cut */
+  @media (max-width: 768px){
+    .main-content{ margin-left: 0 !important; padding: 0 !important; }
+    .main-content > *{ padding: 0 1rem; }
+    .card{ margin-left: 0; margin-right: 0; }
+    .table-responsive{ overflow-x: auto; }
+  }
+</style>
+
+<div class="kpi-grid mb-3">
+  <div class="card kpi">
+    <div class="card-body d-flex justify-content-between align-items-center">
+      <div>
+        <div class="text-muted">Total Projects</div>
+        <div class="value" id="kpiTotal">0</div>
+      </div>
+      <i class="bi bi-kanban fs-3 text-primary"></i>
+    </div>
+  </div>
+  <div class="card kpi">
+    <div class="card-body d-flex justify-content-between align-items-center">
+      <div>
+        <div class="text-muted">In Progress</div>
+        <div class="value" id="kpiProgress">0</div>
+      </div>
+      <i class="bi bi-hourglass-split fs-3 text-warning"></i>
+    </div>
+  </div>
+  <div class="card kpi">
+    <div class="card-body d-flex justify-content-between align-items-center">
+      <div>
+        <div class="text-muted">Completed</div>
+        <div class="value" id="kpiCompleted">0</div>
+      </div>
+      <i class="bi bi-check2-circle fs-3 text-success"></i>
+    </div>
+  </div>
+  
+</div>
+
+<div class="card">
+  <div class="card-header d-flex align-items-center justify-content-between flex-wrap gap-2">
+    <h6 class="mb-0">Projects List</h6>
+    <div class="d-flex gap-2 flex-wrap">
+      <select id="statusFilter" class="form-select form-select-sm" style="width:150px;">
+        <option value="ALL">All</option>
+        <option value="IN_PROGRESS">In Progress</option>
+        <option value="COMPLETED">Completed</option>
+      </select>
+      <div class="input-group input-group-sm" style="width:260px;">
+        <span class="input-group-text"><i class="bi bi-search"></i></span>
+        <input id="searchBox" class="form-control" placeholder="Search project name">
+      </div>
+      <button id="newProjectBtn" class="btn btn-primary btn-sm"><i class="bi bi-plus"></i> New Project</button>
+    </div>
+  </div>
+  <div class="card-body p-0">
+    <div class="table-responsive">
+      <table class="table table-hover align-middle mb-0" id="projectTable">
+        <thead class="table-light">
+          <tr>
+            <th>Project</th>
+            <th>Status</th>
+            <th class="hide-xs">Budget</th>
+            <th class="hide-xs">Duration</th>
+            <th>Assigned To</th>
+            <th style="width: 200px;">Actions</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </div>
+  </div>
+  <div class="card-footer text-muted small">Entries are stored locally for demo.</div>
+  
+</div>
+
+<!-- Assign / Edit Modal -->
+<div class="modal fade" id="assignModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h6 class="modal-title" id="assignTitle">Assign Employees</h6>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <div class="mb-3">
+          <label class="form-label">Project Name</label>
+          <input type="text" class="form-control" id="projNameInput" placeholder="Enter project name">
+        </div>
+        <div class="row g-3">
+          <div class="col-md-6">
+            <label class="form-label">Budget (₹)</label>
+            <input type="number" min="0" class="form-control" id="projBudgetInput" placeholder="0">
+          </div>
+          <div class="col-md-6">
+            <label class="form-label">Duration (days)</label>
+            <input type="number" min="1" class="form-control" id="projDurationInput" placeholder="e.g. 30">
+          </div>
+          <div class="col-md-6">
+            <label class="form-label">Status</label>
+            <select id="projStatusInput" class="form-select">
+              <option value="IN_PROGRESS">In Progress</option>
+              <option value="COMPLETED">Completed</option>
+            </select>
+          </div>
+        </div>
+        <div class="mt-3">
+          <label class="form-label">Assign Employees</label>
+          <select id="employeeSelect" class="form-select" multiple></select>
+          <div class="form-text">Choose one or more employees for this project.</div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+        <button type="button" class="btn btn-primary" id="saveAssignBtn">Save</button>
+      </div>
+    </div>
+  </div>
+  
+</div>
+
+<script>
+  document.addEventListener('DOMContentLoaded', () => {
+    // Demo employees
+    const employees = [
+      { id: 1, name: 'John Doe' },
+      { id: 2, name: 'Jane Smith' },
+      { id: 3, name: 'Mike Johnson' },
+      { id: 4, name: 'Priya Sharma' }
+    ];
+
+    // Storage helpers
+    function loadProjects(){
+      try { return JSON.parse(localStorage.getItem('projects_demo') || '[]'); }
+      catch { return []; }
+    }
+    function saveProjects(list){
+      localStorage.setItem('projects_demo', JSON.stringify(list));
+    }
+
+    // Seed if empty
+    if (loadProjects().length === 0){
+      saveProjects([
+        { id: 1, name: 'Website Revamp', status: 'IN_PROGRESS', budget: 150000, durationDays: 30, assignees: [1,2] },
+        { id: 2, name: 'Mobile App MVP', status: 'COMPLETED', budget: 220000, durationDays: 45, assignees: [3] }
+      ]);
+    }
+
+    // UI elements
+    const statusFilter = document.getElementById('statusFilter');
+    const searchBox = document.getElementById('searchBox');
+    const tbody = document.querySelector('#projectTable tbody');
+    const kpiTotal = document.getElementById('kpiTotal');
+    const kpiProgress = document.getElementById('kpiProgress');
+    const kpiCompleted = document.getElementById('kpiCompleted');
+    const newProjectBtn = document.getElementById('newProjectBtn');
+
+    // Modal elements
+    const assignModalEl = document.getElementById('assignModal');
+    const assignModal = new bootstrap.Modal(assignModalEl);
+    const assignTitle = document.getElementById('assignTitle');
+    const projNameInput = document.getElementById('projNameInput');
+    const projBudgetInput = document.getElementById('projBudgetInput');
+    const projDurationInput = document.getElementById('projDurationInput');
+    const projStatusInput = document.getElementById('projStatusInput');
+    const employeeSelect = document.getElementById('employeeSelect');
+    const saveAssignBtn = document.getElementById('saveAssignBtn');
+    let editingId = null;
+
+    // Populate employees select
+    function renderEmployeeOptions(selectedIds){
+      employeeSelect.innerHTML = '';
+      employees.forEach(e => {
+        const opt = document.createElement('option');
+        opt.value = e.id;
+        opt.textContent = e.name;
+        if (selectedIds && selectedIds.includes(e.id)) opt.selected = true;
+        employeeSelect.appendChild(opt);
+      });
+    }
+
+    function formatCurrency(n){
+      if (n === undefined || n === null) return '—';
+      return new Intl.NumberFormat(undefined, { style: 'currency', currency: 'INR', maximumFractionDigits: 0 }).format(n);
+    }
+
+    function nameInitials(name){
+      return (name||'')
+        .split(' ')
+        .map(p => p[0])
+        .join('')
+        .slice(0,2)
+        .toUpperCase();
+    }
+
+    function renderKPIs(list){
+      kpiTotal.textContent = list.length;
+      kpiProgress.textContent = list.filter(x => x.status === 'IN_PROGRESS').length;
+      kpiCompleted.textContent = list.filter(x => x.status === 'COMPLETED').length;
+    }
+
+    function renderTable(){
+      const list = loadProjects();
+      renderKPIs(list);
+      const q = (searchBox.value || '').toLowerCase();
+      const filtered = list
+        .filter(p => statusFilter.value === 'ALL' || p.status === statusFilter.value)
+        .filter(p => !q || p.name.toLowerCase().includes(q));
+
+      tbody.innerHTML = '';
+      filtered.forEach(p => {
+        const tr = document.createElement('tr');
+        const assignees = p.assignees?.map(id => employees.find(e => e.id === id)?.name).filter(Boolean) || [];
+        const avatars = assignees.length
+          ? assignees.map(n => `<span class="avatar" title="${n}">${nameInitials(n)}</span>`).join(' ')
+          : '<span class="text-muted">Unassigned</span>';
+        tr.innerHTML = `
+          <td>${p.name}</td>
+          <td>${p.status === 'COMPLETED' ? '<span class="badge bg-success-subtle text-success">Completed</span>' : '<span class="badge bg-warning-subtle text-warning">In Progress</span>'}</td>
+          <td class="hide-xs">${formatCurrency(p.budget)}</td>
+          <td class="hide-xs">${p.durationDays ? p.durationDays + ' days' : '—'}</td>
+          <td>${avatars}</td>
+          <td class="actions">
+            <div class="btn-group btn-group-sm flex-wrap">
+              <button class="btn btn-outline-primary" data-action="assign" data-id="${p.id}" title="Assign"><i class="bi bi-person-plus"></i></button>
+              <button class="btn btn-outline-secondary" data-action="edit" data-id="${p.id}" title="Edit"><i class="bi bi-pencil"></i></button>
+              ${p.status !== 'COMPLETED' ? `<button class=\"btn btn-outline-success\" data-action=\"complete\" data-id=\"${p.id}\" title=\"Complete\"><i class=\"bi bi-check2\"></i></button>` : ''}
+            </div>
+          </td>
+        `;
+        tbody.appendChild(tr);
+      });
+    }
+
+    // Table actions
+    tbody.addEventListener('click', (ev) => {
+      const btn = ev.target.closest('button[data-action]');
+      if (!btn) return;
+      const id = Number(btn.getAttribute('data-id'));
+      const action = btn.getAttribute('data-action');
+      const list = loadProjects();
+      const proj = list.find(x => x.id === id);
+      if (!proj) return;
+
+      if (action === 'complete'){
+        proj.status = 'COMPLETED';
+        saveProjects(list); renderTable(); return;
+      }
+
+      if (action === 'assign' || action === 'edit'){
+        editingId = id;
+        assignTitle.textContent = action === 'assign' ? 'Assign Employees' : 'Edit Project';
+        projNameInput.value = proj.name || '';
+        projBudgetInput.value = proj.budget || '';
+        projDurationInput.value = proj.durationDays || '';
+        projStatusInput.value = proj.status || 'IN_PROGRESS';
+        renderEmployeeOptions([...(proj.assignees||[])]);
+        assignModal.show();
+      }
+    });
+
+    // Add new project
+    newProjectBtn.addEventListener('click', () => {
+      editingId = null;
+      assignTitle.textContent = 'New Project';
+      projNameInput.value = '';
+      projBudgetInput.value = '';
+      projDurationInput.value = '';
+      projStatusInput.value = 'IN_PROGRESS';
+      renderEmployeeOptions([]);
+      assignModal.show();
+    });
+
+    // Save modal
+    saveAssignBtn.addEventListener('click', () => {
+      const name = (projNameInput.value || '').trim();
+      const budget = Number(projBudgetInput.value || '0');
+      const durationDays = Number(projDurationInput.value || '0');
+      const statusVal = projStatusInput.value || 'IN_PROGRESS';
+      const assignees = Array.from(employeeSelect.selectedOptions).map(o => Number(o.value));
+      if (!name){ alert('Please enter project name'); return; }
+      const list = loadProjects();
+      if (editingId){
+        const p = list.find(x => x.id === editingId);
+        if (p){ p.name = name; p.budget = budget; p.durationDays = durationDays; p.assignees = assignees; p.status = statusVal || 'IN_PROGRESS'; }
+      } else {
+        list.unshift({ id: Date.now(), name, budget, durationDays, assignees, status: statusVal || 'IN_PROGRESS' });
+      }
+      saveProjects(list);
+      assignModal.hide();
+      renderTable();
+    });
+
+    // Filters
+    statusFilter.addEventListener('change', renderTable);
+    searchBox.addEventListener('input', renderTable);
+
+    // Initial render
+    renderEmployeeOptions([]);
+    renderTable();
+  });
+</script>
+{% endblock %}
+
+

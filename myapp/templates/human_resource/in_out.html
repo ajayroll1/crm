@@ -95,11 +95,13 @@
           <thead class="table-light">
             <tr>
               <th>Employee</th>
-              <th>Action</th>
-              <th>Date & Time</th>
+              <th>Date</th>
+              <th>IN Time</th>
+              <th>OUT Time</th>
               <th>Working Hours</th>
               <th>Photo</th>
               <th>Location</th>
+              
             </tr>
           </thead>
           <tbody></tbody>
@@ -225,31 +227,87 @@
       return `${h}:${m}`;
     }
 
+    function formatDate(iso){
+      if (!iso) return '—';
+      const dt = new Date(iso);
+      const d = dt.getDate().toString().padStart(2,'0');
+      const m = (dt.getMonth()+1).toString().padStart(2,'0');
+      const y = dt.getFullYear();
+      return `${d}-${m}-${y}`; // DD-MM-YYYY
+    }
+
+    function formatTime(iso){
+      if (!iso) return '—';
+      const dt = new Date(iso);
+      return dt.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' });
+    }
+
+    function buildSessions(logs){
+      const sessions = [];
+      const usedInIds = new Set();
+      const nameByEmp = new Map();
+
+      logs.forEach(l => nameByEmp.set(l.empId, l.name));
+
+      // Pair OUT with its IN
+      logs.forEach(out => {
+        if (out.action !== 'OUT') return;
+        const inLog = logs.find(x => x.action === 'IN' && x.pairedWith === out.id);
+        if (inLog){ usedInIds.add(inLog.id); }
+        sessions.push({ empId: out.empId, name: nameByEmp.get(out.empId) || out.name, inLog, outLog: out });
+      });
+
+      // Any remaining IN without OUT
+      logs.forEach(l => {
+        if (l.action === 'IN' && !usedInIds.has(l.id)){
+          sessions.push({ empId: l.empId, name: l.name, inLog: l, outLog: null });
+        }
+      });
+
+      // Sort newest first by out time then in time
+      sessions.sort((a,b) => {
+        const at = new Date(a.outLog?.time || a.inLog?.time || 0).getTime();
+        const bt = new Date(b.outLog?.time || b.inLog?.time || 0).getTime();
+        return bt - at;
+      });
+      return sessions;
+    }
+
     function renderLogs(filter=''){
       const logs = loadLogs();
       const q = filter.trim().toLowerCase();
-      logTableBody.innerHTML = '';
-      logs
-        .filter(l => (actionFilter.value === 'ALL' || l.action === actionFilter.value))
-        .filter(l => !q || `${l.name}`.toLowerCase().includes(q))
-        .forEach(l => {
-          const tr = document.createElement('tr');
-          const img = l.photo ? `<img src="${l.photo}" alt="${l.name}" style="width:40px;height:40px;object-fit:cover;border-radius:6px;border:1px solid #dee2e6;"/>` : '<span class="text-muted">—</span>';
-          const loc = l.lat && l.lng ? `<a href="https://maps.google.com/?q=${l.lat},${l.lng}" target="_blank" rel="noopener">${Number(l.lat).toFixed(5)}, ${Number(l.lng).toFixed(5)}</a>` : '<span class="text-muted">—</span>';
-          const dt = new Date(l.time);
-          const day = dt.toLocaleDateString(undefined, { weekday: 'short' });
-          const dateStr = dt.toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: '2-digit' });
-          const timeStr = dt.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit', second: '2-digit' });
-          tr.innerHTML = `
-            <td>${l.name}</td>
-            <td>${l.action === 'IN' ? '<span class="status-dot status-in"></span>IN' : '<span class="status-dot status-out"></span>OUT'}</td>
-            <td>${day}, ${dateStr} ${timeStr}</td>
-            <td>${l.action === 'OUT' ? (l.sessionMinutes ? formatHMS(l.sessionMinutes) : '—') : '—'}</td>
-            <td>${img}</td>
-            <td>${loc}</td>
-          `;
-          logTableBody.appendChild(tr);
+      const sessions = buildSessions(logs)
+        .filter(s => !q || `${s.name}`.toLowerCase().includes(q))
+        .filter(s => {
+          if (actionFilter.value === 'ALL') return true;
+          if (actionFilter.value === 'IN') return !!s.inLog && !s.outLog; // open sessions
+          if (actionFilter.value === 'OUT') return !!s.outLog; // completed sessions
+          return true;
         });
+
+      logTableBody.innerHTML = '';
+      sessions.forEach(s => {
+        const minutes = s.outLog?.sessionMinutes;
+        const photoSrc = s.outLog?.photo || s.inLog?.photo;
+        const img = photoSrc ? `<img src="${photoSrc}" alt="${s.name}" style="width:40px;height:40px;object-fit:cover;border-radius:6px;border:1px solid #dee2e6;"/>` : '<span class="text-muted">—</span>';
+        const lat = s.outLog?.lat || s.inLog?.lat;
+        const lng = s.outLog?.lng || s.inLog?.lng;
+        const loc = (lat && lng)
+          ? `<a href="https://maps.google.com/?q=${lat},${lng}" target="_blank" rel="noopener" title="Open location"><i class="bi bi-geo-alt-fill"></i></a>`
+          : '<span class="text-muted">—</span>';
+        const dateForRow = formatDate(s.outLog?.time || s.inLog?.time);
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td>${s.name}</td>
+          <td>${dateForRow}</td>
+          <td>${s.inLog ? '<span class="status-dot status-in"></span>' + formatTime(s.inLog.time) : '—'}</td>
+          <td>${s.outLog ? '<span class="status-dot status-out"></span>' + formatTime(s.outLog.time) : '—'}</td>
+          <td>${s.outLog ? (minutes ? formatHMS(minutes) : '—') : '—'}</td>
+          <td>${img}</td>
+          <td style="text-align:center;">${loc}</td>
+        `;
+        logTableBody.appendChild(tr);
+      });
     }
 
     function sumDailyMinutes(logs, empId){
@@ -298,6 +356,8 @@
     actionFilter.addEventListener('change', () => renderLogs(searchLogs.value));
     logDateInput.addEventListener('change', () => { renderLogs(searchLogs.value); });
 
+    
+
     exportBtn.addEventListener('click', () => {
       const logs = loadLogs();
       const rows = [['emp_id','name','action','day','date','time','session_minutes','daily_total_minutes','latitude','longitude','photo_base64']];
@@ -314,6 +374,8 @@
       const a = document.createElement('a'); a.href = url; a.download = 'inout_logs_today.csv'; a.click();
       URL.revokeObjectURL(url);
     });
+
+    
 
     // Initial render
     renderLogs();
