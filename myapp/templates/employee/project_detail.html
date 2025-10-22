@@ -1,0 +1,175 @@
+{% extends "employee/base.html" %}
+{% load static %}
+
+{% block title %}{{ project.name }} - Sujata Associates{% endblock %}
+{% block page_title %}{{ project.name }}{% endblock %}
+{% block mobile_title %}{{ project.name }}{% endblock %}
+
+{% block content %}
+<div class="row">
+  <div class="col-lg-8">
+    <!-- Project Overview -->
+    <div class="card mb-4">
+      <div class="card-header">
+        <div class="d-flex justify-content-between align-items-center">
+          <div>
+            <h5 class="mb-0">{{ project.name }}</h5>
+            <small class="text-muted">{{ project.type }}</small>
+          </div>
+          <span class="status-badge status-{{ project.status|lower|slugify }}">{{ project.status }}</span>
+        </div>
+      </div>
+      <div class="card-body">
+        <p class="text-muted mb-4">{{ project.description }}</p>
+        
+        <div class="row mb-4">
+          <div class="col-md-3">
+            <div class="text-center">
+              <div class="fw-bold text-primary fs-4">{{ project.progress }}%</div>
+              <div class="small text-muted">Progress</div>
+            </div>
+          </div>
+          <div class="col-md-3">
+            <div class="text-center">
+              <div class="fw-bold text-success fs-4">{{ project.tasks_completed }}</div>
+              <div class="small text-muted">Completed Tasks</div>
+            </div>
+          </div>
+          <div class="col-md-3">
+            <div class="text-center">
+              <div class="fw-bold text-warning fs-4">{{ project.tasks_pending }}</div>
+              <div class="small text-muted">Pending Tasks</div>
+            </div>
+          </div>
+          <div class="col-md-3">
+            <div class="text-center">
+              <div class="fw-bold text-info fs-4">{{ project.tasks_total }}</div>
+              <div class="small text-muted">Total Tasks</div>
+            </div>
+          </div>
+        </div>
+        
+        <div class="mb-3">
+          <div class="d-flex justify-content-between align-items-center mb-1">
+            <span class="small fw-bold">Overall Progress</span>
+            <span class="small text-muted">{{ project.progress }}%</span>
+          </div>
+          <div class="progress" style="height: 10px;">
+            <div class="progress-bar bg-primary" style="width: {{ project.progress }}%"></div>
+          </div>
+        </div>
+        
+        <div class="row">
+          <div class="col-md-6">
+            <div class="mb-2">
+              <strong>Due Date:</strong> {{ project.due_date }}
+            </div>
+            <div class="mb-2">
+              <strong>Priority:</strong> 
+              <span class="badge bg-{% if project.priority == 'High' %}danger{% elif project.priority == 'Medium' %}warning{% else %}success{% endif %}">
+                {{ project.priority }}
+              </span>
+            </div>
+          </div>
+          <div class="col-md-6">
+            <div class="mb-2">
+              <strong>Client:</strong> {{ project.client }}
+            </div>
+            <div class="mb-2">
+              <strong>Budget:</strong> {{ project.budget }}
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Tasks -->
+    <div class="card">
+      <div class="card-header">
+        <h6 class="mb-0">Project Tasks</h6>
+      </div>
+      <div class="card-body">
+        <div class="table-responsive">
+          <table class="table table-hover">
+            <thead>
+              <tr>
+                <th>Task</th>
+                <th>Assignee</th>
+                <th>Due Date</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for task in tasks %}
+              <tr>
+                <td>{{ task.title }}</td>
+                <td>{{ task.assignee }}</td>
+                <td>{{ task.due_date }}</td>
+                <td>
+                  <span class="badge bg-{% if task.status == 'Completed' %}success{% elif task.status == 'In Progress' %}primary{% else %}warning{% endif %}">
+                    {{ task.status }}
+                  </span>
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <div class="col-lg-4">
+    <!-- Project Info -->
+    <div class="card mb-4">
+      <div class="card-header">
+        <h6 class="mb-0">Project Information</h6>
+      </div>
+      <div class="card-body">
+        <div class="mb-3">
+          <strong>Start Date:</strong><br>
+          {{ project.start_date }}
+        </div>
+        <div class="mb-3">
+          <strong>Team Members:</strong><br>
+          {% for member in project.team_members %}
+            <span class="badge bg-light text-dark me-1">{{ member }}</span>
+          {% endfor %}
+        </div>
+        <div class="mb-3">
+          <strong>Project Type:</strong><br>
+          {{ project.type }}
+        </div>
+      </div>
+    </div>
+    
+    <!-- Quick Actions -->
+    <div class="card">
+      <div class="card-header">
+        <h6 class="mb-0">Quick Actions</h6>
+      </div>
+      <div class="card-body">
+        <div class="d-grid gap-2">
+          {% if project.status == 'Pending' %}
+            <a href="{% url 'employee_start_project' project_id=project.id %}" class="btn btn-warning">
+              <i class="bi bi-play me-1"></i>Start Project
+            </a>
+          {% elif project.status == 'In Progress' %}
+            <a href="{% url 'employee_continue_project' project_id=project.id %}" class="btn btn-primary">
+              <i class="bi bi-play me-1"></i>Continue Work
+            </a>
+          {% elif project.status == 'Almost Done' %}
+            <a href="{% url 'employee_finish_project' project_id=project.id %}" class="btn btn-success">
+              <i class="bi bi-check me-1"></i>Finish Project
+            </a>
+          {% endif %}
+          
+          <a href="{% url 'employee_projects' %}" class="btn btn-outline-secondary">
+            <i class="bi bi-arrow-left me-1"></i>Back to Projects
+          </a>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

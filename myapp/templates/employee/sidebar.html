@@ -1,0 +1,150 @@
+{% load static %}
+<!-- Employee Sidebar Start -->
+<div class="sidebar">
+  <div class="sidebar-header">
+    <div class="logo-section">
+      <img src="{% static 'images/Logo-new-final.png' %}" alt="Sujata Associates" class="sidebar-logo">
+      <span class="company-name">Sujata Associates</span>
+    </div>
+    
+    <!-- Employee Info -->
+    <div class="employee-info">
+      <div class="employee-avatar">
+        JD
+      </div>
+      <div class="employee-name">John Doe</div>
+      <div class="employee-role">Software Developer</div>
+    </div>
+  </div>
+  
+  <nav class="sidebar-nav">
+    <!-- Dashboard Section -->
+    <div class="nav-section">
+      <h3 class="nav-section-title">DASHBOARD</h3>
+      <ul class="nav-list">
+        <li class="nav-item">
+          <a href="{% url 'employee_dashboard' %}" class="nav-link">
+            <i class="bi bi-house-door"></i>
+            <span>Dashboard</span>
+          </a>
+        </li>
+        <li class="nav-item">
+          <a href="#" class="nav-link">
+            <i class="bi bi-graph-up"></i>
+            <span>Performance</span>
+          </a>
+        </li>
+      </ul>
+    </div>
+    
+    <!-- Work Management Section -->
+    <div class="nav-section">
+      <h3 class="nav-section-title">WORK MANAGEMENT</h3>
+      <ul class="nav-list">
+        <li class="nav-item">
+          <a href="{% url 'employee_projects' %}" class="nav-link">
+            <i class="bi bi-kanban"></i>
+            <span>My Projects</span>
+            <span class="nav-badge">3</span>
+          </a>
+        </li>
+      </ul>
+    </div>
+    
+    <!-- Attendance Section -->
+    <div class="nav-section">
+      <h3 class="nav-section-title">ATTENDANCE</h3>
+      <ul class="nav-list">
+        <li class="nav-item">
+          <a href="{% url 'employee_in_out' %}" class="nav-link">
+            <i class="bi bi-geo-alt"></i>
+            <span>Check In/Out</span>
+          </a>
+        </li>
+        <li class="nav-item">
+          <a href="{% url 'employee_leave' %}" class="nav-link">
+            <i class="bi bi-calendar-event"></i>
+            <span>Leave Requests</span>
+            <span class="nav-badge">2</span>
+          </a>
+        </li>
+      </ul>
+    </div>
+    
+    <!-- Communication Section -->
+    <div class="nav-section">
+      <h3 class="nav-section-title">COMMUNICATION</h3>
+      <ul class="nav-list">
+        <li class="nav-item">
+          <a href="#" class="nav-link">
+            <i class="bi bi-chat-dots"></i>
+            <span>Messages</span>
+            <span class="nav-badge">5</span>
+          </a>
+        </li>
+        <li class="nav-item">
+          <a href="#" class="nav-link">
+            <i class="bi bi-bell"></i>
+            <span>Notifications</span>
+            <span class="nav-badge">3</span>
+          </a>
+        </li>
+      </ul>
+    </div>
+    
+    <!-- Personal Section -->
+    <div class="nav-section">
+      <h3 class="nav-section-title">PERSONAL</h3>
+      <ul class="nav-list">
+        <li class="nav-item">
+          <a href="{% url 'employee_profile' %}" class="nav-link">
+            <i class="bi bi-person"></i>
+            <span>Profile</span>
+          </a>
+        </li>
+        <li class="nav-item">
+          <a href="{% url 'employee_documents' %}" class="nav-link">
+            <i class="bi bi-file-earmark-person"></i>
+            <span>Documents</span>
+          </a>
+        </li>
+        <li class="nav-item">
+          <a href="{% url 'employee_payroll' %}" class="nav-link">
+            <i class="bi bi-credit-card"></i>
+            <span>Payroll</span>
+          </a>
+        </li>
+        <li class="nav-item">
+          <a href="{% url 'employee_achievements' %}" class="nav-link">
+            <i class="bi bi-award"></i>
+            <span>Achievements</span>
+          </a>
+        </li>
+      </ul>
+    </div>
+    
+  </nav>
+  
+  <!-- Sidebar Footer -->
+  <div class="sidebar-footer">
+    <div class="nav-item">
+      <a href="{% url 'employee_settings' %}" class="nav-link">
+        <i class="bi bi-gear"></i>
+        <span>Settings</span>
+      </a>
+    </div>
+    <div class="nav-item">
+      <a href="#" class="nav-link">
+        <i class="bi bi-question-circle"></i>
+        <span>Help & Support</span>
+      </a>
+    </div>
+    <div class="nav-item">
+      <a href="#" class="nav-link">
+        <i class="bi bi-box-arrow-right"></i>
+        <span>Logout</span>
+      </a>
+    </div>
+  </div>
+</div>
+<!-- Employee Sidebar End -->

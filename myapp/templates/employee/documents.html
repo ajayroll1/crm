@@ -1,0 +1,403 @@
+{% extends "employee/base.html" %}
+{% load static %}
+
+{% block title %}Documents - Sujata Associates{% endblock %}
+{% block page_title %}My Documents{% endblock %}
+{% block mobile_title %}Documents{% endblock %}
+
+{% block content %}
+<!-- Document Stats -->
+<div class="row mb-4">
+  <div class="col-xl-3 col-lg-4 col-md-6 col-sm-6 mb-3">
+    <div class="metric-card">
+      <div class="d-flex align-items-center">
+        <div class="metric-icon primary">
+          <i class="bi bi-file-earmark-text"></i>
+        </div>
+        <div>
+          <div class="metric-title">Total Documents</div>
+          <div class="metric-value">{{ documents|length }}</div>
+          <div class="metric-subtitle">All files</div>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <div class="col-xl-3 col-lg-4 col-md-6 col-sm-6 mb-3">
+    <div class="metric-card">
+      <div class="d-flex align-items-center">
+        <div class="metric-icon success">
+          <i class="bi bi-file-earmark-pdf"></i>
+        </div>
+        <div>
+          <div class="metric-title">PDF Files</div>
+          <div class="metric-value">{{ pdf_count }}</div>
+          <div class="metric-subtitle">Documents</div>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <div class="col-xl-3 col-lg-4 col-md-6 col-sm-6 mb-3">
+    <div class="metric-card">
+      <div class="d-flex align-items-center">
+        <div class="metric-icon warning">
+          <i class="bi bi-file-earmark-image"></i>
+        </div>
+        <div>
+          <div class="metric-title">Images</div>
+          <div class="metric-value">{{ image_count }}</div>
+          <div class="metric-subtitle">Files</div>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <div class="col-xl-3 col-lg-4 col-md-6 col-sm-6 mb-3">
+    <div class="metric-card">
+      <div class="d-flex align-items-center">
+        <div class="metric-icon info">
+          <i class="bi bi-cloud-arrow-up"></i>
+        </div>
+        <div>
+          <div class="metric-title">Storage Used</div>
+          <div class="metric-value">2.5 GB</div>
+          <div class="metric-subtitle">Of 10 GB</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Document Actions -->
+<div class="row mb-4">
+  <div class="col-12">
+    <div class="card">
+      <div class="card-body">
+        <div class="row align-items-center">
+          <div class="col-md-6">
+            <h5 class="mb-0">Document Management</h5>
+            <p class="text-muted mb-0">Upload, organize and manage your documents</p>
+          </div>
+          <div class="col-md-6">
+            <div class="d-flex gap-2 justify-content-md-end">
+              <div class="btn-group" role="group">
+                <input type="radio" class="btn-check" name="viewMode" id="gridViewDocs" checked>
+                <label class="btn btn-outline-primary" for="gridViewDocs">
+                  <i class="bi bi-grid-3x3"></i>
+                </label>
+                <input type="radio" class="btn-check" name="viewMode" id="listViewDocs">
+                <label class="btn btn-outline-primary" for="listViewDocs">
+                  <i class="bi bi-list"></i>
+                </label>
+              </div>
+              <select class="form-select" style="width: auto;">
+                <option>All Documents</option>
+                <option>PDF Files</option>
+                <option>Images</option>
+                <option>Word Documents</option>
+                <option>Excel Files</option>
+              </select>
+              <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#uploadModal">
+                <i class="bi bi-plus"></i> Upload
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Documents Grid View -->
+<div class="row" id="documentsGrid">
+  {% for document in documents %}
+  <div class="col-xl-3 col-lg-4 col-md-6 col-sm-12 mb-4">
+    <div class="card h-100 document-card">
+      <div class="card-header d-flex justify-content-between align-items-center">
+        <div class="d-flex align-items-center">
+          <div class="document-icon me-3">
+            {% if document.type == 'pdf' %}
+              <i class="bi bi-file-earmark-pdf text-danger"></i>
+            {% elif document.type == 'image' %}
+              <i class="bi bi-file-earmark-image text-success"></i>
+            {% elif document.type == 'word' %}
+              <i class="bi bi-file-earmark-word text-primary"></i>
+            {% elif document.type == 'excel' %}
+              <i class="bi bi-file-earmark-excel text-success"></i>
+            {% else %}
+              <i class="bi bi-file-earmark text-secondary"></i>
+            {% endif %}
+          </div>
+          <div>
+            <h6 class="mb-0 document-title">{{ document.name }}</h6>
+            <small class="text-muted">{{ document.type|upper }} • {{ document.size }}</small>
+          </div>
+        </div>
+        <div class="dropdown">
+          <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown">
+            <i class="bi bi-three-dots-vertical"></i>
+          </button>
+          <ul class="dropdown-menu">
+            <li><a class="dropdown-item" href="#"><i class="bi bi-download me-2"></i>Download</a></li>
+            <li><a class="dropdown-item" href="#"><i class="bi bi-eye me-2"></i>Preview</a></li>
+            <li><a class="dropdown-item" href="#"><i class="bi bi-pencil me-2"></i>Rename</a></li>
+            <li><a class="dropdown-item" href="#"><i class="bi bi-share me-2"></i>Share</a></li>
+            <li><hr class="dropdown-divider"></li>
+            <li><a class="dropdown-item text-danger" href="#"><i class="bi bi-trash me-2"></i>Delete</a></li>
+          </ul>
+        </div>
+      </div>
+      <div class="card-body">
+        <p class="text-muted small mb-3">{{ document.description }}</p>
+        
+        <div class="d-flex justify-content-between align-items-center mb-3">
+          <div>
+            <div class="small text-muted">Uploaded</div>
+            <div class="fw-bold">{{ document.upload_date }}</div>
+          </div>
+          <div>
+            <div class="small text-muted">Category</div>
+            <span class="badge bg-{{ document.category_color }}">{{ document.category }}</span>
+          </div>
+        </div>
+        
+        <div class="d-flex justify-content-between align-items-center">
+          <div>
+            <div class="small text-muted">Last Modified</div>
+            <div class="fw-bold">{{ document.modified_date }}</div>
+          </div>
+          <div class="document-actions">
+            <button class="btn btn-sm btn-outline-primary me-1" title="Download">
+              <i class="bi bi-download"></i>
+            </button>
+            <button class="btn btn-sm btn-outline-secondary" title="Preview">
+              <i class="bi bi-eye"></i>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  {% endfor %}
+</div>
+
+<!-- Documents List View (Hidden by default) -->
+<div class="row d-none" id="documentsList">
+  <div class="col-12">
+    <div class="card">
+      <div class="card-body">
+        <div class="table-responsive">
+          <table class="table table-hover">
+            <thead>
+              <tr>
+                <th>Name</th>
+                <th>Type</th>
+                <th>Size</th>
+                <th>Category</th>
+                <th>Upload Date</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for document in documents %}
+              <tr>
+                <td>
+                  <div class="d-flex align-items-center">
+                    <div class="document-icon me-3">
+                      {% if document.type == 'pdf' %}
+                        <i class="bi bi-file-earmark-pdf text-danger"></i>
+                      {% elif document.type == 'image' %}
+                        <i class="bi bi-file-earmark-image text-success"></i>
+                      {% elif document.type == 'word' %}
+                        <i class="bi bi-file-earmark-word text-primary"></i>
+                      {% elif document.type == 'excel' %}
+                        <i class="bi bi-file-earmark-excel text-success"></i>
+                      {% else %}
+                        <i class="bi bi-file-earmark text-secondary"></i>
+                      {% endif %}
+                    </div>
+                    <div>
+                      <div class="fw-bold">{{ document.name }}</div>
+                      <small class="text-muted">{{ document.description }}</small>
+                    </div>
+                  </div>
+                </td>
+                <td><span class="badge bg-light text-dark">{{ document.type|upper }}</span></td>
+                <td>{{ document.size }}</td>
+                <td><span class="badge bg-{{ document.category_color }}">{{ document.category }}</span></td>
+                <td>{{ document.upload_date }}</td>
+                <td>
+                  <div class="btn-group btn-group-sm">
+                    <button class="btn btn-outline-primary" title="Download">
+                      <i class="bi bi-download"></i>
+                    </button>
+                    <button class="btn btn-outline-secondary" title="Preview">
+                      <i class="bi bi-eye"></i>
+                    </button>
+                    <button class="btn btn-outline-danger" title="Delete">
+                      <i class="bi bi-trash"></i>
+                    </button>
+                  </div>
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Upload Modal -->
+<div class="modal fade" id="uploadModal" tabindex="-1">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Upload Document</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <form>
+          <div class="mb-3">
+            <label class="form-label">Select Files</label>
+            <input type="file" class="form-control" multiple accept=".pdf,.doc,.docx,.xls,.xlsx,.jpg,.jpeg,.png,.gif">
+            <div class="form-text">You can upload multiple files at once. Supported formats: PDF, DOC, DOCX, XLS, XLSX, JPG, PNG, GIF</div>
+          </div>
+          
+          <div class="row">
+            <div class="col-md-6 mb-3">
+              <label class="form-label">Category</label>
+              <select class="form-select">
+                <option value="personal">Personal</option>
+                <option value="work">Work Related</option>
+                <option value="contracts">Contracts</option>
+                <option value="certificates">Certificates</option>
+                <option value="other">Other</option>
+              </select>
+            </div>
+            <div class="col-md-6 mb-3">
+              <label class="form-label">Privacy</label>
+              <select class="form-select">
+                <option value="private">Private</option>
+                <option value="team">Team Access</option>
+                <option value="public">Public</option>
+              </select>
+            </div>
+          </div>
+          
+          <div class="mb-3">
+            <label class="form-label">Description (Optional)</label>
+            <textarea class="form-control" rows="3" placeholder="Add a description for your documents..."></textarea>
+          </div>
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+        <button type="button" class="btn btn-primary">Upload Files</button>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+  .document-card {
+    transition: all 0.3s ease;
+    border: 1px solid #e9ecef;
+  }
+  
+  .document-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
+  }
+  
+  .document-icon {
+    font-size: 2rem;
+    width: 50px;
+    height: 50px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #f8f9fa;
+    border-radius: 8px;
+  }
+  
+  .document-title {
+    color: #000000 !important;
+    font-size: 0.9rem;
+    line-height: 1.2;
+  }
+  
+  .document-actions .btn {
+    padding: 0.25rem 0.5rem;
+  }
+  
+  @media (max-width: 768px) {
+    .document-card .card-body {
+      padding: 1rem;
+    }
+    
+    .document-icon {
+      font-size: 1.5rem;
+      width: 40px;
+      height: 40px;
+    }
+    
+    .document-title {
+      font-size: 0.8rem;
+    }
+    
+    .btn-group-sm .btn {
+      padding: 0.2rem 0.4rem;
+      font-size: 0.7rem;
+    }
+    
+    .table-responsive {
+      font-size: 0.8rem;
+    }
+  }
+  
+  @media (max-width: 576px) {
+    .col-xl-3, .col-lg-4, .col-md-6 {
+      margin-bottom: 1rem;
+    }
+    
+    .card-header {
+      padding: 0.75rem;
+    }
+    
+    .card-body {
+      padding: 0.75rem;
+    }
+  }
+</style>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+  document.addEventListener('DOMContentLoaded', function() {
+    // View mode toggle
+    const gridViewDocs = document.getElementById('gridViewDocs');
+    const listViewDocs = document.getElementById('listViewDocs');
+    const documentsGrid = document.getElementById('documentsGrid');
+    const documentsList = document.getElementById('documentsList');
+    
+    gridViewDocs.addEventListener('change', function() {
+      if (this.checked) {
+        documentsGrid.classList.remove('d-none');
+        documentsList.classList.add('d-none');
+      }
+    });
+    
+    listViewDocs.addEventListener('change', function() {
+      if (this.checked) {
+        documentsGrid.classList.add('d-none');
+        documentsList.classList.remove('d-none');
+      }
+    });
+  });
+</script>
+{% endblock %}

@@ -1,0 +1,497 @@
+{% extends "employee/base.html" %}
+{% load static %}
+
+{% block title %}Employee Dashboard - Sujata Associates{% endblock %}
+{% block page_title %}Employee Dashboard{% endblock %}
+{% block mobile_title %}Dashboard{% endblock %}
+
+{% block content %}
+<!-- Welcome Section -->
+<div class="row mb-4">
+  <div class="col-12">
+    <div class="card">
+      <div class="card-body">
+        <div class="row align-items-center">
+          <div class="col-md-8">
+            <h2 class="mb-2">Welcome back, John! 👋</h2>
+            <p class="text-muted mb-0">Here's what's happening with your work today.</p>
+          </div>
+          <div class="col-md-4 text-md-end">
+            <div class="d-flex align-items-center justify-content-md-end gap-3">
+              <div class="text-center">
+                <div class="fw-bold text-primary">Today</div>
+                <div class="text-muted small">{{ "now"|date:"M d, Y" }}</div>
+              </div>
+              <div class="text-center">
+                <div class="fw-bold text-success">Status</div>
+                <div class="status-badge status-active">Present</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Quick Stats Row -->
+<div class="row mb-4">
+  <div class="col-xl-3 col-lg-4 col-md-6 col-sm-6 mb-3">
+    <div class="metric-card">
+      <div class="d-flex align-items-center">
+        <div class="metric-icon primary">
+          <i class="bi bi-kanban"></i>
+        </div>
+        <div>
+          <div class="metric-title">Active Projects</div>
+          <div class="metric-value">3</div>
+          <div class="metric-subtitle">2 due this week</div>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <div class="col-xl-3 col-lg-4 col-md-6 col-sm-6 mb-3">
+    <div class="metric-card">
+      <div class="d-flex align-items-center">
+        <div class="metric-icon success">
+          <i class="bi bi-list-task"></i>
+        </div>
+        <div>
+          <div class="metric-title">Tasks Completed</div>
+          <div class="metric-value">12</div>
+          <div class="metric-subtitle">This week</div>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <div class="col-xl-3 col-lg-4 col-md-6 col-sm-6 mb-3">
+    <div class="metric-card">
+      <div class="d-flex align-items-center">
+        <div class="metric-icon warning">
+          <i class="bi bi-clock"></i>
+        </div>
+        <div>
+          <div class="metric-title">Hours Worked</div>
+          <div class="metric-value">32.5</div>
+          <div class="metric-subtitle">This week</div>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <div class="col-xl-3 col-lg-4 col-md-6 col-sm-6 mb-3">
+    <div class="metric-card">
+      <div class="d-flex align-items-center">
+        <div class="metric-icon info">
+          <i class="bi bi-calendar-check"></i>
+        </div>
+        <div>
+          <div class="metric-title">Attendance</div>
+          <div class="metric-value">95%</div>
+          <div class="metric-subtitle">This month</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Main Content Row -->
+<div class="row">
+  <!-- Left Column -->
+  <div class="col-lg-8">
+    <!-- Quick Actions -->
+    <div class="card mb-4">
+      <div class="card-header">
+        <h5 class="mb-0"><i class="bi bi-lightning me-2"></i>Quick Actions</h5>
+      </div>
+      <div class="card-body">
+        <div class="row g-3">
+          <div class="col-md-3 col-sm-6">
+            <button class="btn btn-primary w-100 h-100 d-flex flex-column align-items-center justify-content-center py-3">
+              <i class="bi bi-geo-alt fs-2 mb-2"></i>
+              <span>Check In/Out</span>
+            </button>
+          </div>
+          <div class="col-md-3 col-sm-6">
+            <button class="btn btn-success w-100 h-100 d-flex flex-column align-items-center justify-content-center py-3">
+              <i class="bi bi-plus-circle fs-2 mb-2"></i>
+              <span>New Task</span>
+            </button>
+          </div>
+          <div class="col-md-3 col-sm-6">
+            <button class="btn btn-warning w-100 h-100 d-flex flex-column align-items-center justify-content-center py-3">
+              <i class="bi bi-calendar-event fs-2 mb-2"></i>
+              <span>Request Leave</span>
+            </button>
+          </div>
+          <div class="col-md-3 col-sm-6">
+            <button class="btn btn-info w-100 h-100 d-flex flex-column align-items-center justify-content-center py-3">
+              <i class="bi bi-chat-dots fs-2 mb-2"></i>
+              <span>Send Message</span>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- My Projects -->
+    <div class="card mb-4">
+      <div class="card-header d-flex justify-content-between align-items-center">
+        <h5 class="mb-0"><i class="bi bi-kanban me-2"></i>My Projects</h5>
+        <a href="{% url 'employee_projects' %}" class="btn btn-outline-primary btn-sm">View All</a>
+      </div>
+      <div class="card-body">
+        <div class="table-responsive">
+          <table class="table table-hover">
+            <thead>
+              <tr>
+                <th>Project Name</th>
+                <th>Progress</th>
+                <th>Due Date</th>
+                <th>Status</th>
+                <th>Action</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>
+                  <div class="d-flex align-items-center">
+                    <div class="bg-primary text-white rounded-circle d-flex align-items-center justify-content-center me-3" style="width: 40px; height: 40px;">
+                      <i class="bi bi-code-slash"></i>
+                    </div>
+                    <div>
+                      <div class="fw-bold">CRM System Development</div>
+                      <small class="text-muted">Web Application</small>
+                    </div>
+                  </div>
+                </td>
+                <td>
+                  <div class="progress" style="height: 8px;">
+                    <div class="progress-bar bg-success" style="width: 75%"></div>
+                  </div>
+                  <small class="text-muted">75% Complete</small>
+                </td>
+                <td>Dec 15, 2024</td>
+                <td><span class="status-badge status-active">In Progress</span></td>
+                <td>
+                  <button class="btn btn-sm btn-outline-primary">View</button>
+                </td>
+              </tr>
+              <tr>
+                <td>
+                  <div class="d-flex align-items-center">
+                    <div class="bg-warning text-white rounded-circle d-flex align-items-center justify-content-center me-3" style="width: 40px; height: 40px;">
+                      <i class="bi bi-mobile"></i>
+                    </div>
+                    <div>
+                      <div class="fw-bold">Mobile App UI/UX</div>
+                      <small class="text-muted">Mobile Application</small>
+                    </div>
+                  </div>
+                </td>
+                <td>
+                  <div class="progress" style="height: 8px;">
+                    <div class="progress-bar bg-warning" style="width: 45%"></div>
+                  </div>
+                  <small class="text-muted">45% Complete</small>
+                </td>
+                <td>Jan 20, 2025</td>
+                <td><span class="status-badge status-pending">Pending</span></td>
+                <td>
+                  <button class="btn btn-sm btn-outline-primary">View</button>
+                </td>
+              </tr>
+              <tr>
+                <td>
+                  <div class="d-flex align-items-center">
+                    <div class="bg-info text-white rounded-circle d-flex align-items-center justify-content-center me-3" style="width: 40px; height: 40px;">
+                      <i class="bi bi-database"></i>
+                    </div>
+                    <div>
+                      <div class="fw-bold">Database Optimization</div>
+                      <small class="text-muted">Backend Task</small>
+                    </div>
+                  </div>
+                </td>
+                <td>
+                  <div class="progress" style="height: 8px;">
+                    <div class="progress-bar bg-info" style="width: 90%"></div>
+                  </div>
+                  <small class="text-muted">90% Complete</small>
+                </td>
+                <td>Dec 10, 2024</td>
+                <td><span class="status-badge status-completed">Almost Done</span></td>
+                <td>
+                  <button class="btn btn-sm btn-outline-primary">View</button>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- Recent Tasks -->
+    <div class="card">
+      <div class="card-header d-flex justify-content-between align-items-center">
+        <h5 class="mb-0"><i class="bi bi-list-task me-2"></i>Recent Tasks</h5>
+        <a href="#" class="btn btn-outline-primary btn-sm">View All</a>
+      </div>
+      <div class="card-body">
+        <div class="list-group list-group-flush">
+          <div class="list-group-item d-flex justify-content-between align-items-center px-0">
+            <div class="d-flex align-items-center">
+              <div class="form-check me-3">
+                <input class="form-check-input" type="checkbox" checked>
+              </div>
+              <div>
+                <div class="fw-bold">Implement user authentication</div>
+                <small class="text-muted">CRM System Development</small>
+              </div>
+            </div>
+            <span class="status-badge status-completed">Completed</span>
+          </div>
+          <div class="list-group-item d-flex justify-content-between align-items-center px-0">
+            <div class="d-flex align-items-center">
+              <div class="form-check me-3">
+                <input class="form-check-input" type="checkbox">
+              </div>
+              <div>
+                <div class="fw-bold">Design mobile app wireframes</div>
+                <small class="text-muted">Mobile App UI/UX</small>
+              </div>
+            </div>
+            <span class="status-badge status-pending">In Progress</span>
+          </div>
+          <div class="list-group-item d-flex justify-content-between align-items-center px-0">
+            <div class="d-flex align-items-center">
+              <div class="form-check me-3">
+                <input class="form-check-input" type="checkbox">
+              </div>
+              <div>
+                <div class="fw-bold">Optimize database queries</div>
+                <small class="text-muted">Database Optimization</small>
+              </div>
+            </div>
+            <span class="status-badge status-pending">Pending</span>
+          </div>
+          <div class="list-group-item d-flex justify-content-between align-items-center px-0">
+            <div class="d-flex align-items-center">
+              <div class="form-check me-3">
+                <input class="form-check-input" type="checkbox" checked>
+              </div>
+              <div>
+                <div class="fw-bold">Write API documentation</div>
+                <small class="text-muted">CRM System Development</small>
+              </div>
+            </div>
+            <span class="status-badge status-completed">Completed</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Right Column -->
+  <div class="col-lg-4">
+    <!-- Today's Schedule -->
+    <div class="card mb-4">
+      <div class="card-header">
+        <h5 class="mb-0"><i class="bi bi-calendar-day me-2"></i>Today's Schedule</h5>
+      </div>
+      <div class="card-body">
+        <div class="timeline">
+          <div class="timeline-item">
+            <div class="timeline-marker bg-primary"></div>
+            <div class="timeline-content">
+              <div class="fw-bold">Team Standup</div>
+              <div class="text-muted small">9:00 AM - 9:30 AM</div>
+              <div class="text-muted small">Conference Room A</div>
+            </div>
+          </div>
+          <div class="timeline-item">
+            <div class="timeline-marker bg-success"></div>
+            <div class="timeline-content">
+              <div class="fw-bold">Code Review Session</div>
+              <div class="text-muted small">11:00 AM - 12:00 PM</div>
+              <div class="text-muted small">Online Meeting</div>
+            </div>
+          </div>
+          <div class="timeline-item">
+            <div class="timeline-marker bg-warning"></div>
+            <div class="timeline-content">
+              <div class="fw-bold">Client Presentation</div>
+              <div class="text-muted small">2:00 PM - 3:00 PM</div>
+              <div class="text-muted small">Main Conference Room</div>
+            </div>
+          </div>
+          <div class="timeline-item">
+            <div class="timeline-marker bg-info"></div>
+            <div class="timeline-content">
+              <div class="fw-bold">Project Planning</div>
+              <div class="text-muted small">4:00 PM - 5:00 PM</div>
+              <div class="text-muted small">Team Room</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Performance Chart -->
+    <div class="card mb-4">
+      <div class="card-header">
+        <h5 class="mb-0"><i class="bi bi-graph-up me-2"></i>Weekly Performance</h5>
+      </div>
+      <div class="card-body">
+        <canvas id="performanceChart" width="300" height="200"></canvas>
+      </div>
+    </div>
+
+    <!-- Notifications -->
+    <div class="card">
+      <div class="card-header d-flex justify-content-between align-items-center">
+        <h5 class="mb-0"><i class="bi bi-bell me-2"></i>Notifications</h5>
+        <span class="badge bg-primary">3</span>
+      </div>
+      <div class="card-body">
+        <div class="list-group list-group-flush">
+          <div class="list-group-item px-0">
+            <div class="d-flex align-items-start">
+              <div class="bg-primary text-white rounded-circle d-flex align-items-center justify-content-center me-3" style="width: 35px; height: 35px;">
+                <i class="bi bi-info-circle"></i>
+              </div>
+              <div class="flex-grow-1">
+                <div class="fw-bold small">New task assigned</div>
+                <div class="text-muted small">You have been assigned to "Database Optimization" project</div>
+                <div class="text-muted small">2 hours ago</div>
+              </div>
+            </div>
+          </div>
+          <div class="list-group-item px-0">
+            <div class="d-flex align-items-start">
+              <div class="bg-warning text-white rounded-circle d-flex align-items-center justify-content-center me-3" style="width: 35px; height: 35px;">
+                <i class="bi bi-exclamation-triangle"></i>
+              </div>
+              <div class="flex-grow-1">
+                <div class="fw-bold small">Deadline approaching</div>
+                <div class="text-muted small">"Mobile App UI/UX" project due in 3 days</div>
+                <div class="text-muted small">4 hours ago</div>
+              </div>
+            </div>
+          </div>
+          <div class="list-group-item px-0">
+            <div class="d-flex align-items-start">
+              <div class="bg-success text-white rounded-circle d-flex align-items-center justify-content-center me-3" style="width: 35px; height: 35px;">
+                <i class="bi bi-check-circle"></i>
+              </div>
+              <div class="flex-grow-1">
+                <div class="fw-bold small">Task completed</div>
+                <div class="text-muted small">"Implement user authentication" has been completed</div>
+                <div class="text-muted small">1 day ago</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+  .timeline {
+    position: relative;
+    padding-left: 30px;
+  }
+  
+  .timeline::before {
+    content: '';
+    position: absolute;
+    left: 15px;
+    top: 0;
+    bottom: 0;
+    width: 2px;
+    background: #e9ecef;
+  }
+  
+  .timeline-item {
+    position: relative;
+    margin-bottom: 20px;
+  }
+  
+  .timeline-marker {
+    position: absolute;
+    left: -22px;
+    top: 5px;
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    border: 3px solid #fff;
+    box-shadow: 0 0 0 3px #e9ecef;
+  }
+  
+  .timeline-content {
+    background: #f8f9fa;
+    padding: 15px;
+    border-radius: 8px;
+    border-left: 3px solid var(--primary-color);
+  }
+</style>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+  // Performance Chart
+  const ctx = document.getElementById('performanceChart').getContext('2d');
+  new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
+      datasets: [{
+        label: 'Tasks Completed',
+        data: [3, 5, 4, 6, 8, 2, 1],
+        borderColor: '#3498db',
+        backgroundColor: 'rgba(52, 152, 219, 0.1)',
+        tension: 0.4,
+        fill: true
+      }, {
+        label: 'Hours Worked',
+        data: [6, 8, 7, 9, 8, 4, 2],
+        borderColor: '#27ae60',
+        backgroundColor: 'rgba(39, 174, 96, 0.1)',
+        tension: 0.4,
+        fill: true
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: {
+          position: 'bottom',
+          labels: {
+            usePointStyle: true,
+            padding: 20
+          }
+        }
+      },
+      scales: {
+        y: {
+          beginAtZero: true,
+          grid: {
+            color: 'rgba(0,0,0,0.1)'
+          }
+        },
+        x: {
+          grid: {
+            display: false
+          }
+        }
+      }
+    }
+  });
+</script>
+{% endblock %}

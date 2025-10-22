@@ -1,0 +1,669 @@
+{% extends "employee/base.html" %}
+{% load static %}
+
+{% block title %}Achievements - Sujata Associates{% endblock %}
+{% block page_title %}My Achievements{% endblock %}
+{% block mobile_title %}Achievements{% endblock %}
+
+{% block content %}
+<!-- Achievement Stats -->
+<div class="row mb-4">
+  <div class="col-xl-3 col-lg-4 col-md-6 col-sm-6 mb-3">
+    <div class="metric-card">
+      <div class="d-flex align-items-center">
+        <div class="metric-icon success">
+          <i class="bi bi-trophy"></i>
+        </div>
+        <div>
+          <div class="metric-title">Total Achievements</div>
+          <div class="metric-value">{{ achievements|length }}</div>
+          <div class="metric-subtitle">All time</div>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <div class="col-xl-3 col-lg-4 col-md-6 col-sm-6 mb-3">
+    <div class="metric-card">
+      <div class="d-flex align-items-center">
+        <div class="metric-icon warning">
+          <i class="bi bi-star"></i>
+        </div>
+        <div>
+          <div class="metric-title">This Year</div>
+          <div class="metric-value">{{ this_year_achievements }}</div>
+          <div class="metric-subtitle">Achievements</div>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <div class="col-xl-3 col-lg-4 col-md-6 col-sm-6 mb-3">
+    <div class="metric-card">
+      <div class="d-flex align-items-center">
+        <div class="metric-icon primary">
+          <i class="bi bi-award"></i>
+        </div>
+        <div>
+          <div class="metric-title">Certifications</div>
+          <div class="metric-value">{{ certifications|length }}</div>
+          <div class="metric-subtitle">Completed</div>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <div class="col-xl-3 col-lg-4 col-md-6 col-sm-6 mb-3">
+    <div class="metric-card">
+      <div class="d-flex align-items-center">
+        <div class="metric-icon info">
+          <i class="bi bi-graph-up"></i>
+        </div>
+        <div>
+          <div class="metric-title">Performance Score</div>
+          <div class="metric-value">{{ performance_score }}%</div>
+          <div class="metric-subtitle">Overall</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="row">
+  <!-- Recent Achievements -->
+  <div class="col-lg-8 mb-4">
+    <div class="card">
+      <div class="card-header">
+        <div class="d-flex justify-content-between align-items-center">
+          <h6 class="mb-0">Recent Achievements</h6>
+          <div class="btn-group btn-group-sm" role="group">
+            <input type="radio" class="btn-check" name="achievementFilter" id="allAchievements" checked>
+            <label class="btn btn-outline-primary" for="allAchievements">All</label>
+            <input type="radio" class="btn-check" name="achievementFilter" id="workAchievements">
+            <label class="btn btn-outline-primary" for="workAchievements">Work</label>
+            <input type="radio" class="btn-check" name="achievementFilter" id="personalAchievements">
+            <label class="btn btn-outline-primary" for="personalAchievements">Personal</label>
+          </div>
+        </div>
+      </div>
+      <div class="card-body">
+        <div class="row">
+          {% for achievement in achievements %}
+          <div class="col-md-6 col-lg-4 mb-4 achievement-item" data-category="{{ achievement.category|lower }}">
+            <div class="card h-100 achievement-card">
+              <div class="card-body text-center">
+                <div class="achievement-icon mb-3">
+                  {% if achievement.type == 'award' %}
+                    <i class="bi bi-trophy-fill text-warning"></i>
+                  {% elif achievement.type == 'certification' %}
+                    <i class="bi bi-award-fill text-primary"></i>
+                  {% elif achievement.type == 'milestone' %}
+                    <i class="bi bi-star-fill text-success"></i>
+                  {% elif achievement.type == 'recognition' %}
+                    <i class="bi bi-heart-fill text-danger"></i>
+                  {% else %}
+                    <i class="bi bi-badge-fill text-info"></i>
+                  {% endif %}
+                </div>
+                <h6 class="achievement-title">{{ achievement.title }}</h6>
+                <p class="text-muted small mb-3">{{ achievement.description }}</p>
+                <div class="achievement-meta">
+                  <div class="small text-muted mb-2">
+                    <i class="bi bi-calendar me-1"></i>{{ achievement.date }}
+                  </div>
+                  <div class="small text-muted mb-2">
+                    <i class="bi bi-tag me-1"></i>{{ achievement.category }}
+                  </div>
+                  {% if achievement.points %}
+                  <div class="small text-muted">
+                    <i class="bi bi-star me-1"></i>{{ achievement.points }} points
+                  </div>
+                  {% endif %}
+                </div>
+              </div>
+              <div class="card-footer bg-transparent text-center">
+                <button class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" data-bs-target="#achievementModal{{ achievement.id }}">
+                  <i class="bi bi-eye me-1"></i>View Details
+                </button>
+              </div>
+            </div>
+          </div>
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+    
+    <!-- Certifications -->
+    <div class="card">
+      <div class="card-header">
+        <h6 class="mb-0">Certifications & Training</h6>
+      </div>
+      <div class="card-body">
+        <div class="table-responsive">
+          <table class="table table-hover">
+            <thead>
+              <tr>
+                <th>Certification</th>
+                <th>Provider</th>
+                <th>Date Earned</th>
+                <th>Expiry Date</th>
+                <th>Status</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for cert in certifications %}
+              <tr>
+                <td>
+                  <div class="d-flex align-items-center">
+                    <div class="cert-icon me-3">
+                      <i class="bi bi-award text-primary"></i>
+                    </div>
+                    <div>
+                      <div class="fw-bold">{{ cert.name }}</div>
+                      <small class="text-muted">{{ cert.description }}</small>
+                    </div>
+                  </div>
+                </td>
+                <td>{{ cert.provider }}</td>
+                <td>{{ cert.earned_date }}</td>
+                <td>{{ cert.expiry_date|default:"N/A" }}</td>
+                <td>
+                  <span class="badge bg-{% if cert.status == 'Active' %}success{% elif cert.status == 'Expired' %}danger{% else %}warning{% endif %}">
+                    {{ cert.status }}
+                  </span>
+                </td>
+                <td>
+                  <div class="btn-group btn-group-sm">
+                    <button class="btn btn-outline-primary" title="View Certificate">
+                      <i class="bi bi-eye"></i>
+                    </button>
+                    <button class="btn btn-outline-secondary" title="Download">
+                      <i class="bi bi-download"></i>
+                    </button>
+                  </div>
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <!-- Achievement Summary -->
+  <div class="col-lg-4">
+    <div class="card mb-4">
+      <div class="card-header">
+        <h6 class="mb-0">Achievement Summary</h6>
+      </div>
+      <div class="card-body">
+        <div class="mb-3">
+          <div class="d-flex justify-content-between align-items-center mb-1">
+            <span class="small">Work Achievements</span>
+            <span class="small fw-bold">{{ work_achievements_count }}</span>
+          </div>
+          <div class="progress" style="height: 6px;">
+            <div class="progress-bar bg-primary" style="width: {{ work_achievements_percentage }}%"></div>
+          </div>
+        </div>
+        
+        <div class="mb-3">
+          <div class="d-flex justify-content-between align-items-center mb-1">
+            <span class="small">Personal Achievements</span>
+            <span class="small fw-bold">{{ personal_achievements_count }}</span>
+          </div>
+          <div class="progress" style="height: 6px;">
+            <div class="progress-bar bg-success" style="width: {{ personal_achievements_percentage }}%"></div>
+          </div>
+        </div>
+        
+        <div class="mb-3">
+          <div class="d-flex justify-content-between align-items-center mb-1">
+            <span class="small">Certifications</span>
+            <span class="small fw-bold">{{ certifications|length }}</span>
+          </div>
+          <div class="progress" style="height: 6px;">
+            <div class="progress-bar bg-warning" style="width: {{ certifications_percentage }}%"></div>
+          </div>
+        </div>
+        
+        <hr>
+        
+        <div class="text-center">
+          <h5 class="text-primary mb-1">{{ total_points }}</h5>
+          <div class="small text-muted">Total Points Earned</div>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Quick Actions -->
+    <div class="card mb-4">
+      <div class="card-header">
+        <h6 class="mb-0">Quick Actions</h6>
+      </div>
+      <div class="card-body">
+        <div class="d-grid gap-2">
+          <button class="btn btn-outline-primary" data-bs-toggle="modal" data-bs-target="#addAchievementModal">
+            <i class="bi bi-plus me-1"></i>Add Achievement
+          </button>
+          <button class="btn btn-outline-secondary" data-bs-toggle="modal" data-bs-target="#requestCertModal">
+            <i class="bi bi-award me-1"></i>Request Certification
+          </button>
+          <button class="btn btn-outline-info" data-bs-toggle="modal" data-bs-target="#shareAchievementsModal">
+            <i class="bi bi-share me-1"></i>Share Achievements
+          </button>
+          <a href="{% url 'employee_documents' %}" class="btn btn-outline-success">
+            <i class="bi bi-file-earmark me-1"></i>View Certificates
+          </a>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Recent Activity -->
+    <div class="card">
+      <div class="card-header">
+        <h6 class="mb-0">Recent Activity</h6>
+      </div>
+      <div class="card-body">
+        {% for activity in recent_activities %}
+        <div class="d-flex align-items-start mb-3">
+          <div class="activity-icon me-3">
+            {% if activity.type == 'achievement' %}
+              <i class="bi bi-trophy text-warning"></i>
+            {% elif activity.type == 'certification' %}
+              <i class="bi bi-award text-primary"></i>
+            {% else %}
+              <i class="bi bi-star text-success"></i>
+            {% endif %}
+          </div>
+          <div class="flex-grow-1">
+            <div class="small fw-bold">{{ activity.title }}</div>
+            <div class="small text-muted">{{ activity.date }}</div>
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Achievement Detail Modals -->
+{% for achievement in achievements %}
+<div class="modal fade" id="achievementModal{{ achievement.id }}" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">{{ achievement.title }}</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <div class="text-center mb-3">
+          <div class="achievement-icon-large mb-3">
+            {% if achievement.type == 'award' %}
+              <i class="bi bi-trophy-fill text-warning" style="font-size: 3rem;"></i>
+            {% elif achievement.type == 'certification' %}
+              <i class="bi bi-award-fill text-primary" style="font-size: 3rem;"></i>
+            {% elif achievement.type == 'milestone' %}
+              <i class="bi bi-star-fill text-success" style="font-size: 3rem;"></i>
+            {% elif achievement.type == 'recognition' %}
+              <i class="bi bi-heart-fill text-danger" style="font-size: 3rem;"></i>
+            {% else %}
+              <i class="bi bi-badge-fill text-info" style="font-size: 3rem;"></i>
+            {% endif %}
+          </div>
+        </div>
+        
+        <div class="mb-3">
+          <strong>Description:</strong><br>
+          {{ achievement.description }}
+        </div>
+        
+        <div class="row">
+          <div class="col-md-6">
+            <strong>Date Earned:</strong><br>
+            {{ achievement.date }}
+          </div>
+          <div class="col-md-6">
+            <strong>Category:</strong><br>
+            {{ achievement.category }}
+          </div>
+        </div>
+        
+        {% if achievement.points %}
+        <div class="row mt-3">
+          <div class="col-12">
+            <strong>Points Earned:</strong><br>
+            <span class="badge bg-warning text-dark fs-6">{{ achievement.points }} points</span>
+          </div>
+        </div>
+        {% endif %}
+        
+        {% if achievement.certificate_url %}
+        <div class="row mt-3">
+          <div class="col-12">
+            <a href="{{ achievement.certificate_url }}" class="btn btn-outline-primary" target="_blank">
+              <i class="bi bi-download me-1"></i>Download Certificate
+            </a>
+          </div>
+        </div>
+        {% endif %}
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+        <button type="button" class="btn btn-primary">
+          <i class="bi bi-share me-1"></i>Share
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+{% endfor %}
+
+<!-- Add Achievement Modal -->
+<div class="modal fade" id="addAchievementModal" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Add Achievement</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <form>
+          <div class="mb-3">
+            <label class="form-label">Achievement Title</label>
+            <input type="text" class="form-control" placeholder="Enter achievement title">
+          </div>
+          <div class="mb-3">
+            <label class="form-label">Description</label>
+            <textarea class="form-control" rows="3" placeholder="Describe your achievement..."></textarea>
+          </div>
+          <div class="row">
+            <div class="col-md-6 mb-3">
+              <label class="form-label">Category</label>
+              <select class="form-select">
+                <option>Work</option>
+                <option>Personal</option>
+                <option>Certification</option>
+                <option>Recognition</option>
+              </select>
+            </div>
+            <div class="col-md-6 mb-3">
+              <label class="form-label">Date Earned</label>
+              <input type="date" class="form-control">
+            </div>
+          </div>
+          <div class="mb-3">
+            <label class="form-label">Points (Optional)</label>
+            <input type="number" class="form-control" placeholder="0" min="0">
+          </div>
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+        <button type="button" class="btn btn-primary">Add Achievement</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Request Certification Modal -->
+<div class="modal fade" id="requestCertModal" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Request Certification</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <form>
+          <div class="mb-3">
+            <label class="form-label">Certification Name</label>
+            <input type="text" class="form-control" placeholder="Enter certification name">
+          </div>
+          <div class="mb-3">
+            <label class="form-label">Provider</label>
+            <input type="text" class="form-control" placeholder="Certification provider">
+          </div>
+          <div class="mb-3">
+            <label class="form-label">Reason for Request</label>
+            <textarea class="form-control" rows="3" placeholder="Explain why you need this certification..."></textarea>
+          </div>
+          <div class="mb-3">
+            <label class="form-label">Estimated Cost</label>
+            <input type="number" class="form-control" placeholder="0.00" step="0.01">
+          </div>
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+        <button type="button" class="btn btn-primary">Submit Request</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Share Achievements Modal -->
+<div class="modal fade" id="shareAchievementsModal" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Share Achievements</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <form>
+          <div class="mb-3">
+            <label class="form-label">Select Achievements</label>
+            <div class="form-check">
+              <input class="form-check-input" type="checkbox" id="selectAll" checked>
+              <label class="form-check-label" for="selectAll">Select All</label>
+            </div>
+            {% for achievement in achievements %}
+            <div class="form-check">
+              <input class="form-check-input" type="checkbox" id="achievement{{ achievement.id }}" checked>
+              <label class="form-check-label" for="achievement{{ achievement.id }}">{{ achievement.title }}</label>
+            </div>
+            {% endfor %}
+          </div>
+          <div class="mb-3">
+            <label class="form-label">Share Via</label>
+            <div class="btn-group w-100" role="group">
+              <button type="button" class="btn btn-outline-primary">
+                <i class="bi bi-envelope me-1"></i>Email
+              </button>
+              <button type="button" class="btn btn-outline-info">
+                <i class="bi bi-linkedin me-1"></i>LinkedIn
+              </button>
+              <button type="button" class="btn btn-outline-secondary">
+                <i class="bi bi-download me-1"></i>PDF
+              </button>
+            </div>
+          </div>
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+        <button type="button" class="btn btn-primary">Share</button>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+  .achievement-card {
+    transition: all 0.3s ease;
+    border: 1px solid #e9ecef;
+  }
+  
+  .achievement-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
+  }
+  
+  .achievement-icon {
+    font-size: 2.5rem;
+    margin-bottom: 1rem;
+  }
+  
+  .achievement-title {
+    color: #000000 !important;
+    font-size: 0.9rem;
+    line-height: 1.2;
+    margin-bottom: 0.5rem;
+  }
+  
+  .cert-icon {
+    font-size: 1.5rem;
+    width: 30px;
+    text-align: center;
+  }
+  
+  .activity-icon {
+    font-size: 1.2rem;
+    width: 30px;
+    text-align: center;
+  }
+  
+  .metric-card {
+    background: #fff;
+    border: 1px solid #e9ecef;
+    border-radius: 8px;
+    padding: 1.5rem;
+    transition: all 0.3s ease;
+  }
+  
+  .metric-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+  }
+  
+  .metric-icon {
+    width: 50px;
+    height: 50px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-right: 1rem;
+    font-size: 1.5rem;
+    color: white;
+  }
+  
+  .metric-icon.success { background: #28a745; }
+  .metric-icon.warning { background: #ffc107; color: #000; }
+  .metric-icon.primary { background: #007bff; }
+  .metric-icon.info { background: #17a2b8; }
+  
+  .metric-title {
+    font-size: 0.875rem;
+    color: #6c757d;
+    margin-bottom: 0.25rem;
+  }
+  
+  .metric-value {
+    font-size: 1.5rem;
+    font-weight: 600;
+    color: #212529;
+    margin-bottom: 0.25rem;
+  }
+  
+  .metric-subtitle {
+    font-size: 0.75rem;
+    color: #6c757d;
+  }
+  
+  @media (max-width: 768px) {
+    .achievement-card .card-body {
+      padding: 1rem;
+    }
+    
+    .achievement-icon {
+      font-size: 2rem;
+    }
+    
+    .achievement-title {
+      font-size: 0.8rem;
+    }
+    
+    .metric-card {
+      padding: 1rem;
+    }
+    
+    .metric-icon {
+      width: 40px;
+      height: 40px;
+      font-size: 1.2rem;
+      margin-right: 0.75rem;
+    }
+    
+    .metric-value {
+      font-size: 1.25rem;
+    }
+    
+    .table-responsive {
+      font-size: 0.8rem;
+    }
+    
+    .btn-group-sm .btn {
+      padding: 0.2rem 0.4rem;
+      font-size: 0.7rem;
+    }
+  }
+  
+  @media (max-width: 576px) {
+    .col-xl-3, .col-lg-4, .col-md-6 {
+      margin-bottom: 1rem;
+    }
+    
+    .card-body {
+      padding: 1rem;
+    }
+    
+    .modal-dialog {
+      margin: 0.5rem;
+    }
+    
+    .achievement-icon {
+      font-size: 1.8rem;
+    }
+  }
+</style>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+  document.addEventListener('DOMContentLoaded', function() {
+    // Achievement filter functionality
+    const filters = document.querySelectorAll('input[name="achievementFilter"]');
+    const achievementItems = document.querySelectorAll('.achievement-item');
+    
+    filters.forEach(filter => {
+      filter.addEventListener('change', function() {
+        const category = this.id.replace('Achievements', '').toLowerCase();
+        
+        achievementItems.forEach(item => {
+          if (category === 'all' || item.dataset.category === category) {
+            item.style.display = 'block';
+          } else {
+            item.style.display = 'none';
+          }
+        });
+      });
+    });
+    
+    // Select all checkbox functionality
+    const selectAllCheckbox = document.getElementById('selectAll');
+    const achievementCheckboxes = document.querySelectorAll('input[type="checkbox"]:not(#selectAll)');
+    
+    selectAllCheckbox.addEventListener('change', function() {
+      achievementCheckboxes.forEach(checkbox => {
+        checkbox.checked = this.checked;
+      });
+    });
+  });
+</script>
+{% endblock %}

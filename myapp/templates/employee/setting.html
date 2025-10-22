@@ -1,0 +1,680 @@
+{% extends "employee/base.html" %}
+{% load static %}
+
+{% block title %}Settings - Sujata Associates{% endblock %}
+{% block page_title %}Settings{% endblock %}
+{% block mobile_title %}Settings{% endblock %}
+
+{% block content %}
+<!-- Settings Navigation -->
+<div class="row mb-4">
+  <div class="col-12">
+    <div class="card">
+      <div class="card-body">
+        <div class="row align-items-center">
+          <div class="col-md-8">
+            <h4 class="mb-1">Account Settings</h4>
+            <p class="text-muted mb-0">Manage your profile, preferences, and account settings</p>
+          </div>
+          <div class="col-md-4 text-md-end">
+            <button class="btn btn-primary" onclick="saveAllSettings()">
+              <i class="bi bi-save me-2"></i>Save All Changes
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="row">
+  <!-- Settings Sidebar -->
+  <div class="col-lg-3 mb-4">
+    <div class="card">
+      <div class="card-body p-0">
+        <div class="list-group list-group-flush">
+          <a href="#profile" class="list-group-item list-group-item-action active" data-bs-toggle="tab">
+            <i class="bi bi-person me-2"></i>Profile
+          </a>
+          <a href="#account" class="list-group-item list-group-item-action" data-bs-toggle="tab">
+            <i class="bi bi-gear me-2"></i>Account
+          </a>
+          <a href="#notifications" class="list-group-item list-group-item-action" data-bs-toggle="tab">
+            <i class="bi bi-bell me-2"></i>Notifications
+          </a>
+          <a href="#privacy" class="list-group-item list-group-item-action" data-bs-toggle="tab">
+            <i class="bi bi-shield me-2"></i>Privacy
+          </a>
+          <a href="#preferences" class="list-group-item list-group-item-action" data-bs-toggle="tab">
+            <i class="bi bi-sliders me-2"></i>Preferences
+          </a>
+          <a href="#security" class="list-group-item list-group-item-action" data-bs-toggle="tab">
+            <i class="bi bi-lock me-2"></i>Security
+          </a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Settings Content -->
+  <div class="col-lg-9">
+    <div class="tab-content">
+      <!-- Profile Tab -->
+      <div class="tab-pane fade show active" id="profile">
+        <div class="card">
+          <div class="card-header">
+            <h5 class="mb-0"><i class="bi bi-person me-2"></i>Profile Information</h5>
+          </div>
+          <div class="card-body">
+            <form>
+              <div class="row">
+                <div class="col-md-4 text-center mb-4">
+                  <div class="profile-avatar-container">
+                    <img src="https://via.placeholder.com/150" alt="Profile" class="profile-avatar" id="profileAvatar">
+                    <button class="btn btn-sm btn-outline-primary mt-2" onclick="changeAvatar()">
+                      <i class="bi bi-camera me-1"></i>Change Photo
+                    </button>
+                  </div>
+                </div>
+                <div class="col-md-8">
+                  <div class="row">
+                    <div class="col-md-6 mb-3">
+                      <label for="firstName" class="form-label">First Name</label>
+                      <input type="text" class="form-control" id="firstName" value="John">
+                    </div>
+                    <div class="col-md-6 mb-3">
+                      <label for="lastName" class="form-label">Last Name</label>
+                      <input type="text" class="form-control" id="lastName" value="Doe">
+                    </div>
+                  </div>
+                  <div class="row">
+                    <div class="col-md-6 mb-3">
+                      <label for="email" class="form-label">Email Address</label>
+                      <input type="email" class="form-control" id="email" value="john.doe@sujataassociates.com">
+                    </div>
+                    <div class="col-md-6 mb-3">
+                      <label for="phone" class="form-label">Phone Number</label>
+                      <input type="tel" class="form-control" id="phone" value="+1 (555) 123-4567">
+                    </div>
+                  </div>
+                  <div class="row">
+                    <div class="col-md-6 mb-3">
+                      <label for="department" class="form-label">Department</label>
+                      <select class="form-select" id="department">
+                        <option value="it">Information Technology</option>
+                        <option value="hr">Human Resources</option>
+                        <option value="finance">Finance</option>
+                        <option value="marketing">Marketing</option>
+                      </select>
+                    </div>
+                    <div class="col-md-6 mb-3">
+                      <label for="position" class="form-label">Position</label>
+                      <input type="text" class="form-control" id="position" value="Software Developer">
+                    </div>
+                  </div>
+                  <div class="mb-3">
+                    <label for="bio" class="form-label">Bio</label>
+                    <textarea class="form-control" id="bio" rows="3" placeholder="Tell us about yourself...">Experienced software developer with 5+ years in web development and mobile applications.</textarea>
+                  </div>
+                </div>
+              </div>
+            </form>
+          </div>
+        </div>
+      </div>
+
+      <!-- Account Tab -->
+      <div class="tab-pane fade" id="account">
+        <div class="card">
+          <div class="card-header">
+            <h5 class="mb-0"><i class="bi bi-gear me-2"></i>Account Settings</h5>
+          </div>
+          <div class="card-body">
+            <form>
+              <div class="row">
+                <div class="col-md-6 mb-3">
+                  <label for="username" class="form-label">Username</label>
+                  <input type="text" class="form-control" id="username" value="john.doe">
+                  <div class="form-text">This will be your login username</div>
+                </div>
+                <div class="col-md-6 mb-3">
+                  <label for="employeeId" class="form-label">Employee ID</label>
+                  <input type="text" class="form-control" id="employeeId" value="EMP001" readonly>
+                  <div class="form-text">Employee ID cannot be changed</div>
+                </div>
+              </div>
+              <div class="row">
+                <div class="col-md-6 mb-3">
+                  <label for="timezone" class="form-label">Timezone</label>
+                  <select class="form-select" id="timezone">
+                    <option value="UTC-5">Eastern Time (UTC-5)</option>
+                    <option value="UTC-6">Central Time (UTC-6)</option>
+                    <option value="UTC-7">Mountain Time (UTC-7)</option>
+                    <option value="UTC-8">Pacific Time (UTC-8)</option>
+                  </select>
+                </div>
+                <div class="col-md-6 mb-3">
+                  <label for="language" class="form-label">Language</label>
+                  <select class="form-select" id="language">
+                    <option value="en">English</option>
+                    <option value="es">Spanish</option>
+                    <option value="fr">French</option>
+                    <option value="de">German</option>
+                  </select>
+                </div>
+              </div>
+              <div class="row">
+                <div class="col-md-6 mb-3">
+                  <label for="dateFormat" class="form-label">Date Format</label>
+                  <select class="form-select" id="dateFormat">
+                    <option value="MM/DD/YYYY">MM/DD/YYYY</option>
+                    <option value="DD/MM/YYYY">DD/MM/YYYY</option>
+                    <option value="YYYY-MM-DD">YYYY-MM-DD</option>
+                  </select>
+                </div>
+                <div class="col-md-6 mb-3">
+                  <label for="timeFormat" class="form-label">Time Format</label>
+                  <select class="form-select" id="timeFormat">
+                    <option value="12">12 Hour (AM/PM)</option>
+                    <option value="24">24 Hour</option>
+                  </select>
+                </div>
+              </div>
+            </form>
+          </div>
+        </div>
+      </div>
+
+      <!-- Notifications Tab -->
+      <div class="tab-pane fade" id="notifications">
+        <div class="card">
+          <div class="card-header">
+            <h5 class="mb-0"><i class="bi bi-bell me-2"></i>Notification Preferences</h5>
+          </div>
+          <div class="card-body">
+            <div class="row">
+              <div class="col-md-6">
+                <h6 class="mb-3">Email Notifications</h6>
+                <div class="form-check mb-3">
+                  <input class="form-check-input" type="checkbox" id="emailProjectUpdates" checked>
+                  <label class="form-check-label" for="emailProjectUpdates">
+                    Project Updates
+                  </label>
+                </div>
+                <div class="form-check mb-3">
+                  <input class="form-check-input" type="checkbox" id="emailTaskAssignments" checked>
+                  <label class="form-check-label" for="emailTaskAssignments">
+                    Task Assignments
+                  </label>
+                </div>
+                <div class="form-check mb-3">
+                  <input class="form-check-input" type="checkbox" id="emailDeadlines" checked>
+                  <label class="form-check-label" for="emailDeadlines">
+                    Deadline Reminders
+                  </label>
+                </div>
+                <div class="form-check mb-3">
+                  <input class="form-check-input" type="checkbox" id="emailMeetings">
+                  <label class="form-check-label" for="emailMeetings">
+                    Meeting Invitations
+                  </label>
+                </div>
+              </div>
+              <div class="col-md-6">
+                <h6 class="mb-3">Push Notifications</h6>
+                <div class="form-check mb-3">
+                  <input class="form-check-input" type="checkbox" id="pushMessages" checked>
+                  <label class="form-check-label" for="pushMessages">
+                    New Messages
+                  </label>
+                </div>
+                <div class="form-check mb-3">
+                  <input class="form-check-input" type="checkbox" id="pushAnnouncements" checked>
+                  <label class="form-check-label" for="pushAnnouncements">
+                    Company Announcements
+                  </label>
+                </div>
+                <div class="form-check mb-3">
+                  <input class="form-check-input" type="checkbox" id="pushSystemAlerts" checked>
+                  <label class="form-check-label" for="pushSystemAlerts">
+                    System Alerts
+                  </label>
+                </div>
+                <div class="form-check mb-3">
+                  <input class="form-check-input" type="checkbox" id="pushReminders">
+                  <label class="form-check-label" for="pushReminders">
+                    Personal Reminders
+                  </label>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Privacy Tab -->
+      <div class="tab-pane fade" id="privacy">
+        <div class="card">
+          <div class="card-header">
+            <h5 class="mb-0"><i class="bi bi-shield me-2"></i>Privacy Settings</h5>
+          </div>
+          <div class="card-body">
+            <div class="row">
+              <div class="col-md-6">
+                <h6 class="mb-3">Profile Visibility</h6>
+                <div class="form-check mb-3">
+                  <input class="form-check-input" type="radio" name="profileVisibility" id="profilePublic" checked>
+                  <label class="form-check-label" for="profilePublic">
+                    Public - Visible to all employees
+                  </label>
+                </div>
+                <div class="form-check mb-3">
+                  <input class="form-check-input" type="radio" name="profileVisibility" id="profileTeam">
+                  <label class="form-check-label" for="profileTeam">
+                    Team Only - Visible to team members
+                  </label>
+                </div>
+                <div class="form-check mb-3">
+                  <input class="form-check-input" type="radio" name="profileVisibility" id="profilePrivate">
+                  <label class="form-check-label" for="profilePrivate">
+                    Private - Only visible to you
+                  </label>
+                </div>
+              </div>
+              <div class="col-md-6">
+                <h6 class="mb-3">Data Sharing</h6>
+                <div class="form-check mb-3">
+                  <input class="form-check-input" type="checkbox" id="shareWorkHours" checked>
+                  <label class="form-check-label" for="shareWorkHours">
+                    Share work hours with team
+                  </label>
+                </div>
+                <div class="form-check mb-3">
+                  <input class="form-check-input" type="checkbox" id="shareProjects">
+                  <label class="form-check-label" for="shareProjects">
+                    Share project progress
+                  </label>
+                </div>
+                <div class="form-check mb-3">
+                  <input class="form-check-input" type="checkbox" id="shareAvailability" checked>
+                  <label class="form-check-label" for="shareAvailability">
+                    Share availability status
+                  </label>
+                </div>
+                <div class="form-check mb-3">
+                  <input class="form-check-input" type="checkbox" id="shareLocation">
+                  <label class="form-check-label" for="shareLocation">
+                    Share work location
+                  </label>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Preferences Tab -->
+      <div class="tab-pane fade" id="preferences">
+        <div class="card">
+          <div class="card-header">
+            <h5 class="mb-0"><i class="bi bi-sliders me-2"></i>User Preferences</h5>
+          </div>
+          <div class="card-body">
+            <div class="row">
+              <div class="col-md-6">
+                <h6 class="mb-3">Dashboard Settings</h6>
+                <div class="mb-3">
+                  <label for="dashboardLayout" class="form-label">Dashboard Layout</label>
+                  <select class="form-select" id="dashboardLayout">
+                    <option value="grid">Grid View</option>
+                    <option value="list">List View</option>
+                    <option value="compact">Compact View</option>
+                  </select>
+                </div>
+                <div class="mb-3">
+                  <label for="itemsPerPage" class="form-label">Items Per Page</label>
+                  <select class="form-select" id="itemsPerPage">
+                    <option value="10">10</option>
+                    <option value="25" selected>25</option>
+                    <option value="50">50</option>
+                    <option value="100">100</option>
+                  </select>
+                </div>
+                <div class="form-check mb-3">
+                  <input class="form-check-input" type="checkbox" id="autoRefresh" checked>
+                  <label class="form-check-label" for="autoRefresh">
+                    Auto-refresh dashboard
+                  </label>
+                </div>
+              </div>
+              <div class="col-md-6">
+                <h6 class="mb-3">Work Preferences</h6>
+                <div class="mb-3">
+                  <label for="workStartTime" class="form-label">Preferred Start Time</label>
+                  <input type="time" class="form-control" id="workStartTime" value="09:00">
+                </div>
+                <div class="mb-3">
+                  <label for="workEndTime" class="form-label">Preferred End Time</label>
+                  <input type="time" class="form-control" id="workEndTime" value="18:00">
+                </div>
+                <div class="form-check mb-3">
+                  <input class="form-check-input" type="checkbox" id="weekendWork">
+                  <label class="form-check-label" for="weekendWork">
+                    Available for weekend work
+                  </label>
+                </div>
+                <div class="form-check mb-3">
+                  <input class="form-check-input" type="checkbox" id="overtimeWork" checked>
+                  <label class="form-check-label" for="overtimeWork">
+                    Available for overtime
+                  </label>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Security Tab -->
+      <div class="tab-pane fade" id="security">
+        <div class="card">
+          <div class="card-header">
+            <h5 class="mb-0"><i class="bi bi-lock me-2"></i>Security Settings</h5>
+          </div>
+          <div class="card-body">
+            <div class="row">
+              <div class="col-md-6">
+                <h6 class="mb-3">Change Password</h6>
+                <div class="mb-3">
+                  <label for="currentPassword" class="form-label">Current Password</label>
+                  <input type="password" class="form-control" id="currentPassword">
+                </div>
+                <div class="mb-3">
+                  <label for="newPassword" class="form-label">New Password</label>
+                  <input type="password" class="form-control" id="newPassword">
+                </div>
+                <div class="mb-3">
+                  <label for="confirmPassword" class="form-label">Confirm New Password</label>
+                  <input type="password" class="form-control" id="confirmPassword">
+                </div>
+                <button class="btn btn-primary" onclick="changePassword()">
+                  <i class="bi bi-key me-2"></i>Change Password
+                </button>
+              </div>
+              <div class="col-md-6">
+                <h6 class="mb-3">Two-Factor Authentication</h6>
+                <div class="alert alert-info">
+                  <i class="bi bi-info-circle me-2"></i>
+                  Two-factor authentication adds an extra layer of security to your account.
+                </div>
+                <div class="form-check mb-3">
+                  <input class="form-check-input" type="checkbox" id="enable2FA">
+                  <label class="form-check-label" for="enable2FA">
+                    Enable Two-Factor Authentication
+                  </label>
+                </div>
+                <div class="form-check mb-3">
+                  <input class="form-check-input" type="checkbox" id="sms2FA">
+                  <label class="form-check-label" for="sms2FA">
+                    Use SMS for 2FA
+                  </label>
+                </div>
+                <div class="form-check mb-3">
+                  <input class="form-check-input" type="checkbox" id="email2FA" checked>
+                  <label class="form-check-label" for="email2FA">
+                    Use Email for 2FA
+                  </label>
+                </div>
+                <button class="btn btn-outline-primary" onclick="setup2FA()">
+                  <i class="bi bi-shield-check me-2"></i>Setup 2FA
+                </button>
+              </div>
+            </div>
+            <hr>
+            <div class="row">
+              <div class="col-12">
+                <h6 class="mb-3">Active Sessions</h6>
+                <div class="table-responsive">
+                  <table class="table table-sm">
+                    <thead>
+                      <tr>
+                        <th>Device</th>
+                        <th>Location</th>
+                        <th>Last Active</th>
+                        <th>Status</th>
+                        <th>Action</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr>
+                        <td>
+                          <i class="bi bi-laptop me-2"></i>Windows PC
+                        </td>
+                        <td>New York, NY</td>
+                        <td>2 minutes ago</td>
+                        <td><span class="badge bg-success">Active</span></td>
+                        <td><button class="btn btn-sm btn-outline-danger">End Session</button></td>
+                      </tr>
+                      <tr>
+                        <td>
+                          <i class="bi bi-phone me-2"></i>iPhone
+                        </td>
+                        <td>New York, NY</td>
+                        <td>1 hour ago</td>
+                        <td><span class="badge bg-warning">Inactive</span></td>
+                        <td><button class="btn btn-sm btn-outline-danger">End Session</button></td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+  .profile-avatar-container {
+    position: relative;
+    display: inline-block;
+  }
+  
+  .profile-avatar {
+    width: 150px;
+    height: 150px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 4px solid #e9ecef;
+    transition: all 0.3s ease;
+  }
+  
+  .profile-avatar:hover {
+    border-color: var(--primary-color);
+    transform: scale(1.05);
+  }
+  
+  .list-group-item.active {
+    background-color: var(--primary-color);
+    border-color: var(--primary-color);
+  }
+  
+  .list-group-item {
+    border: none;
+    border-bottom: 1px solid #e9ecef;
+  }
+  
+  .list-group-item:last-child {
+    border-bottom: none;
+  }
+  
+  .list-group-item:hover {
+    background-color: #f8f9fa;
+  }
+  
+  .tab-content {
+    min-height: 500px;
+  }
+  
+  .form-check-input:checked {
+    background-color: var(--primary-color);
+    border-color: var(--primary-color);
+  }
+  
+  .form-check-input:focus {
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 0.25rem rgba(44, 62, 80, 0.25);
+  }
+</style>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+  // Change avatar function
+  function changeAvatar() {
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = 'image/*';
+    input.onchange = function(e) {
+      const file = e.target.files[0];
+      if (file) {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+          document.getElementById('profileAvatar').src = e.target.result;
+        };
+        reader.readAsDataURL(file);
+      }
+    };
+    input.click();
+  }
+  
+  // Save all settings
+  function saveAllSettings() {
+    // Collect all form data
+    const formData = {
+      profile: {
+        firstName: document.getElementById('firstName').value,
+        lastName: document.getElementById('lastName').value,
+        email: document.getElementById('email').value,
+        phone: document.getElementById('phone').value,
+        department: document.getElementById('department').value,
+        position: document.getElementById('position').value,
+        bio: document.getElementById('bio').value
+      },
+      account: {
+        username: document.getElementById('username').value,
+        timezone: document.getElementById('timezone').value,
+        language: document.getElementById('language').value,
+        dateFormat: document.getElementById('dateFormat').value,
+        timeFormat: document.getElementById('timeFormat').value
+      },
+      notifications: {
+        emailProjectUpdates: document.getElementById('emailProjectUpdates').checked,
+        emailTaskAssignments: document.getElementById('emailTaskAssignments').checked,
+        emailDeadlines: document.getElementById('emailDeadlines').checked,
+        emailMeetings: document.getElementById('emailMeetings').checked,
+        pushMessages: document.getElementById('pushMessages').checked,
+        pushAnnouncements: document.getElementById('pushAnnouncements').checked,
+        pushSystemAlerts: document.getElementById('pushSystemAlerts').checked,
+        pushReminders: document.getElementById('pushReminders').checked
+      },
+      privacy: {
+        profileVisibility: document.querySelector('input[name="profileVisibility"]:checked').value,
+        shareWorkHours: document.getElementById('shareWorkHours').checked,
+        shareProjects: document.getElementById('shareProjects').checked,
+        shareAvailability: document.getElementById('shareAvailability').checked,
+        shareLocation: document.getElementById('shareLocation').checked
+      },
+      preferences: {
+        dashboardLayout: document.getElementById('dashboardLayout').value,
+        itemsPerPage: document.getElementById('itemsPerPage').value,
+        autoRefresh: document.getElementById('autoRefresh').checked,
+        workStartTime: document.getElementById('workStartTime').value,
+        workEndTime: document.getElementById('workEndTime').value,
+        weekendWork: document.getElementById('weekendWork').checked,
+        overtimeWork: document.getElementById('overtimeWork').checked
+      }
+    };
+    
+    // Here you would typically send this data to the server
+    console.log('Saving settings:', formData);
+    
+    // Show success message
+    showNotification('Settings saved successfully!', 'success');
+  }
+  
+  // Change password function
+  function changePassword() {
+    const currentPassword = document.getElementById('currentPassword').value;
+    const newPassword = document.getElementById('newPassword').value;
+    const confirmPassword = document.getElementById('confirmPassword').value;
+    
+    if (!currentPassword || !newPassword || !confirmPassword) {
+      showNotification('Please fill in all password fields', 'warning');
+      return;
+    }
+    
+    if (newPassword !== confirmPassword) {
+      showNotification('New passwords do not match', 'error');
+      return;
+    }
+    
+    if (newPassword.length < 8) {
+      showNotification('Password must be at least 8 characters long', 'warning');
+      return;
+    }
+    
+    // Here you would typically send this to the server
+    console.log('Changing password...');
+    
+    // Clear password fields
+    document.getElementById('currentPassword').value = '';
+    document.getElementById('newPassword').value = '';
+    document.getElementById('confirmPassword').value = '';
+    
+    showNotification('Password changed successfully!', 'success');
+  }
+  
+  // Setup 2FA function
+  function setup2FA() {
+    showNotification('2FA setup initiated. Please check your email for instructions.', 'info');
+  }
+  
+  // Show notification
+  function showNotification(message, type) {
+    const notification = document.createElement('div');
+    notification.className = `alert alert-${type} alert-dismissible fade show position-fixed`;
+    notification.style.cssText = 'top: 20px; right: 20px; z-index: 9999; min-width: 300px;';
+    notification.innerHTML = `
+      ${message}
+      <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    `;
+    
+    document.body.appendChild(notification);
+    
+    setTimeout(() => {
+      if (notification.parentNode) {
+        notification.parentNode.removeChild(notification);
+      }
+    }, 3000);
+  }
+  
+  // Initialize tab switching
+  document.addEventListener('DOMContentLoaded', function() {
+    const tabLinks = document.querySelectorAll('.list-group-item[data-bs-toggle="tab"]');
+    
+    tabLinks.forEach(link => {
+      link.addEventListener('click', function() {
+        // Remove active class from all tabs
+        tabLinks.forEach(l => l.classList.remove('active'));
+        // Add active class to clicked tab
+        this.classList.add('active');
+      });
+    });
+  });
+</script>
+{% endblock %}

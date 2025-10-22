@@ -1,0 +1,541 @@
+{% extends "employee/base.html" %}
+{% load static %}
+
+{% block title %}Payroll - Sujata Associates{% endblock %}
+{% block page_title %}My Payroll{% endblock %}
+{% block mobile_title %}Payroll{% endblock %}
+
+{% block content %}
+<!-- Payroll Overview -->
+<div class="row mb-4">
+  <div class="col-xl-3 col-lg-4 col-md-6 col-sm-6 mb-3">
+    <div class="metric-card">
+      <div class="d-flex align-items-center">
+        <div class="metric-icon success">
+          <i class="bi bi-currency-dollar"></i>
+        </div>
+        <div>
+          <div class="metric-title">Current Salary</div>
+          <div class="metric-value">${{ current_salary }}</div>
+          <div class="metric-subtitle">Monthly</div>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <div class="col-xl-3 col-lg-4 col-md-6 col-sm-6 mb-3">
+    <div class="metric-card">
+      <div class="d-flex align-items-center">
+        <div class="metric-icon primary">
+          <i class="bi bi-calendar-check"></i>
+        </div>
+        <div>
+          <div class="metric-title">Last Payment</div>
+          <div class="metric-value">${{ last_payment }}</div>
+          <div class="metric-subtitle">{{ last_payment_date }}</div>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <div class="col-xl-3 col-lg-4 col-md-6 col-sm-6 mb-3">
+    <div class="metric-card">
+      <div class="d-flex align-items-center">
+        <div class="metric-icon warning">
+          <i class="bi bi-graph-up"></i>
+        </div>
+        <div>
+          <div class="metric-title">YTD Earnings</div>
+          <div class="metric-value">${{ ytd_earnings }}</div>
+          <div class="metric-subtitle">This year</div>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <div class="col-xl-3 col-lg-4 col-md-6 col-sm-6 mb-3">
+    <div class="metric-card">
+      <div class="d-flex align-items-center">
+        <div class="metric-icon info">
+          <i class="bi bi-clock-history"></i>
+        </div>
+        <div>
+          <div class="metric-title">Next Payment</div>
+          <div class="metric-value">{{ next_payment_date }}</div>
+          <div class="metric-subtitle">Due date</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="row">
+  <!-- Current Pay Period -->
+  <div class="col-lg-8 mb-4">
+    <div class="card">
+      <div class="card-header">
+        <h6 class="mb-0">Current Pay Period ({{ current_period }})</h6>
+      </div>
+      <div class="card-body">
+        <div class="row">
+          <div class="col-md-6">
+            <h6 class="text-success mb-3">Earnings</h6>
+            <div class="d-flex justify-content-between mb-2">
+              <span>Regular Hours ({{ regular_hours }} hrs)</span>
+              <span class="fw-bold">${{ regular_pay }}</span>
+            </div>
+            <div class="d-flex justify-content-between mb-2">
+              <span>Overtime Hours ({{ overtime_hours }} hrs)</span>
+              <span class="fw-bold">${{ overtime_pay }}</span>
+            </div>
+            <div class="d-flex justify-content-between mb-2">
+              <span>Bonus</span>
+              <span class="fw-bold">${{ bonus }}</span>
+            </div>
+            <div class="d-flex justify-content-between mb-2">
+              <span>Commission</span>
+              <span class="fw-bold">${{ commission }}</span>
+            </div>
+            <hr>
+            <div class="d-flex justify-content-between mb-3">
+              <span class="fw-bold">Total Earnings</span>
+              <span class="fw-bold text-success">${{ total_earnings }}</span>
+            </div>
+          </div>
+          
+          <div class="col-md-6">
+            <h6 class="text-danger mb-3">Deductions</h6>
+            <div class="d-flex justify-content-between mb-2">
+              <span>Federal Tax</span>
+              <span class="fw-bold">${{ federal_tax }}</span>
+            </div>
+            <div class="d-flex justify-content-between mb-2">
+              <span>State Tax</span>
+              <span class="fw-bold">${{ state_tax }}</span>
+            </div>
+            <div class="d-flex justify-content-between mb-2">
+              <span>Social Security</span>
+              <span class="fw-bold">${{ social_security }}</span>
+            </div>
+            <div class="d-flex justify-content-between mb-2">
+              <span>Medicare</span>
+              <span class="fw-bold">${{ medicare }}</span>
+            </div>
+            <div class="d-flex justify-content-between mb-2">
+              <span>Health Insurance</span>
+              <span class="fw-bold">${{ health_insurance }}</span>
+            </div>
+            <div class="d-flex justify-content-between mb-2">
+              <span>401(k) Contribution</span>
+              <span class="fw-bold">${{ retirement_contribution }}</span>
+            </div>
+            <hr>
+            <div class="d-flex justify-content-between mb-3">
+              <span class="fw-bold">Total Deductions</span>
+              <span class="fw-bold text-danger">${{ total_deductions }}</span>
+            </div>
+          </div>
+        </div>
+        
+        <div class="row">
+          <div class="col-12">
+            <div class="alert alert-success text-center">
+              <h5 class="mb-0">Net Pay: ${{ net_pay }}</h5>
+              <small>Amount deposited to your account</small>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Pay History -->
+    <div class="card">
+      <div class="card-header">
+        <h6 class="mb-0">Pay History</h6>
+      </div>
+      <div class="card-body">
+        <div class="table-responsive">
+          <table class="table table-hover">
+            <thead>
+              <tr>
+                <th>Pay Period</th>
+                <th>Gross Pay</th>
+                <th>Deductions</th>
+                <th>Net Pay</th>
+                <th>Status</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for pay in pay_history %}
+              <tr>
+                <td>{{ pay.period }}</td>
+                <td class="fw-bold">${{ pay.gross_pay }}</td>
+                <td>${{ pay.deductions }}</td>
+                <td class="fw-bold text-success">${{ pay.net_pay }}</td>
+                <td>
+                  <span class="badge bg-{% if pay.status == 'Paid' %}success{% elif pay.status == 'Pending' %}warning{% else %}secondary{% endif %}">
+                    {{ pay.status }}
+                  </span>
+                </td>
+                <td>
+                  <button class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" data-bs-target="#payslipModal{{ pay.id }}">
+                    <i class="bi bi-file-earmark-text me-1"></i>View Payslip
+                  </button>
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <!-- Payroll Information -->
+  <div class="col-lg-4">
+    <div class="card mb-4">
+      <div class="card-header">
+        <h6 class="mb-0">Payroll Information</h6>
+      </div>
+      <div class="card-body">
+        <div class="mb-3">
+          <strong>Employee ID:</strong><br>
+          {{ employee_id }}
+        </div>
+        <div class="mb-3">
+          <strong>Pay Frequency:</strong><br>
+          {{ pay_frequency }}
+        </div>
+        <div class="mb-3">
+          <strong>Pay Method:</strong><br>
+          {{ pay_method }}
+        </div>
+        <div class="mb-3">
+          <strong>Bank Account:</strong><br>
+          ****{{ bank_account_last4 }}
+        </div>
+        <div class="mb-3">
+          <strong>Tax Filing Status:</strong><br>
+          {{ tax_filing_status }}
+        </div>
+        <div class="mb-3">
+          <strong>Exemptions:</strong><br>
+          {{ exemptions }}
+        </div>
+      </div>
+    </div>
+    
+    <!-- Quick Actions -->
+    <div class="card">
+      <div class="card-header">
+        <h6 class="mb-0">Quick Actions</h6>
+      </div>
+      <div class="card-body">
+        <div class="d-grid gap-2">
+          <button class="btn btn-outline-primary" data-bs-toggle="modal" data-bs-target="#updateBankModal">
+            <i class="bi bi-bank me-1"></i>Update Bank Info
+          </button>
+          <button class="btn btn-outline-secondary" data-bs-toggle="modal" data-bs-target="#updateTaxModal">
+            <i class="bi bi-receipt me-1"></i>Update Tax Info
+          </button>
+          <button class="btn btn-outline-info" data-bs-toggle="modal" data-bs-target="#requestPayslipModal">
+            <i class="bi bi-download me-1"></i>Request Payslip
+          </button>
+          <a href="{% url 'employee_documents' %}" class="btn btn-outline-success">
+            <i class="bi bi-file-earmark me-1"></i>View Documents
+          </a>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Payslip Modal -->
+{% for pay in pay_history %}
+<div class="modal fade" id="payslipModal{{ pay.id }}" tabindex="-1">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Payslip - {{ pay.period }}</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <div class="row">
+          <div class="col-md-6">
+            <h6 class="text-success">Earnings</h6>
+            <div class="d-flex justify-content-between mb-1">
+              <span>Regular Pay</span>
+              <span>${{ pay.regular_pay }}</span>
+            </div>
+            <div class="d-flex justify-content-between mb-1">
+              <span>Overtime</span>
+              <span>${{ pay.overtime_pay }}</span>
+            </div>
+            <div class="d-flex justify-content-between mb-1">
+              <span>Bonus</span>
+              <span>${{ pay.bonus }}</span>
+            </div>
+            <hr>
+            <div class="d-flex justify-content-between">
+              <strong>Total Earnings</strong>
+              <strong>${{ pay.gross_pay }}</strong>
+            </div>
+          </div>
+          <div class="col-md-6">
+            <h6 class="text-danger">Deductions</h6>
+            <div class="d-flex justify-content-between mb-1">
+              <span>Federal Tax</span>
+              <span>${{ pay.federal_tax }}</span>
+            </div>
+            <div class="d-flex justify-content-between mb-1">
+              <span>State Tax</span>
+              <span>${{ pay.state_tax }}</span>
+            </div>
+            <div class="d-flex justify-content-between mb-1">
+              <span>Social Security</span>
+              <span>${{ pay.social_security }}</span>
+            </div>
+            <div class="d-flex justify-content-between mb-1">
+              <span>Medicare</span>
+              <span>${{ pay.medicare }}</span>
+            </div>
+            <div class="d-flex justify-content-between mb-1">
+              <span>Health Insurance</span>
+              <span>${{ pay.health_insurance }}</span>
+            </div>
+            <hr>
+            <div class="d-flex justify-content-between">
+              <strong>Total Deductions</strong>
+              <strong>${{ pay.deductions }}</strong>
+            </div>
+          </div>
+        </div>
+        <div class="row mt-3">
+          <div class="col-12">
+            <div class="alert alert-success text-center">
+              <h5 class="mb-0">Net Pay: ${{ pay.net_pay }}</h5>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+        <button type="button" class="btn btn-primary">
+          <i class="bi bi-download me-1"></i>Download PDF
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+{% endfor %}
+
+<!-- Update Bank Info Modal -->
+<div class="modal fade" id="updateBankModal" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Update Bank Information</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <form>
+          <div class="mb-3">
+            <label class="form-label">Bank Name</label>
+            <input type="text" class="form-control" placeholder="Enter bank name">
+          </div>
+          <div class="mb-3">
+            <label class="form-label">Account Number</label>
+            <input type="text" class="form-control" placeholder="Enter account number">
+          </div>
+          <div class="mb-3">
+            <label class="form-label">Routing Number</label>
+            <input type="text" class="form-control" placeholder="Enter routing number">
+          </div>
+          <div class="mb-3">
+            <label class="form-label">Account Type</label>
+            <select class="form-select">
+              <option>Checking</option>
+              <option>Savings</option>
+            </select>
+          </div>
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+        <button type="button" class="btn btn-primary">Update Bank Info</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Update Tax Info Modal -->
+<div class="modal fade" id="updateTaxModal" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Update Tax Information</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <form>
+          <div class="mb-3">
+            <label class="form-label">Filing Status</label>
+            <select class="form-select">
+              <option>Single</option>
+              <option>Married Filing Jointly</option>
+              <option>Married Filing Separately</option>
+              <option>Head of Household</option>
+            </select>
+          </div>
+          <div class="mb-3">
+            <label class="form-label">Number of Exemptions</label>
+            <input type="number" class="form-control" min="0" max="20">
+          </div>
+          <div class="mb-3">
+            <label class="form-label">Additional Withholding</label>
+            <input type="number" class="form-control" placeholder="0.00" step="0.01">
+          </div>
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+        <button type="button" class="btn btn-primary">Update Tax Info</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Request Payslip Modal -->
+<div class="modal fade" id="requestPayslipModal" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Request Payslip</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <form>
+          <div class="mb-3">
+            <label class="form-label">Pay Period</label>
+            <select class="form-select">
+              <option>Current Period</option>
+              <option>Previous Period</option>
+              <option>Last 3 Months</option>
+              <option>Last 6 Months</option>
+              <option>This Year</option>
+            </select>
+          </div>
+          <div class="mb-3">
+            <label class="form-label">Format</label>
+            <select class="form-select">
+              <option>PDF</option>
+              <option>Excel</option>
+            </select>
+          </div>
+          <div class="mb-3">
+            <label class="form-label">Email Address</label>
+            <input type="email" class="form-control" placeholder="your.email@company.com">
+          </div>
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+        <button type="button" class="btn btn-primary">Request Payslip</button>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+  .metric-card {
+    background: #fff;
+    border: 1px solid #e9ecef;
+    border-radius: 8px;
+    padding: 1.5rem;
+    transition: all 0.3s ease;
+  }
+  
+  .metric-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+  }
+  
+  .metric-icon {
+    width: 50px;
+    height: 50px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-right: 1rem;
+    font-size: 1.5rem;
+    color: white;
+  }
+  
+  .metric-icon.success { background: #28a745; }
+  .metric-icon.primary { background: #007bff; }
+  .metric-icon.warning { background: #ffc107; color: #000; }
+  .metric-icon.info { background: #17a2b8; }
+  
+  .metric-title {
+    font-size: 0.875rem;
+    color: #6c757d;
+    margin-bottom: 0.25rem;
+  }
+  
+  .metric-value {
+    font-size: 1.5rem;
+    font-weight: 600;
+    color: #212529;
+    margin-bottom: 0.25rem;
+  }
+  
+  .metric-subtitle {
+    font-size: 0.75rem;
+    color: #6c757d;
+  }
+  
+  @media (max-width: 768px) {
+    .metric-card {
+      padding: 1rem;
+    }
+    
+    .metric-icon {
+      width: 40px;
+      height: 40px;
+      font-size: 1.2rem;
+      margin-right: 0.75rem;
+    }
+    
+    .metric-value {
+      font-size: 1.25rem;
+    }
+    
+    .table-responsive {
+      font-size: 0.8rem;
+    }
+    
+    .btn-group-sm .btn {
+      padding: 0.2rem 0.4rem;
+      font-size: 0.7rem;
+    }
+  }
+  
+  @media (max-width: 576px) {
+    .col-xl-3, .col-lg-4, .col-md-6 {
+      margin-bottom: 1rem;
+    }
+    
+    .card-body {
+      padding: 1rem;
+    }
+    
+    .modal-dialog {
+      margin: 0.5rem;
+    }
+  }
+</style>
+{% endblock %}

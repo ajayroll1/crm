@@ -1,0 +1,1185 @@
+{% extends "employee/base.html" %}
+{% load static %}
+
+{% block title %}Check In/Out - Sujata Associates{% endblock %}
+{% block page_title %}Check In/Out{% endblock %}
+{% block mobile_title %}Attendance{% endblock %}
+
+{% block content %}
+<!-- Current Status Card -->
+<div class="row mb-4">
+  <div class="col-12">
+    <div class="card">
+      <div class="card-body">
+        <div class="row align-items-center">
+          <div class="col-md-8">
+            <div class="d-flex align-items-center">
+              <div class="me-4">
+                <div class="status-indicator" id="statusIndicator">
+                  <div class="status-circle"></div>
+                  <div class="status-text">Not Checked In</div>
+                </div>
+              </div>
+              <div>
+                <h4 class="mb-1">Current Status</h4>
+                <p class="text-muted mb-0">Track your daily attendance and working hours</p>
+              </div>
+            </div>
+          </div>
+          <div class="col-md-4 text-md-end">
+            <div class="d-flex flex-column align-items-md-end">
+              <div class="mb-2">
+                <div class="fw-bold text-primary">{{ "now"|date:"l, F d, Y" }}</div>
+                <div class="text-muted small">{{ "now"|date:"g:i A" }}</div>
+              </div>
+              <div class="d-flex gap-2 flex-wrap">
+                <button class="btn btn-success btn-lg" id="checkInBtn" onclick="openCheckInModal()">
+                  <i class="bi bi-geo-alt me-2"></i>Check In
+                </button>
+                <button class="btn btn-danger btn-lg" id="checkOutBtn" onclick="openCheckOutModal()" disabled>
+                  <i class="bi bi-geo-alt-fill me-2"></i>Check Out
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Main Content Row -->
+<div class="row">
+  <!-- Left: Capture Panel -->
+  <div class="col-lg-6 mb-4">
+    <div class="card">
+    <div class="card-header d-flex align-items-center justify-content-between flex-wrap gap-2">
+      <h6 class="mb-0">Capture</h6>
+      <div class="small text-muted">
+        <span id="clock"></span>
+      </div>
+    </div>
+    <div class="card-body">
+      <div class="row g-3">
+        <div class="col-12">
+          <div class="ratio ratio-4x3 bg-light rounded position-relative overflow-hidden">
+            <video id="camera" autoplay playsinline class="position-absolute top-0 start-0 w-100 h-100" style="object-fit: cover;"></video>
+            <img id="photo" class="position-absolute top-0 start-0 w-100 h-100 d-none" alt="snapshot" />
+          </div>
+        </div>
+
+        <div class="col-12">
+          <div class="d-flex align-items-center gap-2 flex-wrap">
+            <div class="badge bg-light text-dark border">
+              <i class="bi bi-geo"></i> <span id="locStatus">Detecting location...</span>
+            </div>
+            <div class="badge bg-light text-dark border map-badge d-none" id="locLinkWrap">
+              <a id="locLink" href="#" target="_blank" rel="noopener">Open Map</a>
+            </div>
+          </div>
+          <input type="hidden" id="latitude">
+          <input type="hidden" id="longitude">
+          <input type="hidden" id="address">
+        </div>
+
+        <div class="col-12">
+          <div class="input-group">
+            <label class="input-group-text" for="empSelect"><i class="bi bi-person-badge"></i></label>
+            <input type="text" class="form-control" id="empSelect" value="John Doe (ID 1)" readonly>
+          </div>
+        </div>
+
+        <div class="col-12 d-flex gap-2 flex-wrap">
+          <button id="btnIn" class="btn btn-success"><i class="bi bi-box-arrow-in-right"></i> Check In</button>
+          <button id="btnOut" class="btn btn-danger"><i class="bi bi-box-arrow-right"></i> Check Out</button>
+          <button id="btnRetake" class="btn btn-outline-secondary d-none"><i class="bi bi-camera"></i> Retake</button>
+        </div>
+
+        <div class="col-12">
+          <small class="text-muted">Your photo and GPS location are captured to maintain accurate attendance logs.</small>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Right: Logs -->
+  <div class="col-lg-6">
+    <div class="card h-100">
+      <div class="card-header">
+        <div class="d-flex align-items-center justify-content-between">
+          <h6 class="mb-0">
+            <i class="bi bi-clock-history me-2"></i>Today's In/Out Logs
+          </h6>
+          <div class="d-flex gap-1">
+            <button id="printLogs" class="btn btn-outline-secondary btn-sm" title="Print">
+              <i class="bi bi-printer"></i>
+            </button>
+            <button id="exportCsv" class="btn btn-outline-primary btn-sm" title="Export CSV">
+              <i class="bi bi-download"></i>
+            </button>
+          </div>
+        </div>
+      </div>
+      
+      <!-- Filters Section -->
+      <div class="card-body border-bottom">
+        <div class="row g-2">
+          <div class="col-md-4">
+            <div class="input-group input-group-sm">
+              <span class="input-group-text"><i class="bi bi-calendar"></i></span>
+              <input id="logDate" type="date" class="form-control">
+            </div>
+          </div>
+          <div class="col-md-4">
+            <div class="input-group input-group-sm">
+              <span class="input-group-text"><i class="bi bi-funnel"></i></span>
+              <select id="actionFilter" class="form-select">
+                <option value="ALL">All Records</option>
+                <option value="IN">Check In Only</option>
+                <option value="OUT">Check Out Only</option>
+              </select>
+            </div>
+          </div>
+          <div class="col-md-4">
+            <div class="input-group input-group-sm">
+              <span class="input-group-text"><i class="bi bi-search"></i></span>
+              <input id="searchLogs" class="form-control" placeholder="Search...">
+            </div>
+          </div>
+        </div>
+      </div>
+      <!-- Table Section with Scrollable Body -->
+      <div class="card-body p-0">
+        <div class="table-responsive logs-table-container">
+          <table class="table table-hover align-middle mb-0" id="logTable">
+            <thead class="table-light sticky-top">
+              <tr>
+                <th class="text-center">
+                  <i class="bi bi-person me-1"></i>Employee
+                </th>
+                <th class="text-center">
+                  <i class="bi bi-calendar me-1"></i>Date
+                </th>
+                <th class="text-center">
+                  <i class="bi bi-box-arrow-in-right me-1"></i>IN Time
+                </th>
+                <th class="text-center">
+                  <i class="bi bi-box-arrow-right me-1"></i>OUT Time
+                </th>
+                <th class="text-center">
+                  <i class="bi bi-clock me-1"></i>Hours
+                </th>
+                <th class="text-center">
+                  <i class="bi bi-camera me-1"></i>Photo
+                </th>
+                <th class="text-center">
+                  <i class="bi bi-geo-alt me-1"></i>Location
+                </th>
+              </tr>
+            </thead>
+            <tbody id="logsTableBody">
+              <!-- Data will be populated here -->
+            </tbody>
+          </table>
+        </div>
+        
+        <!-- Empty State -->
+        <div id="emptyState" class="text-center py-5 d-none">
+          <i class="bi bi-inbox display-4 text-muted"></i>
+          <h6 class="text-muted mt-3">No records found</h6>
+          <p class="text-muted small">Your attendance records will appear here</p>
+        </div>
+      </div>
+      
+      <!-- Footer with Stats -->
+      <div class="card-footer">
+        <div class="row align-items-center">
+          <div class="col-md-6">
+            <small class="text-muted">
+              <i class="bi bi-info-circle me-1"></i>
+              <span id="recordCount">0</span> records found
+            </small>
+          </div>
+          <div class="col-md-6 text-md-end">
+            <small class="text-muted">
+              <i class="bi bi-database me-1"></i>
+              Data stored locally for demo
+            </small>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Check In Modal -->
+<div class="modal fade" id="checkInModal" tabindex="-1">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">
+          <i class="bi bi-geo-alt me-2"></i>Check In
+        </h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <form id="checkInForm">
+          <div class="row">
+            <div class="col-md-6 mb-3">
+              <label for="checkInLocation" class="form-label">Current Location *</label>
+              <select class="form-select" id="checkInLocation" required>
+                <option value="">Select Location</option>
+                <option value="office">Office - Main Building</option>
+                <option value="remote">Remote Work</option>
+                <option value="client">Client Site</option>
+                <option value="field">Field Work</option>
+              </select>
+            </div>
+            <div class="col-md-6 mb-3">
+              <label for="checkInWorkType" class="form-label">Work Type *</label>
+              <select class="form-select" id="checkInWorkType" required>
+                <option value="">Select Work Type</option>
+                <option value="regular">Regular Work</option>
+                <option value="overtime">Overtime</option>
+                <option value="meeting">Meeting</option>
+                <option value="training">Training</option>
+              </select>
+            </div>
+          </div>
+          
+          <div class="mb-3">
+            <label for="checkInNotes" class="form-label">Notes (Optional)</label>
+            <textarea class="form-control" id="checkInNotes" rows="3" placeholder="Add any notes about your work today..."></textarea>
+          </div>
+          
+          <div class="mb-3">
+            <label class="form-label">Capture Photo *</label>
+            <div class="photo-capture-container">
+              <div class="camera-preview" id="checkInCameraPreview">
+                <div class="camera-placeholder">
+                  <i class="bi bi-camera display-1 text-muted"></i>
+                  <p class="text-muted">Click to capture photo</p>
+                </div>
+              </div>
+              <div class="camera-controls mt-3">
+                <button type="button" class="btn btn-outline-primary" onclick="startCamera('checkIn')">
+                  <i class="bi bi-camera me-2"></i>Open Camera
+                </button>
+                <button type="button" class="btn btn-outline-success" onclick="capturePhoto('checkIn')" id="checkInCaptureBtn" disabled>
+                  <i class="bi bi-camera-fill me-2"></i>Capture Photo
+                </button>
+                <button type="button" class="btn btn-outline-danger" onclick="retakePhoto('checkIn')" id="checkInRetakeBtn" disabled>
+                  <i class="bi bi-arrow-clockwise me-2"></i>Retake
+                </button>
+              </div>
+              <input type="hidden" id="checkInPhotoData" required>
+            </div>
+          </div>
+          
+          <div class="mb-3">
+            <label class="form-label">Current Location Details</label>
+            <div class="location-info">
+              <div class="d-flex align-items-center mb-2">
+                <i class="bi bi-geo-alt text-primary me-2"></i>
+                <span id="checkInLocationText">Getting location...</span>
+              </div>
+              <div class="d-flex align-items-center">
+                <i class="bi bi-clock text-primary me-2"></i>
+                <span id="checkInTimeText">{{ "now"|date:"g:i A" }}</span>
+              </div>
+            </div>
+          </div>
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+        <button type="button" class="btn btn-success" onclick="submitCheckIn()">
+          <i class="bi bi-check-circle me-2"></i>Check In
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Check Out Modal -->
+<div class="modal fade" id="checkOutModal" tabindex="-1">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">
+          <i class="bi bi-geo-alt-fill me-2"></i>Check Out
+        </h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <form id="checkOutForm">
+          <div class="row">
+            <div class="col-md-6 mb-3">
+              <label for="checkOutLocation" class="form-label">Current Location *</label>
+              <select class="form-select" id="checkOutLocation" required>
+                <option value="">Select Location</option>
+                <option value="office">Office - Main Building</option>
+                <option value="remote">Remote Work</option>
+                <option value="client">Client Site</option>
+                <option value="field">Field Work</option>
+              </select>
+            </div>
+            <div class="col-md-6 mb-3">
+              <label for="checkOutWorkType" class="form-label">Work Type *</label>
+              <select class="form-select" id="checkOutWorkType" required>
+                <option value="">Select Work Type</option>
+                <option value="regular">Regular Work</option>
+                <option value="overtime">Overtime</option>
+                <option value="meeting">Meeting</option>
+                <option value="training">Training</option>
+              </select>
+            </div>
+          </div>
+          
+          <div class="mb-3">
+            <label for="checkOutNotes" class="form-label">Work Summary (Optional)</label>
+            <textarea class="form-control" id="checkOutNotes" rows="3" placeholder="Summarize what you accomplished today..."></textarea>
+          </div>
+          
+          <div class="mb-3">
+            <label class="form-label">Capture Photo *</label>
+            <div class="photo-capture-container">
+              <div class="camera-preview" id="checkOutCameraPreview">
+                <div class="camera-placeholder">
+                  <i class="bi bi-camera display-1 text-muted"></i>
+                  <p class="text-muted">Click to capture photo</p>
+                </div>
+              </div>
+              <div class="camera-controls mt-3">
+                <button type="button" class="btn btn-outline-primary" onclick="startCamera('checkOut')">
+                  <i class="bi bi-camera me-2"></i>Open Camera
+                </button>
+                <button type="button" class="btn btn-outline-success" onclick="capturePhoto('checkOut')" id="checkOutCaptureBtn" disabled>
+                  <i class="bi bi-camera-fill me-2"></i>Capture Photo
+                </button>
+                <button type="button" class="btn btn-outline-danger" onclick="retakePhoto('checkOut')" id="checkOutRetakeBtn" disabled>
+                  <i class="bi bi-arrow-clockwise me-2"></i>Retake
+                </button>
+              </div>
+              <input type="hidden" id="checkOutPhotoData" required>
+            </div>
+          </div>
+          
+          <div class="mb-3">
+            <label class="form-label">Current Location Details</label>
+            <div class="location-info">
+              <div class="d-flex align-items-center mb-2">
+                <i class="bi bi-geo-alt text-primary me-2"></i>
+                <span id="checkOutLocationText">Getting location...</span>
+              </div>
+              <div class="d-flex align-items-center">
+                <i class="bi bi-clock text-primary me-2"></i>
+                <span id="checkOutTimeText">{{ "now"|date:"g:i A" }}</span>
+              </div>
+            </div>
+          </div>
+          
+          <div class="alert alert-info">
+            <i class="bi bi-info-circle me-2"></i>
+            <strong>Check In Time:</strong> <span id="checkInTimeDisplay">--:--</span> | 
+            <strong>Total Hours:</strong> <span id="totalHoursDisplay">0h 0m</span>
+          </div>
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+        <button type="button" class="btn btn-danger" onclick="submitCheckOut()">
+          <i class="bi bi-check-circle me-2"></i>Check Out
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+  .preview { width: 100%; max-height: 240px; object-fit: cover; border-radius: 8px; border: 1px solid #dee2e6; }
+  .status-dot { width: 8px; height: 8px; display: inline-block; border-radius: 50%; margin-right: 6px; }
+  .status-in { background: #28a745; }
+  .status-out { background: #dc3545; }
+  .map-badge { font-weight: 600; }
+  
+  .status-indicator {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+  }
+  
+  .status-circle {
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    background: #dc3545;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 0.5rem;
+    position: relative;
+    animation: pulse 2s infinite;
+  }
+  
+  .status-circle.checked-in {
+    background: #28a745;
+    animation: none;
+  }
+  
+  .status-circle::before {
+    content: '';
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    border-radius: 50%;
+    border: 2px solid currentColor;
+    opacity: 0.3;
+    animation: ripple 2s infinite;
+  }
+  
+  .status-text {
+    font-weight: 600;
+    color: #dc3545;
+  }
+  
+  .status-text.checked-in {
+    color: #28a745;
+  }
+  
+  @keyframes pulse {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.05); }
+    100% { transform: scale(1); }
+  }
+  
+  @keyframes ripple {
+    0% { transform: scale(1); opacity: 0.3; }
+    100% { transform: scale(1.5); opacity: 0; }
+  }
+  
+  /* Camera and Photo Capture Styles */
+  .photo-capture-container {
+    border: 2px dashed #dee2e6;
+    border-radius: 8px;
+    padding: 1rem;
+    background: #f8f9fa;
+  }
+  
+  .camera-preview {
+    width: 100%;
+    height: 200px;
+    border-radius: 8px;
+    overflow: hidden;
+    background: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+  }
+  
+  .camera-placeholder {
+    text-align: center;
+    color: #6c757d;
+  }
+  
+  .camera-preview video {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+  
+  .camera-preview img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+  
+  .camera-controls {
+    display: flex;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+  }
+  
+  .location-info {
+    background: #f8f9fa;
+    padding: 1rem;
+    border-radius: 8px;
+    border-left: 4px solid var(--primary-color);
+  }
+  
+  /* Mobile responsive camera */
+  @media (max-width: 768px) {
+    .camera-preview {
+      height: 150px;
+    }
+    
+    .camera-controls {
+      flex-direction: column;
+    }
+    
+    .camera-controls .btn {
+      width: 100%;
+      margin-bottom: 0.5rem;
+    }
+  }
+  
+  /* Logs Table Styles */
+  .logs-table-container {
+    max-height: 400px;
+    overflow-y: auto;
+    border-radius: 0.375rem;
+  }
+  
+  .logs-table-container::-webkit-scrollbar {
+    width: 6px;
+  }
+  
+  .logs-table-container::-webkit-scrollbar-track {
+    background: #f1f1f1;
+    border-radius: 3px;
+  }
+  
+  .logs-table-container::-webkit-scrollbar-thumb {
+    background: #c1c1c1;
+    border-radius: 3px;
+  }
+  
+  .logs-table-container::-webkit-scrollbar-thumb:hover {
+    background: #a8a8a8;
+  }
+  
+  .table th {
+    font-weight: 600;
+    font-size: 0.875rem;
+    padding: 0.75rem 0.5rem;
+    border-bottom: 2px solid #dee2e6;
+  }
+  
+  .table td {
+    font-size: 0.875rem;
+    padding: 0.75rem 0.5rem;
+    vertical-align: middle;
+  }
+  
+  .table tbody tr:hover {
+    background-color: rgba(0, 123, 255, 0.05);
+  }
+  
+  .status-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    display: inline-block;
+    margin-right: 6px;
+  }
+  
+  .status-in {
+    background-color: #28a745;
+  }
+  
+  .status-out {
+    background-color: #dc3545;
+  }
+  
+  .photo-thumbnail {
+    width: 32px;
+    height: 32px;
+    object-fit: cover;
+    border-radius: 4px;
+    border: 1px solid #dee2e6;
+  }
+  
+  .location-link {
+    color: #007bff;
+    text-decoration: none;
+  }
+  
+  .location-link:hover {
+    color: #0056b3;
+    text-decoration: underline;
+  }
+  
+  /* Print Styles */
+  @media print {
+    .card-header .btn,
+    .card-footer,
+    .logs-table-container {
+      display: none !important;
+    }
+    
+    .logs-table-container {
+      max-height: none !important;
+      overflow: visible !important;
+    }
+    
+    .table {
+      font-size: 12px;
+    }
+    
+    .table th,
+    .table td {
+      padding: 0.25rem;
+    }
+  }
+</style>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+  document.addEventListener('DOMContentLoaded', () => {
+    // Logged-in employee (from backend context)
+    const loggedInEmployee = { id: 1, name: 'John Doe' };
+    
+    // Set the employee field to show logged-in user
+    const empSelect = document.getElementById('empSelect');
+    empSelect.value = `${loggedInEmployee.name} (ID ${loggedInEmployee.id})`;
+
+    // Camera setup
+    const video = document.getElementById('camera');
+    const photo = document.getElementById('photo');
+    const btnRetake = document.getElementById('btnRetake');
+    let mediaStream = null;
+
+    async function startCamera(){
+      try {
+        mediaStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' } });
+        video.srcObject = mediaStream;
+        photo.classList.add('d-none');
+        video.classList.remove('d-none');
+      } catch (e) {
+        console.warn('Camera error', e);
+      }
+    }
+
+    function takeSnapshot(){
+      const canvas = document.createElement('canvas');
+      canvas.width = video.videoWidth || 640;
+      canvas.height = video.videoHeight || 480;
+      const ctx = canvas.getContext('2d');
+      ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+      photo.src = canvas.toDataURL('image/jpeg', 0.85);
+      photo.classList.remove('d-none');
+      video.classList.add('d-none');
+      btnRetake.classList.remove('d-none');
+      return photo.src;
+    }
+
+    btnRetake.addEventListener('click', () => { btnRetake.classList.add('d-none'); startCamera(); });
+    startCamera();
+
+    // Clock
+    const clockEl = document.getElementById('clock');
+    function tick(){
+      const now = new Date();
+      const opts = { weekday: 'short', year: 'numeric', month: 'short', day: '2-digit', hour: '2-digit', minute: '2-digit', second: '2-digit' };
+      clockEl.textContent = now.toLocaleString(undefined, opts);
+    }
+    tick(); setInterval(tick, 1000);
+
+    // Geolocation
+    const latEl = document.getElementById('latitude');
+    const lngEl = document.getElementById('longitude');
+    const addrEl = document.getElementById('address');
+    const locStatus = document.getElementById('locStatus');
+    const locLinkWrap = document.getElementById('locLinkWrap');
+    const locLink = document.getElementById('locLink');
+
+    function setLocation(lat, lng){
+      latEl.value = lat; lngEl.value = lng;
+      locStatus.textContent = `${Number(lat).toFixed(5)}, ${Number(lng).toFixed(5)}`;
+      const url = `https://maps.google.com/?q=${lat},${lng}`;
+      locLink.href = url; locLinkWrap.classList.remove('d-none');
+    }
+
+    if ('geolocation' in navigator){
+      navigator.geolocation.getCurrentPosition(
+        pos => setLocation(pos.coords.latitude, pos.coords.longitude),
+        () => { locStatus.textContent = 'Location permission denied'; },
+        { enableHighAccuracy: true, timeout: 10000, maximumAge: 30000 }
+      );
+    } else {
+      locStatus.textContent = 'Geolocation not supported';
+    }
+
+    // Logs handling (localStorage for demo)
+    const logDateInput = document.getElementById('logDate');
+    const actionFilter = document.getElementById('actionFilter');
+    const logTableBody = document.querySelector('#logTable tbody');
+    const searchLogs = document.getElementById('searchLogs');
+    const exportBtn = document.getElementById('exportCsv');
+
+    // Init selected date to today
+    const todayStr = new Date().toISOString().slice(0,10);
+    logDateInput.value = todayStr;
+
+    function storageKeyFor(dateStr){
+      return 'inout_logs_' + (dateStr || logDateInput.value || todayStr);
+    }
+
+    function loadLogs(dateStr){
+      try { return JSON.parse(localStorage.getItem(storageKeyFor(dateStr)) || '[]'); }
+      catch { return []; }
+    }
+    function saveLogs(list, dateStr){
+      localStorage.setItem(storageKeyFor(dateStr), JSON.stringify(list));
+    }
+
+    function formatHMS(totalMinutes){
+      if (!totalMinutes && totalMinutes !== 0) return '—';
+      const mins = Math.max(0, Math.round(totalMinutes));
+      const h = Math.floor(mins / 60).toString().padStart(2,'0');
+      const m = (mins % 60).toString().padStart(2,'0');
+      return `${h}:${m}`;
+    }
+
+    function formatDate(iso){
+      if (!iso) return '—';
+      const dt = new Date(iso);
+      const d = dt.getDate().toString().padStart(2,'0');
+      const m = (dt.getMonth()+1).toString().padStart(2,'0');
+      const y = dt.getFullYear();
+      return `${d}-${m}-${y}`; // DD-MM-YYYY
+    }
+
+    function formatTime(iso){
+      if (!iso) return '—';
+      const dt = new Date(iso);
+      return dt.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' });
+    }
+
+    function buildSessions(logs){
+      const sessions = [];
+      const usedInIds = new Set();
+      const nameByEmp = new Map();
+
+      logs.forEach(l => nameByEmp.set(l.empId, l.name));
+
+      // Pair OUT with its IN
+      logs.forEach(out => {
+        if (out.action !== 'OUT') return;
+        const inLog = logs.find(x => x.action === 'IN' && x.pairedWith === out.id);
+        if (inLog){ usedInIds.add(inLog.id); }
+        sessions.push({ empId: out.empId, name: nameByEmp.get(out.empId) || out.name, inLog, outLog: out });
+      });
+
+      // Any remaining IN without OUT
+      logs.forEach(l => {
+        if (l.action === 'IN' && !usedInIds.has(l.id)){
+          sessions.push({ empId: l.empId, name: l.name, inLog: l, outLog: null });
+        }
+      });
+
+      // Sort newest first by out time then in time
+      sessions.sort((a,b) => {
+        const at = new Date(a.outLog?.time || a.inLog?.time || 0).getTime();
+        const bt = new Date(b.outLog?.time || b.inLog?.time || 0).getTime();
+        return bt - at;
+      });
+      return sessions;
+    }
+
+    function renderLogs(filter=''){
+      const logs = loadLogs();
+      const q = filter.trim().toLowerCase();
+      const sessions = buildSessions(logs)
+        .filter(s => !q || `${s.name}`.toLowerCase().includes(q))
+        .filter(s => {
+          if (actionFilter.value === 'ALL') return true;
+          if (actionFilter.value === 'IN') return !!s.inLog && !s.outLog; // open sessions
+          if (actionFilter.value === 'OUT') return !!s.outLog; // completed sessions
+          return true;
+        });
+
+      const logTableBody = document.getElementById('logsTableBody');
+      const emptyState = document.getElementById('emptyState');
+      const recordCount = document.getElementById('recordCount');
+      
+      logTableBody.innerHTML = '';
+      
+      if (sessions.length === 0) {
+        emptyState.classList.remove('d-none');
+        recordCount.textContent = '0';
+      } else {
+        emptyState.classList.add('d-none');
+        recordCount.textContent = sessions.length;
+        
+        sessions.forEach(s => {
+          const minutes = s.outLog?.sessionMinutes;
+          const photoSrc = s.outLog?.photo || s.inLog?.photo;
+          const img = photoSrc ? `<img src="${photoSrc}" alt="${s.name}" class="photo-thumbnail"/>` : '<span class="text-muted">—</span>';
+          const lat = s.outLog?.lat || s.inLog?.lat;
+          const lng = s.outLog?.lng || s.inLog?.lng;
+          const loc = (lat && lng)
+            ? `<a href="https://maps.google.com/?q=${lat},${lng}" target="_blank" rel="noopener" class="location-link" title="Open location"><i class="bi bi-geo-alt-fill"></i></a>`
+            : '<span class="text-muted">—</span>';
+          const dateForRow = formatDate(s.outLog?.time || s.inLog?.time);
+          const tr = document.createElement('tr');
+          tr.innerHTML = `
+            <td class="text-center fw-bold">${s.name}</td>
+            <td class="text-center">${dateForRow}</td>
+            <td class="text-center">${s.inLog ? '<span class="status-dot status-in"></span>' + formatTime(s.inLog.time) : '<span class="text-muted">—</span>'}</td>
+            <td class="text-center">${s.outLog ? '<span class="status-dot status-out"></span>' + formatTime(s.outLog.time) : '<span class="text-muted">—</span>'}</td>
+            <td class="text-center fw-bold">${s.outLog ? (minutes ? formatHMS(minutes) : '<span class="text-muted">—</span>') : '<span class="text-muted">—</span>'}</td>
+            <td class="text-center">${img}</td>
+            <td class="text-center">${loc}</td>
+          `;
+          logTableBody.appendChild(tr);
+        });
+      }
+    }
+
+    function sumDailyMinutes(logs, empId){
+      return logs.filter(x => x.empId === empId && x.action === 'OUT' && x.sessionMinutes)
+        .reduce((acc, x) => acc + (x.sessionMinutes || 0), 0);
+    }
+
+    function findUnpairedIn(logs, empId){
+      // logs are newest first; find first IN without pairedWith
+      for (const l of logs){
+        if (l.empId === empId && l.action === 'IN' && !l.pairedWith){
+          return l;
+        }
+      }
+      return null;
+    }
+
+    function submit(action){
+      const empId = loggedInEmployee.id;
+      const employee = loggedInEmployee;
+      const snapshot = takeSnapshot();
+      const lat = latEl.value, lng = lngEl.value;
+      const nowIso = new Date().toISOString();
+      const log = { id: Date.now(), empId, name: employee.name, action, time: nowIso, photo: snapshot, lat, lng };
+      const logs = loadLogs();
+
+      if (action === 'OUT'){
+        const inLog = findUnpairedIn(logs, empId);
+        if (inLog){
+          const minutes = (new Date(nowIso) - new Date(inLog.time)) / 60000;
+          log.sessionMinutes = Math.max(0, Math.round(minutes));
+          inLog.pairedWith = log.id;
+        }
+        log.dailyTotalMinutes = sumDailyMinutes([log, ...logs], empId);
+      }
+
+      logs.unshift(log);
+      saveLogs(logs);
+      renderLogs(searchLogs.value);
+    }
+
+    document.getElementById('btnIn').addEventListener('click', () => submit('IN'));
+    document.getElementById('btnOut').addEventListener('click', () => submit('OUT'));
+    searchLogs.addEventListener('input', () => renderLogs(searchLogs.value));
+    actionFilter.addEventListener('change', () => renderLogs(searchLogs.value));
+    logDateInput.addEventListener('change', () => { renderLogs(searchLogs.value); });
+    
+    // Print functionality
+    document.getElementById('printLogs').addEventListener('click', () => {
+      window.print();
+    });
+
+    
+
+    exportBtn.addEventListener('click', () => {
+      const logs = loadLogs();
+      const rows = [['emp_id','name','action','day','date','time','session_minutes','daily_total_minutes','latitude','longitude','photo_base64']];
+      logs.forEach(l => {
+        const dt = new Date(l.time);
+        const day = dt.toLocaleDateString(undefined, { weekday: 'short' });
+        const dateStr = dt.toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: '2-digit' });
+        const timeStr = dt.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+        rows.push([l.empId, l.name, l.action, day, dateStr, timeStr, l.sessionMinutes||'', l.dailyTotalMinutes||'', l.lat||'', l.lng||'', (l.photo||'').slice(0,60) + '...']);
+      });
+      const csv = rows.map(r => r.map(x => `"${String(x).replaceAll('"','""')}"`).join(',')).join('\n');
+      const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a'); a.href = url; a.download = 'inout_logs_today.csv'; a.click();
+      URL.revokeObjectURL(url);
+    });
+
+    
+
+    // Add some sample data for demonstration
+    function addSampleData() {
+      const today = new Date().toISOString().slice(0, 10);
+      const sampleLogs = [
+        { id: 1, empId: 1, name: 'John Doe', action: 'IN', time: new Date().toISOString(), photo: '', lat: '25.62345', lng: '85.13238' },
+        { id: 2, empId: 1, name: 'John Doe', action: 'OUT', time: new Date(Date.now() - 8 * 60 * 60 * 1000).toISOString(), photo: '', lat: '25.62345', lng: '85.13238', sessionMinutes: 480, pairedWith: 1 },
+        { id: 3, empId: 1, name: 'John Doe', action: 'IN', time: new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString(), photo: '', lat: '25.62345', lng: '85.13238' },
+        { id: 4, empId: 1, name: 'John Doe', action: 'OUT', time: new Date(Date.now() - 32 * 60 * 60 * 1000).toISOString(), photo: '', lat: '25.62345', lng: '85.13238', sessionMinutes: 480, pairedWith: 3 },
+        { id: 5, empId: 1, name: 'John Doe', action: 'IN', time: new Date(Date.now() - 48 * 60 * 60 * 1000).toISOString(), photo: '', lat: '25.62345', lng: '85.13238' },
+        { id: 6, empId: 1, name: 'John Doe', action: 'OUT', time: new Date(Date.now() - 56 * 60 * 60 * 1000).toISOString(), photo: '', lat: '25.62345', lng: '85.13238', sessionMinutes: 480, pairedWith: 5 },
+        { id: 7, empId: 1, name: 'John Doe', action: 'IN', time: new Date(Date.now() - 72 * 60 * 60 * 1000).toISOString(), photo: '', lat: '25.62345', lng: '85.13238' },
+        { id: 8, empId: 1, name: 'John Doe', action: 'OUT', time: new Date(Date.now() - 80 * 60 * 60 * 1000).toISOString(), photo: '', lat: '25.62345', lng: '85.13238', sessionMinutes: 480, pairedWith: 7 }
+      ];
+      
+      // Only add sample data if no data exists
+      const existingLogs = loadLogs();
+      if (existingLogs.length === 0) {
+        saveLogs(sampleLogs);
+      }
+    }
+    
+    // Add sample data and initial render
+    addSampleData();
+    renderLogs();
+  });
+  
+  // Modal functionality
+  let currentStream = null;
+  let currentCameraType = null;
+  let isCheckedIn = false;
+  let checkInTime = null;
+  let checkOutTime = null;
+  
+  // Open check-in modal
+  function openCheckInModal() {
+    const modal = new bootstrap.Modal(document.getElementById('checkInModal'));
+    modal.show();
+    getCurrentLocation('checkIn');
+  }
+  
+  // Open check-out modal
+  function openCheckOutModal() {
+    const modal = new bootstrap.Modal(document.getElementById('checkOutModal'));
+    modal.show();
+    getCurrentLocation('checkOut');
+    
+    // Update check-in time display
+    if (checkInTime) {
+      const checkInTimeStr = checkInTime.toLocaleTimeString('en-US', { 
+        hour: '2-digit', 
+        minute: '2-digit',
+        hour12: true 
+      });
+      document.getElementById('checkInTimeDisplay').textContent = checkInTimeStr;
+      
+      // Calculate total hours
+      const now = new Date();
+      const diffMs = now - checkInTime;
+      const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
+      const diffMinutes = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
+      document.getElementById('totalHoursDisplay').textContent = `${diffHours}h ${diffMinutes}m`;
+    }
+  }
+  
+  // Start camera
+  function startCamera(type) {
+    currentCameraType = type;
+    const preview = document.getElementById(type + 'CameraPreview');
+    const captureBtn = document.getElementById(type + 'CaptureBtn');
+    const retakeBtn = document.getElementById(type + 'RetakeBtn');
+    
+    navigator.mediaDevices.getUserMedia({ 
+      video: { 
+        facingMode: 'user',
+        width: { ideal: 640 },
+        height: { ideal: 480 }
+      } 
+    })
+    .then(stream => {
+      currentStream = stream;
+      const video = document.createElement('video');
+      video.srcObject = stream;
+      video.autoplay = true;
+      video.muted = true;
+      video.playsInline = true;
+      
+      preview.innerHTML = '';
+      preview.appendChild(video);
+      
+      captureBtn.disabled = false;
+    })
+    .catch(err => {
+      console.error('Error accessing camera:', err);
+      alert('Camera access denied or not available');
+    });
+  }
+  
+  // Capture photo
+  function capturePhoto(type) {
+    const preview = document.getElementById(type + 'CameraPreview');
+    const video = preview.querySelector('video');
+    const captureBtn = document.getElementById(type + 'CaptureBtn');
+    const retakeBtn = document.getElementById(type + 'RetakeBtn');
+    const photoData = document.getElementById(type + 'PhotoData');
+    
+    if (video) {
+      const canvas = document.createElement('canvas');
+      const context = canvas.getContext('2d');
+      
+      canvas.width = video.videoWidth;
+      canvas.height = video.videoHeight;
+      
+      context.drawImage(video, 0, 0, canvas.width, canvas.height);
+      
+      const imageData = canvas.toDataURL('image/jpeg', 0.8);
+      photoData.value = imageData;
+      
+      // Replace video with captured image
+      const img = document.createElement('img');
+      img.src = imageData;
+      preview.innerHTML = '';
+      preview.appendChild(img);
+      
+      // Stop camera
+      if (currentStream) {
+        currentStream.getTracks().forEach(track => track.stop());
+        currentStream = null;
+      }
+      
+      captureBtn.disabled = true;
+      retakeBtn.disabled = false;
+      
+      alert('Photo captured successfully!');
+    }
+  }
+  
+  // Retake photo
+  function retakePhoto(type) {
+    const preview = document.getElementById(type + 'CameraPreview');
+    const captureBtn = document.getElementById(type + 'CaptureBtn');
+    const retakeBtn = document.getElementById(type + 'RetakeBtn');
+    const photoData = document.getElementById(type + 'PhotoData');
+    
+    preview.innerHTML = `
+      <div class="camera-placeholder">
+        <i class="bi bi-camera display-1 text-muted"></i>
+        <p class="text-muted">Click to capture photo</p>
+      </div>
+    `;
+    
+    photoData.value = '';
+    captureBtn.disabled = true;
+    retakeBtn.disabled = true;
+    
+    startCamera(type);
+  }
+  
+  // Get current location
+  function getCurrentLocation(type) {
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        position => {
+          const lat = position.coords.latitude;
+          const lng = position.coords.longitude;
+          const accuracy = position.coords.accuracy;
+          
+          const locationText = `Lat: ${lat.toFixed(6)}, Lng: ${lng.toFixed(6)} (Accuracy: ${Math.round(accuracy)}m)`;
+          document.getElementById(type + 'LocationText').textContent = locationText;
+          
+          // Store location data
+          window[type + 'LocationData'] = {
+            latitude: lat,
+            longitude: lng,
+            accuracy: accuracy,
+            timestamp: new Date()
+          };
+        },
+        error => {
+          console.error('Error getting location:', error);
+          document.getElementById(type + 'LocationText').textContent = 'Location access denied or not available';
+          alert('Location access denied or not available');
+        },
+        {
+          enableHighAccuracy: true,
+          timeout: 10000,
+          maximumAge: 300000
+        }
+      );
+    } else {
+      document.getElementById(type + 'LocationText').textContent = 'Geolocation not supported';
+    }
+  }
+  
+  // Submit check-in
+  function submitCheckIn() {
+    const formData = {
+      empId: loggedInEmployee.id,
+      empName: loggedInEmployee.name,
+      location: document.getElementById('checkInLocation').value,
+      workType: document.getElementById('checkInWorkType').value,
+      notes: document.getElementById('checkInNotes').value,
+      photo: document.getElementById('checkInPhotoData').value,
+      locationData: window.checkInLocationData,
+      timestamp: new Date()
+    };
+    
+    if (!formData.location || !formData.workType || !formData.photo) {
+      alert('Please fill in all required fields and capture photo');
+      return;
+    }
+    
+    // Here you would send data to server
+    console.log('Check-in data:', formData);
+    
+    // Update UI
+    isCheckedIn = true;
+    checkInTime = new Date();
+    document.getElementById('checkInBtn').disabled = true;
+    document.getElementById('checkOutBtn').disabled = false;
+    
+    // Update status indicator
+    const statusCircle = document.querySelector('.status-circle');
+    const statusText = document.querySelector('.status-text');
+    statusCircle.classList.add('checked-in');
+    statusText.classList.add('checked-in');
+    statusText.textContent = 'Checked In';
+    
+    alert('Check-in successful!');
+    
+    // Close modal
+    const modal = bootstrap.Modal.getInstance(document.getElementById('checkInModal'));
+    modal.hide();
+  }
+  
+  // Submit check-out
+  function submitCheckOut() {
+    const formData = {
+      empId: loggedInEmployee.id,
+      empName: loggedInEmployee.name,
+      location: document.getElementById('checkOutLocation').value,
+      workType: document.getElementById('checkOutWorkType').value,
+      notes: document.getElementById('checkOutNotes').value,
+      photo: document.getElementById('checkOutPhotoData').value,
+      locationData: window.checkOutLocationData,
+      timestamp: new Date(),
+      checkInTime: checkInTime,
+      totalHours: checkInTime ? Math.round((new Date() - checkInTime) / (1000 * 60 * 60) * 100) / 100 : 0
+    };
+    
+    if (!formData.location || !formData.workType || !formData.photo) {
+      alert('Please fill in all required fields and capture photo');
+      return;
+    }
+    
+    // Here you would send data to server
+    console.log('Check-out data:', formData);
+    
+    // Update UI
+    isCheckedIn = false;
+    checkOutTime = new Date();
+    document.getElementById('checkInBtn').disabled = false;
+    document.getElementById('checkOutBtn').disabled = true;
+    
+    // Update status indicator
+    const statusCircle = document.querySelector('.status-circle');
+    const statusText = document.querySelector('.status-text');
+    statusCircle.classList.remove('checked-in');
+    statusText.classList.remove('checked-in');
+    statusText.textContent = 'Not Checked In';
+    
+    alert('Check-out successful!');
+    
+    // Close modal
+    const modal = bootstrap.Modal.getInstance(document.getElementById('checkOutModal'));
+    modal.hide();
+  }
+</script>
+{% endblock %}
+
+
