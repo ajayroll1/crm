@@ -1,5 +1,12 @@
-from django.shortcuts import render, redirect
-from django.http import HttpResponse
+from django.shortcuts import render, redirect, get_object_or_404
+from django.http import HttpResponse, JsonResponse
+from django.contrib import messages
+from django.core.paginator import Paginator
+from django.db.models import Q
+from django.utils import timezone
+from datetime import datetime, date
+from .models import Lead
+from .forms import LeadForm, LeadFilterForm
 
 def home(request):
   return render(request,'pages/homepage.html')
@@ -34,7 +41,304 @@ def dashboard(request):
 
 
 def leads(request):
-  return render(request, 'leads_section/leads.html')
+    """
+    Main leads page with list and create functionality
+    यह leads का main page है जहाँ list और create दोनों होते हैं
+    """
+    # Get all active leads
+    leads_list = Lead.objects.filter(is_active=True).order_by('-created_at')
+    
+    # Search functionality
+    search_query = request.GET.get('search', '')
+    if search_query:
+        leads_list = leads_list.filter(
+            Q(name__icontains=search_query) |
+            Q(email__icontains=search_query) |
+            Q(company__icontains=search_query) |
+            Q(phone__icontains=search_query) |
+            Q(owner__icontains=search_query)
+        )
+    
+    # Pagination
+    paginator = Paginator(leads_list, 10)  # Show 10 leads per page
+    page_number = request.GET.get('page')
+    leads = paginator.get_page(page_number)
+    
+    # Handle form submission
+    if request.method == 'POST':
+        form = LeadForm(request.POST)
+        if form.is_valid():
+            try:
+                lead = form.save()
+                messages.success(request, f'Lead "{lead.name}" created successfully!')
+                return redirect('leads')
+            except Exception as e:
+                messages.error(request, f'Error creating lead: {str(e)}')
+        else:
+            messages.error(request, 'Please fix the form errors below.')
+    else:
+        form = LeadForm()
+    
+    context = {
+        'leads': leads,
+        'form': form,
+        'search_query': search_query,
+        'total_leads': leads_list.count(),
+    }
+    
+    return render(request, 'leads_section/leads.html', context)
+
+
+def lead_detail(request, lead_id):
+    """
+    View individual lead details
+    यह individual lead की details show करता है
+    """
+    lead = get_object_or_404(Lead, id=lead_id, is_active=True)
+    
+    context = {
+        'lead': lead,
+    }
+    
+    return render(request, 'leads_section/lead_detail.html', context)
+
+
+def lead_edit(request, lead_id):
+    """
+    Edit existing lead
+    यह existing lead को edit करने के लिए है
+    """
+    lead = get_object_or_404(Lead, id=lead_id, is_active=True)
+    
+    if request.method == 'POST':
+        form = LeadForm(request.POST, instance=lead)
+        if form.is_valid():
+            try:
+                updated_lead = form.save()
+                messages.success(request, f'Lead "{updated_lead.name}" updated successfully!')
+                return redirect('leads')
+            except Exception as e:
+                messages.error(request, f'Error updating lead: {str(e)}')
+        else:
+            messages.error(request, 'Please fix the form errors below.')
+    else:
+        form = LeadForm(instance=lead)
+    
+    context = {
+        'form': form,
+        'lead': lead,
+        'is_edit': True,
+    }
+    
+    return render(request, 'leads_section/lead_form.html', context)
+
+
+def lead_delete(request, lead_id):
+    """
+    Delete lead (soft delete)
+    यह lead को delete करता है (soft delete)
+    """
+    lead = get_object_or_404(Lead, id=lead_id, is_active=True)
+    
+    if request.method == 'POST':
+        lead.is_active = False
+        lead.save()
+        messages.success(request, f'Lead "{lead.name}" deleted successfully!')
+        return redirect('leads')
+    
+    context = {
+        'lead': lead,
+    }
+    
+    return render(request, 'leads_section/lead_confirm_delete.html', context)
+
+
+def lead_filter(request):
+    """
+    Filter leads by date criteria
+    यह leads को date के basis पर filter करता है
+    """
+    if request.method == 'POST':
+        form = LeadFilterForm(request.POST)
+        if form.is_valid():
+            filter_type = form.cleaned_data['filter_type']
+            leads_list = Lead.objects.filter(is_active=True)
+            
+            if filter_type == 'date':
+                single_date = form.cleaned_data['single_date']
+                leads_list = leads_list.filter(due_date=single_date)
+                
+            elif filter_type == 'month':
+                month = form.cleaned_data['month']
+                year, month_num = month.split('-')
+                leads_list = leads_list.filter(
+                    due_date__year=year,
+                    due_date__month=month_num
+                )
+                
+            elif filter_type == 'year':
+                year = form.cleaned_data['year']
+                leads_list = leads_list.filter(due_date__year=year)
+                
+            elif filter_type == 'between':
+                from_date = form.cleaned_data['from_date']
+                to_date = form.cleaned_data['to_date']
+                leads_list = leads_list.filter(
+                    due_date__gte=from_date,
+                    due_date__lte=to_date
+                )
+            
+            # Return filtered results as JSON for AJAX
+            filtered_leads = []
+            for lead in leads_list:
+                filtered_leads.append({
+                    'id': lead.id,
+                    'name': lead.name,
+                    'email': lead.email or '-',
+                    'phone': lead.phone or '-',
+                    'company': lead.company or '-',
+                    'owner': lead.owner,
+                    'priority': lead.priority,
+                    'next_action': lead.next_action or '-',
+                    'due': lead.get_full_due_datetime().strftime('%d-%b-%Y %H:%M') if lead.get_full_due_datetime() else '-',
+                    'priority_class': lead.get_priority_badge_class()
+                })
+            
+            return JsonResponse({
+                'success': True,
+                'leads': filtered_leads,
+                'count': len(filtered_leads)
+            })
+    
+    return JsonResponse({'success': False, 'error': 'Invalid form data'})
+
+
+def lead_export(request):
+    """
+    Export leads to CSV
+    यह leads को CSV में export करता है
+    """
+    import csv
+    from django.http import HttpResponse
+    
+    # Get all active leads
+    leads = Lead.objects.filter(is_active=True).order_by('-created_at')
+    
+    # Create CSV response
+    response = HttpResponse(content_type='text/csv')
+    response['Content-Disposition'] = 'attachment; filename="leads_export.csv"'
+    
+    writer = csv.writer(response)
+    
+    # Write headers
+    writer.writerow([
+        'Name', 'Email', 'Phone', 'Company', 'Source', 'Priority', 
+        'Owner', 'Use Case', 'Next Action', 'Due Date', 'Due Time',
+        'Website', 'Industry', 'City', 'Country', 'Budget', 
+        'Timeline', 'Tags', 'Notes', 'Created At'
+    ])
+    
+    # Write data
+    for lead in leads:
+        writer.writerow([
+            lead.name,
+            lead.email or '',
+            lead.phone or '',
+            lead.company or '',
+            lead.source,
+            lead.priority,
+            lead.owner,
+            lead.use_case,
+            lead.next_action or '',
+            lead.due_date or '',
+            lead.due_time or '',
+            lead.website or '',
+            lead.industry or '',
+            lead.city or '',
+            lead.country or '',
+            lead.budget or '',
+            lead.timeline or '',
+            lead.tags or '',
+            lead.notes or '',
+            lead.created_at.strftime('%Y-%m-%d %H:%M:%S')
+        ])
+    
+    return response
+
+
+def lead_import(request):
+    """
+    Import leads from CSV
+    यह CSV से leads import करता है
+    """
+    if request.method == 'POST' and request.FILES.get('csv_file'):
+        csv_file = request.FILES['csv_file']
+        
+        try:
+            import csv
+            import io
+            
+            # Read CSV file
+            file_data = csv_file.read().decode('utf-8')
+            csv_reader = csv.DictReader(io.StringIO(file_data))
+            
+            imported_count = 0
+            error_count = 0
+            
+            for row in csv_reader:
+                try:
+                    # Create lead from CSV row
+                    lead_data = {
+                        'name': row.get('Name', ''),
+                        'email': row.get('Email', '') or None,
+                        'phone': row.get('Phone', '') or None,
+                        'company': row.get('Company', '') or None,
+                        'source': row.get('Source', 'Other'),
+                        'priority': row.get('Priority', 'Med'),
+                        'owner': row.get('Owner', ''),
+                        'use_case': row.get('Use Case', ''),
+                        'next_action': row.get('Next Action', 'None'),
+                        'website': row.get('Website', '') or None,
+                        'industry': row.get('Industry', '') or None,
+                        'city': row.get('City', '') or None,
+                        'country': row.get('Country', '') or None,
+                        'budget': row.get('Budget', '') or None,
+                        'timeline': row.get('Timeline', '') or None,
+                        'tags': row.get('Tags', '') or None,
+                        'notes': row.get('Notes', '') or None,
+                    }
+                    
+                    # Parse dates if provided
+                    if row.get('Due Date'):
+                        try:
+                            lead_data['due_date'] = datetime.strptime(row['Due Date'], '%Y-%m-%d').date()
+                        except:
+                            pass
+                    
+                    if row.get('Due Time'):
+                        try:
+                            lead_data['due_time'] = datetime.strptime(row['Due Time'], '%H:%M').time()
+                        except:
+                            pass
+                    
+                    # Create lead
+                    Lead.objects.create(**lead_data)
+                    imported_count += 1
+                    
+                except Exception as e:
+                    error_count += 1
+                    print(f"Error importing row: {e}")
+                    continue
+            
+            messages.success(
+                request, 
+                f'Import completed! {imported_count} leads imported successfully. {error_count} errors occurred.'
+            )
+            
+        except Exception as e:
+            messages.error(request, f'Error importing file: {str(e)}')
+    
+    return redirect('leads')
 
 def quotes(request):
   return render(request, 'dashboard/quotes.html')

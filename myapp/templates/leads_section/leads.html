@@ -1,15 +1,24 @@
 {% extends "dashboard/dashboard_base.html"%}
 {% block title %}Leads -Sujata Associates {% endblock %}
 
-
 {% block content %}
+<!-- Display messages -->
+{% if messages %}
+  {% for message in messages %}
+    <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+      {{ message }}
+      <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+  {% endfor %}
+{% endif %}
 <div class="dashboard-header d-flex align-items-center justify-content-between">
   <div>
     <h1>Leads</h1>
     <p class="text-muted">Add new leads and manage them here</p>
   </div>
   <div class="d-flex gap-2">
-    <a href="{% url 'leads_import_export' %}" class="btn btn-outline-primary btn-sm"><i class="bi bi-upload"></i> Import/Export</a>
+    <a href="{% url 'lead_export' %}" class="btn btn-outline-primary btn-sm"><i class="bi bi-download"></i> Export</a>
+    <a href="{% url 'leads_import_export' %}" class="btn btn-outline-primary btn-sm"><i class="bi bi-upload"></i> Import</a>
   </div>
 </div>
 
@@ -54,11 +63,14 @@
   <div class="tab-pane fade show active" id="list" role="tabpanel" aria-labelledby="list-tab">
     <div class="card">
       <div class="card-header d-flex align-items-center justify-content-between">
-        <h5 class="card-title mb-0">All Leads</h5>
+        <h5 class="card-title mb-0">All Leads ({{ total_leads }})</h5>
         <div class="d-flex gap-2">
-          <input class="form-control form-control-sm" style="max-width: 220px;" type="search" placeholder="Search leads...">
+          <form method="GET" class="d-flex">
+            <input class="form-control form-control-sm" style="max-width: 220px;" type="search" name="search" placeholder="Search leads..." value="{{ search_query }}">
+            <button class="btn btn-sm btn-outline-primary" type="submit"><i class="bi bi-search"></i></button>
+          </form>
           <button class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" data-bs-target="#filterModal"><i class="bi bi-funnel"></i> Filter</button>
-          <button class="btn btn-sm btn-outline-primary"><i class="bi bi-download"></i> Export</button>
+          <a href="{% url 'lead_export' %}" class="btn btn-sm btn-outline-primary"><i class="bi bi-download"></i> Export</a>
         </div>
       </div>
       <div class="card-body p-0">
@@ -78,38 +90,74 @@
               </tr>
             </thead>
             <tbody>
-              <tr data-due="2025-10-14T11:30">
-                <td data-label="Name">Rahul Shah</td>
-                <td data-label="Email">rahul@acme.com</td>
-                <td data-label="Phone">-</td>
-                <td data-label="Company">Acme Ltd</td>
-                <td data-label="Owner">Ajay</td>
-                <td data-label="Priority"><span class="badge bg-danger">High</span></td>
-                <td data-label="Next Action">Call</td>
-                <td data-label="Due">14-Oct-2025 11:30</td>
+              {% for lead in leads %}
+              <tr data-due="{% if lead.get_full_due_datetime %}{{ lead.get_full_due_datetime|date:'c' }}{% endif %}">
+                <td data-label="Name">{{ lead.name }}</td>
+                <td data-label="Email">{{ lead.email|default:"-" }}</td>
+                <td data-label="Phone">{{ lead.phone|default:"-" }}</td>
+                <td data-label="Company">{{ lead.company|default:"-" }}</td>
+                <td data-label="Owner">{{ lead.owner }}</td>
+                <td data-label="Priority">
+                  <span class="badge {{ lead.get_priority_badge_class }}">{{ lead.priority }}</span>
+                </td>
+                <td data-label="Next Action">{{ lead.next_action|default:"-" }}</td>
+                <td data-label="Due">
+                  {% if lead.get_full_due_datetime %}
+                    {{ lead.get_full_due_datetime|date:"d-M-Y H:i" }}
+                  {% else %}
+                    -
+                  {% endif %}
+                </td>
                 <td data-label="Actions">
-                  <button class="btn btn-sm btn-outline-primary btn-view"><i class="bi bi-eye"></i></button>
-                  <button class="btn btn-sm btn-outline-primary btn-edit"><i class="bi bi-pencil"></i></button>
+                  <a href="{% url 'lead_detail' lead.id %}" class="btn btn-sm btn-outline-primary btn-view"><i class="bi bi-eye"></i></a>
+                  <a href="{% url 'lead_edit' lead.id %}" class="btn btn-sm btn-outline-primary btn-edit"><i class="bi bi-pencil"></i></a>
                 </td>
               </tr>
-              <tr class="table-warning" data-due="2025-10-16T15:00">
-                <td data-label="Name">Neha Gupta</td>
-                <td data-label="Email">-</td>
-                <td data-label="Phone">+91 98765 43210</td>
-                <td data-label="Company">BrightWorks</td>
-                <td data-label="Owner">Vikas</td>
-                <td data-label="Priority"><span class="badge bg-warning text-dark">Med</span></td>
-                <td data-label="Next Action">Email</td>
-                <td data-label="Due">16-Oct-2025 15:00</td>
-                <td data-label="Actions">
-                  <button class="btn btn-sm btn-outline-primary btn-view"><i class="bi bi-eye"></i></button>
-                  <button class="btn btn-sm btn-outline-primary btn-edit"><i class="bi bi-pencil"></i></button>
+              {% empty %}
+              <tr>
+                <td colspan="9" class="text-center text-muted py-4">
+                  <i class="bi bi-inbox fs-1 d-block mb-2"></i>
+                  No leads found. <a href="#create" data-bs-toggle="tab">Create your first lead</a>
                 </td>
               </tr>
+              {% endfor %}
             </tbody>
           </table>
         </div>
       </div>
+      
+      <!-- Pagination -->
+      {% if leads.has_other_pages %}
+        <div class="card-footer">
+          <nav aria-label="Leads pagination">
+            <ul class="pagination pagination-sm justify-content-center mb-0">
+              {% if leads.has_previous %}
+                <li class="page-item">
+                  <a class="page-link" href="?page=1{% if search_query %}&search={{ search_query }}{% endif %}">First</a>
+                </li>
+                <li class="page-item">
+                  <a class="page-link" href="?page={{ leads.previous_page_number }}{% if search_query %}&search={{ search_query }}{% endif %}">Previous</a>
+                </li>
+              {% endif %}
+              
+              <li class="page-item active">
+                <span class="page-link">
+                  Page {{ leads.number }} of {{ leads.paginator.num_pages }}
+                </span>
+              </li>
+              
+              {% if leads.has_next %}
+                <li class="page-item">
+                  <a class="page-link" href="?page={{ leads.next_page_number }}{% if search_query %}&search={{ search_query }}{% endif %}">Next</a>
+                </li>
+                <li class="page-item">
+                  <a class="page-link" href="?page={{ leads.paginator.num_pages }}{% if search_query %}&search={{ search_query }}{% endif %}">Last</a>
+                </li>
+              {% endif %}
+            </ul>
+          </nav>
+        </div>
+      {% endif %}
     </div>
   </div>
 
@@ -117,6 +165,20 @@
   <div class="tab-pane fade" id="create" role="tabpanel" aria-labelledby="create-tab">
     <form id="createLeadForm" method="post" novalidate>
       {% csrf_token %}
+      
+      <!-- Display form errors -->
+      {% if form.errors %}
+        <div class="alert alert-danger">
+          <strong>Please fix the following errors:</strong>
+          <ul class="mb-0">
+            {% for field, errors in form.errors.items %}
+              {% for error in errors %}
+                <li>{{ field|title }}: {{ error }}</li>
+              {% endfor %}
+            {% endfor %}
+          </ul>
+        </div>
+      {% endif %}
       <div class="card">
         <div class="card-header">
           <h5 class="card-title mb-0">Add a new lead</h5>
@@ -125,68 +187,83 @@
           <div class="row g-3">
             <div class="col-md-6">
               <label class="form-label">Name<span class="text-danger">*</span></label>
-              <input type="text" name="name" class="form-control" placeholder="Full name" required>
+              {{ form.name }}
+              {% if form.name.errors %}
+                <div class="text-danger small">{{ form.name.errors.0 }}</div>
+              {% endif %}
             </div>
             <div class="col-md-3">
               <label class="form-label">Email</label>
-              <input type="email" name="email" class="form-control" placeholder="name@example.com">
+              {{ form.email }}
+              {% if form.email.errors %}
+                <div class="text-danger small">{{ form.email.errors.0 }}</div>
+              {% endif %}
             </div>
             <div class="col-md-3">
               <label class="form-label">Phone</label>
-              <input type="tel" name="phone" class="form-control" placeholder="e.g. +91 98765 43210">
+              {{ form.phone }}
+              {% if form.phone.errors %}
+                <div class="text-danger small">{{ form.phone.errors.0 }}</div>
+              {% endif %}
             </div>
 
             <div class="col-md-4">
               <label class="form-label">Company</label>
-              <input type="text" name="company" class="form-control" placeholder="Company name">
+              {{ form.company }}
+              {% if form.company.errors %}
+                <div class="text-danger small">{{ form.company.errors.0 }}</div>
+              {% endif %}
             </div>
             <div class="col-md-4">
               <label class="form-label">Source<span class="text-danger">*</span></label>
-              <select name="source" class="form-select" required>
-                <option value="" selected disabled>Select source</option>
-                <option>Website</option>
-                <option>Referral</option>
-                <option>Cold Call</option>
-                <option>Social</option>
-                <option>Event</option>
-                <option>Other</option>
-              </select>
+              {{ form.source }}
+              {% if form.source.errors %}
+                <div class="text-danger small">{{ form.source.errors.0 }}</div>
+              {% endif %}
             </div>
             <div class="col-md-4">
               <label class="form-label">Priority</label>
-              <select name="priority" class="form-select">
-                <option>Low</option>
-                <option selected>Med</option>
-                <option>High</option>
-              </select>
+              {{ form.priority }}
+              {% if form.priority.errors %}
+                <div class="text-danger small">{{ form.priority.errors.0 }}</div>
+              {% endif %}
             </div>
 
             <div class="col-md-8">
               <label class="form-label">Use-case (1–2 lines)<span class="text-danger">*</span></label>
-              <textarea name="use_case" class="form-control" rows="2" placeholder="What do they need?" required></textarea>
+              {{ form.use_case }}
+              {% if form.use_case.errors %}
+                <div class="text-danger small">{{ form.use_case.errors.0 }}</div>
+              {% endif %}
             </div>
             <div class="col-md-4">
               <label class="form-label">Owner (assignee)<span class="text-danger">*</span></label>
-              <input type="text" name="owner" class="form-control" placeholder="Assigned to" required>
+              {{ form.owner }}
+              {% if form.owner.errors %}
+                <div class="text-danger small">{{ form.owner.errors.0 }}</div>
+              {% endif %}
             </div>
 
             <div class="col-md-4">
               <label class="form-label">Next Action</label>
-              <select name="next_action" class="form-select">
-                <option value="">None</option>
-                <option>Call</option>
-                <option>Email</option>
-                <option>Demo</option>
-                <option>Meeting</option>
-              </select>
+              {{ form.next_action }}
+              {% if form.next_action.errors %}
+                <div class="text-danger small">{{ form.next_action.errors.0 }}</div>
+              {% endif %}
             </div>
             <div class="col-md-4">
               <label class="form-label">Due Date</label>
-              <input type="date" name="due_date" class="form-control">
+              {{ form.due_date }}
+              {% if form.due_date.errors %}
+                <div class="text-danger small">{{ form.due_date.errors.0 }}</div>
+              {% endif %}
             </div>
             <div class="col-md-4">
               <label class="form-label">Due Time</label>
-              <input type="time" name="due_time" class="form-control">
+              {{ form.due_time }}
+              {% if form.due_time.errors %}
+                <div class="text-danger small">{{ form.due_time.errors.0 }}</div>
+              {% endif %}
             </div>
           </div>
 
@@ -201,39 +278,59 @@
             <div class="row g-3">
               <div class="col-md-6">
                 <label class="form-label">Website</label>
-                <input type="url" name="website" class="form-control" placeholder="https://...">
+                {{ form.website }}
+                {% if form.website.errors %}
+                  <div class="text-danger small">{{ form.website.errors.0 }}</div>
+                {% endif %}
               </div>
               <div class="col-md-6">
                 <label class="form-label">Industry</label>
-                <input type="text" name="industry" class="form-control" placeholder="e.g. BFSI, Retail">
+                {{ form.industry }}
+                {% if form.industry.errors %}
+                  <div class="text-danger small">{{ form.industry.errors.0 }}</div>
+                {% endif %}
               </div>
               <div class="col-md-4">
                 <label class="form-label">City</label>
-                <input type="text" name="city" class="form-control">
+                {{ form.city }}
+                {% if form.city.errors %}
+                  <div class="text-danger small">{{ form.city.errors.0 }}</div>
+                {% endif %}
               </div>
               <div class="col-md-4">
                 <label class="form-label">Country</label>
-                <input type="text" name="country" class="form-control">
+                {{ form.country }}
+                {% if form.country.errors %}
+                  <div class="text-danger small">{{ form.country.errors.0 }}</div>
+                {% endif %}
               </div>
               <div class="col-md-4">
                 <label class="form-label">Budget</label>
-                <input type="text" name="budget" class="form-control" placeholder="e.g. 1–2 Lakh">
+                {{ form.budget }}
+                {% if form.budget.errors %}
+                  <div class="text-danger small">{{ form.budget.errors.0 }}</div>
+                {% endif %}
               </div>
               <div class="col-md-6">
                 <label class="form-label">Decision Timeline</label>
-                <input type="text" name="timeline" class="form-control" placeholder="e.g. 2 months">
+                {{ form.timeline }}
+                {% if form.timeline.errors %}
+                  <div class="text-danger small">{{ form.timeline.errors.0 }}</div>
+                {% endif %}
               </div>
               <div class="col-md-6">
                 <label class="form-label">Tags</label>
-                <input type="text" name="tags" class="form-control" placeholder="Comma separated e.g. BFSI, Enterprise">
+                {{ form.tags }}
+                {% if form.tags.errors %}
+                  <div class="text-danger small">{{ form.tags.errors.0 }}</div>
+                {% endif %}
               </div>
               <div class="col-12">
                 <label class="form-label">Notes</label>
-                <textarea name="notes" class="form-control" rows="3"></textarea>
-              </div>
-              <div class="col-12">
-                <label class="form-label">Files</label>
-                <input type="file" name="files" class="form-control" multiple>
+                {{ form.notes }}
+                {% if form.notes.errors %}
+                  <div class="text-danger small">{{ form.notes.errors.0 }}</div>
+                {% endif %}
               </div>
             </div>
           </div>
@@ -315,7 +412,8 @@
         <h5 class="modal-title" id="filterModalLabel"><i class="bi bi-funnel"></i> Filter Leads by Due</h5>
         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
       </div>
-      <form id="filterForm">
+      <form id="filterForm" method="post" action="{% url 'lead_filter' %}">
+        {% csrf_token %}
         <div class="modal-body">
           <div class="mb-3">
             <label class="form-label">Filter Type</label>
@@ -368,7 +466,7 @@
         </div>
         <div class="modal-footer">
           <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Close</button>
-          <button type="submit" class="btn btn-primary">Apply</button>
+          <button type="submit" class="btn btn-primary">Apply Filter</button>
         </div>
       </form>
     </div>
