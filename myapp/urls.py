@@ -14,6 +14,7 @@ urlpatterns =[
   path('leads/<int:lead_id>/',views.lead_detail,name='lead_detail'),
   path('leads/<int:lead_id>/edit/',views.lead_edit,name='lead_edit'),
   path('leads/<int:lead_id>/delete/',views.lead_delete,name='lead_delete'),
+  path('leads/<int:lead_id>/get-data/',views.lead_get_data,name='lead_get_data'),
   path('leads/filter/',views.lead_filter,name='lead_filter'),
   path('leads/export/',views.lead_export,name='lead_export'),
   path('leads/import/',views.lead_import,name='lead_import'),

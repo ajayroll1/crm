@@ -5,11 +5,7 @@ from django.utils import timezone
 # Create your models here.
 
 class Lead(models.Model):
-    """
-    Lead model to store customer lead information
-    यह model customer leads की सारी information store करता है
-    """
-    
+  
     # Priority choices
     PRIORITY_CHOICES = [
         ('Low', 'Low'),

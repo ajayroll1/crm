@@ -41,10 +41,7 @@ def dashboard(request):
 
 
 def leads(request):
-    """
-    Main leads page with list and create functionality
-    यह leads का main page है जहाँ list और create दोनों होते हैं
-    """
+    
     # Get all active leads
     leads_list = Lead.objects.filter(is_active=True).order_by('-created_at')
     
@@ -339,6 +336,45 @@ def lead_import(request):
             messages.error(request, f'Error importing file: {str(e)}')
     
     return redirect('leads')
+
+
+def lead_get_data(request, lead_id):
+    """
+    Get lead data for edit modal
+    यह edit modal के लिए lead data return करता है
+    """
+    try:
+        lead = get_object_or_404(Lead, id=lead_id, is_active=True)
+        
+        data = {
+            'id': lead.id,
+            'name': lead.name,
+            'email': lead.email or '',
+            'phone': lead.phone or '',
+            'company': lead.company or '',
+            'owner': lead.owner,
+            'source': lead.source,
+            'priority': lead.priority,
+            'use_case': lead.use_case,
+            'next_action': lead.next_action or '',
+            'due_date': lead.due_date.strftime('%Y-%m-%d') if lead.due_date else '',
+            'due_time': lead.due_time.strftime('%H:%M') if lead.due_time else '',
+            'website': lead.website or '',
+            'industry': lead.industry or '',
+            'city': lead.city or '',
+            'country': lead.country or '',
+            'budget': lead.budget or '',
+            'timeline': lead.timeline or '',
+            'tags': lead.tags or '',
+            'notes': lead.notes or '',
+            'created_at': lead.created_at.strftime('%d-%b-%Y %H:%M') if lead.created_at else '',
+            'updated_at': lead.updated_at.strftime('%d-%b-%Y %H:%M') if lead.updated_at else '',
+        }
+        
+        return JsonResponse(data)
+        
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=500)
 
 def quotes(request):
   return render(request, 'dashboard/quotes.html')
