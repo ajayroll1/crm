@@ -43,6 +43,7 @@ urlpatterns =[
   path('employee/leave/',views.employee_leave,name='employee_leave'),
   path('employee/leave/apply/',views.employee_leave_apply,name='employee_leave_apply'),
   path('employee/leads/',views.employee_leads,name='employee_leads'),
+  path('employee/quotes/',views.employee_quotes,name='employee_quotes'),
   
   # Personal Section URLs
   path('employee/profile/',views.employee_profile,name='employee_profile'),

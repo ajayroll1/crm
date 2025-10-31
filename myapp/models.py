@@ -204,3 +204,148 @@ class Document(models.Model):
 
     def __str__(self):
         return self.original_name
+
+
+class Quote(models.Model):
+    """Quotation/Quote management"""
+    STATUS_CHOICES = [
+        ('Draft', 'Draft'),
+        ('Sent', 'Sent'),
+        ('Accepted', 'Accepted'),
+        ('Declined', 'Declined'),
+    ]
+    
+    CURRENCY_CHOICES = [
+        ('INR', 'INR (₹)'),
+        ('USD', 'USD ($)'),
+        ('EUR', 'EUR (€)'),
+    ]
+    
+    # Client Information
+    client_name = models.CharField(max_length=200, verbose_name="Client Name")
+    company = models.CharField(max_length=200, blank=True, null=True)
+    email = models.EmailField(blank=True, null=True)
+    phone = models.CharField(max_length=20, blank=True, null=True)
+    
+    # Quote Details
+    quote_number = models.CharField(max_length=50, unique=True, verbose_name="Quote #")
+    owner = models.CharField(max_length=100, verbose_name="Owner/Assignee")
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='Draft')
+    currency = models.CharField(max_length=10, choices=CURRENCY_CHOICES, default='INR')
+    valid_until = models.DateField(verbose_name="Valid Until")
+    
+    # Financial
+    subtotal = models.DecimalField(max_digits=12, decimal_places=2, default=0.00)
+    discount = models.DecimalField(max_digits=12, decimal_places=2, default=0.00)
+    total = models.DecimalField(max_digits=12, decimal_places=2, default=0.00)
+    
+    # Additional Information
+    notes = models.TextField(blank=True, null=True, verbose_name="Notes for client")
+    terms = models.TextField(blank=True, null=True, verbose_name="Terms & Conditions")
+    project_pdf = models.FileField(upload_to='quotes/pdfs/', blank=True, null=True, verbose_name="Project Details PDF")
+    
+    # Timestamps
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    
+    class Meta:
+        ordering = ['-created_at']
+        verbose_name = "Quote"
+        verbose_name_plural = "Quotes"
+    
+    def __str__(self):
+        return f"{self.quote_number} - {self.client_name}"
+    
+    def get_status_badge_class(self):
+        """Get Bootstrap badge class for status"""
+        status_classes = {
+            'Draft': 'bg-secondary',
+            'Sent': 'bg-warning text-dark',
+            'Accepted': 'bg-success',
+            'Declined': 'bg-danger'
+        }
+        return status_classes.get(self.status, 'bg-secondary')
+
+
+class QuoteItem(models.Model):
+    """Line items for quotes"""
+    quote = models.ForeignKey(Quote, on_delete=models.CASCADE, related_name='items')
+    description = models.CharField(max_length=500, verbose_name="Item Description")
+    quantity = models.PositiveIntegerField(default=1)
+    unit_price = models.DecimalField(max_digits=10, decimal_places=2, verbose_name="Unit Price")
+    gst_percent = models.DecimalField(max_digits=5, decimal_places=2, default=0.00, verbose_name="GST %")
+    amount = models.DecimalField(max_digits=12, decimal_places=2, verbose_name="Total Amount")
+    
+    class Meta:
+        ordering = ['id']
+    
+    def __str__(self):
+        return f"{self.description} - {self.quantity} x {self.unit_price}"
+    
+    def save(self, *args, **kwargs):
+        """Auto-calculate amount including GST"""
+        base_amount = self.quantity * self.unit_price
+        gst_amount = base_amount * (self.gst_percent / 100)
+        self.amount = base_amount + gst_amount
+        super().save(*args, **kwargs)
+
+
+class ClientOnboarding(models.Model):
+    """Client Onboarding management"""
+    STATUS_CHOICES = [
+        ('active', 'Active'),
+        ('pending', 'Pending'),
+        ('on_hold', 'On Hold'),
+        ('completed', 'Completed'),
+    ]
+    
+    DURATION_UNIT_CHOICES = [
+        ('days', 'Days'),
+        ('weeks', 'Weeks'),
+        ('months', 'Months'),
+        ('years', 'Years'),
+    ]
+    
+    # Client Information
+    client_name = models.CharField(max_length=200, verbose_name="Client Name")
+    company_name = models.CharField(max_length=200, blank=True, null=True)
+    client_email = models.EmailField(blank=True, null=True)
+    client_phone = models.CharField(max_length=20, blank=True, null=True)
+    
+    # Project Details
+    project_name = models.CharField(max_length=300, verbose_name="Project Name")
+    project_description = models.TextField(blank=True, null=True)
+    project_duration = models.PositiveIntegerField(verbose_name="Duration")
+    duration_unit = models.CharField(max_length=10, choices=DURATION_UNIT_CHOICES, default='months')
+    project_cost = models.DecimalField(max_digits=12, decimal_places=2, verbose_name="Project Cost")
+    
+    # Assignment
+    assigned_engineer = models.CharField(max_length=100, verbose_name="Assigned Engineer")
+    start_date = models.DateField(blank=True, null=True)
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='active')
+    
+    # Timestamps
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    
+    class Meta:
+        ordering = ['-created_at']
+        verbose_name = "Client Onboarding"
+        verbose_name_plural = "Client Onboardings"
+    
+    def __str__(self):
+        return f"{self.client_name} - {self.project_name}"
+    
+    def get_duration_display_text(self):
+        """Get formatted duration text"""
+        return f"{self.project_duration} {self.duration_unit}"
+    
+    def get_status_badge_class(self):
+        """Get Bootstrap badge class for status"""
+        status_classes = {
+            'active': 'bg-success',
+            'pending': 'bg-warning text-dark',
+            'on_hold': 'bg-secondary',
+            'completed': 'bg-info'
+        }
+        return status_classes.get(self.status, 'bg-secondary')

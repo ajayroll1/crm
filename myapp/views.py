@@ -1263,3 +1263,101 @@ def employee_leads(request):
     }
 
     return render(request, 'employee/leads.html', context)
+
+def employee_quotes(request):
+    """Employee portal quotation management"""
+    from .models import Quote, QuoteItem, ClientOnboarding
+    from decimal import Decimal
+    import json
+    
+    # Handle Quote Creation
+    if request.method == 'POST' and 'quote_submit' in request.POST:
+        try:
+            # Generate quote number if not provided
+            quote_no = request.POST.get('quote_no', '').strip()
+            if not quote_no:
+                # Auto-generate quote number
+                last_quote = Quote.objects.order_by('-id').first()
+                if last_quote and last_quote.quote_number.startswith('Q-'):
+                    try:
+                        last_num = int(last_quote.quote_number.split('-')[1])
+                        quote_no = f'Q-{last_num + 1:04d}'
+                    except:
+                        quote_no = f'Q-{Quote.objects.count() + 1:04d}'
+                else:
+                    quote_no = 'Q-1001'
+            
+            # Create Quote
+            quote = Quote.objects.create(
+                quote_number=quote_no,
+                client_name=request.POST.get('client'),
+                company=request.POST.get('company', ''),
+                email=request.POST.get('email', ''),
+                phone=request.POST.get('phone', ''),
+                owner=request.POST.get('owner'),
+                status=request.POST.get('status', 'Sent'),
+                currency=request.POST.get('currency', 'INR').split()[0],  # Extract 'INR' from 'INR (₹)'
+                valid_until=request.POST.get('valid_until'),
+                notes=request.POST.get('notes', ''),
+                terms=request.POST.get('terms', ''),
+                subtotal=Decimal(request.POST.get('subtotal', '0')),
+                discount=Decimal(request.POST.get('discount', '0')),
+                total=Decimal(request.POST.get('total', '0'))
+            )
+            
+            # Handle PDF upload
+            if 'project_pdf' in request.FILES:
+                quote.project_pdf = request.FILES['project_pdf']
+                quote.save()
+            
+            # Create Quote Items
+            items_data = request.POST.get('items_data', '[]')
+            items = json.loads(items_data)
+            for item in items:
+                QuoteItem.objects.create(
+                    quote=quote,
+                    description=item.get('description', ''),
+                    quantity=int(item.get('quantity', 1)),
+                    unit_price=Decimal(item.get('unit_price', '0')),
+                    gst_percent=Decimal(item.get('gst_percent', '0')),
+                    amount=Decimal(item.get('amount', '0'))
+                )
+            
+            messages.success(request, f'Quote {quote_no} created successfully!')
+            return redirect('employee_quotes')
+        except Exception as e:
+            messages.error(request, f'Error creating quote: {str(e)}')
+    
+    # Handle Onboarding Creation
+    if request.method == 'POST' and 'onboard_submit' in request.POST:
+        try:
+            ClientOnboarding.objects.create(
+                client_name=request.POST.get('client_name'),
+                company_name=request.POST.get('company_name', ''),
+                client_email=request.POST.get('client_email', ''),
+                client_phone=request.POST.get('client_phone', ''),
+                project_name=request.POST.get('project_name'),
+                project_description=request.POST.get('project_description', ''),
+                project_duration=int(request.POST.get('project_duration')),
+                duration_unit=request.POST.get('duration_unit', 'months'),
+                project_cost=Decimal(request.POST.get('project_cost')),
+                assigned_engineer=request.POST.get('assigned_engineer'),
+                start_date=request.POST.get('start_date') or None,
+                status=request.POST.get('status', 'active')
+            )
+            
+            messages.success(request, f'Client {request.POST.get("client_name")} onboarded successfully!')
+            return redirect('employee_quotes')
+        except Exception as e:
+            messages.error(request, f'Error onboarding client: {str(e)}')
+    
+    # Fetch all quotes and onboardings
+    quotes = Quote.objects.all().prefetch_related('items')
+    onboardings = ClientOnboarding.objects.all()
+    
+    context = {
+        'quotes': quotes,
+        'onboardings': onboardings,
+    }
+    
+    return render(request, 'employee/quotes.html', context)
