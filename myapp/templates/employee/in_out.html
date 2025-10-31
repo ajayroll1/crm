@@ -51,7 +51,7 @@
 <!-- Main Content Row -->
 <div class="row">
   <!-- Left: Capture Panel -->
-  <div class="col-lg-6 mb-4">
+  <div class="col-lg-5 mb-4">
     <div class="card">
     <div class="card-header d-flex align-items-center justify-content-between flex-wrap gap-2">
       <h6 class="mb-0">Capture</h6>
@@ -102,114 +102,7 @@
     </div>
   </div>
 
-  <!-- Right: Logs -->
-  <div class="col-lg-6">
-    <div class="card h-100">
-      <div class="card-header">
-        <div class="d-flex align-items-center justify-content-between">
-          <h6 class="mb-0">
-            <i class="bi bi-clock-history me-2"></i>Today's In/Out Logs
-          </h6>
-          <div class="d-flex gap-1">
-            <button id="printLogs" class="btn btn-outline-secondary btn-sm" title="Print">
-              <i class="bi bi-printer"></i>
-            </button>
-            <button id="exportCsv" class="btn btn-outline-primary btn-sm" title="Export CSV">
-              <i class="bi bi-download"></i>
-            </button>
-          </div>
-        </div>
-      </div>
-      
-      <!-- Filters Section -->
-      <div class="card-body border-bottom">
-        <div class="row g-2">
-          <div class="col-md-4">
-            <div class="input-group input-group-sm">
-              <span class="input-group-text"><i class="bi bi-calendar"></i></span>
-              <input id="logDate" type="date" class="form-control">
-            </div>
-          </div>
-          <div class="col-md-4">
-            <div class="input-group input-group-sm">
-              <span class="input-group-text"><i class="bi bi-funnel"></i></span>
-              <select id="actionFilter" class="form-select">
-                <option value="ALL">All Records</option>
-                <option value="IN">Check In Only</option>
-                <option value="OUT">Check Out Only</option>
-              </select>
-            </div>
-          </div>
-          <div class="col-md-4">
-            <div class="input-group input-group-sm">
-              <span class="input-group-text"><i class="bi bi-search"></i></span>
-              <input id="searchLogs" class="form-control" placeholder="Search...">
-            </div>
-          </div>
-        </div>
-      </div>
-      <!-- Table Section with Scrollable Body -->
-      <div class="card-body p-0">
-        <div class="table-responsive logs-table-container">
-          <table class="table table-hover align-middle mb-0" id="logTable">
-            <thead class="table-light sticky-top">
-              <tr>
-                <th class="text-center">
-                  <i class="bi bi-person me-1"></i>Employee
-                </th>
-                <th class="text-center">
-                  <i class="bi bi-calendar me-1"></i>Date
-                </th>
-                <th class="text-center">
-                  <i class="bi bi-box-arrow-in-right me-1"></i>IN Time
-                </th>
-                <th class="text-center">
-                  <i class="bi bi-box-arrow-right me-1"></i>OUT Time
-                </th>
-                <th class="text-center">
-                  <i class="bi bi-clock me-1"></i>Hours
-                </th>
-                <th class="text-center">
-                  <i class="bi bi-camera me-1"></i>Photo
-                </th>
-                <th class="text-center">
-                  <i class="bi bi-geo-alt me-1"></i>Location
-                </th>
-              </tr>
-            </thead>
-            <tbody id="logsTableBody">
-              <!-- Data will be populated here -->
-            </tbody>
-          </table>
-        </div>
-        
-        <!-- Empty State -->
-        <div id="emptyState" class="text-center py-5 d-none">
-          <i class="bi bi-inbox display-4 text-muted"></i>
-          <h6 class="text-muted mt-3">No records found</h6>
-          <p class="text-muted small">Your attendance records will appear here</p>
-        </div>
-      </div>
-      
-      <!-- Footer with Stats -->
-      <div class="card-footer">
-        <div class="row align-items-center">
-          <div class="col-md-6">
-            <small class="text-muted">
-              <i class="bi bi-info-circle me-1"></i>
-              <span id="recordCount">0</span> records found
-            </small>
-          </div>
-          <div class="col-md-6 text-md-end">
-            <small class="text-muted">
-              <i class="bi bi-database me-1"></i>
-              Data stored locally for demo
-            </small>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
+  <!-- Right: Logs removed as requested -->
 </div>
 
 <!-- Check In Modal -->
@@ -531,6 +424,7 @@
   .logs-table-container {
     max-height: 400px;
     overflow-y: auto;
+    overflow-x: hidden; /* avoid horizontal scroll; keep one-shot view */
     border-radius: 0.375rem;
   }
   
@@ -552,21 +446,25 @@
     background: #a8a8a8;
   }
   
-  .table th {
-    font-weight: 600;
+  /* Simple Excel-like table */
+  .table-simple {
+    border-collapse: collapse;
+    background: #fff;
     font-size: 0.875rem;
-    padding: 0.75rem 0.5rem;
-    border-bottom: 2px solid #dee2e6;
+    table-layout: fixed; /* fit columns within width */
+    width: 100%;
   }
-  
-  .table td {
-    font-size: 0.875rem;
-    padding: 0.75rem 0.5rem;
+  .table-simple th,
+  .table-simple td {
+    border: 1px solid #dcdcdc;
+    padding: 0.5rem 0.5rem;
     vertical-align: middle;
+    white-space: normal; /* allow wrapping */
+    word-break: break-word;
   }
-  
-  .table tbody tr:hover {
-    background-color: rgba(0, 123, 255, 0.05);
+  .table-simple thead th {
+    background: #f2f2f2;
+    font-weight: 600;
   }
   
   .status-dot {
@@ -623,6 +521,17 @@
     .table th,
     .table td {
       padding: 0.25rem;
+    }
+  }
+
+  /* Narrow screens: make table more compact */
+  @media (max-width: 576px) {
+    #logTable {
+      font-size: 0.8125rem;
+      white-space: nowrap;
+    }
+    #logTable th, #logTable td {
+      padding: 0.5rem 0.375rem;
     }
   }
 </style>
@@ -819,13 +728,13 @@
           const dateForRow = formatDate(s.outLog?.time || s.inLog?.time);
           const tr = document.createElement('tr');
           tr.innerHTML = `
-            <td class="text-center fw-bold">${s.name}</td>
-            <td class="text-center">${dateForRow}</td>
-            <td class="text-center">${s.inLog ? '<span class="status-dot status-in"></span>' + formatTime(s.inLog.time) : '<span class="text-muted">—</span>'}</td>
-            <td class="text-center">${s.outLog ? '<span class="status-dot status-out"></span>' + formatTime(s.outLog.time) : '<span class="text-muted">—</span>'}</td>
-            <td class="text-center fw-bold">${s.outLog ? (minutes ? formatHMS(minutes) : '<span class="text-muted">—</span>') : '<span class="text-muted">—</span>'}</td>
-            <td class="text-center">${img}</td>
-            <td class="text-center">${loc}</td>
+            <td>${s.name}</td>
+            <td>${dateForRow}</td>
+            <td>${s.inLog ? formatTime(s.inLog.time) : '—'}</td>
+            <td>${s.outLog ? formatTime(s.outLog.time) : '—'}</td>
+            <td>${s.outLog ? (minutes ? formatHMS(minutes) : '—') : '—'}</td>
+            <td>${img}</td>
+            <td>${loc}</td>
           `;
           logTableBody.appendChild(tr);
         });

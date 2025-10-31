@@ -8,13 +8,17 @@ class LeadForm(forms.ModelForm):
     यह form lead data को validate करता है और save करता है
     """
     
+    created_by = forms.CharField(label="Created By", required=False, widget=forms.TextInput(attrs={
+        'class': 'form-control', 'readonly': 'readonly', 'style': 'background:#eee;'
+    }))
+
     class Meta:
         model = Lead
         fields = [
             'name', 'email', 'phone', 'company', 'source', 'priority', 
             'owner', 'use_case', 'next_action', 'due_date', 'due_time',
             'website', 'industry', 'city', 'country', 'budget', 
-            'timeline', 'tags', 'notes'
+            'timeline', 'tags', 'notes', 'created_by'
         ]
         widgets = {
             'name': forms.TextInput(attrs={

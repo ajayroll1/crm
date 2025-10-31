@@ -5,8 +5,10 @@ from django.core.paginator import Paginator
 from django.db.models import Q
 from django.utils import timezone
 from datetime import datetime, date
-from .models import Lead
+from .models import Lead, LeaveRequest, Document
 from .forms import LeadForm, LeadFilterForm
+from django.views.decorators.http import require_POST
+from django.views.decorators.csrf import csrf_exempt
 
 def home(request):
   return render(request,'pages/homepage.html')
@@ -66,7 +68,10 @@ def leads(request):
         form = LeadForm(request.POST)
         if form.is_valid():
             try:
-                lead = form.save()
+                lead = form.save(commit=False)
+                if request.user.is_authenticated:
+                    lead.created_by = request.user
+                lead.save()
                 messages.success(request, f'Lead "{lead.name}" created successfully!')
                 return redirect('leads')
             except Exception as e:
@@ -74,7 +79,10 @@ def leads(request):
         else:
             messages.error(request, 'Please fix the form errors below.')
     else:
-        form = LeadForm()
+        initial = {}
+        if request.user.is_authenticated:
+            initial['created_by'] = request.user.get_full_name() or request.user.username
+        form = LeadForm(initial=initial)
     
     context = {
         'leads': leads,
@@ -376,6 +384,24 @@ def lead_get_data(request, lead_id):
     except Exception as e:
         return JsonResponse({'error': str(e)}, status=500)
 
+@csrf_exempt
+@require_POST
+def assign_engineer(request, lead_id):
+    """
+    Assign engineer to this lead (AJAX)
+    POST expects: engineer (str)
+    """
+    try:
+        lead = get_object_or_404(Lead, id=lead_id, is_active=True)
+        engineer = request.POST.get('engineer', '').strip()
+        if not engineer:
+            return JsonResponse({'success': False, 'error': 'Engineer name is required.'}, status=400)
+        lead.owner = engineer
+        lead.save(update_fields=['owner'])
+        return JsonResponse({'success': True, 'engineer': engineer})
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': str(e)}, status=500)
+
 def quotes(request):
   return render(request, 'dashboard/quotes.html')
 
@@ -648,6 +674,46 @@ def employee_settings(request):
 
 def employee_leave(request):
     """Employee leave management view"""
+    # Load pending requests from DB for current user (or all if not authenticated)
+    qs = LeaveRequest.objects.filter(status='Pending')
+    if request.user.is_authenticated:
+        qs = qs.filter(user=request.user)
+    qs = qs.order_by('-applied_at')
+
+    pending_requests = [
+        {
+            'id': lr.id,
+            'type': lr.leave_type,
+            'start_date': lr.start_date.strftime('%Y-%m-%d'),
+            'end_date': lr.end_date.strftime('%Y-%m-%d'),
+            'days': lr.days,
+            'reason': lr.reason,
+            'status': lr.status,
+            'applied_date': lr.applied_at.strftime('%Y-%m-%d'),
+            'manager': ''
+        }
+        for lr in qs
+    ]
+
+    # Leave history: show approved requests (user-scoped)
+    hist_qs = LeaveRequest.objects.filter(status='Approved')
+    if request.user.is_authenticated:
+        hist_qs = hist_qs.filter(user=request.user)
+    hist_qs = hist_qs.order_by('-applied_at')
+    leave_history = [
+        {
+            'id': lr.id,
+            'type': lr.leave_type,
+            'start_date': lr.start_date.strftime('%Y-%m-%d'),
+            'end_date': lr.end_date.strftime('%Y-%m-%d'),
+            'days': lr.days,
+            'reason': lr.reason,
+            'status': lr.status,
+            'applied_date': lr.applied_at.strftime('%Y-%m-%d')
+        }
+        for lr in hist_qs
+    ]
+
     context = {
         'employee_name': 'John Doe',
         'employee_id': 'EMP001',
@@ -659,56 +725,8 @@ def employee_leave(request):
             'paternity_leave': 15,
             'emergency_leave': 3
         },
-        'pending_requests': [
-            {
-                'id': 1,
-                'type': 'Annual Leave',
-                'start_date': '2024-12-20',
-                'end_date': '2024-12-25',
-                'days': 5,
-                'reason': 'Family vacation',
-                'status': 'Pending',
-                'applied_date': '2024-12-05',
-                'manager': 'Sarah Johnson'
-            },
-            {
-                'id': 2,
-                'type': 'Sick Leave',
-                'start_date': '2024-12-12',
-                'end_date': '2024-12-12',
-                'days': 1,
-                'reason': 'Medical appointment',
-                'status': 'Approved',
-                'applied_date': '2024-12-10',
-                'manager': 'Sarah Johnson'
-            }
-        ],
-        'leave_history': [
-            {
-                'id': 3,
-                'type': 'Annual Leave',
-                'start_date': '2024-11-15',
-                'end_date': '2024-11-17',
-                'days': 3,
-                'reason': 'Personal work',
-                'status': 'Approved',
-                'applied_date': '2024-11-10',
-                'approved_date': '2024-11-12',
-                'manager': 'Sarah Johnson'
-            },
-            {
-                'id': 4,
-                'type': 'Sick Leave',
-                'start_date': '2024-10-20',
-                'end_date': '2024-10-20',
-                'days': 1,
-                'reason': 'Fever',
-                'status': 'Approved',
-                'applied_date': '2024-10-20',
-                'approved_date': '2024-10-20',
-                'manager': 'Sarah Johnson'
-            }
-        ],
+        'pending_requests': pending_requests,
+        'leave_history': leave_history,
         'leave_types': [
             {'value': 'annual', 'label': 'Annual Leave', 'max_days': 20, 'description': 'Vacation and personal time off'},
             {'value': 'sick', 'label': 'Sick Leave', 'max_days': 12, 'description': 'Medical appointments and illness'},
@@ -719,6 +737,50 @@ def employee_leave(request):
         ]
     }
     return render(request, 'employee/leave.html', context)
+
+
+@require_POST
+def employee_leave_apply(request):
+    """Create a leave request from employee/leave page (AJAX or form POST)."""
+    try:
+        leave_type = request.POST.get('type') or request.POST.get('leaveType') or request.POST.get('modalLeaveType')
+        start_date = request.POST.get('startDate') or request.POST.get('modalStartDate')
+        end_date = request.POST.get('endDate') or request.POST.get('modalEndDate')
+        days = request.POST.get('days') or request.POST.get('modalDays')
+        reason = request.POST.get('reason') or request.POST.get('modalReason')
+        contact = request.POST.get('contact') or request.POST.get('modalContact')
+        handover = request.POST.get('handover') or request.POST.get('modalHandover')
+
+        if not (leave_type and start_date and end_date and reason):
+            return JsonResponse({'success': False, 'error': 'Missing required fields.'}, status=400)
+
+        # Parse dates and compute days if missing
+        from datetime import datetime
+        sd = datetime.strptime(start_date, '%Y-%m-%d').date()
+        ed = datetime.strptime(end_date, '%Y-%m-%d').date()
+        total_days = int(days) if str(days).isdigit() else (ed - sd).days + 1
+        if total_days <= 0:
+            return JsonResponse({'success': False, 'error': 'Invalid date range.'}, status=400)
+
+        full_name = ''
+        if request.user.is_authenticated:
+            full_name = request.user.get_full_name() or request.user.username or ''
+
+        lr = LeaveRequest.objects.create(
+            user=request.user if request.user.is_authenticated else None,
+            applicant_name=full_name or None,
+            leave_type=leave_type,
+            start_date=sd,
+            end_date=ed,
+            days=total_days,
+            reason=reason,
+            contact=contact or None,
+            handover=handover or None,
+            status='Pending'
+        )
+        return JsonResponse({'success': True, 'id': lr.id})
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': str(e)}, status=500)
 
 def employee_new_project(request):
     """Employee new project creation view"""
@@ -850,84 +912,115 @@ def employee_profile(request):
     return render(request, 'employee/profile.html', context)
 
 def employee_documents(request):
-    """Employee documents view"""
-    documents = [
-        {
-            'id': 1,
-            'name': 'Employee Contract.pdf',
-            'type': 'pdf',
-            'size': '2.5 MB',
-            'description': 'Signed employment contract and terms',
-            'upload_date': 'Dec 01, 2024',
-            'modified_date': 'Dec 01, 2024',
-            'category': 'Contracts',
-            'category_color': 'primary'
-        },
-        {
-            'id': 2,
-            'name': 'ID Card.jpg',
-            'type': 'image',
-            'size': '1.2 MB',
-            'description': 'Employee identification card',
-            'upload_date': 'Nov 28, 2024',
-            'modified_date': 'Nov 28, 2024',
-            'category': 'Personal',
-            'category_color': 'success'
-        },
-        {
-            'id': 3,
-            'name': 'Resume.docx',
-            'type': 'word',
-            'size': '850 KB',
-            'description': 'Updated resume and CV',
-            'upload_date': 'Nov 25, 2024',
-            'modified_date': 'Nov 25, 2024',
-            'category': 'Personal',
-            'category_color': 'success'
-        },
-        {
-            'id': 4,
-            'name': 'Certification.pdf',
-            'type': 'pdf',
-            'size': '3.1 MB',
-            'description': 'AWS Cloud Practitioner Certification',
-            'upload_date': 'Nov 20, 2024',
-            'modified_date': 'Nov 20, 2024',
-            'category': 'Certificates',
-            'category_color': 'warning'
-        },
-        {
-            'id': 5,
-            'name': 'Performance Review.xlsx',
-            'type': 'excel',
-            'size': '1.8 MB',
-            'description': 'Q3 2024 Performance Review',
-            'upload_date': 'Nov 15, 2024',
-            'modified_date': 'Nov 15, 2024',
-            'category': 'Work',
-            'category_color': 'info'
-        },
-        {
-            'id': 6,
-            'name': 'Training Certificate.pdf',
-            'type': 'pdf',
-            'size': '2.2 MB',
-            'description': 'Project Management Professional Certificate',
-            'upload_date': 'Nov 10, 2024',
-            'modified_date': 'Nov 10, 2024',
-            'category': 'Certificates',
-            'category_color': 'warning'
-        }
-    ]
-    
+    """Employee documents view - fetch from DB"""
+    qs = Document.objects.all()
+    if request.user.is_authenticated:
+        qs = qs.filter(user=request.user)
+
+    def human_size(n):
+        for unit in ['B','KB','MB','GB']:
+            if n < 1024 or unit == 'GB':
+                return f"{n:.0f} {unit}" if unit in ['B'] else f"{n/1024:.1f} {unit}" if unit!='B' else f"{n} B"
+            n /= 1024
+
+    def file_type(name, mime):
+        name = (name or '').lower()
+        if name.endswith('.pdf') or (mime and 'pdf' in mime):
+            return 'pdf'
+        if name.endswith(('.jpg','.jpeg','.png','.gif')) or (mime and 'image' in mime):
+            return 'image'
+        if name.endswith(('.doc','.docx')):
+            return 'word'
+        if name.endswith(('.xls','.xlsx')):
+            return 'excel'
+        return 'other'
+
+    category_label = {
+        'personal': ('Personal', 'success'),
+        'work': ('Work', 'info'),
+        'contracts': ('Contracts', 'primary'),
+        'certificates': ('Certificates', 'warning'),
+        'other': ('Other', 'secondary'),
+    }
+
+    documents = []
+    for d in qs:
+        label, color = category_label.get(d.category, ('Other','secondary'))
+        documents.append({
+            'id': d.id,
+            'name': d.original_name,
+            'type': file_type(d.original_name, d.mime_type),
+            'size': human_size(d.size_bytes or 0),
+            'description': d.description or '',
+            'upload_date': d.uploaded_at.strftime('%b %d, %Y'),
+            'modified_date': d.updated_at.strftime('%b %d, %Y'),
+            'category': label,
+            'category_color': color,
+            'url': request.build_absolute_uri(d.file.url) if d.file else ''
+        })
+
     context = {
         'documents': documents,
-        'pdf_count': len([d for d in documents if d['type'] == 'pdf']),
-        'image_count': len([d for d in documents if d['type'] == 'image']),
-        'word_count': len([d for d in documents if d['type'] == 'word']),
-        'excel_count': len([d for d in documents if d['type'] == 'excel'])
+        'pdf_count': len([x for x in documents if x['type']=='pdf']),
+        'image_count': len([x for x in documents if x['type']=='image']),
+        'word_count': len([x for x in documents if x['type']=='word']),
+        'excel_count': len([x for x in documents if x['type']=='excel'])
     }
     return render(request, 'employee/documents.html', context)
+
+
+@require_POST
+def employee_documents_upload(request):
+    """Handle document uploads (multiple)."""
+    try:
+        category = request.POST.get('category','personal')
+        privacy = request.POST.get('privacy','private')
+        description = request.POST.get('description','')
+        files = request.FILES.getlist('files')
+        if not files:
+            return JsonResponse({'success': False, 'error': 'No files uploaded.'}, status=400)
+
+        created = []
+        for f in files:
+            doc = Document(
+                user=request.user if request.user.is_authenticated else None,
+                file=f,
+                original_name=f.name,
+                size_bytes=f.size,
+                mime_type=getattr(f, 'content_type', None),
+                category=category,
+                privacy=privacy,
+                description=description or ''
+            )
+            doc.save()
+            created.append(doc.id)
+
+        return JsonResponse({'success': True, 'count': len(created), 'ids': created})
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': str(e)}, status=500)
+
+
+@require_POST
+def employee_documents_delete(request, doc_id):
+    """Delete a document if it belongs to the current user (or no user)."""
+    try:
+        doc = Document.objects.get(id=doc_id)
+        if request.user.is_authenticated and doc.user and doc.user != request.user:
+            return JsonResponse({'success': False, 'error': 'Not allowed.'}, status=403)
+        # Delete file from storage then DB row
+        storage = doc.file.storage
+        name = doc.file.name
+        doc.delete()
+        try:
+            if name and storage.exists(name):
+                storage.delete(name)
+        except Exception:
+            pass
+        return JsonResponse({'success': True})
+    except Document.DoesNotExist:
+        return JsonResponse({'success': False, 'error': 'Not found.'}, status=404)
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': str(e)}, status=500)
 
 def employee_payroll(request):
     """Employee payroll view"""
@@ -1122,3 +1215,51 @@ def employee_achievements(request):
         'performance_score': 92
     }
     return render(request, 'employee/achievements.html', context)
+
+def employee_leads(request):
+    # Same data/loading as public leads(), but using employee-styled template
+    leads_list = Lead.objects.filter(is_active=True).order_by('-created_at')
+
+    search_query = request.GET.get('search', '')
+    if search_query:
+        leads_list = leads_list.filter(
+            Q(name__icontains=search_query) |
+            Q(email__icontains=search_query) |
+            Q(company__icontains=search_query) |
+            Q(phone__icontains=search_query) |
+            Q(owner__icontains=search_query)
+        )
+
+    paginator = Paginator(leads_list, 10)
+    page_number = request.GET.get('page')
+    leads_page = paginator.get_page(page_number)
+
+    if request.method == 'POST':
+        form = LeadForm(request.POST)
+        if form.is_valid():
+            try:
+                lead = form.save(commit=False)
+                # If owner not provided, default to logged-in user's name/username
+                if not lead.owner and request.user.is_authenticated:
+                    lead.owner = request.user.get_full_name() or request.user.username
+                lead.save()
+                messages.success(request, f'Lead "{lead.name}" created successfully!')
+                return redirect('employee_leads')
+            except Exception as e:
+                messages.error(request, f'Error creating lead: {str(e)}')
+        else:
+            messages.error(request, 'Please fix the form errors below.')
+    else:
+        initial = {}
+        if request.user.is_authenticated:
+            initial['owner'] = request.user.get_full_name() or request.user.username
+        form = LeadForm(initial=initial)
+
+    context = {
+        'leads': leads_page,
+        'form': form,
+        'search_query': search_query,
+        'total_leads': leads_list.count(),
+    }
+
+    return render(request, 'employee/leads.html', context)

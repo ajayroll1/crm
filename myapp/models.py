@@ -1,6 +1,7 @@
 from django.db import models
 from django.core.validators import EmailValidator, RegexValidator
 from django.utils import timezone
+from django.conf import settings
 
 # Create your models here.
 
@@ -125,3 +126,81 @@ class Lead(models.Model):
         """Override save to run clean validation"""
         self.clean()
         super().save(*args, **kwargs)
+
+
+class LeaveRequest(models.Model):
+    """Stores employee leave requests."""
+    STATUS_CHOICES = [
+        ('Pending', 'Pending'),
+        ('Approved', 'Approved'),
+        ('Rejected', 'Rejected'),
+        ('Cancelled', 'Cancelled'),
+    ]
+
+    # Link to auth user when available
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='leave_requests'
+    )
+    applicant_name = models.CharField(max_length=150, blank=True, null=True)
+
+    leave_type = models.CharField(max_length=50)
+    start_date = models.DateField()
+    end_date = models.DateField()
+    days = models.PositiveIntegerField()
+    reason = models.TextField()
+    contact = models.CharField(max_length=100, blank=True, null=True)
+    handover = models.TextField(blank=True, null=True)
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='Pending')
+
+    applied_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['-applied_at']
+
+    def __str__(self):
+        return f"{self.applicant_name or self.user or 'Anonymous'} - {self.leave_type} ({self.start_date} to {self.end_date})"
+
+
+def document_upload_path(instance, filename):
+    from datetime import datetime
+    now = datetime.now()
+    return f"uploads/documents/{now.year}/{now.month:02d}/{filename}"
+
+
+class Document(models.Model):
+    """Employee uploaded documents"""
+    PRIVACY_CHOICES = [
+        ('private', 'Private'),
+        ('team', 'Team Access'),
+        ('public', 'Public'),
+    ]
+
+    CATEGORY_CHOICES = [
+        ('personal', 'Personal'),
+        ('work', 'Work Related'),
+        ('contracts', 'Contracts'),
+        ('certificates', 'Certificates'),
+        ('other', 'Other'),
+    ]
+
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True, related_name='documents')
+    file = models.FileField(upload_to=document_upload_path)
+    original_name = models.CharField(max_length=255)
+    size_bytes = models.BigIntegerField(default=0)
+    mime_type = models.CharField(max_length=100, blank=True, null=True)
+    category = models.CharField(max_length=20, choices=CATEGORY_CHOICES, default='personal')
+    privacy = models.CharField(max_length=20, choices=PRIVACY_CHOICES, default='private')
+    description = models.TextField(blank=True, null=True)
+    uploaded_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['-uploaded_at']
+
+    def __str__(self):
+        return self.original_name

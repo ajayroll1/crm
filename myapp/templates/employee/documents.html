@@ -53,21 +53,7 @@
     </div>
   </div>
   
-  <div class="col-xl-3 col-lg-4 col-md-6 col-sm-6 mb-3">
-    <div class="metric-card">
-      <div class="d-flex align-items-center">
-        <div class="metric-icon info">
-          <i class="bi bi-cloud-arrow-up"></i>
-        </div>
-        <div>
-          <div class="metric-title">Storage Used</div>
-          <div class="metric-value">2.5 GB</div>
-          <div class="metric-subtitle">Of 10 GB</div>
-        </div>
-      </div>
-    </div>
-  </div>
-</div>
+ 
 
 <!-- Document Actions -->
 <div class="row mb-4">
@@ -139,12 +125,11 @@
             <i class="bi bi-three-dots-vertical"></i>
           </button>
           <ul class="dropdown-menu">
-            <li><a class="dropdown-item" href="#"><i class="bi bi-download me-2"></i>Download</a></li>
-            <li><a class="dropdown-item" href="#"><i class="bi bi-eye me-2"></i>Preview</a></li>
+            <li><a class="dropdown-item" href="{{ document.url }}" download><i class="bi bi-download me-2"></i>Download</a></li>
             <li><a class="dropdown-item" href="#"><i class="bi bi-pencil me-2"></i>Rename</a></li>
             <li><a class="dropdown-item" href="#"><i class="bi bi-share me-2"></i>Share</a></li>
             <li><hr class="dropdown-divider"></li>
-            <li><a class="dropdown-item text-danger" href="#"><i class="bi bi-trash me-2"></i>Delete</a></li>
+            <li><button class="dropdown-item text-danger btn-delete-doc" data-doc-id="{{ document.id }}"><i class="bi bi-trash me-2"></i>Delete</button></li>
           </ul>
         </div>
       </div>
@@ -168,11 +153,11 @@
             <div class="fw-bold">{{ document.modified_date }}</div>
           </div>
           <div class="document-actions">
-            <button class="btn btn-sm btn-outline-primary me-1" title="Download">
+            <a class="btn btn-sm btn-outline-primary me-1" title="Download" href="{{ document.url }}" download="{{ document.name }}" target="_blank" rel="noopener">
               <i class="bi bi-download"></i>
-            </button>
-            <button class="btn btn-sm btn-outline-secondary" title="Preview">
-              <i class="bi bi-eye"></i>
+            </a>
+            <button class="btn btn-sm btn-outline-danger btn-delete-doc" title="Delete" data-doc-id="{{ document.id }}">
+              <i class="bi bi-trash"></i>
             </button>
           </div>
         </div>
@@ -229,13 +214,10 @@
                 <td>{{ document.upload_date }}</td>
                 <td>
                   <div class="btn-group btn-group-sm">
-                    <button class="btn btn-outline-primary" title="Download">
+                    <a class="btn btn-outline-primary" title="Download" href="{{ document.url }}" download="{{ document.name }}" target="_blank" rel="noopener">
                       <i class="bi bi-download"></i>
-                    </button>
-                    <button class="btn btn-outline-secondary" title="Preview">
-                      <i class="bi bi-eye"></i>
-                    </button>
-                    <button class="btn btn-outline-danger" title="Delete">
+                    </a>
+                    <button class="btn btn-outline-danger btn-delete-doc" title="Delete" data-doc-id="{{ document.id }}">
                       <i class="bi bi-trash"></i>
                     </button>
                   </div>
@@ -259,17 +241,18 @@
         <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
       </div>
       <div class="modal-body">
-        <form>
+        <form id="uploadForm" enctype="multipart/form-data">
+          {% csrf_token %}
           <div class="mb-3">
             <label class="form-label">Select Files</label>
-            <input type="file" class="form-control" multiple accept=".pdf,.doc,.docx,.xls,.xlsx,.jpg,.jpeg,.png,.gif">
+            <input name="files" type="file" class="form-control" multiple accept=".pdf,.doc,.docx,.xls,.xlsx,.jpg,.jpeg,.png,.gif">
             <div class="form-text">You can upload multiple files at once. Supported formats: PDF, DOC, DOCX, XLS, XLSX, JPG, PNG, GIF</div>
           </div>
           
           <div class="row">
             <div class="col-md-6 mb-3">
               <label class="form-label">Category</label>
-              <select class="form-select">
+              <select name="category" class="form-select">
                 <option value="personal">Personal</option>
                 <option value="work">Work Related</option>
                 <option value="contracts">Contracts</option>
@@ -279,7 +262,7 @@
             </div>
             <div class="col-md-6 mb-3">
               <label class="form-label">Privacy</label>
-              <select class="form-select">
+              <select name="privacy" class="form-select">
                 <option value="private">Private</option>
                 <option value="team">Team Access</option>
                 <option value="public">Public</option>
@@ -289,13 +272,13 @@
           
           <div class="mb-3">
             <label class="form-label">Description (Optional)</label>
-            <textarea class="form-control" rows="3" placeholder="Add a description for your documents..."></textarea>
+            <textarea name="description" class="form-control" rows="3" placeholder="Add a description for your documents..."></textarea>
           </div>
         </form>
       </div>
       <div class="modal-footer">
         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-        <button type="button" class="btn btn-primary">Upload Files</button>
+        <button id="uploadBtn" type="button" class="btn btn-primary">Upload Files</button>
       </div>
     </div>
   </div>
@@ -396,6 +379,73 @@
       if (this.checked) {
         documentsGrid.classList.add('d-none');
         documentsList.classList.remove('d-none');
+      }
+    });
+
+    // Upload handler
+    const uploadBtn = document.getElementById('uploadBtn');
+    const uploadForm = document.getElementById('uploadForm');
+    function getCookie(name){
+      const value = `; ${document.cookie}`;
+      const parts = value.split(`; ${name}=`);
+      if (parts.length === 2) return parts.pop().split(';').shift();
+    }
+    if (uploadBtn && uploadForm) {
+      uploadBtn.addEventListener('click', async function(){
+        // Build FormData manually to avoid duplicate file entries
+        const fd = new FormData();
+        const files = uploadForm.querySelector('input[name="files"]').files;
+        const category = uploadForm.querySelector('select[name="category"]').value;
+        const privacy = uploadForm.querySelector('select[name="privacy"]').value;
+        const description = uploadForm.querySelector('textarea[name="description"]').value;
+        if (!files || files.length === 0) { alert('Please choose at least one file'); return; }
+        fd.append('category', category);
+        fd.append('privacy', privacy);
+        fd.append('description', description);
+        for (const f of files) {
+          fd.append('files', f, f.name);
+        }
+        try {
+          const resp = await fetch('{% url "employee_documents_upload" %}', {
+            method: 'POST',
+            headers: { 'X-CSRFToken': getCookie('csrftoken') || '' },
+            body: fd
+          });
+          const json = await resp.json();
+          if (json.success) {
+            // Refresh to show new docs
+            location.reload();
+          } else {
+            alert(json.error || 'Upload failed');
+          }
+        } catch (e) {
+          console.error(e);
+          alert('Upload error');
+        }
+      });
+    }
+
+    // Delete handler (event delegation)
+    document.body.addEventListener('click', async function(e){
+      const btn = e.target.closest('.btn-delete-doc');
+      if (!btn) return;
+      const id = btn.getAttribute('data-doc-id');
+      if (!id) return;
+      if (!confirm('Delete this document?')) return;
+      try {
+        const resp = await fetch(`/employee/documents/${id}/delete/`, {
+          method: 'POST',
+          headers: { 'X-CSRFToken': getCookie('csrftoken') || '' }
+        });
+        const json = await resp.json();
+        if (json.success) {
+          location.reload();
+        } else {
+          alert(json.error || 'Delete failed');
+        }
+      } catch (err) {
+        console.error(err);
+        alert('Delete error');
       }
     });
   });

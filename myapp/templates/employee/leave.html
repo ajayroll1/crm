@@ -643,11 +643,13 @@
       return;
     }
     
-    console.log('Submitting quick leave:', formData);
-    showNotification('Leave request submitted successfully!', 'success');
-    
-    // Reset form
-    document.getElementById('quickLeaveForm').reset();
+    // Submit to backend
+    postLeave(formData).then(ok => {
+      if (ok) {
+        showNotification('Leave request submitted successfully!', 'success');
+        document.getElementById('quickLeaveForm').reset();
+      }
+    });
   }
   
   // Submit leave request
@@ -667,13 +669,43 @@
       return;
     }
     
-    console.log('Submitting leave request:', formData);
-    showNotification('Leave request submitted successfully!', 'success');
-    
-    // Close modal and reset form
-    const modal = bootstrap.Modal.getInstance(document.getElementById('applyLeaveModal'));
-    modal.hide();
-    document.getElementById('applyLeaveForm').reset();
+    postLeave(formData).then(ok => {
+      if (ok) {
+        showNotification('Leave request submitted successfully!', 'success');
+        const modal = bootstrap.Modal.getInstance(document.getElementById('applyLeaveModal'));
+        modal.hide();
+        document.getElementById('applyLeaveForm').reset();
+      }
+    });
+  }
+
+  // Helper: get CSRF token from cookie
+  function getCookie(name) {
+    const value = `; ${document.cookie}`;
+    const parts = value.split(`; ${name}=`);
+    if (parts.length === 2) return parts.pop().split(';').shift();
+  }
+
+  async function postLeave(data) {
+    try {
+      const resp = await fetch('{% url "employee_leave_apply" %}', {
+        method: 'POST',
+        headers: {
+          'X-CSRFToken': getCookie('csrftoken') || document.querySelector('[name=csrfmiddlewaretoken]')?.value || ''
+        },
+        body: new URLSearchParams(data)
+      });
+      const json = await resp.json();
+      if (!json.success) {
+        showNotification(json.error || 'Failed to submit leave request', 'danger');
+        return false;
+      }
+      return true;
+    } catch (e) {
+      console.error(e);
+      showNotification('Error submitting leave request', 'danger');
+      return false;
+    }
   }
   
   // View leave request

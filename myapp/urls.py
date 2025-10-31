@@ -41,13 +41,18 @@ urlpatterns =[
   path('employee/in-out/',views.employee_in_out,name='employee_in_out'),
   path('employee/settings/',views.employee_settings,name='employee_settings'),
   path('employee/leave/',views.employee_leave,name='employee_leave'),
+  path('employee/leave/apply/',views.employee_leave_apply,name='employee_leave_apply'),
+  path('employee/leads/',views.employee_leads,name='employee_leads'),
   
   # Personal Section URLs
   path('employee/profile/',views.employee_profile,name='employee_profile'),
   path('employee/documents/',views.employee_documents,name='employee_documents'),
+  path('employee/documents/upload/',views.employee_documents_upload,name='employee_documents_upload'),
+  path('employee/documents/<int:doc_id>/delete/',views.employee_documents_delete,name='employee_documents_delete'),
   path('employee/payroll/',views.employee_payroll,name='employee_payroll'),
   path('employee/achievements/',views.employee_achievements,name='employee_achievements'),
   
+  path('leads/<int:lead_id>/assign_engineer/', views.assign_engineer, name='assign_engineer'),
 
   
 
