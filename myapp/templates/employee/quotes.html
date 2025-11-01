@@ -3,14 +3,10 @@
 
 {% block title %}Quotations - Sujata Associates{% endblock %}
 {% block page_title %}Quotations{% endblock %}
+{% block page_description %}Create professional quotes and manage them here{% endblock %}
 {% block mobile_title %}Quotes{% endblock %}
 
 {% block content %}
-<div class="dashboard-header mb-4">
-  <h1>Quotations</h1>
-  <p class="text-muted">Create professional quotes and manage them here</p>
-</div>
-
 <style>
   .nav-tabs .nav-link { color: #000 !important; }
   .nav-tabs .nav-link.active { color: #000 !important; }
@@ -206,7 +202,7 @@
             </thead>
             <tbody id="q-tbody">
               {% for quote in quotes %}
-              <tr data-valid="{{ quote.valid_until|date:'Y-m-d' }}" data-total="{{ quote.total }}" data-status="{{ quote.status }}">
+              <tr data-quote-id="{{ quote.id }}" data-valid="{{ quote.valid_until|date:'Y-m-d' }}" data-total="{{ quote.total }}" data-status="{{ quote.status }}">
                 <td data-label="Quote #">{{ quote.quote_number }}</td>
                 <td data-label="Client">{{ quote.client_name }}</td>
                 <td data-label="Company">{{ quote.company|default:"N/A" }}</td>
@@ -215,8 +211,9 @@
                 <td data-label="Total" class="currency">₹{{ quote.total|floatformat:0 }}</td>
                 <td data-label="Valid Until">{{ quote.valid_until|date:"d-M-Y" }}</td>
                 <td data-label="Actions">
-                  <button class="btn btn-sm btn-outline-primary btn-view"><i class="bi bi-eye"></i></button>
-                  <button class="btn btn-sm btn-outline-primary btn-edit"><i class="bi bi-pencil"></i></button>
+                  <button type="button" class="btn btn-sm btn-outline-primary btn-view" data-quote-id="{{ quote.id }}" title="View"><i class="bi bi-eye"></i></button>
+                  <button type="button" class="btn btn-sm btn-outline-primary btn-edit" data-quote-id="{{ quote.id }}" title="Edit"><i class="bi bi-pencil"></i></button>
+                  <button type="button" class="btn btn-sm btn-outline-danger btn-delete-quote" data-quote-id="{{ quote.id }}" data-quote-number="{{ quote.quote_number }}" title="Delete"><i class="bi bi-trash"></i></button>
                 </td>
               </tr>
               {% empty %}
@@ -231,6 +228,43 @@
           </table>
         </div>
       </div>
+      
+      <!-- Quotes Pagination -->
+      {% if quotes.has_other_pages %}
+      <div class="card-footer">
+        <nav aria-label="Quotes pagination">
+          <ul class="pagination pagination-sm mb-0 justify-content-center">
+            {% if quotes.has_previous %}
+            <li class="page-item">
+              <a class="page-link" href="?quote_page=1{% if onboardings.has_other_pages %}&onboard_page={{ onboardings.number }}{% endif %}">First</a>
+            </li>
+            <li class="page-item">
+              <a class="page-link" href="?quote_page={{ quotes.previous_page_number }}{% if onboardings.has_other_pages %}&onboard_page={{ onboardings.number }}{% endif %}">Previous</a>
+            </li>
+            {% else %}
+            <li class="page-item disabled"><span class="page-link">First</span></li>
+            <li class="page-item disabled"><span class="page-link">Previous</span></li>
+            {% endif %}
+            
+            <li class="page-item active">
+              <span class="page-link">Page {{ quotes.number }} of {{ quotes.paginator.num_pages }}</span>
+            </li>
+            
+            {% if quotes.has_next %}
+            <li class="page-item">
+              <a class="page-link" href="?quote_page={{ quotes.next_page_number }}{% if onboardings.has_other_pages %}&onboard_page={{ onboardings.number }}{% endif %}">Next</a>
+            </li>
+            <li class="page-item">
+              <a class="page-link" href="?quote_page={{ quotes.paginator.num_pages }}{% if onboardings.has_other_pages %}&onboard_page={{ onboardings.number }}{% endif %}">Last</a>
+            </li>
+            {% else %}
+            <li class="page-item disabled"><span class="page-link">Next</span></li>
+            <li class="page-item disabled"><span class="page-link">Last</span></li>
+            {% endif %}
+          </ul>
+        </nav>
+      </div>
+      {% endif %}
     </div>
   </div>
 
@@ -413,8 +447,9 @@
                 </td>
                 <td data-label="Status"><span class="badge {{ onboard.get_status_badge_class }}">{{ onboard.get_status_display }}</span></td>
                 <td data-label="Actions">
-                  <button class="btn btn-sm btn-outline-primary" title="View"><i class="bi bi-eye"></i></button>
-                  <button class="btn btn-sm btn-outline-secondary" title="Edit"><i class="bi bi-pencil"></i></button>
+                  <button type="button" class="btn btn-sm btn-outline-primary btn-view-onboard" data-onboard-id="{{ onboard.id }}" title="View"><i class="bi bi-eye"></i></button>
+                  <button type="button" class="btn btn-sm btn-outline-secondary btn-edit-onboard" data-onboard-id="{{ onboard.id }}" title="Edit"><i class="bi bi-pencil"></i></button>
+                  <button type="button" class="btn btn-sm btn-outline-danger btn-delete-onboard" data-onboard-id="{{ onboard.id }}" data-client-name="{{ onboard.client_name }}" title="Delete"><i class="bi bi-trash"></i></button>
                 </td>
               </tr>
               {% empty %}
@@ -429,6 +464,43 @@
           </table>
         </div>
       </div>
+      
+      <!-- Onboardings Pagination -->
+      {% if onboardings.has_other_pages %}
+      <div class="card-footer">
+        <nav aria-label="Onboardings pagination">
+          <ul class="pagination pagination-sm mb-0 justify-content-center">
+            {% if onboardings.has_previous %}
+            <li class="page-item">
+              <a class="page-link" href="?onboard_page=1{% if quotes.has_other_pages %}&quote_page={{ quotes.number }}{% endif %}">First</a>
+            </li>
+            <li class="page-item">
+              <a class="page-link" href="?onboard_page={{ onboardings.previous_page_number }}{% if quotes.has_other_pages %}&quote_page={{ quotes.number }}{% endif %}">Previous</a>
+            </li>
+            {% else %}
+            <li class="page-item disabled"><span class="page-link">First</span></li>
+            <li class="page-item disabled"><span class="page-link">Previous</span></li>
+            {% endif %}
+            
+            <li class="page-item active">
+              <span class="page-link">Page {{ onboardings.number }} of {{ onboardings.paginator.num_pages }}</span>
+            </li>
+            
+            {% if onboardings.has_next %}
+            <li class="page-item">
+              <a class="page-link" href="?onboard_page={{ onboardings.next_page_number }}{% if quotes.has_other_pages %}&quote_page={{ quotes.number }}{% endif %}">Next</a>
+            </li>
+            <li class="page-item">
+              <a class="page-link" href="?onboard_page={{ onboardings.paginator.num_pages }}{% if quotes.has_other_pages %}&quote_page={{ quotes.number }}{% endif %}">Last</a>
+            </li>
+            {% else %}
+            <li class="page-item disabled"><span class="page-link">Next</span></li>
+            <li class="page-item disabled"><span class="page-link">Last</span></li>
+            {% endif %}
+          </ul>
+        </nav>
+      </div>
+      {% endif %}
     </div>
 
     <!-- Onboarding Form -->
@@ -506,11 +578,11 @@
             </div>
           </div>
           <div class="d-flex justify-content-end gap-2 mt-4">
-            <button type="reset" class="btn btn-outline-secondary">
+            <button type="reset" class="btn btn-outline-secondary" id="onboard-reset-btn">
               <i class="bi bi-x-circle"></i> Reset
             </button>
-            <button type="submit" name="onboard_submit" class="btn btn-success">
-              <i class="bi bi-check-circle"></i> Onboard Client
+            <button type="submit" name="onboard_submit" class="btn btn-success" id="onboard-submit-btn">
+              <i class="bi bi-check-circle"></i> <span id="onboard-btn-text">Onboard Client</span>
             </button>
           </div>
         </form>
@@ -732,56 +804,356 @@
       });
     }
 
-    // View/Edit actions
-    function getQuoteRowData(tr){
-      return {
-        no: tr.querySelector('[data-label="Quote #"]').textContent.trim(),
-        client: tr.querySelector('[data-label="Client"]').textContent.trim(),
-        company: tr.querySelector('[data-label="Company"]').textContent.trim(),
-        owner: tr.querySelector('[data-label="Owner"]').textContent.trim(),
-        status: tr.querySelector('[data-label="Status"]').innerText.trim(),
-        total: tr.querySelector('[data-label="Total"]').textContent.trim(),
-        valid: tr.querySelector('[data-label="Valid Until"]').textContent.trim(),
-        validIso: tr.getAttribute('data-valid')
-      };
+    // ========== QUOTES TABLE ACTIONS - REBUILT ==========
+    // Get CSRF token
+    function getCSRFToken() {
+      const token = document.querySelector('input[name="csrfmiddlewaretoken"]');
+      return token ? token.value : '';
     }
 
-    if (qTable) {
-      qTable.addEventListener('click', function(e){
-        const btnView = e.target.closest('.btn-view');
-        const btnEdit = e.target.closest('.btn-edit');
-        const tr = e.target.closest('tr');
-        if (!tr) return;
-        const data = getQuoteRowData(tr);
-        if (btnView) {
-          const c = document.getElementById('q-details');
-          if (c) {
-            c.innerHTML = `
-              <div class="col-md-6"><strong>Quote #:</strong> ${data.no}</div>
-              <div class="col-md-6"><strong>Client:</strong> ${data.client}</div>
-              <div class="col-md-6"><strong>Company:</strong> ${data.company}</div>
-              <div class="col-md-6"><strong>Owner:</strong> ${data.owner}</div>
-              <div class="col-md-6"><strong>Status:</strong> ${data.status}</div>
-              <div class="col-md-6"><strong>Total:</strong> ${data.total}</div>
-              <div class="col-md-6"><strong>Valid Until:</strong> ${data.valid}</div>
+    // Quote View Handler
+    function handleQuoteView(quoteId) {
+      if (!quoteId) {
+        alert('Quote ID not found');
+        return;
+      }
+      fetch(`/employee/quotes/${quoteId}/view/`)
+        .then(r => {
+          if (!r.ok) throw new Error('Failed to fetch quote');
+          return r.json();
+        })
+        .then(data => {
+          const detailsEl = document.getElementById('q-details');
+          if (detailsEl) {
+            let itemsHtml = '';
+            if (data.items && data.items.length > 0) {
+              itemsHtml = '<div class="col-12 mt-3"><strong>Items:</strong><ul class="mt-2">';
+              data.items.forEach(item => {
+                itemsHtml += `<li>${item.description} - Qty: ${item.quantity}, Price: ₹${item.unit_price}, GST: ${item.gst_percent}%, Amount: ₹${item.amount}</li>`;
+              });
+              itemsHtml += '</ul></div>';
+            }
+            detailsEl.innerHTML = `
+              <div class="col-md-6"><strong>Quote #:</strong> ${data.quote_number || ''}</div>
+              <div class="col-md-6"><strong>Client:</strong> ${data.client_name || ''}</div>
+              <div class="col-md-6"><strong>Company:</strong> ${data.company || 'N/A'}</div>
+              <div class="col-md-6"><strong>Owner:</strong> ${data.owner || ''}</div>
+              <div class="col-md-6"><strong>Status:</strong> ${data.status || ''}</div>
+              <div class="col-md-6"><strong>Total:</strong> ₹${data.total || '0'}</div>
+              <div class="col-md-6"><strong>Valid Until:</strong> ${data.valid_until || ''}</div>
+              ${itemsHtml}
             `;
             const modal = new bootstrap.Modal(document.getElementById('q-viewModal'));
+            document.querySelector('#q-viewModal .modal-title').innerHTML = '<i class="bi bi-receipt"></i> Quote Details';
             modal.show();
           }
-        }
+        })
+        .catch(err => {
+          console.error('View error:', err);
+          alert('Error loading quote details: ' + err.message);
+        });
+    }
 
-        if (btnEdit && qCreateTabBtn && qForm) {
-          const tab = new bootstrap.Tab(qCreateTabBtn); tab.show();
-          qForm.querySelector('[name="quote_no"]').value = data.no || '';
-          qForm.querySelector('[name="client"]').value = data.client || '';
-          qForm.querySelector('[name="company"]').value = data.company || '';
-          qForm.querySelector('[name="owner"]').value = data.owner || '';
+    // Quote Edit Handler
+    function handleQuoteEdit(quoteId) {
+      if (!qCreateTabBtn || !qForm) return;
+      
+      // Get quote data from row
+      const row = document.querySelector(`tr[data-quote-id="${quoteId}"]`) || 
+                  document.querySelector(`.btn-edit[data-quote-id="${quoteId}"]`)?.closest('tr');
+      
+      if (row) {
+        const data = {
+          no: row.querySelector('[data-label="Quote #"]')?.textContent.trim() || '',
+          client: row.querySelector('[data-label="Client"]')?.textContent.trim() || '',
+          company: row.querySelector('[data-label="Company"]')?.textContent.trim() || '',
+          owner: row.querySelector('[data-label="Owner"]')?.textContent.trim() || '',
+          status: row.querySelector('[data-label="Status"]')?.textContent.trim() || '',
+          validIso: row.getAttribute('data-valid') || ''
+        };
+        
+        // Switch to Create tab
+        const tab = new bootstrap.Tab(qCreateTabBtn);
+        tab.show();
+        
+        // Fill form
+        setTimeout(() => {
+          if (qForm.querySelector('[name="quote_no"]')) qForm.querySelector('[name="quote_no"]').value = data.no;
+          if (qForm.querySelector('[name="client"]')) qForm.querySelector('[name="client"]').value = data.client;
+          if (qForm.querySelector('[name="company"]')) qForm.querySelector('[name="company"]').value = data.company;
+          if (qForm.querySelector('[name="owner"]')) qForm.querySelector('[name="owner"]').value = data.owner;
+          
           const statusSel = qForm.querySelector('[name="status"]');
-          const statuses = ['Draft','Sent','Accepted','Declined'];
-          statusSel.value = statuses.find(s => data.status.includes(s)) || 'Sent';
-          if (data.validIso) qForm.querySelector('[name="valid_until"]').value = data.validIso;
+          if (statusSel) {
+            const statuses = ['Draft', 'Sent', 'Accepted', 'Declined'];
+            statusSel.value = statuses.find(s => data.status.includes(s)) || 'Sent';
+          }
+          
+          if (data.validIso && qForm.querySelector('[name="valid_until"]')) {
+            qForm.querySelector('[name="valid_until"]').value = data.validIso;
+          }
+          
           qForm.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }, 100);
+      }
+    }
+
+    // Quote Delete Handler
+    function handleQuoteDelete(quoteId, quoteNumber) {
+      if (!quoteId) {
+        alert('Quote ID not found');
+        return;
+      }
+      if (!confirm(`Are you sure you want to delete quote ${quoteNumber}? This action cannot be undone.`)) {
+        return;
+      }
+      
+      fetch(`/employee/quotes/${quoteId}/delete/`, {
+        method: 'POST',
+        headers: {
+          'X-CSRFToken': getCSRFToken(),
+          'Content-Type': 'application/json'
         }
+      })
+      .then(r => {
+        if (!r.ok) throw new Error('Failed to delete quote');
+        return r.json();
+      })
+      .then(result => {
+        if (result.success) {
+          alert(result.message || 'Quote deleted successfully!');
+          location.reload();
+        } else {
+          alert(result.error || 'Error deleting quote');
+        }
+      })
+      .catch(err => {
+        console.error('Delete error:', err);
+        alert('Error deleting quote: ' + err.message);
+      });
+    }
+
+    // Attach Quote Button Handlers
+    document.addEventListener('click', function(e) {
+      // Quote View Button
+      if (e.target.closest('.btn-view')) {
+        e.preventDefault();
+        e.stopPropagation();
+        const btn = e.target.closest('.btn-view');
+        const quoteId = btn.getAttribute('data-quote-id');
+        handleQuoteView(quoteId);
+        return;
+      }
+      
+      // Quote Edit Button
+      if (e.target.closest('.btn-edit')) {
+        e.preventDefault();
+        e.stopPropagation();
+        const btn = e.target.closest('.btn-edit');
+        const quoteId = btn.getAttribute('data-quote-id');
+        handleQuoteEdit(quoteId);
+        return;
+      }
+      
+      // Quote Delete Button
+      if (e.target.closest('.btn-delete-quote')) {
+        e.preventDefault();
+        e.stopPropagation();
+        const btn = e.target.closest('.btn-delete-quote');
+        const quoteId = btn.getAttribute('data-quote-id');
+        const quoteNumber = btn.getAttribute('data-quote-number');
+        handleQuoteDelete(quoteId, quoteNumber);
+        return;
+      }
+    });
+
+    // ========== ONBOARDED CLIENTS TABLE ACTIONS - REBUILT ==========
+    
+    // Onboard View Handler
+    function handleOnboardView(onboardId) {
+      if (!onboardId) {
+        alert('Onboarding ID not found');
+        return;
+      }
+      fetch(`/employee/quotes/onboard/${onboardId}/view/`)
+        .then(r => {
+          if (!r.ok) throw new Error('Failed to fetch onboarding');
+          return r.json();
+        })
+        .then(data => {
+          const modalEl = document.getElementById('q-viewModal');
+          const modalBody = modalEl.querySelector('.modal-body .row');
+          if (modalBody) {
+            modalBody.innerHTML = `
+              <div class="col-md-6"><strong>Client Name:</strong> ${data.client_name || ''}</div>
+              <div class="col-md-6"><strong>Company:</strong> ${data.company_name || 'N/A'}</div>
+              <div class="col-md-6"><strong>Email:</strong> ${data.client_email || 'N/A'}</div>
+              <div class="col-md-6"><strong>Phone:</strong> ${data.client_phone || 'N/A'}</div>
+              <div class="col-md-12"><strong>Project:</strong> ${data.project_name || ''}</div>
+              <div class="col-md-6"><strong>Duration:</strong> ${data.project_duration || ''} ${data.duration_unit || ''}</div>
+              <div class="col-md-6"><strong>Cost:</strong> ₹${data.project_cost || '0'}</div>
+              <div class="col-md-6"><strong>Engineer:</strong> ${data.assigned_engineer || ''}</div>
+              <div class="col-md-6"><strong>Status:</strong> ${data.status_display || ''}</div>
+              <div class="col-md-6"><strong>Start Date:</strong> ${data.start_date || 'Not set'}</div>
+              ${data.project_description ? `<div class="col-12"><strong>Description:</strong><p>${data.project_description}</p></div>` : ''}
+            `;
+            document.querySelector('#q-viewModal .modal-title').innerHTML = '<i class="bi bi-person-check"></i> Onboarding Details';
+            new bootstrap.Modal(modalEl).show();
+          }
+        })
+        .catch(err => {
+          console.error('View error:', err);
+          alert('Error loading onboarding details: ' + err.message);
+        });
+    }
+
+    // Onboard Edit Handler
+    function handleOnboardEdit(onboardId) {
+      if (!onboardId) {
+        alert('Onboarding ID not found');
+        return;
+      }
+      
+      const qOnboardTabBtn = document.getElementById('q-onboard-tab');
+      if (!qOnboardTabBtn) return;
+      
+      // Switch to Onboarding tab
+      const tab = new bootstrap.Tab(qOnboardTabBtn);
+      tab.show();
+      
+      // Load data
+      fetch(`/employee/quotes/onboard/${onboardId}/view/`)
+        .then(r => {
+          if (!r.ok) throw new Error('Failed to fetch onboarding');
+          return r.json();
+        })
+        .then(data => {
+          const form = document.getElementById('onboard-form');
+          if (form) {
+            setTimeout(() => {
+              if (form.querySelector('[name="client_name"]')) form.querySelector('[name="client_name"]').value = data.client_name || '';
+              if (form.querySelector('[name="company_name"]')) form.querySelector('[name="company_name"]').value = data.company_name || '';
+              if (form.querySelector('[name="client_email"]')) form.querySelector('[name="client_email"]').value = data.client_email || '';
+              if (form.querySelector('[name="client_phone"]')) form.querySelector('[name="client_phone"]').value = data.client_phone || '';
+              if (form.querySelector('[name="project_name"]')) form.querySelector('[name="project_name"]').value = data.project_name || '';
+              if (form.querySelector('[name="project_duration"]')) form.querySelector('[name="project_duration"]').value = data.project_duration || '';
+              if (form.querySelector('[name="duration_unit"]')) form.querySelector('[name="duration_unit"]').value = data.duration_unit || '';
+              if (form.querySelector('[name="project_cost"]')) form.querySelector('[name="project_cost"]').value = data.project_cost || '';
+              if (form.querySelector('[name="assigned_engineer"]')) form.querySelector('[name="assigned_engineer"]').value = data.assigned_engineer || '';
+              if (form.querySelector('[name="status"]')) form.querySelector('[name="status"]').value = data.status || 'active';
+              if (form.querySelector('[name="start_date"]')) form.querySelector('[name="start_date"]').value = data.start_date || '';
+              if (form.querySelector('[name="project_description"]')) form.querySelector('[name="project_description"]').value = data.project_description || '';
+              
+              // Add hidden field for edit mode
+              let editField = form.querySelector('[name="onboard_id"]');
+              if (!editField) {
+                editField = document.createElement('input');
+                editField.type = 'hidden';
+                editField.name = 'onboard_id';
+                form.appendChild(editField);
+              }
+              editField.value = onboardId;
+              
+              // Update button text
+              const submitBtn = document.getElementById('onboard-submit-btn');
+              const btnText = document.getElementById('onboard-btn-text');
+              if (submitBtn && btnText) {
+                btnText.textContent = 'Update Onboarding';
+                submitBtn.className = 'btn btn-primary';
+              }
+              
+              form.querySelector('#onboard-form-section')?.scrollIntoView({ behavior: 'smooth' });
+            }, 200);
+          }
+        })
+        .catch(err => {
+          console.error('Edit error:', err);
+          alert('Error loading onboarding data: ' + err.message);
+        });
+    }
+
+    // Onboard Delete Handler
+    function handleOnboardDelete(onboardId, clientName) {
+      if (!onboardId) {
+        alert('Onboarding ID not found');
+        return;
+      }
+      if (!confirm(`Are you sure you want to delete onboarding for ${clientName}? This action cannot be undone.`)) {
+        return;
+      }
+      
+      fetch(`/employee/quotes/onboard/${onboardId}/delete/`, {
+        method: 'POST',
+        headers: {
+          'X-CSRFToken': getCSRFToken(),
+          'Content-Type': 'application/json'
+        }
+      })
+      .then(r => {
+        if (!r.ok) throw new Error('Failed to delete onboarding');
+        return r.json();
+      })
+      .then(result => {
+        if (result.success) {
+          alert(result.message || 'Onboarding deleted successfully!');
+          location.reload();
+        } else {
+          alert(result.error || 'Error deleting onboarding');
+        }
+      })
+      .catch(err => {
+        console.error('Delete error:', err);
+        alert('Error deleting onboarding: ' + err.message);
+      });
+    }
+
+    // Attach Onboard Button Handlers
+    document.addEventListener('click', function(e) {
+      // Onboard View Button
+      if (e.target.closest('.btn-view-onboard')) {
+        e.preventDefault();
+        e.stopPropagation();
+        const btn = e.target.closest('.btn-view-onboard');
+        const onboardId = btn.getAttribute('data-onboard-id');
+        handleOnboardView(onboardId);
+        return;
+      }
+      
+      // Onboard Edit Button
+      if (e.target.closest('.btn-edit-onboard')) {
+        e.preventDefault();
+        e.stopPropagation();
+        const btn = e.target.closest('.btn-edit-onboard');
+        const onboardId = btn.getAttribute('data-onboard-id');
+        handleOnboardEdit(onboardId);
+        return;
+      }
+      
+      // Onboard Delete Button
+      if (e.target.closest('.btn-delete-onboard')) {
+        e.preventDefault();
+        e.stopPropagation();
+        const btn = e.target.closest('.btn-delete-onboard');
+        const onboardId = btn.getAttribute('data-onboard-id');
+        const clientName = btn.getAttribute('data-client-name');
+        handleOnboardDelete(onboardId, clientName);
+        return;
+      }
+    });
+
+    // Reset form button text handler
+    const resetBtn = document.getElementById('onboard-reset-btn');
+    if (resetBtn) {
+      resetBtn.addEventListener('click', function() {
+        setTimeout(() => {
+          const submitBtn = document.getElementById('onboard-submit-btn');
+          const btnText = document.getElementById('onboard-btn-text');
+          const editField = document.querySelector('[name="onboard_id"]');
+          if (submitBtn && btnText && (!editField || !editField.value)) {
+            btnText.textContent = 'Onboard Client';
+            submitBtn.className = 'btn btn-success';
+          }
+        }, 100);
       });
     }
 
@@ -948,7 +1320,7 @@
     // Client-side validation and form submission
     if (qForm) {
       qForm.addEventListener('submit', function(e){
-        e.preventDefault();
+        // Don't prevent default if validation passes - let form submit normally
         
         const client = qForm.querySelector('[name="client"]').value.trim();
         const owner = qForm.querySelector('[name="owner"]').value.trim();
@@ -989,6 +1361,7 @@
         }
 
         if (messages.length) {
+          e.preventDefault();
           const alert = document.createElement('div');
           alert.className = 'alert alert-danger';
           alert.innerHTML = '<strong>Please fix the following:</strong><ul class="mb-0">' + messages.map(m => `<li>${m}</li>`).join('') + '</ul>';
@@ -1001,23 +1374,49 @@
         // Collect items data
         const items = [];
         qItemsBody.querySelectorAll('tr').forEach(row => {
-          const desc = row.querySelector('[name="item_desc"]').value.trim();
+          const desc = row.querySelector('[name="item_desc"]')?.value.trim() || '';
           if (desc) {
             items.push({
               description: desc,
-              quantity: row.querySelector('[name="item_qty"]').value,
-              unit_price: row.querySelector('[name="item_price"]').value,
-              gst_percent: row.querySelector('[name="item_tax"]').value,
-              amount: parseNum(row.querySelector('.item_amount').textContent)
+              quantity: row.querySelector('[name="item_qty"]')?.value || '1',
+              unit_price: row.querySelector('[name="item_price"]')?.value || '0',
+              gst_percent: row.querySelector('[name="item_tax"]')?.value || '0',
+              amount: parseNum(row.querySelector('.item_amount')?.textContent || '0')
             });
           }
         });
         
         // Update hidden items data field
-        document.getElementById('hidden-items-data').value = JSON.stringify(items);
+        const itemsDataField = document.getElementById('hidden-items-data');
+        if (itemsDataField) {
+          itemsDataField.value = JSON.stringify(items);
+        }
         
-        // Submit form
-        qForm.submit();
+        // Update discount field
+        const discountValue = parseNum(qDiscountEl?.value || '0');
+        let discountField = qForm.querySelector('[name="discount"]');
+        if (!discountField) {
+          discountField = document.createElement('input');
+          discountField.type = 'hidden';
+          discountField.name = 'discount';
+          qForm.appendChild(discountField);
+        }
+        discountField.value = discountValue.toFixed(2);
+        
+        // Ensure all hidden fields are set
+        const subtotalField = document.getElementById('hidden-subtotal');
+        const totalField = document.getElementById('hidden-total');
+        if (subtotalField) subtotalField.value = parseNum(qSubtotalEl?.textContent || '0').toFixed(2);
+        if (totalField) totalField.value = parseNum(qTotalEl?.textContent || '0').toFixed(2);
+        
+        // All validation passed - form will submit normally
+        const submitBtn = qForm.querySelector('button[name="quote_submit"]');
+        if (submitBtn) {
+          submitBtn.disabled = true;
+          submitBtn.innerHTML = '<i class="bi bi-hourglass-split"></i> Saving...';
+        }
+        
+        // Don't prevent default - let form submit normally to Django
       });
     }
 
@@ -1036,15 +1435,17 @@
       });
     }
 
-    // Onboarding Form Validation (form will submit to backend)
+    // Onboarding Form Validation and Submission
     const onboardForm = document.getElementById('onboard-form');
     if (onboardForm) {
       onboardForm.addEventListener('submit', function(e) {
+        e.preventDefault(); // Prevent default first
+        
         const clientName = onboardForm.querySelector('[name="client_name"]').value.trim();
         const projectName = onboardForm.querySelector('[name="project_name"]').value.trim();
-        const projectDuration = onboardForm.querySelector('[name="project_duration"]').value;
-        const projectCost = onboardForm.querySelector('[name="project_cost"]').value;
-        const assignedEngineer = onboardForm.querySelector('[name="assigned_engineer"]').value;
+        const projectDuration = onboardForm.querySelector('[name="project_duration"]').value.trim();
+        const projectCost = onboardForm.querySelector('[name="project_cost"]').value.trim();
+        const assignedEngineer = onboardForm.querySelector('[name="assigned_engineer"]').value.trim();
         
         if (!clientName || !projectName || !projectDuration || !projectCost || !assignedEngineer) {
           e.preventDefault();
@@ -1052,7 +1453,33 @@
           return;
         }
         
-        // Form is valid, allow submission to backend
+        // Validate project cost is a valid number
+        if (isNaN(parseFloat(projectCost)) || parseFloat(projectCost) < 0) {
+          e.preventDefault();
+          alert('Project cost must be a valid positive number!');
+          return;
+        }
+        
+        // Validate project duration is a valid positive integer
+        if (isNaN(parseInt(projectDuration)) || parseInt(projectDuration) < 1) {
+          e.preventDefault();
+          alert('Project duration must be a valid positive number!');
+          return;
+        }
+        
+        // All validation passed - form will submit normally
+        const submitBtn = onboardForm.querySelector('button[name="onboard_submit"]');
+        if (submitBtn) {
+          submitBtn.disabled = true;
+          const btnText = submitBtn.querySelector('#onboard-btn-text') || submitBtn;
+          if (btnText.textContent !== undefined) {
+            btnText.textContent = 'Saving...';
+          } else {
+            btnText.innerHTML = '<i class="bi bi-hourglass-split"></i> Saving...';
+          }
+        }
+        
+        // Don't prevent default - let form submit normally to Django
       });
     }
   });

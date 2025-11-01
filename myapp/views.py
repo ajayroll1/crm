@@ -5,7 +5,7 @@ from django.core.paginator import Paginator
 from django.db.models import Q
 from django.utils import timezone
 from datetime import datetime, date
-from .models import Lead, LeaveRequest, Document
+from .models import Lead, LeaveRequest, Document, Attendance
 from .forms import LeadForm, LeadFilterForm
 from django.views.decorators.http import require_POST
 from django.views.decorators.csrf import csrf_exempt
@@ -555,72 +555,29 @@ def employee_projects(request):
 
 def employee_in_out(request):
     """Employee check in/out view"""
+    # Get logged-in user's name
+    if request.user.is_authenticated:
+        employee_name = request.user.get_full_name() or request.user.username
+    else:
+        employee_name = 'Guest User'
+    
+    # Check today's attendance status
+    today = timezone.now().date()
+    today_attendance = Attendance.objects.filter(
+        user=request.user if request.user.is_authenticated else None,
+        date=today
+    ).first()
+    
+    is_checked_in = False
+    check_in_time = None
+    if today_attendance and today_attendance.check_in_time and not today_attendance.check_out_time:
+        is_checked_in = True
+        check_in_time = today_attendance.check_in_time
+    
     context = {
-        'employee_name': 'John Doe',
-        'current_date': '2024-12-10',
-        'current_time': '09:30 AM',
-        'is_checked_in': False,
-        'check_in_time': None,
-        'check_out_time': None,
-        'hours_worked_today': '0h 0m',
-        'hours_worked_week': 32.5,
-        'attendance_percentage': 95,
-        'recent_checkins': [
-            {
-                'date': '2024-12-09',
-                'day': 'Monday',
-                'check_in': '9:15 AM',
-                'check_out': '6:30 PM',
-                'hours': '8h 15m',
-                'status': 'On time',
-                'location': 'Office',
-                'work_type': 'Regular'
-            },
-            {
-                'date': '2024-12-08',
-                'day': 'Sunday',
-                'check_in': '10:00 AM',
-                'check_out': '4:00 PM',
-                'hours': '6h 0m',
-                'status': 'Weekend',
-                'location': 'Remote',
-                'work_type': 'Overtime'
-            },
-            {
-                'date': '2024-12-07',
-                'day': 'Saturday',
-                'check_in': '9:00 AM',
-                'check_out': '5:30 PM',
-                'hours': '8h 30m',
-                'status': 'On time',
-                'location': 'Office',
-                'work_type': 'Regular'
-            },
-            {
-                'date': '2024-12-06',
-                'day': 'Friday',
-                'check_in': '9:10 AM',
-                'check_out': '6:00 PM',
-                'hours': '8h 50m',
-                'status': 'On time',
-                'location': 'Client Site',
-                'work_type': 'Regular'
-            }
-        ],
-        'todays_schedule': [
-            {'time': '9:00 AM - 9:30 AM', 'event': 'Team Standup', 'location': 'Conference Room A', 'type': 'meeting'},
-            {'time': '11:00 AM - 12:00 PM', 'event': 'Code Review Session', 'location': 'Online Meeting', 'type': 'review'},
-            {'time': '2:00 PM - 3:00 PM', 'event': 'Client Presentation', 'location': 'Main Conference Room', 'type': 'presentation'},
-            {'time': '4:00 PM - 5:00 PM', 'event': 'Project Planning', 'location': 'Team Room', 'type': 'planning'}
-        ],
-        'weekly_stats': {
-            'days_present': 5,
-            'total_hours': 32.5,
-            'late_arrivals': 2,
-            'overtime_days': 1,
-            'weekly_target': 40,
-            'target_percentage': 81
-        }
+        'employee_name': employee_name,
+        'is_checked_in': is_checked_in,
+        'check_in_time': check_in_time,
     }
     return render(request, 'employee/in_out.html', context)
 
@@ -1264,10 +1221,177 @@ def employee_leads(request):
 
     return render(request, 'employee/leads.html', context)
 
+@csrf_exempt
+@require_POST
+def employee_attendance_check_in(request):
+    """Handle check-in submission"""
+    try:
+        photo_data = request.POST.get('photo')
+        if not photo_data:
+            return JsonResponse({'success': False, 'error': 'Photo is required'}, status=400)
+        
+        # Get logged-in user's name
+        if request.user.is_authenticated:
+            employee_name = request.user.get_full_name() or request.user.username
+            user = request.user
+        else:
+            employee_name = request.POST.get('employee_name', 'Guest User')
+            user = None
+        
+        today = timezone.now().date()
+        
+        # Get or create today's attendance record
+        attendance, created = Attendance.objects.get_or_create(
+            user=user,
+            date=today,
+            defaults={
+                'employee_name': employee_name,
+                'check_in_time': timezone.now(),
+                'check_in_photo': photo_data,
+            }
+        )
+        
+        if not created:
+            # Update existing record if check-in not done yet
+            if not attendance.check_in_time:
+                attendance.check_in_time = timezone.now()
+                attendance.check_in_photo = photo_data
+                attendance.employee_name = employee_name
+                attendance.save()
+            else:
+                return JsonResponse({'success': False, 'error': 'Already checked in today'}, status=400)
+        
+        return JsonResponse({
+            'success': True,
+            'check_in_time': attendance.check_in_time.isoformat(),
+            'message': 'Check-in successful'
+        })
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': str(e)}, status=500)
+
+
+@csrf_exempt
+@require_POST
+def employee_attendance_check_out(request):
+    """Handle check-out submission"""
+    try:
+        photo_data = request.POST.get('photo')
+        if not photo_data:
+            return JsonResponse({'success': False, 'error': 'Photo is required'}, status=400)
+        
+        # Get logged-in user's name
+        if request.user.is_authenticated:
+            employee_name = request.user.get_full_name() or request.user.username
+            user = request.user
+        else:
+            employee_name = request.POST.get('employee_name', 'Guest User')
+            user = None
+        
+        today = timezone.now().date()
+        
+        # Get today's attendance record
+        try:
+            attendance = Attendance.objects.get(user=user, date=today)
+        except Attendance.DoesNotExist:
+            return JsonResponse({'success': False, 'error': 'No check-in found for today'}, status=400)
+        
+        if not attendance.check_in_time:
+            return JsonResponse({'success': False, 'error': 'No check-in found for today'}, status=400)
+        
+        if attendance.check_out_time:
+            return JsonResponse({'success': False, 'error': 'Already checked out today'}, status=400)
+        
+        # Update check-out
+        attendance.check_out_time = timezone.now()
+        attendance.check_out_photo = photo_data
+        attendance.employee_name = employee_name
+        attendance.save()
+        
+        # Calculate work hours
+        work_hours = attendance.calculate_work_hours()
+        
+        return JsonResponse({
+            'success': True,
+            'check_out_time': attendance.check_out_time.isoformat(),
+            'work_hours': work_hours,
+            'message': 'Check-out successful'
+        })
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': str(e)}, status=500)
+
+
+def employee_attendance_records(request):
+    """Get attendance records for the logged-in user with pagination"""
+    try:
+        filter_date = request.GET.get('date', '')
+        page = int(request.GET.get('page', 1))
+        per_page = int(request.GET.get('per_page', 10))
+        
+        # Filter by user
+        if request.user.is_authenticated:
+            qs = Attendance.objects.filter(user=request.user)
+        else:
+            # For guest users, filter by employee name if provided
+            employee_name = request.GET.get('employee_name', '')
+            if employee_name:
+                qs = Attendance.objects.filter(employee_name=employee_name)
+            else:
+                qs = Attendance.objects.none()
+        
+        # Filter by date if provided
+        if filter_date:
+            qs = qs.filter(date=filter_date)
+        
+        # Get recent records (last 30 days)
+        if not filter_date:
+            from datetime import timedelta
+            thirty_days_ago = timezone.now().date() - timedelta(days=30)
+            qs = qs.filter(date__gte=thirty_days_ago)
+        
+        # Get total count
+        total_count = qs.count()
+        
+        # Calculate pagination
+        total_pages = (total_count + per_page - 1) // per_page if total_count > 0 else 1
+        start = (page - 1) * per_page
+        end = start + per_page
+        
+        # Get paginated records
+        records = []
+        for att in qs.order_by('-date', '-check_in_time')[start:end]:
+            work_hours = att.calculate_work_hours()
+            records.append({
+                'id': att.id,
+                'employee_name': att.employee_name,
+                'date': att.date.isoformat(),
+                'check_in_time': att.check_in_time.isoformat() if att.check_in_time else None,
+                'check_in_photo': att.check_in_photo,
+                'check_out_time': att.check_out_time.isoformat() if att.check_out_time else None,
+                'check_out_photo': att.check_out_photo,
+                'work_hours': work_hours
+            })
+        
+        return JsonResponse({
+            'success': True,
+            'records': records,
+            'pagination': {
+                'current_page': page,
+                'total_pages': total_pages,
+                'total_count': total_count,
+                'per_page': per_page,
+                'has_next': page < total_pages,
+                'has_prev': page > 1
+            }
+        })
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': str(e)}, status=500)
+
+
 def employee_quotes(request):
     """Employee portal quotation management"""
-    from .models import Quote, QuoteItem, ClientOnboarding
+    from .models import Quote, ClientOnboarding
     from decimal import Decimal
+    from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
     import json
     
     # Handle Quote Creation
@@ -1287,73 +1411,196 @@ def employee_quotes(request):
                 else:
                     quote_no = 'Q-1001'
             
+            # Check if quote number already exists
+            if Quote.objects.filter(quote_number=quote_no).exists():
+                # If custom number exists, append a suffix
+                counter = 1
+                original_no = quote_no
+                while Quote.objects.filter(quote_number=quote_no).exists():
+                    quote_no = f'{original_no}-{counter}'
+                    counter += 1
+            
+            # Extract currency code
+            currency_input = request.POST.get('currency', 'INR (₹)')
+            if ' ' in currency_input:
+                currency_code = currency_input.split()[0]
+            else:
+                currency_code = currency_input
+            
+            # Validate required fields
+            client_name = request.POST.get('client', '').strip()
+            owner = request.POST.get('owner', '').strip()
+            valid_until = request.POST.get('valid_until', '').strip()
+            
+            if not client_name or not owner or not valid_until:
+                if not client_name:
+                    messages.error(request, 'Client name is required!')
+                elif not owner:
+                    messages.error(request, 'Owner is required!')
+                elif not valid_until:
+                    messages.error(request, 'Valid Until date is required!')
+                
+                # Redirect to show error
+                return redirect('employee_quotes')
+            
             # Create Quote
             quote = Quote.objects.create(
                 quote_number=quote_no,
-                client_name=request.POST.get('client'),
-                company=request.POST.get('company', ''),
-                email=request.POST.get('email', ''),
-                phone=request.POST.get('phone', ''),
-                owner=request.POST.get('owner'),
+                client_name=client_name,
+                company=request.POST.get('company', '').strip(),
+                email=request.POST.get('email', '').strip(),
+                phone=request.POST.get('phone', '').strip(),
+                owner=owner,
                 status=request.POST.get('status', 'Sent'),
-                currency=request.POST.get('currency', 'INR').split()[0],  # Extract 'INR' from 'INR (₹)'
-                valid_until=request.POST.get('valid_until'),
-                notes=request.POST.get('notes', ''),
-                terms=request.POST.get('terms', ''),
+                currency=currency_code,
+                valid_until=valid_until,
+                notes=request.POST.get('notes', '').strip(),
+                terms=request.POST.get('terms', '').strip(),
                 subtotal=Decimal(request.POST.get('subtotal', '0')),
                 discount=Decimal(request.POST.get('discount', '0')),
                 total=Decimal(request.POST.get('total', '0'))
             )
             
+            # Parse and save items as JSON
+            items_data = request.POST.get('items_data', '[]')
+            try:
+                items = json.loads(items_data)
+                if not isinstance(items, list):
+                    items = []
+            except (json.JSONDecodeError, ValueError):
+                items = []
+            
+            # Convert items to proper format (ensure numeric fields are strings for JSON)
+            formatted_items = []
+            for item in items:
+                if item.get('description', '').strip():  # Only include item if description exists
+                    formatted_items.append({
+                        'description': item.get('description', ''),
+                        'quantity': int(item.get('quantity', 1)),
+                        'unit_price': str(item.get('unit_price', '0')),
+                        'gst_percent': str(item.get('gst_percent', '0')),
+                        'amount': str(item.get('amount', '0'))
+                    })
+            
+            # Update quote with items JSON
+            quote.items = formatted_items
+            
             # Handle PDF upload
             if 'project_pdf' in request.FILES:
                 quote.project_pdf = request.FILES['project_pdf']
-                quote.save()
             
-            # Create Quote Items
-            items_data = request.POST.get('items_data', '[]')
-            items = json.loads(items_data)
-            for item in items:
-                QuoteItem.objects.create(
-                    quote=quote,
-                    description=item.get('description', ''),
-                    quantity=int(item.get('quantity', 1)),
-                    unit_price=Decimal(item.get('unit_price', '0')),
-                    gst_percent=Decimal(item.get('gst_percent', '0')),
-                    amount=Decimal(item.get('amount', '0'))
-                )
+            quote.save()
             
             messages.success(request, f'Quote {quote_no} created successfully!')
             return redirect('employee_quotes')
         except Exception as e:
-            messages.error(request, f'Error creating quote: {str(e)}')
+            import traceback
+            error_msg = f'Error creating quote: {str(e)}'
+            messages.error(request, error_msg)
+            print(f"Quote creation error: {traceback.format_exc()}")
+            return redirect('employee_quotes')
     
-    # Handle Onboarding Creation
+    # Handle Onboarding Creation/Update
     if request.method == 'POST' and 'onboard_submit' in request.POST:
         try:
-            ClientOnboarding.objects.create(
-                client_name=request.POST.get('client_name'),
-                company_name=request.POST.get('company_name', ''),
-                client_email=request.POST.get('client_email', ''),
-                client_phone=request.POST.get('client_phone', ''),
-                project_name=request.POST.get('project_name'),
-                project_description=request.POST.get('project_description', ''),
-                project_duration=int(request.POST.get('project_duration')),
-                duration_unit=request.POST.get('duration_unit', 'months'),
-                project_cost=Decimal(request.POST.get('project_cost')),
-                assigned_engineer=request.POST.get('assigned_engineer'),
-                start_date=request.POST.get('start_date') or None,
-                status=request.POST.get('status', 'active')
-            )
+            # Get and validate required fields
+            client_name = request.POST.get('client_name', '').strip()
+            project_name = request.POST.get('project_name', '').strip()
+            project_duration = request.POST.get('project_duration', '').strip()
+            project_cost = request.POST.get('project_cost', '').strip()
+            assigned_engineer = request.POST.get('assigned_engineer', '').strip()
             
-            messages.success(request, f'Client {request.POST.get("client_name")} onboarded successfully!')
+            if not client_name or not project_name or not project_duration or not project_cost or not assigned_engineer:
+                messages.error(request, 'Please fill in all required fields!')
+                quotes = Quote.objects.all()
+                onboardings = ClientOnboarding.objects.all()
+                context = {'quotes': quotes, 'onboardings': onboardings}
+                return render(request, 'employee/quotes.html', context)
+            
+            # Parse start_date if provided
+            start_date = None
+            start_date_str = request.POST.get('start_date', '').strip()
+            if start_date_str:
+                try:
+                    from django.utils.dateparse import parse_date
+                    start_date = parse_date(start_date_str)
+                except (ValueError, TypeError):
+                    start_date = None
+            
+            # Check if updating existing onboarding
+            onboard_id = request.POST.get('onboard_id', '').strip()
+            if onboard_id:
+                try:
+                    onboard = ClientOnboarding.objects.get(id=onboard_id)
+                    onboard.client_name = client_name
+                    onboard.company_name = request.POST.get('company_name', '')
+                    onboard.client_email = request.POST.get('client_email', '')
+                    onboard.client_phone = request.POST.get('client_phone', '')
+                    onboard.project_name = project_name
+                    onboard.project_description = request.POST.get('project_description', '')
+                    onboard.project_duration = int(project_duration)
+                    onboard.duration_unit = request.POST.get('duration_unit', 'months')
+                    onboard.project_cost = Decimal(str(project_cost))
+                    onboard.assigned_engineer = assigned_engineer
+                    onboard.start_date = start_date
+                    onboard.status = request.POST.get('status', 'active')
+                    onboard.save()
+                    messages.success(request, f'Onboarding for {client_name} updated successfully!')
+                except ClientOnboarding.DoesNotExist:
+                    messages.error(request, 'Onboarding not found!')
+            else:
+                # Create new onboarding
+                ClientOnboarding.objects.create(
+                    client_name=client_name,
+                    company_name=request.POST.get('company_name', ''),
+                    client_email=request.POST.get('client_email', ''),
+                    client_phone=request.POST.get('client_phone', ''),
+                    project_name=project_name,
+                    project_description=request.POST.get('project_description', ''),
+                    project_duration=int(project_duration),
+                    duration_unit=request.POST.get('duration_unit', 'months'),
+                    project_cost=Decimal(str(project_cost)),
+                    assigned_engineer=assigned_engineer,
+                    start_date=start_date,
+                    status=request.POST.get('status', 'active')
+                )
+                messages.success(request, f'Client {client_name} onboarded successfully!')
+            
+            return redirect('employee_quotes')
+        except ValueError as e:
+            messages.error(request, f'Invalid data: {str(e)}')
+            import traceback
+            print(f"Onboarding ValueError: {traceback.format_exc()}")
             return redirect('employee_quotes')
         except Exception as e:
             messages.error(request, f'Error onboarding client: {str(e)}')
+            import traceback
+            print(f"Onboarding error: {traceback.format_exc()}")
+            return redirect('employee_quotes')
     
-    # Fetch all quotes and onboardings
-    quotes = Quote.objects.all().prefetch_related('items')
-    onboardings = ClientOnboarding.objects.all()
+    # Fetch all quotes and onboardings with pagination
+    quotes_list = Quote.objects.all().order_by('-created_at')
+    onboardings_list = ClientOnboarding.objects.all().order_by('-created_at')
+    
+    # Paginate quotes (10 per page)
+    quotes_paginator = Paginator(quotes_list, 10)
+    quotes_page = request.GET.get('quote_page', 1)
+    try:
+        quotes = quotes_paginator.page(quotes_page)
+    except PageNotAnInteger:
+        quotes = quotes_paginator.page(1)
+    except EmptyPage:
+        quotes = quotes_paginator.page(quotes_paginator.num_pages)
+    
+    # Paginate onboardings (10 per page)
+    onboardings_paginator = Paginator(onboardings_list, 10)
+    onboardings_page = request.GET.get('onboard_page', 1)
+    try:
+        onboardings = onboardings_paginator.page(onboardings_page)
+    except PageNotAnInteger:
+        onboardings = onboardings_paginator.page(1)
+    except EmptyPage:
+        onboardings = onboardings_paginator.page(onboardings_paginator.num_pages)
     
     context = {
         'quotes': quotes,
@@ -1361,3 +1608,90 @@ def employee_quotes(request):
     }
     
     return render(request, 'employee/quotes.html', context)
+
+
+def employee_quote_view(request, quote_id):
+    """Get quote details as JSON"""
+    from .models import Quote
+    from django.http import JsonResponse
+    
+    try:
+        quote = Quote.objects.get(id=quote_id)
+        return JsonResponse({
+            'quote_number': quote.quote_number,
+            'client_name': quote.client_name,
+            'company': quote.company,
+            'owner': quote.owner,
+            'status': quote.status,
+            'total': str(quote.total),
+            'valid_until': quote.valid_until.strftime('%d-%b-%Y'),
+            'email': quote.email,
+            'phone': quote.phone,
+            'notes': quote.notes,
+            'terms': quote.terms,
+            'items': quote.items if quote.items else []
+        })
+    except Quote.DoesNotExist:
+        return JsonResponse({'error': 'Quote not found'}, status=404)
+
+
+@require_POST
+def employee_quote_delete(request, quote_id):
+    """Delete a quote"""
+    from .models import Quote
+    from django.http import JsonResponse
+    
+    try:
+        quote = Quote.objects.get(id=quote_id)
+        quote_number = quote.quote_number
+        quote.delete()
+        messages.success(request, f'Quote {quote_number} deleted successfully!')
+        return JsonResponse({'success': True, 'message': f'Quote {quote_number} deleted successfully!'})
+    except Quote.DoesNotExist:
+        return JsonResponse({'success': False, 'error': 'Quote not found'}, status=404)
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': str(e)}, status=500)
+
+
+def employee_onboard_view(request, onboard_id):
+    """Get onboarding details as JSON"""
+    from .models import ClientOnboarding
+    from django.http import JsonResponse
+    
+    try:
+        onboard = ClientOnboarding.objects.get(id=onboard_id)
+        return JsonResponse({
+            'client_name': onboard.client_name,
+            'company_name': onboard.company_name,
+            'client_email': onboard.client_email,
+            'client_phone': onboard.client_phone,
+            'project_name': onboard.project_name,
+            'project_description': onboard.project_description,
+            'project_duration': onboard.project_duration,
+            'duration_unit': onboard.duration_unit,
+            'project_cost': str(onboard.project_cost),
+            'assigned_engineer': onboard.assigned_engineer,
+            'status': onboard.status,
+            'status_display': onboard.get_status_display(),
+            'start_date': onboard.start_date.strftime('%Y-%m-%d') if onboard.start_date else None
+        })
+    except ClientOnboarding.DoesNotExist:
+        return JsonResponse({'error': 'Onboarding not found'}, status=404)
+
+
+@require_POST
+def employee_onboard_delete(request, onboard_id):
+    """Delete an onboarding"""
+    from .models import ClientOnboarding
+    from django.http import JsonResponse
+    
+    try:
+        onboard = ClientOnboarding.objects.get(id=onboard_id)
+        client_name = onboard.client_name
+        onboard.delete()
+        messages.success(request, f'Onboarding for {client_name} deleted successfully!')
+        return JsonResponse({'success': True, 'message': f'Onboarding for {client_name} deleted successfully!'})
+    except ClientOnboarding.DoesNotExist:
+        return JsonResponse({'success': False, 'error': 'Onboarding not found'}, status=404)
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': str(e)}, status=500)

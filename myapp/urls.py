@@ -39,11 +39,18 @@ urlpatterns =[
   path('employee/projects/<int:project_id>/continue/',views.employee_continue_project,name='employee_continue_project'),
   path('employee/projects/<int:project_id>/finish/',views.employee_finish_project,name='employee_finish_project'),
   path('employee/in-out/',views.employee_in_out,name='employee_in_out'),
+  path('employee/attendance/check-in/',views.employee_attendance_check_in,name='employee_attendance_check_in'),
+  path('employee/attendance/check-out/',views.employee_attendance_check_out,name='employee_attendance_check_out'),
+  path('employee/attendance/records/',views.employee_attendance_records,name='employee_attendance_records'),
   path('employee/settings/',views.employee_settings,name='employee_settings'),
   path('employee/leave/',views.employee_leave,name='employee_leave'),
   path('employee/leave/apply/',views.employee_leave_apply,name='employee_leave_apply'),
   path('employee/leads/',views.employee_leads,name='employee_leads'),
   path('employee/quotes/',views.employee_quotes,name='employee_quotes'),
+  path('employee/quotes/<int:quote_id>/view/',views.employee_quote_view,name='employee_quote_view'),
+  path('employee/quotes/<int:quote_id>/delete/',views.employee_quote_delete,name='employee_quote_delete'),
+  path('employee/quotes/onboard/<int:onboard_id>/view/',views.employee_onboard_view,name='employee_onboard_view'),
+  path('employee/quotes/onboard/<int:onboard_id>/delete/',views.employee_onboard_delete,name='employee_onboard_delete'),
   
   # Personal Section URLs
   path('employee/profile/',views.employee_profile,name='employee_profile'),

@@ -244,6 +244,9 @@ class Quote(models.Model):
     terms = models.TextField(blank=True, null=True, verbose_name="Terms & Conditions")
     project_pdf = models.FileField(upload_to='quotes/pdfs/', blank=True, null=True, verbose_name="Project Details PDF")
     
+    # Line Items (stored as JSON)
+    items = models.JSONField(default=list, blank=True, help_text="List of quote items")
+    
     # Timestamps
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
@@ -265,29 +268,6 @@ class Quote(models.Model):
             'Declined': 'bg-danger'
         }
         return status_classes.get(self.status, 'bg-secondary')
-
-
-class QuoteItem(models.Model):
-    """Line items for quotes"""
-    quote = models.ForeignKey(Quote, on_delete=models.CASCADE, related_name='items')
-    description = models.CharField(max_length=500, verbose_name="Item Description")
-    quantity = models.PositiveIntegerField(default=1)
-    unit_price = models.DecimalField(max_digits=10, decimal_places=2, verbose_name="Unit Price")
-    gst_percent = models.DecimalField(max_digits=5, decimal_places=2, default=0.00, verbose_name="GST %")
-    amount = models.DecimalField(max_digits=12, decimal_places=2, verbose_name="Total Amount")
-    
-    class Meta:
-        ordering = ['id']
-    
-    def __str__(self):
-        return f"{self.description} - {self.quantity} x {self.unit_price}"
-    
-    def save(self, *args, **kwargs):
-        """Auto-calculate amount including GST"""
-        base_amount = self.quantity * self.unit_price
-        gst_amount = base_amount * (self.gst_percent / 100)
-        self.amount = base_amount + gst_amount
-        super().save(*args, **kwargs)
 
 
 class ClientOnboarding(models.Model):
@@ -349,3 +329,52 @@ class ClientOnboarding(models.Model):
             'completed': 'bg-info'
         }
         return status_classes.get(self.status, 'bg-secondary')
+
+
+class Attendance(models.Model):
+    """Employee attendance check in/out records"""
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name='attendance_records',
+        null=True,
+        blank=True
+    )
+    employee_name = models.CharField(max_length=150)
+    date = models.DateField()
+    check_in_time = models.DateTimeField(null=True, blank=True)
+    check_in_photo = models.TextField(null=True, blank=True)  # Store as base64 or file path
+    check_out_time = models.DateTimeField(null=True, blank=True)
+    check_out_photo = models.TextField(null=True, blank=True)  # Store as base64 or file path
+    
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    
+    class Meta:
+        ordering = ['-date', '-check_in_time']
+        verbose_name = "Attendance"
+        verbose_name_plural = "Attendances"
+        unique_together = [['user', 'date']]  # One record per user per day
+    
+    def __str__(self):
+        return f"{self.employee_name} - {self.date}"
+    
+    def calculate_work_hours(self):
+        """Calculate work hours, minutes, and seconds"""
+        if not self.check_in_time or not self.check_out_time:
+            return None
+        
+        delta = self.check_out_time - self.check_in_time
+        total_seconds = int(delta.total_seconds())
+        
+        hours = total_seconds // 3600
+        minutes = (total_seconds % 3600) // 60
+        seconds = total_seconds % 60
+        
+        return {
+            'hours': hours,
+            'minutes': minutes,
+            'seconds': seconds,
+            'total_seconds': total_seconds,
+            'formatted': f"{hours}h {minutes}m {seconds}s"
+        }

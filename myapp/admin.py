@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import Lead, LeaveRequest, Document, Quote, QuoteItem, ClientOnboarding
+from .models import Lead, LeaveRequest, Document, Quote, ClientOnboarding
 
 # Register your models here.
 
@@ -22,19 +22,12 @@ class DocumentAdmin(admin.ModelAdmin):
     list_filter = ('category', 'privacy', 'uploaded_at')
     search_fields = ('original_name', 'description')
 
-class QuoteItemInline(admin.TabularInline):
-    model = QuoteItem
-    extra = 1
-    fields = ('description', 'quantity', 'unit_price', 'gst_percent', 'amount')
-    readonly_fields = ('amount',)
-
 @admin.register(Quote)
 class QuoteAdmin(admin.ModelAdmin):
     list_display = ('quote_number', 'client_name', 'company', 'status', 'total', 'valid_until', 'created_at')
     list_filter = ('status', 'currency', 'created_at', 'valid_until')
     search_fields = ('quote_number', 'client_name', 'company', 'email')
     date_hierarchy = 'created_at'
-    inlines = [QuoteItemInline]
     readonly_fields = ('created_at', 'updated_at')
 
 @admin.register(ClientOnboarding)
