@@ -1058,12 +1058,110 @@
     const selectedOption = this.options[this.selectedIndex];
     const maxDays = selectedOption.getAttribute('data-max-days');
     const description = selectedOption.textContent;
+    const leaveType = this.value;
+    
+    // Get available balance from cards
+    let availableBalance = parseInt(maxDays) || 0;
+    const leaveTypeMap = {
+      'annual': 'annual_leave',
+      'sick': 'sick_leave',
+      'personal': 'personal_leave',
+      'maternity': 'maternity_leave',
+      'paternity': 'paternity_leave',
+      'emergency': 'emergency_leave'
+    };
+    
+    // Find the card and get actual balance
+    const cardSelectors = {
+      'annual': '.metric-card:has(.bi-calendar3-range) .metric-value',
+      'sick': '.metric-card:has(.bi-hospital) .metric-value',
+      'personal': '.metric-card:has(.bi-person-circle) .metric-value',
+      'maternity': '.metric-card:has(.bi-heart) .metric-value',
+      'paternity': '.metric-card:has(.bi-person-badge) .metric-value',
+      'emergency': '.metric-card:has(.bi-lightning-charge) .metric-value'
+    };
+    
+    // Try to get actual balance from page (if available)
+    if (leaveType) {
+      const cards = document.querySelectorAll('.metric-card');
+      cards.forEach(card => {
+        const metricValue = card.querySelector('.metric-value');
+        const metricTitle = card.querySelector('.metric-type-name') || card.querySelector('.metric-title');
+        if (metricValue && metricTitle) {
+          const titleText = metricTitle.textContent.toLowerCase();
+          if ((leaveType === 'annual' && titleText.includes('annual')) ||
+              (leaveType === 'sick' && titleText.includes('sick')) ||
+              (leaveType === 'personal' && titleText.includes('personal')) ||
+              (leaveType === 'maternity' && titleText.includes('maternity')) ||
+              (leaveType === 'paternity' && titleText.includes('paternity')) ||
+              (leaveType === 'emergency' && titleText.includes('emergency'))) {
+            const balance = metricValue.textContent.trim();
+            if (balance !== 'NA' && !isNaN(balance)) {
+              availableBalance = parseInt(balance);
+            }
+          }
+        }
+      });
+    }
     
     document.getElementById('leaveTypeDescription').textContent = 
-      `Maximum ${maxDays} days allowed. ${description}`;
+      `Available: ${availableBalance} days. Maximum ${maxDays} days allowed. ${description}`;
     
-    document.getElementById('modalDays').max = maxDays;
+    // Set max days to minimum of available balance and max allowed days
+    const maxAllowedDays = Math.min(availableBalance, parseInt(maxDays) || 90);
+    document.getElementById('modalDays').max = maxAllowedDays > 0 ? maxAllowedDays : maxDays;
+    document.getElementById('modalDays').value = '';
+    
+    // Update quick form leaveType max if exists
+    const quickLeaveType = document.getElementById('leaveType');
+    if (quickLeaveType) {
+      quickLeaveType.selectedIndex = this.selectedIndex;
+    }
   });
+  
+  // Also update quick form leaveType handler
+  const quickLeaveType = document.getElementById('leaveType');
+  if (quickLeaveType) {
+    quickLeaveType.addEventListener('change', function() {
+      const selectedOption = this.options[this.selectedIndex];
+      const leaveType = this.value;
+      
+      // Get available balance
+      let availableBalance = parseInt(selectedOption.getAttribute('data-max-days')) || 0;
+      
+      // Try to get from cards
+      const cards = document.querySelectorAll('.metric-card');
+      cards.forEach(card => {
+        const metricValue = card.querySelector('.metric-value');
+        const metricTitle = card.querySelector('.metric-title');
+        if (metricValue && metricTitle) {
+          const titleText = metricTitle.textContent.toLowerCase();
+          if ((leaveType === 'annual' && titleText.includes('annual')) ||
+              (leaveType === 'sick' && titleText.includes('sick')) ||
+              (leaveType === 'personal' && titleText.includes('personal')) ||
+              (leaveType === 'maternity' && titleText.includes('maternity')) ||
+              (leaveType === 'paternity' && titleText.includes('paternity')) ||
+              (leaveType === 'emergency' && titleText.includes('emergency'))) {
+            const balance = metricValue.textContent.trim();
+            if (balance !== 'NA' && !isNaN(balance)) {
+              availableBalance = parseInt(balance);
+            }
+          }
+        }
+      });
+      
+      // Calculate and update end date if start date is set
+      const startDateInput = document.getElementById('startDate');
+      const endDateInput = document.getElementById('endDate');
+      if (startDateInput && endDateInput && startDateInput.value) {
+        const start = new Date(startDateInput.value);
+        const end = new Date(start);
+        const maxDays = Math.min(availableBalance, parseInt(selectedOption.getAttribute('data-max-days')) || 90);
+        end.setDate(start.getDate() + (maxDays > 0 ? maxDays - 1 : 0));
+        endDateInput.value = end.toISOString().split('T')[0];
+      }
+    });
+  }
   
   // Date change handlers
   document.getElementById('modalStartDate').addEventListener('change', function() {
@@ -1075,11 +1173,53 @@
   });
   
   document.getElementById('modalDays').addEventListener('change', function() {
+    const daysInput = this;
+    const daysValue = parseInt(daysInput.value) || 0;
+    const modalLeaveType = document.getElementById('modalLeaveType');
+    const selectedOption = modalLeaveType.options[modalLeaveType.selectedIndex];
+    const maxDays = parseInt(selectedOption.getAttribute('data-max-days')) || 0;
+    
+    // Get available balance from cards
+    let availableBalance = maxDays;
+    if (modalLeaveType.value) {
+      const cards = document.querySelectorAll('.metric-card');
+      cards.forEach(card => {
+        const metricValue = card.querySelector('.metric-value');
+        const metricTitle = card.querySelector('.metric-title');
+        if (metricValue && metricTitle) {
+          const titleText = metricTitle.textContent.toLowerCase();
+          if ((modalLeaveType.value === 'annual' && titleText.includes('annual')) ||
+              (modalLeaveType.value === 'sick' && titleText.includes('sick')) ||
+              (modalLeaveType.value === 'personal' && titleText.includes('personal')) ||
+              (modalLeaveType.value === 'maternity' && titleText.includes('maternity')) ||
+              (modalLeaveType.value === 'paternity' && titleText.includes('paternity')) ||
+              (modalLeaveType.value === 'emergency' && titleText.includes('emergency'))) {
+            const balance = metricValue.textContent.trim();
+            if (balance !== 'NA' && !isNaN(balance)) {
+              availableBalance = parseInt(balance);
+            }
+          }
+        }
+      });
+    }
+    
+    // Validate against available balance
+    if (daysValue > availableBalance) {
+      showNotification(`Insufficient leave balance. You have ${availableBalance} days available, but entered ${daysValue} days.`, 'danger');
+      daysInput.value = availableBalance;
+      daysValue = availableBalance;
+    }
+    
+    // Update max attribute
+    const maxAllowedDays = Math.min(availableBalance, maxDays);
+    daysInput.max = maxAllowedDays > 0 ? maxAllowedDays : maxDays;
+    
+    // Update end date
     const startDate = document.getElementById('modalStartDate').value;
     if (startDate) {
       const start = new Date(startDate);
       const end = new Date(start);
-      end.setDate(start.getDate() + parseInt(this.value) - 1);
+      end.setDate(start.getDate() + daysValue - 1);
       
       document.getElementById('modalEndDate').value = end.toISOString().split('T')[0];
     }
@@ -1110,6 +1250,9 @@
       return;
     }
     
+    // Add days to formData
+    formData.days = days;
+    
     // Submit to backend
     postLeave(formData).then(ok => {
       if (ok) {
@@ -1121,6 +1264,8 @@
         const savedName = nameField.value;
         setTimeout(() => {
           nameField.value = savedName || '{% if request.user.is_authenticated %}{{ request.user.get_full_name|default:request.user.username }}{% else %}{{ employee_name|default:"N/A" }}{% endif %}';
+          // Reload page to update leave balance cards
+          setTimeout(() => location.reload(), 1500);
         }, 100);
       }
     });
@@ -1156,6 +1301,8 @@
         const savedName = nameField.value;
         setTimeout(() => {
           nameField.value = savedName || '{% if request.user.is_authenticated %}{{ request.user.get_full_name|default:request.user.username }}{% else %}{{ employee_name|default:"N/A" }}{% endif %}';
+          // Reload page to update leave balance cards
+          setTimeout(() => location.reload(), 1500);
         }, 100);
       }
     });
@@ -1185,7 +1332,7 @@
       return true;
     } catch (e) {
       console.error(e);
-      showNotification('Error submitting leave request', 'danger');
+      showNotification('Error submitting leave request: ' + (e.message || 'Unknown error'), 'danger');
       return false;
     }
   }

@@ -317,7 +317,9 @@
   </li>
 </ul>
 
-<form id="employeeForm" class="mt-3" method="POST" action="{% url 'employees' %}" novalidate>
+<form id="employeeForm" class="mt-3" method="POST" action="{% url 'employees' %}" enctype="multipart/form-data" novalidate>
+  <!-- Hidden field to track employee ID for updates -->
+  <input type="hidden" name="employee_id" id="employee_id" value="{% if edit_employee %}{{ edit_employee.id }}{% endif %}">
   {% csrf_token %}
   <div class="tab-content" id="empTabsContent">
     <!-- Personal -->
@@ -371,6 +373,11 @@
             </div>
           </div>
         </div>
+        <div class="card-footer d-flex justify-content-end gap-2">
+          <button type="button" class="btn btn-primary btn-sm" onclick="saveSection('personal', this)">
+            <i class="bi bi-save"></i> Save Personal Info
+          </button>
+        </div>
       </div>
     </div>
 
@@ -412,6 +419,11 @@
             </div>
           </div>
         </div>
+        <div class="card-footer d-flex justify-content-end gap-2">
+          <button type="button" class="btn btn-primary btn-sm" onclick="saveSection('job', this)">
+            <i class="bi bi-save"></i> Save Job Details
+          </button>
+        </div>
       </div>
     </div>
 
@@ -451,6 +463,11 @@
             </div>
           </div>
         </div>
+        <div class="card-footer d-flex justify-content-end gap-2">
+          <button type="button" class="btn btn-primary btn-sm" onclick="saveSection('payroll', this)">
+            <i class="bi bi-save"></i> Save Payroll
+          </button>
+        </div>
       </div>
     </div>
 
@@ -486,6 +503,11 @@
             </div>
           </div>
         </div>
+        <div class="card-footer d-flex justify-content-end gap-2">
+          <button type="button" class="btn btn-primary btn-sm" onclick="saveSection('banking', this)">
+            <i class="bi bi-save"></i> Save Banking
+          </button>
+        </div>
       </div>
     </div>
 
@@ -508,6 +530,11 @@
               <input type="text" class="form-control" name="gst">
             </div>
           </div>
+        </div>
+        <div class="card-footer d-flex justify-content-end gap-2">
+          <button type="button" class="btn btn-primary btn-sm" onclick="saveSection('tax', this)">
+            <i class="bi bi-save"></i> Save Tax/IDs
+          </button>
         </div>
       </div>
     </div>
@@ -560,6 +587,11 @@
             </div>
           </div>
         </div>
+        <div class="card-footer d-flex justify-content-end gap-2">
+          <button type="button" class="btn btn-primary btn-sm" onclick="saveSection('docs', this)">
+            <i class="bi bi-save"></i> Save Documents
+          </button>
+        </div>
       </div>
     </div>
 
@@ -595,6 +627,11 @@
             </div>
           </div>
         </div>
+        <div class="card-footer d-flex justify-content-end gap-2">
+          <button type="button" class="btn btn-primary btn-sm" onclick="saveSection('emergency', this)">
+            <i class="bi bi-save"></i> Save Emergency
+          </button>
+        </div>
       </div>
     </div>
 
@@ -617,6 +654,11 @@
               <input type="text" class="form-control" name="asset_other" placeholder="Access card, etc.">
             </div>
           </div>
+        </div>
+        <div class="card-footer d-flex justify-content-end gap-2">
+          <button type="button" class="btn btn-primary btn-sm" onclick="saveSection('assets', this)">
+            <i class="bi bi-save"></i> Save Assets
+          </button>
         </div>
       </div>
     </div>
@@ -649,6 +691,11 @@
             </div>
           </div>
         </div>
+        <div class="card-footer d-flex justify-content-end gap-2">
+          <button type="button" class="btn btn-primary btn-sm" onclick="saveSection('access', this)">
+            <i class="bi bi-save"></i> Save Access
+          </button>
+        </div>
       </div>
     </div>
 
@@ -663,6 +710,11 @@
               <textarea class="form-control" rows="3" name="notes"></textarea>
             </div>
           </div>
+        </div>
+        <div class="card-footer d-flex justify-content-end gap-2">
+          <button type="button" class="btn btn-primary btn-sm" onclick="saveSection('notes', this)">
+            <i class="bi bi-save"></i> Save Notes
+          </button>
         </div>
       </div>
     </div>
@@ -1230,6 +1282,12 @@
             // Populate form fields
             const form = document.getElementById('employeeForm');
             if (form) {
+              // Set employee ID for updates
+              const empIdField = document.getElementById('employee_id');
+              if (empIdField) {
+                empIdField.value = emp.id || '';
+              }
+              
               form.querySelector('[name="first_name"]').value = emp.first_name || '';
               form.querySelector('[name="last_name"]').value = emp.last_name || '';
               form.querySelector('[name="emp_code"]').value = emp.emp_code || '';
@@ -1247,6 +1305,52 @@
               if (emp.employment_type) form.querySelector('[name="employment_type"]').value = emp.employment_type;
               if (emp.location) form.querySelector('[name="location"]').value = emp.location;
               if (emp.joining_date) form.querySelector('[name="joining_date"]').value = emp.joining_date;
+              if (emp.probation !== undefined) form.querySelector('[name="probation"]').value = emp.probation || '';
+              
+              // Payroll
+              if (emp.ctc !== undefined) form.querySelector('[name="ctc"]').value = emp.ctc || '';
+              if (emp.basic !== undefined) form.querySelector('[name="basic"]').value = emp.basic || '';
+              if (emp.hra !== undefined) form.querySelector('[name="hra"]').value = emp.hra || '';
+              if (emp.allowances !== undefined) form.querySelector('[name="allowances"]').value = emp.allowances || '';
+              if (emp.deductions !== undefined) form.querySelector('[name="deductions"]').value = emp.deductions || '';
+              if (emp.variable !== undefined) form.querySelector('[name="variable"]').value = emp.variable || '';
+              if (emp.pay_cycle) form.querySelector('[name="pay_cycle"]').value = emp.pay_cycle;
+              
+              // Banking
+              if (emp.bank_name) form.querySelector('[name="bank_name"]').value = emp.bank_name;
+              if (emp.account_number) form.querySelector('[name="account_number"]').value = emp.account_number;
+              if (emp.ifsc) form.querySelector('[name="ifsc"]').value = emp.ifsc;
+              if (emp.upi) form.querySelector('[name="upi"]').value = emp.upi;
+              if (emp.pan) form.querySelector('[name="pan"]').value = emp.pan;
+              if (emp.aadhaar) form.querySelector('[name="aadhaar"]').value = emp.aadhaar;
+              
+              // Tax/IDs
+              if (emp.uan) form.querySelector('[name="uan"]').value = emp.uan;
+              if (emp.esic) form.querySelector('[name="esic"]').value = emp.esic;
+              if (emp.gst) form.querySelector('[name="gst"]').value = emp.gst;
+              
+              // Emergency Contacts
+              if (emp.emg_name1) form.querySelector('[name="emg_name1"]').value = emp.emg_name1;
+              if (emp.emg_relation1) form.querySelector('[name="emg_relation1"]').value = emp.emg_relation1;
+              if (emp.emg_phone1) form.querySelector('[name="emg_phone1"]').value = emp.emg_phone1;
+              if (emp.emg_name2) form.querySelector('[name="emg_name2"]').value = emp.emg_name2;
+              if (emp.emg_relation2) form.querySelector('[name="emg_relation2"]').value = emp.emg_relation2;
+              if (emp.emg_phone2) form.querySelector('[name="emg_phone2"]').value = emp.emg_phone2;
+              
+              // Assets
+              if (emp.asset_laptop) form.querySelector('[name="asset_laptop"]').value = emp.asset_laptop;
+              if (emp.asset_phone) form.querySelector('[name="asset_phone"]').value = emp.asset_phone;
+              if (emp.asset_other) form.querySelector('[name="asset_other"]').value = emp.asset_other;
+              
+              // Access
+              if (emp.work_email) form.querySelector('[name="work_email"]').value = emp.work_email;
+              if (emp.github) form.querySelector('[name="github"]').value = emp.github;
+              if (emp.pm_tool) form.querySelector('[name="pm_tool"]').value = emp.pm_tool;
+              if (emp.vpn) form.querySelector('[name="vpn"]').value = emp.vpn;
+              if (emp.access_level) form.querySelector('[name="access_level"]').value = emp.access_level;
+              
+              // Notes
+              if (emp.notes) form.querySelector('[name="notes"]').value = emp.notes;
               
               // Leave balances
               if (emp.annual_leave !== undefined) {
@@ -1338,6 +1442,152 @@
         }
       }
       return cookieValue;
+    }
+    
+    // Save individual section
+    window.saveSection = function(sectionName, buttonElement) {
+      const form = document.getElementById('employeeForm');
+      if (!form) {
+        alert('Form not found!');
+        return;
+      }
+      
+      // Validate required fields based on section
+      const messages = [];
+      
+      if (sectionName === 'personal') {
+        const first = form.querySelector('[name="first_name"]')?.value.trim() || '';
+        const last = form.querySelector('[name="last_name"]')?.value.trim() || '';
+        const email = form.querySelector('[name="email"]')?.value.trim() || '';
+        const phone = form.querySelector('[name="phone"]')?.value.trim() || '';
+        if (!first) messages.push('First name is required');
+        if (!last) messages.push('Last name is required');
+        if (!email) messages.push('Email is required');
+        if (!phone) messages.push('Phone is required');
+      }
+      
+      if (messages.length > 0) {
+        const alert = document.createElement('div');
+        alert.className = 'alert alert-danger alert-dismissible fade show';
+        alert.innerHTML = '<strong>Please fix the following:</strong><ul class="mb-0">' + messages.map(m => `<li>${m}</li>`).join('') + '</ul><button type="button" class="btn-close" data-bs-dismiss="alert"></button>';
+        const activeTab = document.querySelector(`#${sectionName}.tab-pane`);
+        if (activeTab) {
+          activeTab.querySelectorAll('.alert-danger, .alert-success').forEach(x => x.remove());
+          const cardBody = activeTab.querySelector('.card-body');
+          if (cardBody) {
+            cardBody.prepend(alert);
+            alert.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          }
+        }
+        return;
+      }
+      
+      // Get form data
+      const formData = new FormData(form);
+      
+      // Ensure employee_id is included (important for updates)
+      const empIdField = document.getElementById('employee_id');
+      if (empIdField && empIdField.value) {
+        formData.set('employee_id', empIdField.value);
+        console.log('📝 Including employee_id for update:', empIdField.value);
+      }
+      
+      // Log file inputs for document section
+      if (sectionName === 'docs') {
+        const docFields = ['doc_aadhaar', 'doc_pan', 'doc_bank', 'doc_experience', 
+                          'doc_education', 'doc_prev_offer_relieve', 'doc_current_offer', 'doc_salary_slips'];
+        docFields.forEach(fieldName => {
+          const fileInput = form.querySelector(`[name="${fieldName}"]`);
+          if (fileInput && fileInput.files && fileInput.files.length > 0) {
+            console.log(`📄 Document file selected - ${fieldName}:`, fileInput.files[0].name);
+          }
+        });
+      }
+      
+      // Get CSRF token
+      const csrftoken = getCookie('csrftoken');
+      if (!csrftoken) {
+        alert('CSRF token not found. Please refresh the page.');
+        return;
+      }
+      
+      // Show loading on save button
+      const saveBtn = buttonElement || document.querySelector(`button[onclick*="saveSection('${sectionName}'"]`);
+      if (!saveBtn) {
+        alert('Save button not found!');
+        return;
+      }
+      
+      const originalBtnText = saveBtn.innerHTML;
+      saveBtn.disabled = true;
+      saveBtn.innerHTML = '<i class="bi bi-hourglass-split"></i> Saving...';
+      
+      // Submit via AJAX
+      fetch(form.action || '/employees/', {
+        method: 'POST',
+        headers: {
+          'X-CSRFToken': csrftoken,
+          'X-Requested-With': 'XMLHttpRequest'
+        },
+        body: formData
+      })
+        .then(response => {
+          if (!response.ok) {
+            throw new Error('Network response was not ok');
+          }
+          return response.json();
+        })
+        .then(data => {
+          if (data.success) {
+            // Success message
+            const alert = document.createElement('div');
+            alert.className = 'alert alert-success alert-dismissible fade show';
+            alert.innerHTML = `<strong>Success!</strong> ${data.message || 'Data saved successfully!'}<button type="button" class="btn-close" data-bs-dismiss="alert"></button>`;
+            const activeTab = document.querySelector(`#${sectionName}.tab-pane`);
+            if (activeTab) {
+              activeTab.querySelectorAll('.alert-success, .alert-danger').forEach(x => x.remove());
+              const cardBody = activeTab.querySelector('.card-body');
+              if (cardBody) {
+                cardBody.prepend(alert);
+                alert.scrollIntoView({ behavior: 'smooth', block: 'start' });
+              }
+            }
+            
+            // Auto-dismiss after 3 seconds
+            setTimeout(() => {
+              try {
+                const bsAlert = bootstrap.Alert.getOrCreateInstance(alert);
+                bsAlert.close();
+              } catch (e) {
+                alert.remove();
+              }
+            }, 3000);
+          } else {
+            throw new Error(data.error || 'Failed to save data');
+          }
+        })
+        .catch(error => {
+          console.error('Error:', error);
+          const alert = document.createElement('div');
+          alert.className = 'alert alert-danger alert-dismissible fade show';
+          alert.innerHTML = `<strong>Error!</strong> ${error.message || 'Failed to save data. Please try again.'}<button type="button" class="btn-close" data-bs-dismiss="alert"></button>`;
+          const activeTab = document.querySelector(`#${sectionName}.tab-pane`);
+          if (activeTab) {
+            activeTab.querySelectorAll('.alert-danger').forEach(x => x.remove());
+            const cardBody = activeTab.querySelector('.card-body');
+            if (cardBody) {
+              cardBody.prepend(alert);
+              alert.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }
+          }
+        })
+        .finally(() => {
+          // Restore button
+          if (saveBtn) {
+            saveBtn.disabled = false;
+            saveBtn.innerHTML = originalBtnText;
+          }
+        });
     }
     
     // Show success/error messages

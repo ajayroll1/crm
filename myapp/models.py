@@ -471,6 +471,16 @@ class Employee(models.Model):
     # Notes
     notes = models.TextField(blank=True, null=True)
     
+    # Documents
+    doc_aadhaar = models.FileField(upload_to='uploads/employees/documents/', blank=True, null=True, verbose_name="Aadhaar Card")
+    doc_pan = models.FileField(upload_to='uploads/employees/documents/', blank=True, null=True, verbose_name="PAN Card")
+    doc_bank = models.FileField(upload_to='uploads/employees/documents/', blank=True, null=True, verbose_name="Bank Passbook/Cancelled Cheque")
+    doc_experience = models.FileField(upload_to='uploads/employees/documents/', blank=True, null=True, verbose_name="Experience Letter(s)")
+    doc_education = models.FileField(upload_to='uploads/employees/documents/', blank=True, null=True, verbose_name="Education Certificates")
+    doc_prev_offer_relieve = models.FileField(upload_to='uploads/employees/documents/', blank=True, null=True, verbose_name="Previous Company Offer/Relieving Letter")
+    doc_current_offer = models.FileField(upload_to='uploads/employees/documents/', blank=True, null=True, verbose_name="Current Company Offer/Appointment Letter")
+    doc_salary_slips = models.FileField(upload_to='uploads/employees/documents/', blank=True, null=True, verbose_name="Latest Month Salary Slips")
+    
     # Leave Balances
     annual_leave = models.IntegerField(default=20, verbose_name="Annual Leave Days")
     sick_leave = models.IntegerField(default=12, verbose_name="Sick Leave Days")

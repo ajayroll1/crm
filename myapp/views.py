@@ -89,7 +89,7 @@ def dashboard_leaves(request):
 
 @require_POST
 def leave_status_update(request, leave_id):
-    """Update leave request status"""
+    """Update leave request status and update employee leave balance when approved"""
     try:
         leave = LeaveRequest.objects.get(id=leave_id)
         new_status = request.POST.get('status', '').strip()
@@ -100,6 +100,97 @@ def leave_status_update(request, leave_id):
         old_status = leave.status
         leave.status = new_status
         leave.save()
+        
+        # If status changed to "Approved", subtract leave days from employee balance
+        if new_status == 'Approved' and old_status != 'Approved':
+            # Find employee by applicant_name
+            if leave.applicant_name:
+                name_parts = leave.applicant_name.strip().split(' ', 1)
+                first_name = name_parts[0] if name_parts else ''
+                last_name = name_parts[1] if len(name_parts) > 1 else ''
+                
+                employee_obj = None
+                if first_name and last_name:
+                    employee_obj = Employee.objects.filter(
+                        first_name__iexact=first_name,
+                        last_name__iexact=last_name
+                    ).first()
+                
+                # If not found by name, try by user
+                if not employee_obj and leave.user:
+                    if leave.user.email:
+                        employee_obj = Employee.objects.filter(email__iexact=leave.user.email).first()
+                
+                if employee_obj:
+                    # Map leave_type to Employee model field
+                    leave_type_mapping = {
+                        'annual': 'annual_leave',
+                        'sick': 'sick_leave',
+                        'personal': 'personal_leave',
+                        'maternity': 'maternity_leave',
+                        'paternity': 'paternity_leave',
+                        'emergency': 'emergency_leave',
+                        # Also handle display names
+                        'Annual Leave': 'annual_leave',
+                        'Sick Leave': 'sick_leave',
+                        'Personal Leave': 'personal_leave',
+                        'Maternity': 'maternity_leave',
+                        'Paternity': 'paternity_leave',
+                        'Emergency': 'emergency_leave',
+                    }
+                    
+                    employee_field = leave_type_mapping.get(leave.leave_type.lower() if leave.leave_type else '', None)
+                    
+                    if employee_field:
+                        current_balance = getattr(employee_obj, employee_field, None) or 0
+                        new_balance = max(0, current_balance - leave.days)  # Ensure non-negative
+                        setattr(employee_obj, employee_field, new_balance)
+                        employee_obj.save()
+                        print(f"✅ Leave balance updated - {employee_field}: {current_balance} -> {new_balance} (subtracted {leave.days} days)")
+        
+        # If status changed from "Approved" to something else (Rejected/Cancelled), restore leave balance
+        if old_status == 'Approved' and new_status in ['Rejected', 'Cancelled']:
+            # Find employee
+            if leave.applicant_name:
+                name_parts = leave.applicant_name.strip().split(' ', 1)
+                first_name = name_parts[0] if name_parts else ''
+                last_name = name_parts[1] if len(name_parts) > 1 else ''
+                
+                employee_obj = None
+                if first_name and last_name:
+                    employee_obj = Employee.objects.filter(
+                        first_name__iexact=first_name,
+                        last_name__iexact=last_name
+                    ).first()
+                
+                if not employee_obj and leave.user and leave.user.email:
+                    employee_obj = Employee.objects.filter(email__iexact=leave.user.email).first()
+                
+                if employee_obj:
+                    # Map leave_type to Employee model field
+                    leave_type_mapping = {
+                        'annual': 'annual_leave',
+                        'sick': 'sick_leave',
+                        'personal': 'personal_leave',
+                        'maternity': 'maternity_leave',
+                        'paternity': 'paternity_leave',
+                        'emergency': 'emergency_leave',
+                        'Annual Leave': 'annual_leave',
+                        'Sick Leave': 'sick_leave',
+                        'Personal Leave': 'personal_leave',
+                        'Maternity': 'maternity_leave',
+                        'Paternity': 'paternity_leave',
+                        'Emergency': 'emergency_leave',
+                    }
+                    
+                    employee_field = leave_type_mapping.get(leave.leave_type.lower() if leave.leave_type else '', None)
+                    
+                    if employee_field:
+                        current_balance = getattr(employee_obj, employee_field, None) or 0
+                        new_balance = current_balance + leave.days  # Restore the days
+                        setattr(employee_obj, employee_field, new_balance)
+                        employee_obj.save()
+                        print(f"✅ Leave balance restored - {employee_field}: {current_balance} -> {new_balance} (restored {leave.days} days)")
         
         messages.success(request, f'Leave request #{leave_id} status updated from {old_status} to {new_status}')
         return JsonResponse({
@@ -510,9 +601,21 @@ def employees(request):
                 else:
                     emp_code = f"EMP-{Employee.objects.count() + 1:04d}"
             
-            # Check if employee with this code exists (for update)
+            # Check if employee ID is provided (for update)
             employee = None
-            if emp_code:
+            employee_id = request.POST.get('employee_id', '').strip()
+            if employee_id:
+                try:
+                    employee = Employee.objects.get(id=int(employee_id))
+                    # Use existing emp_code if not provided
+                    if not emp_code and employee.emp_code:
+                        emp_code = employee.emp_code
+                except (Employee.DoesNotExist, ValueError):
+                    employee_id = None
+                    pass
+            
+            # If no employee ID, check by emp_code (for update)
+            if not employee and emp_code:
                 try:
                     employee = Employee.objects.get(emp_code=emp_code)
                 except Employee.DoesNotExist:
@@ -565,14 +668,45 @@ def employees(request):
                 employee.probation = int(probation)
             
             # Payroll
-            for field in ['ctc', 'basic', 'hra', 'allowances', 'deductions', 'variable']:
+            payroll_fields = ['ctc', 'basic', 'hra', 'allowances', 'deductions', 'variable']
+            for field in payroll_fields:
                 value = request.POST.get(field, '').strip()
                 if value:
                     try:
-                        setattr(employee, field, Decimal(value))
-                    except (InvalidOperation, ValueError):
-                        pass
-            employee.pay_cycle = request.POST.get('pay_cycle', '').strip() or None
+                        # Remove currency symbols, commas, and spaces
+                        cleaned_value = value.replace('₹', '').replace(',', '').replace(' ', '').replace('$', '').strip()
+                        if cleaned_value:
+                            # Convert to Decimal and validate range
+                            # max_digits=12, decimal_places=2 means max value is 9999999999.99
+                            decimal_value = Decimal(cleaned_value)
+                            
+                            # Check if value is within valid range
+                            max_value = Decimal('9999999999.99')
+                            min_value = Decimal('-9999999999.99')
+                            
+                            if decimal_value > max_value:
+                                print(f"Warning: {field} value {decimal_value} exceeds max {max_value}, setting to None")
+                                setattr(employee, field, None)
+                            elif decimal_value < min_value:
+                                print(f"Warning: {field} value {decimal_value} below min {min_value}, setting to None")
+                                setattr(employee, field, None)
+                            else:
+                                # Ensure it has at most 2 decimal places
+                                decimal_value = decimal_value.quantize(Decimal('0.01'))
+                                setattr(employee, field, decimal_value)
+                        else:
+                            setattr(employee, field, None)
+                    except (InvalidOperation, ValueError, TypeError) as e:
+                        print(f"Error parsing {field}: {value}, Error: {str(e)}")
+                        setattr(employee, field, None)
+                else:
+                    # If empty, set to None to clear the field
+                    setattr(employee, field, None)
+            
+            pay_cycle = request.POST.get('pay_cycle', '').strip()
+            employee.pay_cycle = pay_cycle if pay_cycle else None
+            
+            print(f"✅ Payroll data saved - CTC: {employee.ctc}, Basic: {employee.basic}, HRA: {employee.hra}, Allowances: {employee.allowances}, Deductions: {employee.deductions}, Variable: {employee.variable}, Pay Cycle: {employee.pay_cycle}")
             
             # Banking
             employee.bank_name = request.POST.get('bank_name', '').strip() or None
@@ -610,6 +744,18 @@ def employees(request):
             # Notes
             employee.notes = request.POST.get('notes', '').strip() or None
             
+            # Documents - Handle file uploads
+            document_fields = [
+                'doc_aadhaar', 'doc_pan', 'doc_bank', 'doc_experience',
+                'doc_education', 'doc_prev_offer_relieve', 'doc_current_offer', 'doc_salary_slips'
+            ]
+            for field_name in document_fields:
+                if field_name in request.FILES:
+                    # Only update if a new file is uploaded
+                    setattr(employee, field_name, request.FILES[field_name])
+                    print(f"✅ Document saved - {field_name}: {request.FILES[field_name].name}")
+                # If no new file is uploaded, keep existing file (don't overwrite with None)
+            
             # Leave Balances
             for field in ['annual_leave', 'sick_leave', 'personal_leave', 'maternity_leave', 'paternity_leave', 'emergency_leave']:
                 value = request.POST.get(field, '').strip()
@@ -620,12 +766,31 @@ def employees(request):
             employee.status = request.POST.get('status', 'active').strip() or 'active'
             
             employee.save()
+            print(f"✅ Employee saved - ID: {employee.id}, Name: {employee.get_full_name()}, Code: {employee.emp_code}")
+            
+            # Check if request is AJAX
+            if request.headers.get('X-Requested-With') == 'XMLHttpRequest' or 'application/json' in request.headers.get('Accept', ''):
+                return JsonResponse({
+                    'success': True,
+                    'message': f'Employee "{employee.get_full_name()}" saved successfully!',
+                    'employee_id': employee.id,
+                    'emp_code': employee.emp_code
+                })
             
             messages.success(request, f'Employee "{employee.get_full_name()}" saved successfully!')
             return redirect('employees')
         except Exception as e:
-            messages.error(request, f'Error saving employee: {str(e)}')
-            print(f"Error saving employee: {str(e)}")
+            error_msg = f'Error saving employee: {str(e)}'
+            print(error_msg)
+            
+            # Check if request is AJAX
+            if request.headers.get('X-Requested-With') == 'XMLHttpRequest' or 'application/json' in request.headers.get('Accept', ''):
+                return JsonResponse({
+                    'success': False,
+                    'error': str(e)
+                }, status=400)
+            
+            messages.error(request, error_msg)
     
     # Get employee list for display
     employee_list = Employee.objects.all().order_by('-created_at')
@@ -698,6 +863,43 @@ def employee_view(request, employee_id):
             'maternity_leave': employee.maternity_leave,
             'paternity_leave': employee.paternity_leave,
             'emergency_leave': employee.emergency_leave,
+            # Emergency contacts
+            'emg_name1': employee.emg_name1,
+            'emg_relation1': employee.emg_relation1,
+            'emg_phone1': employee.emg_phone1,
+            'emg_name2': employee.emg_name2,
+            'emg_relation2': employee.emg_relation2,
+            'emg_phone2': employee.emg_phone2,
+            # Payroll
+            'ctc': str(employee.ctc) if employee.ctc else None,
+            'basic': str(employee.basic) if employee.basic else None,
+            'hra': str(employee.hra) if employee.hra else None,
+            'allowances': str(employee.allowances) if employee.allowances else None,
+            'deductions': str(employee.deductions) if employee.deductions else None,
+            'variable': str(employee.variable) if employee.variable else None,
+            'pay_cycle': employee.pay_cycle,
+            # Banking
+            'bank_name': employee.bank_name,
+            'account_number': employee.account_number,
+            'ifsc': employee.ifsc,
+            'upi': employee.upi,
+            'pan': employee.pan,
+            'aadhaar': employee.aadhaar,
+            # Tax/IDs
+            'uan': employee.uan,
+            'esic': employee.esic,
+            'gst': employee.gst,
+            # Assets
+            'asset_laptop': employee.asset_laptop,
+            'asset_phone': employee.asset_phone,
+            'asset_other': employee.asset_other,
+            # Access
+            'github': employee.github,
+            'pm_tool': employee.pm_tool,
+            'vpn': employee.vpn,
+            'access_level': employee.access_level,
+            # Notes
+            'notes': employee.notes,
         }
         return JsonResponse({'success': True, 'employee': data})
     except Employee.DoesNotExist:
@@ -1042,10 +1244,82 @@ def employee_settings(request):
     return render(request, 'employee/setting.html', context)
 
 def employee_leave(request):
-    """Employee leave management view"""
-    # Load pending requests from DB for current user (or all if not authenticated)
-    qs = LeaveRequest.objects.filter(status='Pending')
+    """Employee leave management view - fetches data from myapp_employee table"""
+    from django.db.models import Q
+    
+    # Get logged-in user's information
+    employee = None
+    employee_name = None
+    employee_department = None
+    employee_designation = None
+    
     if request.user.is_authenticated:
+        # Get user's full name or username
+        user_full_name = request.user.get_full_name() or request.user.username or ''
+        
+        # Try to match employee by name
+        # Split user full name into first and last name
+        name_parts = user_full_name.strip().split(' ', 1)
+        first_name = name_parts[0] if name_parts else ''
+        last_name = name_parts[1] if len(name_parts) > 1 else ''
+        
+        # Try to find employee by matching name
+        if first_name and last_name:
+            employee = Employee.objects.filter(
+                first_name__iexact=first_name,
+                last_name__iexact=last_name
+            ).first()
+        
+        # If not found by name, try by email
+        if not employee and request.user.email:
+            employee = Employee.objects.filter(
+                email__iexact=request.user.email
+            ).first()
+            
+        # If still not found, try by partial name match
+        if not employee and user_full_name:
+            # Try to match any part of the name
+            employees = Employee.objects.filter(
+                Q(first_name__icontains=first_name) |
+                Q(last_name__icontains=first_name) |
+                Q(email__icontains=request.user.email if request.user.email else '')
+            )
+            employee = employees.first()
+    
+    # Get leave balance from matched employee or set to "NA"
+    if employee:
+        leave_balance = {
+            'annual_leave': employee.annual_leave if employee.annual_leave is not None else 'NA',
+            'sick_leave': employee.sick_leave if employee.sick_leave is not None else 'NA',
+            'personal_leave': employee.personal_leave if employee.personal_leave is not None else 'NA',
+            'maternity_leave': employee.maternity_leave if employee.maternity_leave is not None else 'NA',
+            'paternity_leave': employee.paternity_leave if employee.paternity_leave is not None else 'NA',
+            'emergency_leave': employee.emergency_leave if employee.emergency_leave is not None else 'NA'
+        }
+        employee_name = employee.get_full_name()
+        employee_department = employee.department or 'N/A'
+        employee_designation = employee.designation or 'N/A'
+    else:
+        # No match found - show "NA" for all cards
+        leave_balance = {
+            'annual_leave': 'NA',
+            'sick_leave': 'NA',
+            'personal_leave': 'NA',
+            'maternity_leave': 'NA',
+            'paternity_leave': 'NA',
+            'emergency_leave': 'NA'
+        }
+        employee_name = request.user.get_full_name() if request.user.is_authenticated else 'N/A'
+        employee_department = 'N/A'
+        employee_designation = 'N/A'
+    
+    # Load pending requests - filter by matched employee's applicant_name if found
+    qs = LeaveRequest.objects.filter(status='Pending')
+    if employee:
+        # Filter by employee's full name
+        qs = qs.filter(applicant_name__iexact=employee_name)
+    elif request.user.is_authenticated:
+        # Fallback to user-based filtering
         qs = qs.filter(user=request.user)
     qs = qs.order_by('-applied_at')
 
@@ -1064,9 +1338,13 @@ def employee_leave(request):
         for lr in qs
     ]
 
-    # Leave history: show approved requests (user-scoped)
-    hist_qs = LeaveRequest.objects.filter(status='Approved')
-    if request.user.is_authenticated:
+    # Leave history: show all statuses except pending (filtered by matched employee)
+    hist_qs = LeaveRequest.objects.exclude(status='Pending')
+    if employee:
+        # Filter by employee's full name
+        hist_qs = hist_qs.filter(applicant_name__iexact=employee_name)
+    elif request.user.is_authenticated:
+        # Fallback to user-based filtering
         hist_qs = hist_qs.filter(user=request.user)
     hist_qs = hist_qs.order_by('-applied_at')
     leave_history = [
@@ -1084,16 +1362,11 @@ def employee_leave(request):
     ]
 
     context = {
-        'employee_name': 'John Doe',
-        'employee_id': 'EMP001',
-        'leave_balance': {
-            'sick_leave': 12,
-            'annual_leave': 20,
-            'personal_leave': 5,
-            'maternity_leave': 90,
-            'paternity_leave': 15,
-            'emergency_leave': 3
-        },
+        'employee_name': employee_name,
+        'employee_id': employee.emp_code if employee else 'N/A',
+        'employee_department': employee_department,
+        'employee_designation': employee_designation,
+        'leave_balance': leave_balance,
         'pending_requests': pending_requests,
         'leave_history': leave_history,
         'leave_types': [
@@ -1172,21 +1445,16 @@ def employee_leave_apply(request):
         
         # Get applicant name from form or user
         applicant_name = request.POST.get('applicantName', '').strip()
-        print(f"\n🔍 DEBUG: Received applicantName from form: '{applicant_name}'")
         
         if not applicant_name:
             if request.user.is_authenticated:
                 applicant_name = request.user.get_full_name() or request.user.username or ''
-                print(f"🔍 DEBUG: Got name from authenticated user: '{applicant_name}'")
             else:
                 applicant_name = request.POST.get('applicant_name', '').strip()
-                print(f"🔍 DEBUG: Got name from POST (not authenticated): '{applicant_name}'")
         
         # Fallback: ensure we have a name
         if not applicant_name:
             applicant_name = request.POST.get('applicant_name', 'Unknown User').strip()
-
-        print(f"🔍 DEBUG: Final applicant_name to save: '{applicant_name}'")
 
         if not (leave_type and start_date and end_date and reason):
             return JsonResponse({'success': False, 'error': 'Missing required fields.'}, status=400)
@@ -1203,6 +1471,54 @@ def employee_leave_apply(request):
         if not full_name and request.user.is_authenticated:
             full_name = request.user.get_full_name() or request.user.username or ''
 
+        # Find employee by applicant_name to check leave balance
+        employee_obj = None
+        if full_name:
+            # Split name into first and last
+            name_parts = full_name.strip().split(' ', 1)
+            first_name = name_parts[0] if name_parts else ''
+            last_name = name_parts[1] if len(name_parts) > 1 else ''
+            
+            if first_name and last_name:
+                employee_obj = Employee.objects.filter(
+                    first_name__iexact=first_name,
+                    last_name__iexact=last_name
+                ).first()
+            
+            # If not found, try by email
+            if not employee_obj and request.user.is_authenticated and request.user.email:
+                employee_obj = Employee.objects.filter(email__iexact=request.user.email).first()
+        
+        # Map leave_type to Employee model field name
+        leave_type_mapping = {
+            'annual': 'annual_leave',
+            'sick': 'sick_leave',
+            'personal': 'personal_leave',
+            'maternity': 'maternity_leave',
+            'paternity': 'paternity_leave',
+            'emergency': 'emergency_leave',
+            # Also handle display names
+            'Annual Leave': 'annual_leave',
+            'Sick Leave': 'sick_leave',
+            'Personal Leave': 'personal_leave',
+            'Maternity': 'maternity_leave',
+            'Paternity': 'paternity_leave',
+            'Emergency': 'emergency_leave',
+        }
+        
+        employee_field = leave_type_mapping.get(leave_type.lower() if leave_type else '', None)
+        
+        # Check available leave balance if employee found
+        if employee_obj and employee_field:
+            available_balance = getattr(employee_obj, employee_field, None) or 0
+            if total_days > available_balance:
+                leave_type_display = leave_type.replace('_', ' ').title()
+                return JsonResponse({
+                    'success': False, 
+                    'error': f'Insufficient leave balance. You have {available_balance} days available for {leave_type_display}, but requested {total_days} days.'
+                }, status=400)
+        
+        # Create leave request
         lr = LeaveRequest.objects.create(
             user=request.user if request.user.is_authenticated else None,
             applicant_name=full_name.strip() if full_name else None,
@@ -1215,18 +1531,8 @@ def employee_leave_apply(request):
             handover=handover.strip() if handover else None,
             status='Pending'
         )
-        print(f"\n✅ Leave Request saved to database (myapp_leaverequest):")
-        print(f"   ID: {lr.id}")
-        print(f"   Applicant Name: '{lr.applicant_name}'")
-        print(f"   Leave Type: {lr.leave_type}")
-        print(f"   Days: {lr.days}")
-        print(f"   Status: {lr.status}")
         
-        # Verify it was saved correctly
-        saved_lr = LeaveRequest.objects.get(id=lr.id)
-        print(f"🔍 VERIFICATION: Saved applicant_name = '{saved_lr.applicant_name}'")
-        
-        return JsonResponse({'success': True, 'id': lr.id, 'message': f'Leave request saved. Name: {lr.applicant_name}'})
+        return JsonResponse({'success': True, 'id': lr.id, 'message': f'Leave request submitted successfully!'})
     except Exception as e:
         return JsonResponse({'success': False, 'error': str(e)}, status=500)
 
@@ -1329,24 +1635,134 @@ def employee_finish_project(request, project_id):
     return redirect('employee_projects')
 
 def employee_profile(request):
-    """Employee profile view"""
-    context = {
-        'employee': {
-            'first_name': 'John',
-            'last_name': 'Doe',
-            'email': 'john.doe@sujataassociates.com',
-            'phone': '+1 (555) 123-4567',
-            'department': 'Information Technology',
-            'position': 'Software Developer',
-            'employee_id': 'EMP001',
-            'username': 'john.doe',
-            'bio': 'Experienced software developer with 5+ years in web development and mobile applications.',
-            'avatar': 'https://via.placeholder.com/150'
-        },
-        'preferences': {
-            'timezone': 'UTC-5',
+    """Employee profile view - fetches data from myapp_employee table"""
+    from django.db.models import Q
+    from datetime import datetime, date
+    
+    # Get logged-in user's information
+    employee_obj = None
+    employee_name = None
+    
+    if request.user.is_authenticated:
+        # Get user's full name or username
+        user_full_name = request.user.get_full_name() or request.user.username or ''
+        
+        # Try to match employee by name, designation, and department
+        # Split user full name into first and last name
+        name_parts = user_full_name.strip().split(' ', 1)
+        first_name = name_parts[0] if name_parts else ''
+        last_name = name_parts[1] if len(name_parts) > 1 else ''
+        
+        # Try to find employee by matching name first
+        if first_name and last_name:
+            employee_obj = Employee.objects.filter(
+                first_name__iexact=first_name,
+                last_name__iexact=last_name
+            ).first()
+        
+        # If not found by name, try by email
+        if not employee_obj and request.user.email:
+            employee_obj = Employee.objects.filter(
+                email__iexact=request.user.email
+            ).first()
+            
+        # If still not found, try by partial name match
+        if not employee_obj and user_full_name:
+            # Try to match any part of the name
+            employees = Employee.objects.filter(
+                Q(first_name__icontains=first_name) |
+                Q(last_name__icontains=first_name) |
+                Q(email__icontains=request.user.email if request.user.email else '')
+            )
+            employee_obj = employees.first()
+    
+    # Build employee data from matched employee or use defaults
+    if employee_obj:
+        # Calculate experience from joining date
+        experience_years = None
+        if employee_obj.joining_date:
+            try:
+                today = date.today()
+                delta = today - employee_obj.joining_date
+                years = delta.days // 365
+                months = (delta.days % 365) // 30
+                if years > 0:
+                    experience_years = f"{years}+ Years"
+                elif months > 0:
+                    experience_years = f"{months} Months"
+                else:
+                    experience_years = "Less than a month"
+            except:
+                experience_years = "N/A"
+        else:
+            experience_years = "N/A"
+        
+        employee_data = {
+            'first_name': employee_obj.first_name or 'N/A',
+            'last_name': employee_obj.last_name or 'N/A',
+            'email': employee_obj.email or 'N/A',
+            'phone': employee_obj.phone or 'N/A',
+            'department': employee_obj.department or 'N/A',
+            'position': employee_obj.designation or 'N/A',
+            'employee_id': employee_obj.emp_code or 'N/A',
+            'username': request.user.username if request.user.is_authenticated else 'N/A',
+            'bio': employee_obj.notes or 'No bio available.',
+            'avatar': 'https://via.placeholder.com/150',
+            'experience': experience_years,
+            'address_current': employee_obj.address_current or 'N/A',
+            'address_permanent': employee_obj.address_permanent or 'N/A',
+            'gender': employee_obj.gender if employee_obj.gender else 'N/A',
+            'dob': employee_obj.dob.strftime('%d %b %Y') if employee_obj.dob else 'N/A',
+            'joining_date': employee_obj.joining_date.strftime('%d %b %Y') if employee_obj.joining_date else 'N/A',
+            'manager': employee_obj.manager or 'N/A',
+            'location': employee_obj.location or 'N/A',
+            'employment_type': employee_obj.employment_type if employee_obj.employment_type else 'N/A',
+            'status': employee_obj.status if employee_obj.status else 'N/A',
+            'work_email': employee_obj.work_email or 'N/A',
+            'pan': employee_obj.pan or 'N/A',
+            'aadhaar': employee_obj.aadhaar or 'N/A',
+            'bank_name': employee_obj.bank_name or 'N/A',
+            'account_number': employee_obj.account_number or 'N/A',
+            'ifsc': employee_obj.ifsc or 'N/A',
+        }
+        employee_name = employee_obj.get_full_name()
+    else:
+        # No match found - use defaults
+        employee_data = {
+            'first_name': request.user.first_name if request.user.is_authenticated and hasattr(request.user, 'first_name') else 'N/A',
+            'last_name': request.user.last_name if request.user.is_authenticated and hasattr(request.user, 'last_name') else 'N/A',
+            'email': request.user.email if request.user.is_authenticated else 'N/A',
+            'phone': 'N/A',
+            'department': 'N/A',
+            'position': 'N/A',
+            'employee_id': 'N/A',
+            'username': request.user.username if request.user.is_authenticated else 'N/A',
+            'bio': 'No employee record found. Please contact HR.',
+            'avatar': 'https://via.placeholder.com/150',
+            'experience': 'N/A',
+            'address_current': 'N/A',
+            'address_permanent': 'N/A',
+            'gender': 'N/A',
+            'dob': 'N/A',
+            'joining_date': 'N/A',
+            'manager': 'N/A',
+            'location': 'N/A',
+            'employment_type': 'N/A',
+            'status': 'N/A',
+            'work_email': 'N/A',
+            'pan': 'N/A',
+            'aadhaar': 'N/A',
+            'bank_name': 'N/A',
+            'account_number': 'N/A',
+            'ifsc': 'N/A',
+        }
+        employee_name = request.user.get_full_name() if request.user.is_authenticated else 'N/A'
+    
+    # Default preferences (can be enhanced later with user preferences model)
+    preferences = {
+        'timezone': 'UTC+5:30',
             'language': 'en',
-            'date_format': 'MM/DD/YYYY',
+        'date_format': 'DD/MM/YYYY',
             'time_format': '12',
             'dashboard_layout': 'grid',
             'items_per_page': 25,
@@ -1356,6 +1772,10 @@ def employee_profile(request):
             'weekend_work': False,
             'overtime_work': True
         }
+    
+    context = {
+        'employee': employee_data,
+        'preferences': preferences
     }
     return render(request, 'employee/profile.html', context)
 
@@ -1471,72 +1891,247 @@ def employee_documents_delete(request, doc_id):
         return JsonResponse({'success': False, 'error': str(e)}, status=500)
 
 def employee_payroll(request):
-    """Employee payroll view"""
-    context = {
-        'current_salary': '7,500',
-        'last_payment': '7,200',
-        'last_payment_date': 'Dec 01, 2024',
-        'ytd_earnings': '90,000',
-        'next_payment_date': 'Dec 15, 2024',
-        'current_period': 'Dec 01 - Dec 15, 2024',
-        'regular_hours': 80,
-        'regular_pay': '6,000',
-        'overtime_hours': 8,
-        'overtime_pay': '1,200',
-        'bonus': '500',
-        'commission': '0',
-        'total_earnings': '7,700',
-        'federal_tax': '1,200',
-        'state_tax': '400',
-        'social_security': '477',
-        'medicare': '112',
-        'health_insurance': '200',
-        'retirement_contribution': '385',
-        'total_deductions': '2,774',
-        'net_pay': '4,926',
-        'employee_id': 'EMP001',
-        'pay_frequency': 'Bi-weekly',
-        'pay_method': 'Direct Deposit',
-        'bank_account_last4': '1234',
-        'tax_filing_status': 'Single',
-        'exemptions': 1,
-        'pay_history': [
-            {
-                'id': 1,
-                'period': 'Nov 15 - Nov 30, 2024',
-                'gross_pay': '7,200',
-                'deductions': '2,650',
-                'net_pay': '4,550',
-                'status': 'Paid',
-                'regular_pay': '6,000',
-                'overtime_pay': '1,200',
-                'bonus': '0',
-                'federal_tax': '1,150',
-                'state_tax': '380',
-                'social_security': '446',
-                'medicare': '104',
-                'health_insurance': '200',
-                'retirement_contribution': '360'
-            },
-            {
-                'id': 2,
-                'period': 'Nov 01 - Nov 15, 2024',
-                'gross_pay': '7,000',
-                'deductions': '2,580',
-                'net_pay': '4,420',
-                'status': 'Paid',
-                'regular_pay': '6,000',
-                'overtime_pay': '1,000',
-                'bonus': '0',
-                'federal_tax': '1,120',
-                'state_tax': '370',
-                'social_security': '434',
-                'medicare': '101',
-                'health_insurance': '200',
-                'retirement_contribution': '355'
-            }
-        ]
-    }
+    """Employee payroll view - fetches data from myapp_employee table"""
+    from django.db.models import Q
+    from decimal import Decimal
+    
+    # Get logged-in user's information
+    employee_obj = None
+    
+    if request.user.is_authenticated:
+        # Get user's full name or username
+        user_full_name = request.user.get_full_name() or request.user.username or ''
+        
+        # Try to match employee by name, designation, department, and phone
+        # Split user full name into first and last name
+        name_parts = user_full_name.strip().split(' ', 1)
+        first_name = name_parts[0] if name_parts else ''
+        last_name = name_parts[1] if len(name_parts) > 1 else ''
+        
+        # Get user's phone if available (from profile or request)
+        user_phone = None
+        if hasattr(request.user, 'phone'):
+            user_phone = request.user.phone
+        elif hasattr(request.user, 'profile') and hasattr(request.user.profile, 'phone'):
+            user_phone = request.user.profile.phone
+        
+        # Get user's department and designation if available (from user model or profile)
+        user_department = None
+        user_designation = None
+        if hasattr(request.user, 'department'):
+            user_department = request.user.department
+        if hasattr(request.user, 'designation'):
+            user_designation = request.user.designation
+        elif hasattr(request.user, 'profile'):
+            if hasattr(request.user.profile, 'department'):
+                user_department = request.user.profile.department
+            if hasattr(request.user.profile, 'designation'):
+                user_designation = request.user.profile.designation
+        
+        # First try: Match by exact name + designation + department + phone (most specific)
+        if first_name and last_name:
+            query = Q(first_name__iexact=first_name, last_name__iexact=last_name)
+            
+            # Add additional filters if available
+            if user_designation:
+                query &= Q(designation__iexact=user_designation)
+            if user_department:
+                query &= Q(department__iexact=user_department)
+            if user_phone:
+                query &= Q(phone__iexact=user_phone)
+            
+            employee_obj = Employee.objects.filter(query).first()
+        
+        # Second try: Match by exact name + designation + department (without phone)
+        if not employee_obj and first_name and last_name:
+            query = Q(first_name__iexact=first_name, last_name__iexact=last_name)
+            if user_designation:
+                query &= Q(designation__iexact=user_designation)
+            if user_department:
+                query &= Q(department__iexact=user_department)
+            employee_obj = Employee.objects.filter(query).first()
+        
+        # Third try: Match by exact name + phone
+        if not employee_obj and first_name and last_name and user_phone:
+            employee_obj = Employee.objects.filter(
+                first_name__iexact=first_name,
+                last_name__iexact=last_name,
+                phone__iexact=user_phone
+            ).first()
+        
+        # Fourth try: Match by exact name only
+        if not employee_obj and first_name and last_name:
+            employee_obj = Employee.objects.filter(
+                first_name__iexact=first_name,
+                last_name__iexact=last_name
+            ).first()
+        
+        # Fifth try: Match by email
+        if not employee_obj and request.user.email:
+            employee_obj = Employee.objects.filter(
+                email__iexact=request.user.email
+            ).first()
+            
+        # Sixth try: Match by partial name + designation + department
+        if not employee_obj and user_full_name:
+            query = Q(first_name__icontains=first_name) | Q(last_name__icontains=first_name)
+            if user_designation:
+                query = query & Q(designation__icontains=user_designation)
+            if user_department:
+                query = query & Q(department__icontains=user_department)
+            employees = Employee.objects.filter(query)
+            employee_obj = employees.first()
+    
+    # Format currency helper
+    def format_currency(value):
+        if value is None:
+            return '0.00'
+        if isinstance(value, Decimal):
+            return f"{value:,.2f}"
+        try:
+            return f"{float(value):,.2f}"
+        except:
+            return str(value) if value else '0.00'
+    
+    # Get account last 4 digits helper
+    def get_account_last4(account_number):
+        if account_number and len(str(account_number)) >= 4:
+            return str(account_number)[-4:]
+        return 'N/A'
+    
+    # Build payroll data from matched employee or use defaults
+    if employee_obj:
+        # Calculate monthly salary from CTC or basic
+        monthly_salary = None
+        if employee_obj.ctc:
+            monthly_salary = employee_obj.ctc / Decimal('12')
+        elif employee_obj.basic:
+            monthly_salary = employee_obj.basic
+        
+        # Payroll Information Section
+        payroll_info = {
+            'employee_id': employee_obj.emp_code or 'N/A',
+            'pay_frequency': employee_obj.pay_cycle or 'Monthly',
+            'pay_method': 'Direct Deposit' if employee_obj.bank_name and employee_obj.account_number else 'N/A',
+            'bank_account_last4': get_account_last4(employee_obj.account_number) if employee_obj.account_number else 'N/A',
+            'tax_filing_status': 'Single',  # Default, can be enhanced later
+            'exemptions': 1,  # Default, can be enhanced later
+        }
+        
+        # Calculate current salary (monthly basic + HRA + allowances)
+        current_salary = Decimal('0')
+        if employee_obj.basic:
+            current_salary += employee_obj.basic
+        if employee_obj.hra:
+            current_salary += employee_obj.hra
+        if employee_obj.allowances:
+            current_salary += employee_obj.allowances
+        
+        # Use CTC if available, otherwise calculated salary
+        if employee_obj.ctc:
+            current_salary = employee_obj.ctc / Decimal('12')
+        
+        # For demo purposes, set some calculated values
+        # In real scenario, these would come from a payroll transactions table
+        context = {
+            'current_salary': format_currency(current_salary),
+            'last_payment': format_currency(current_salary * Decimal('0.96')),  # Approximate after deductions
+            'last_payment_date': 'Dec 01, 2024',  # Would come from last payroll record
+            'ytd_earnings': format_currency(current_salary * Decimal('12') * Decimal('0.9')),  # Approximate YTD
+            'next_payment_date': 'Dec 15, 2024',  # Would be calculated from pay_cycle
+            'current_period': 'Dec 01 - Dec 15, 2024',
+            'regular_hours': 80,
+            'regular_pay': format_currency(current_salary * Decimal('0.8')) if current_salary else '0.00',
+            'overtime_hours': 8,
+            'overtime_pay': format_currency(current_salary * Decimal('0.1')) if current_salary else '0.00',
+            'bonus': format_currency(employee_obj.variable) if employee_obj.variable else '0.00',
+            'commission': '0.00',
+            'total_earnings': format_currency(current_salary),
+            'federal_tax': format_currency(current_salary * Decimal('0.15')) if current_salary else '0.00',
+            'state_tax': format_currency(current_salary * Decimal('0.05')) if current_salary else '0.00',
+            'social_security': format_currency(current_salary * Decimal('0.062')) if current_salary else '0.00',
+            'medicare': format_currency(current_salary * Decimal('0.0145')) if current_salary else '0.00',
+            'health_insurance': '200.00',
+            'retirement_contribution': format_currency(current_salary * Decimal('0.05')) if current_salary else '0.00',
+            'total_deductions': format_currency(employee_obj.deductions) if employee_obj.deductions else format_currency(current_salary * Decimal('0.35')) if current_salary else '0.00',
+            'net_pay': format_currency(current_salary - (employee_obj.deductions if employee_obj.deductions else current_salary * Decimal('0.35'))) if current_salary else '0.00',
+            # Payroll Information Section - from Employee table
+            'employee_id': payroll_info['employee_id'],
+            'pay_frequency': payroll_info['pay_frequency'],
+            'pay_method': payroll_info['pay_method'],
+            'bank_account_last4': payroll_info['bank_account_last4'],
+            'tax_filing_status': payroll_info['tax_filing_status'],
+            'exemptions': payroll_info['exemptions'],
+            'pay_history': [
+                {
+                    'id': 1,
+                    'period': 'Nov 15 - Nov 30, 2024',
+                    'gross_pay': format_currency(current_salary * Decimal('0.96')),
+                    'deductions': format_currency(current_salary * Decimal('0.35')),
+                    'net_pay': format_currency(current_salary * Decimal('0.61')),
+                    'status': 'Paid',
+                    'regular_pay': format_currency(current_salary * Decimal('0.8')),
+                    'overtime_pay': format_currency(current_salary * Decimal('0.1')),
+                    'bonus': format_currency(employee_obj.variable) if employee_obj.variable else '0.00',
+                    'federal_tax': format_currency(current_salary * Decimal('0.15')),
+                    'state_tax': format_currency(current_salary * Decimal('0.05')),
+                    'social_security': format_currency(current_salary * Decimal('0.062')),
+                    'medicare': format_currency(current_salary * Decimal('0.0145')),
+                    'health_insurance': '200.00',
+                    'retirement_contribution': format_currency(current_salary * Decimal('0.05'))
+                },
+                {
+                    'id': 2,
+                    'period': 'Nov 01 - Nov 15, 2024',
+                    'gross_pay': format_currency(current_salary * Decimal('0.96')),
+                    'deductions': format_currency(current_salary * Decimal('0.35')),
+                    'net_pay': format_currency(current_salary * Decimal('0.61')),
+                    'status': 'Paid',
+                    'regular_pay': format_currency(current_salary * Decimal('0.8')),
+                    'overtime_pay': format_currency(current_salary * Decimal('0.1')),
+                    'bonus': '0.00',
+                    'federal_tax': format_currency(current_salary * Decimal('0.15')),
+                    'state_tax': format_currency(current_salary * Decimal('0.05')),
+                    'social_security': format_currency(current_salary * Decimal('0.062')),
+                    'medicare': format_currency(current_salary * Decimal('0.0145')),
+                    'health_insurance': '200.00',
+                    'retirement_contribution': format_currency(current_salary * Decimal('0.05'))
+                }
+            ] if current_salary else []
+        }
+    else:
+        # No match found - use defaults with N/A
+        context = {
+            'current_salary': 'N/A',
+            'last_payment': 'N/A',
+            'last_payment_date': 'N/A',
+            'ytd_earnings': 'N/A',
+            'next_payment_date': 'N/A',
+            'current_period': 'N/A',
+            'regular_hours': 'N/A',
+            'regular_pay': 'N/A',
+            'overtime_hours': 'N/A',
+            'overtime_pay': 'N/A',
+            'bonus': 'N/A',
+            'commission': 'N/A',
+            'total_earnings': 'N/A',
+            'federal_tax': 'N/A',
+            'state_tax': 'N/A',
+            'social_security': 'N/A',
+            'medicare': 'N/A',
+            'health_insurance': 'N/A',
+            'retirement_contribution': 'N/A',
+            'total_deductions': 'N/A',
+            'net_pay': 'N/A',
+            'employee_id': 'N/A',
+            'pay_frequency': 'N/A',
+            'pay_method': 'N/A',
+            'bank_account_last4': 'N/A',
+            'tax_filing_status': 'N/A',
+            'exemptions': 'N/A',
+            'pay_history': []
+        }
+    
     return render(request, 'employee/payroll.html', context)
 
 def employee_achievements(request):
