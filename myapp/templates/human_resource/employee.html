@@ -43,8 +43,131 @@
     .form-section-title { font-size: .95rem; }
   }
 
+  /* Leave Balance Cards Styling */
+  .leave-balance-card {
+    border: 1px solid #e9ecef;
+    transition: all 0.3s ease;
+    height: 100%;
+  }
+  
+  .leave-balance-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  }
+  
+  .leave-icon {
+    width: 50px;
+    height: 50px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.5rem;
+    flex-shrink: 0;
+  }
+  
+  .leave-icon.success {
+    background-color: #d4edda;
+    color: #28a745;
+  }
+  
+  .leave-icon.warning {
+    background-color: #fff3cd;
+    color: #ffc107;
+  }
+  
+  .leave-icon.info {
+    background-color: #d1ecf1;
+    color: #17a2b8;
+  }
+  
+  .leave-icon.primary {
+    background-color: #cfe2ff;
+    color: #0d6efd;
+  }
+  
+  .leave-icon.secondary {
+    background-color: #e2e3e5;
+    color: #6c757d;
+  }
+  
+  .leave-icon.danger {
+    background-color: #f8d7da;
+    color: #dc3545;
+  }
+  
+  .leave-type-name {
+    font-size: 0.9rem;
+    color: #6c757d;
+    margin-bottom: 0.25rem;
+    font-weight: 500;
+  }
+  
+  .leave-days {
+    font-size: 2rem;
+    font-weight: 700;
+    color: #212529;
+    line-height: 1;
+    margin-bottom: 0.25rem;
+  }
+  
+  .leave-days-display {
+    font-size: 2rem;
+    font-weight: 700;
+    color: #212529;
+    line-height: 1;
+    margin-bottom: 0.25rem;
+    min-height: 2.5rem;
+    display: flex;
+    align-items: center;
+  }
+  
+  .leave-days-input {
+    font-size: 1.5rem;
+    font-weight: 700;
+    text-align: center;
+  }
+  
+  .leave-edit-btn {
+    flex-shrink: 0;
+  }
+  
+  .card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  
+  .leave-subtitle {
+    font-size: 0.75rem;
+    color: #6c757d;
+  }
+
   /* Employee table mobile responsiveness */
   @media (max-width: 768px) {
+    /* Leave Cards Mobile */
+    .leave-balance-card {
+      min-height: 100px;
+    }
+    
+    .leave-icon {
+      width: 45px;
+      height: 45px;
+      font-size: 1.3rem;
+    }
+    
+    .leave-type-name {
+      font-size: 0.85rem;
+    }
+    
+    .leave-days {
+      font-size: 1.75rem;
+    }
+    
+    .leave-subtitle {
+      font-size: 0.7rem;
+    }
+    
     .table-responsive {
       border: none;
     }
@@ -108,6 +231,32 @@
       width: 100% !important;
     }
   }
+
+  @media (max-width: 576px) {
+    /* Leave Cards Extra Small */
+    .leave-balance-card {
+      min-height: 90px;
+      margin-bottom: 0.75rem;
+    }
+    
+    .leave-icon {
+      width: 40px;
+      height: 40px;
+      font-size: 1.1rem;
+    }
+    
+    .leave-type-name {
+      font-size: 0.8rem;
+    }
+    
+    .leave-days {
+      font-size: 1.5rem;
+    }
+    
+    .leave-subtitle {
+      font-size: 0.65rem;
+    }
+  }
 </style>
 
 <!-- Mobile tabs hamburger -->
@@ -127,6 +276,7 @@
       <li><a class="dropdown-item" data-tab="#assets" href="#">Assets</a></li>
       <li><a class="dropdown-item" data-tab="#access" href="#">Access</a></li>
       <li><a class="dropdown-item" data-tab="#notes" href="#">Notes</a></li>
+      <li><a class="dropdown-item" data-tab="#leaves" href="#">Leaves</a></li>
     </ul>
   </div>
 </div>
@@ -162,9 +312,13 @@
   <li class="nav-item" role="presentation">
     <button class="nav-link" id="notes-tab" data-bs-toggle="tab" data-bs-target="#notes" type="button" role="tab">Notes</button>
   </li>
+  <li class="nav-item" role="presentation">
+    <button class="nav-link" id="leaves-tab" data-bs-toggle="tab" data-bs-target="#leaves" type="button" role="tab">Leaves</button>
+  </li>
 </ul>
 
-<form id="employeeForm" class="mt-3" novalidate>
+<form id="employeeForm" class="mt-3" method="POST" action="{% url 'employees' %}" novalidate>
+  {% csrf_token %}
   <div class="tab-content" id="empTabsContent">
     <!-- Personal -->
     <div class="tab-pane fade show active" id="personal" role="tabpanel">
@@ -510,6 +664,153 @@
             </div>
           </div>
         </div>
+      </div>
+    </div>
+
+    <!-- Leaves -->
+    <div class="tab-pane fade" id="leaves" role="tabpanel">
+      <div class="card">
+        <div class="card-header d-flex justify-content-between align-items-center">
+          <h6 class="form-section-title mb-0">Leave Balance</h6>
+          <button type="button" class="btn btn-sm btn-outline-primary" onclick="toggleLeaveEdit()" id="toggleLeaveEditBtn">
+            <i class="bi bi-pencil"></i> Edit Leaves
+          </button>
+        </div>
+        <div class="card-body">
+          <div class="row g-3">
+            <!-- Annual Leave Card -->
+            <div class="col-lg-4 col-md-6 col-sm-6 mb-3">
+              <div class="card leave-balance-card h-100">
+                <div class="card-body d-flex align-items-center justify-content-between">
+                  <div class="d-flex align-items-center flex-grow-1">
+                    <div class="leave-icon success me-3">
+                      <i class="bi bi-calendar3-range"></i>
+                    </div>
+                    <div class="flex-grow-1">
+                      <div class="leave-type-name">Annual Leave</div>
+                      <div class="leave-days-display" id="annual_leave_display">{% if edit_employee %}{{ edit_employee.annual_leave|default:20 }}{% else %}20{% endif %}</div>
+                      <input type="number" class="form-control form-control-sm d-none leave-days-input" name="annual_leave" id="annual_leave_input" value="{% if edit_employee %}{{ edit_employee.annual_leave|default:20 }}{% else %}20{% endif %}" min="0" style="max-width: 100px; display: inline-block;">
+                      <div class="leave-subtitle">Days Available</div>
+                    </div>
+                  </div>
+                  <button type="button" class="btn btn-sm btn-outline-secondary d-none leave-edit-btn" onclick="saveLeaveDays('annual_leave')" title="Save">
+                    <i class="bi bi-check"></i>
+                  </button>
+                </div>
+              </div>
+            </div>
+            
+            <!-- Sick Leave Card -->
+            <div class="col-lg-4 col-md-6 col-sm-6 mb-3">
+              <div class="card leave-balance-card h-100">
+                <div class="card-body d-flex align-items-center justify-content-between">
+                  <div class="d-flex align-items-center flex-grow-1">
+                    <div class="leave-icon warning me-3">
+                      <i class="bi bi-hospital"></i>
+                    </div>
+                    <div class="flex-grow-1">
+                      <div class="leave-type-name">Sick Leave</div>
+                      <div class="leave-days-display" id="sick_leave_display">{% if edit_employee %}{{ edit_employee.sick_leave|default:12 }}{% else %}12{% endif %}</div>
+                      <input type="number" class="form-control form-control-sm d-none leave-days-input" name="sick_leave" id="sick_leave_input" value="{% if edit_employee %}{{ edit_employee.sick_leave|default:12 }}{% else %}12{% endif %}" min="0" style="max-width: 100px; display: inline-block;">
+                      <div class="leave-subtitle">Days Available</div>
+                    </div>
+                  </div>
+                  <button type="button" class="btn btn-sm btn-outline-secondary d-none leave-edit-btn" onclick="saveLeaveDays('sick_leave')" title="Save">
+                    <i class="bi bi-check"></i>
+                  </button>
+                </div>
+              </div>
+            </div>
+            
+            <!-- Personal Leave Card -->
+            <div class="col-lg-4 col-md-6 col-sm-6 mb-3">
+              <div class="card leave-balance-card h-100">
+                <div class="card-body d-flex align-items-center justify-content-between">
+                  <div class="d-flex align-items-center flex-grow-1">
+                    <div class="leave-icon info me-3">
+                      <i class="bi bi-person-circle"></i>
+                    </div>
+                    <div class="flex-grow-1">
+                      <div class="leave-type-name">Personal Leave</div>
+                      <div class="leave-days-display" id="personal_leave_display">{% if edit_employee %}{{ edit_employee.personal_leave|default:5 }}{% else %}5{% endif %}</div>
+                      <input type="number" class="form-control form-control-sm d-none leave-days-input" name="personal_leave" id="personal_leave_input" value="{% if edit_employee %}{{ edit_employee.personal_leave|default:5 }}{% else %}5{% endif %}" min="0" style="max-width: 100px; display: inline-block;">
+                      <div class="leave-subtitle">Days Available</div>
+                    </div>
+                  </div>
+                  <button type="button" class="btn btn-sm btn-outline-secondary d-none leave-edit-btn" onclick="saveLeaveDays('personal_leave')" title="Save">
+                    <i class="bi bi-check"></i>
+                  </button>
+                </div>
+              </div>
+            </div>
+            
+            <!-- Maternity Leave Card -->
+            <div class="col-lg-4 col-md-6 col-sm-6 mb-3">
+              <div class="card leave-balance-card h-100">
+                <div class="card-body d-flex align-items-center justify-content-between">
+                  <div class="d-flex align-items-center flex-grow-1">
+                    <div class="leave-icon primary me-3">
+                      <i class="bi bi-heart"></i>
+                    </div>
+                    <div class="flex-grow-1">
+                      <div class="leave-type-name">Maternity</div>
+                      <div class="leave-days-display" id="maternity_leave_display">{% if edit_employee %}{{ edit_employee.maternity_leave|default:90 }}{% else %}90{% endif %}</div>
+                      <input type="number" class="form-control form-control-sm d-none leave-days-input" name="maternity_leave" id="maternity_leave_input" value="{% if edit_employee %}{{ edit_employee.maternity_leave|default:90 }}{% else %}90{% endif %}" min="0" style="max-width: 100px; display: inline-block;">
+                      <div class="leave-subtitle">Days Available</div>
+                    </div>
+                  </div>
+                  <button type="button" class="btn btn-sm btn-outline-secondary d-none leave-edit-btn" onclick="saveLeaveDays('maternity_leave')" title="Save">
+                    <i class="bi bi-check"></i>
+                  </button>
+                </div>
+              </div>
+            </div>
+            
+            <!-- Paternity Leave Card -->
+            <div class="col-lg-4 col-md-6 col-sm-6 mb-3">
+              <div class="card leave-balance-card h-100">
+                <div class="card-body d-flex align-items-center justify-content-between">
+                  <div class="d-flex align-items-center flex-grow-1">
+                    <div class="leave-icon secondary me-3">
+                      <i class="bi bi-person-badge"></i>
+                    </div>
+                    <div class="flex-grow-1">
+                      <div class="leave-type-name">Paternity</div>
+                      <div class="leave-days-display" id="paternity_leave_display">{% if edit_employee %}{{ edit_employee.paternity_leave|default:15 }}{% else %}15{% endif %}</div>
+                      <input type="number" class="form-control form-control-sm d-none leave-days-input" name="paternity_leave" id="paternity_leave_input" value="{% if edit_employee %}{{ edit_employee.paternity_leave|default:15 }}{% else %}15{% endif %}" min="0" style="max-width: 100px; display: inline-block;">
+                      <div class="leave-subtitle">Days Available</div>
+                    </div>
+                  </div>
+                  <button type="button" class="btn btn-sm btn-outline-secondary d-none leave-edit-btn" onclick="saveLeaveDays('paternity_leave')" title="Save">
+                    <i class="bi bi-check"></i>
+                  </button>
+                </div>
+              </div>
+            </div>
+            
+            <!-- Emergency Leave Card -->
+            <div class="col-lg-4 col-md-6 col-sm-6 mb-3">
+              <div class="card leave-balance-card h-100">
+                <div class="card-body d-flex align-items-center justify-content-between">
+                  <div class="d-flex align-items-center flex-grow-1">
+                    <div class="leave-icon danger me-3">
+                      <i class="bi bi-lightning-charge"></i>
+                    </div>
+                    <div class="flex-grow-1">
+                      <div class="leave-type-name">Emergency</div>
+                      <div class="leave-days-display" id="emergency_leave_display">{% if edit_employee %}{{ edit_employee.emergency_leave|default:3 }}{% else %}3{% endif %}</div>
+                      <input type="number" class="form-control form-control-sm d-none leave-days-input" name="emergency_leave" id="emergency_leave_input" value="{% if edit_employee %}{{ edit_employee.emergency_leave|default:3 }}{% else %}3{% endif %}" min="0" style="max-width: 100px; display: inline-block;">
+                      <div class="leave-subtitle">Days Available</div>
+                    </div>
+                  </div>
+                  <button type="button" class="btn btn-sm btn-outline-secondary d-none leave-edit-btn" onclick="saveLeaveDays('emergency_leave')" title="Save">
+                    <i class="bi bi-check"></i>
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
         <div class="card-footer d-flex justify-content-end gap-2">
           <button type="reset" class="btn btn-outline-secondary">Reset</button>
           <button type="submit" class="btn btn-primary"><i class="bi bi-save"></i> Save Employee</button>
@@ -525,12 +826,19 @@
     <div class="card-header d-flex justify-content-between align-items-center">
       <h6 class="form-section-title mb-0">Employee List</h6>
       <div class="d-flex gap-2">
+        <form method="get" class="d-flex gap-2">
         <div class="input-group input-group-sm" style="width: 250px;">
-          <input type="text" class="form-control" placeholder="Search employees..." id="employeeSearch">
-          <button class="btn btn-outline-secondary" type="button">
+            <input type="text" class="form-control" placeholder="Search employees..." id="employeeSearch" name="search" value="{{ search_query }}">
+            <button class="btn btn-outline-secondary" type="submit">
             <i class="bi bi-search"></i>
           </button>
         </div>
+          {% if search_query %}
+          <a href="{% url 'employees' %}" class="btn btn-outline-secondary btn-sm">
+            <i class="bi bi-arrow-clockwise"></i> Reset
+          </a>
+          {% endif %}
+        </form>
         <button class="btn btn-primary btn-sm">
           <i class="bi bi-plus"></i> Add Employee
         </button>
@@ -550,166 +858,116 @@
             </tr>
           </thead>
           <tbody>
-            <!-- Sample data - replace with actual data from backend -->
+            {% if employees %}
+              {% for employee in employees %}
             <tr>
               <td data-label="Employee">
                 <div class="d-flex align-items-center">
                   <div class="avatar-sm bg-primary text-white rounded-circle d-flex align-items-center justify-content-center me-2" style="width: 35px; height: 35px;">
-                    <span class="fw-bold">JD</span>
+                      <span class="fw-bold">{{ employee.get_initials }}</span>
                   </div>
                   <div>
-                    <div class="fw-semibold">John Doe</div>
-                    <small class="text-muted">EMP-001</small>
+                      <div class="fw-semibold">{{ employee.get_full_name }}</div>
+                      <small class="text-muted">{{ employee.emp_code|default:"No Code" }}</small>
                   </div>
                 </div>
               </td>
               <td data-label="Designation">
-                <span class="badge bg-info">Software Engineer</span>
+                  {% if employee.designation %}
+                    <span class="badge bg-info">{{ employee.designation }}</span>
+                  {% else %}
+                    <span class="text-muted">-</span>
+                  {% endif %}
               </td>
-              <td data-label="Department">IT</td>
+                <td data-label="Department">{{ employee.department|default:"-" }}</td>
               <td data-label="Contact">
                 <div>
-                  <div class="small">john.doe@company.com</div>
-                  <div class="small text-muted">+91 98765 43210</div>
+                    <div class="small">{{ employee.email }}</div>
+                    <div class="small text-muted">{{ employee.phone|default:"-" }}</div>
                 </div>
               </td>
               <td data-label="Status">
+                  {% if employee.status == 'active' %}
                 <span class="badge bg-success">Active</span>
+                  {% elif employee.status == 'on_leave' %}
+                    <span class="badge bg-warning">On Leave</span>
+                  {% elif employee.status == 'inactive' %}
+                    <span class="badge bg-secondary">Inactive</span>
+                  {% elif employee.status == 'terminated' %}
+                    <span class="badge bg-danger">Terminated</span>
+                  {% else %}
+                    <span class="badge bg-secondary">{{ employee.get_status_display }}</span>
+                  {% endif %}
               </td>
               <td data-label="Actions">
                 <div class="btn-group" role="group">
-                  <button type="button" class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" data-bs-target="#viewEmployeeModal" data-employee-id="1">
+                    <button type="button" class="btn btn-sm btn-outline-primary" onclick="viewEmployee({{ employee.id }})" title="View">
                     <i class="bi bi-eye"></i>
                   </button>
-                  <div class="btn-group" role="group">
-                    <button type="button" class="btn btn-sm btn-outline-secondary dropdown-toggle" data-bs-toggle="dropdown">
-                      <i class="bi bi-three-dots-vertical"></i>
+                    <button type="button" class="btn btn-sm btn-outline-secondary" onclick="editEmployee({{ employee.id }})" title="Edit">
+                      <i class="bi bi-pencil"></i>
                     </button>
-                    <ul class="dropdown-menu">
-                      <li><a class="dropdown-item" href="#"><i class="bi bi-pencil me-2"></i>Edit</a></li>
-                      <li><a class="dropdown-item" href="#"><i class="bi bi-file-earmark-text me-2"></i>View Details</a></li>
-                      <li><a class="dropdown-item" href="#"><i class="bi bi-download me-2"></i>Export</a></li>
-                      <li><hr class="dropdown-divider"></li>
-                      <li><a class="dropdown-item text-danger" href="#"><i class="bi bi-trash me-2"></i>Delete</a></li>
-                    </ul>
-                  </div>
+                    <button type="button" class="btn btn-sm btn-outline-danger" onclick="deleteEmployee({{ employee.id }})" title="Delete">
+                      <i class="bi bi-trash"></i>
+                  </button>
                 </div>
               </td>
             </tr>
-            <tr>
-              <td data-label="Employee">
-                <div class="d-flex align-items-center">
-                  <div class="avatar-sm bg-success text-white rounded-circle d-flex align-items-center justify-content-center me-2" style="width: 35px; height: 35px;">
-                    <span class="fw-bold">JS</span>
-                  </div>
-                  <div>
-                    <div class="fw-semibold">Jane Smith</div>
-                    <small class="text-muted">EMP-002</small>
-                  </div>
-                </div>
-              </td>
-              <td data-label="Designation">
-                <span class="badge bg-warning">Project Manager</span>
-              </td>
-              <td data-label="Department">Operations</td>
-              <td data-label="Contact">
-                <div>
-                  <div class="small">jane.smith@company.com</div>
-                  <div class="small text-muted">+91 98765 43211</div>
-                </div>
-              </td>
-              <td data-label="Status">
-                <span class="badge bg-success">Active</span>
-              </td>
-              <td data-label="Actions">
-                <div class="btn-group" role="group">
-                  <button type="button" class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" data-bs-target="#viewEmployeeModal" data-employee-id="2">
-                    <i class="bi bi-eye"></i>
-                  </button>
-                  <div class="btn-group" role="group">
-                    <button type="button" class="btn btn-sm btn-outline-secondary dropdown-toggle" data-bs-toggle="dropdown">
-                      <i class="bi bi-three-dots-vertical"></i>
-                    </button>
-                    <ul class="dropdown-menu">
-                      <li><a class="dropdown-item" href="#"><i class="bi bi-pencil me-2"></i>Edit</a></li>
-                      <li><a class="dropdown-item" href="#"><i class="bi bi-file-earmark-text me-2"></i>View Details</a></li>
-                      <li><a class="dropdown-item" href="#"><i class="bi bi-download me-2"></i>Export</a></li>
-                      <li><hr class="dropdown-divider"></li>
-                      <li><a class="dropdown-item text-danger" href="#"><i class="bi bi-trash me-2"></i>Delete</a></li>
-                    </ul>
-                  </div>
-                </div>
+              {% endfor %}
+            {% else %}
+              <tr>
+                <td colspan="6" class="text-center py-4">
+                  <i class="bi bi-inbox fs-1 text-muted d-block mb-2"></i>
+                  <p class="text-muted">No employees found</p>
               </td>
             </tr>
-            <tr>
-              <td data-label="Employee">
-                <div class="d-flex align-items-center">
-                  <div class="avatar-sm bg-danger text-white rounded-circle d-flex align-items-center justify-content-center me-2" style="width: 35px; height: 35px;">
-                    <span class="fw-bold">MJ</span>
-                  </div>
-                  <div>
-                    <div class="fw-semibold">Mike Johnson</div>
-                    <small class="text-muted">EMP-003</small>
-                  </div>
-                </div>
-              </td>
-              <td data-label="Designation">
-                <span class="badge bg-secondary">HR Manager</span>
-              </td>
-              <td data-label="Department">Human Resources</td>
-              <td data-label="Contact">
-                <div>
-                  <div class="small">mike.johnson@company.com</div>
-                  <div class="small text-muted">+91 98765 43212</div>
-                </div>
-              </td>
-              <td data-label="Status">
-                <span class="badge bg-warning">On Leave</span>
-              </td>
-              <td data-label="Actions">
-                <div class="btn-group" role="group">
-                  <button type="button" class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" data-bs-target="#viewEmployeeModal" data-employee-id="3">
-                    <i class="bi bi-eye"></i>
-                  </button>
-                  <div class="btn-group" role="group">
-                    <button type="button" class="btn btn-sm btn-outline-secondary dropdown-toggle" data-bs-toggle="dropdown">
-                      <i class="bi bi-three-dots-vertical"></i>
-                    </button>
-                    <ul class="dropdown-menu">
-                      <li><a class="dropdown-item" href="#"><i class="bi bi-pencil me-2"></i>Edit</a></li>
-                      <li><a class="dropdown-item" href="#"><i class="bi bi-file-earmark-text me-2"></i>View Details</a></li>
-                      <li><a class="dropdown-item" href="#"><i class="bi bi-download me-2"></i>Export</a></li>
-                      <li><hr class="dropdown-divider"></li>
-                      <li><a class="dropdown-item text-danger" href="#"><i class="bi bi-trash me-2"></i>Delete</a></li>
-                    </ul>
-                  </div>
-                </div>
-              </td>
-            </tr>
+            {% endif %}
           </tbody>
         </table>
       </div>
     </div>
+    {% if employees.has_other_pages %}
     <div class="card-footer">
       <div class="d-flex justify-content-between align-items-center">
         <div class="text-muted small">
-          Showing 1-3 of 3 employees
+          Showing {{ employees.start_index }} to {{ employees.end_index }} of {{ employees.paginator.count }} employees
         </div>
         <nav>
           <ul class="pagination pagination-sm mb-0">
+            {% if employees.has_previous %}
+              <li class="page-item">
+                <a class="page-link" href="?page=1{% if search_query %}&search={{ search_query }}{% endif %}">First</a>
+              </li>
+              <li class="page-item">
+                <a class="page-link" href="?page={{ employees.previous_page_number }}{% if search_query %}&search={{ search_query }}{% endif %}">Previous</a>
+              </li>
+            {% else %}
             <li class="page-item disabled">
               <a class="page-link" href="#" tabindex="-1">Previous</a>
             </li>
+            {% endif %}
+            
             <li class="page-item active">
-              <a class="page-link" href="#">1</a>
+              <span class="page-link">Page {{ employees.number }} of {{ employees.paginator.num_pages }}</span>
             </li>
+            
+            {% if employees.has_next %}
+              <li class="page-item">
+                <a class="page-link" href="?page={{ employees.next_page_number }}{% if search_query %}&search={{ search_query }}{% endif %}">Next</a>
+              </li>
+              <li class="page-item">
+                <a class="page-link" href="?page={{ employees.paginator.num_pages }}{% if search_query %}&search={{ search_query }}{% endif %}">Last</a>
+              </li>
+            {% else %}
             <li class="page-item disabled">
               <a class="page-link" href="#">Next</a>
             </li>
+            {% endif %}
           </ul>
         </nav>
       </div>
     </div>
+    {% endif %}
   </div>
 </div>
 
@@ -766,7 +1024,6 @@
       </div>
       <div class="modal-footer">
         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-        <button type="button" class="btn btn-primary">Edit Employee</button>
       </div>
     </div>
   </div>
@@ -819,105 +1076,341 @@
       }
     });
     
-    // Employee search functionality
+    // Employee search functionality - Server-side search
     const searchInput = document.getElementById('employeeSearch');
-    const employeeTable = document.getElementById('employeeTable');
+    const searchForm = searchInput?.closest('form') || searchInput?.closest('.input-group')?.parentElement;
     
-    if (searchInput && employeeTable) {
+    if (searchInput) {
+      let searchTimeout;
       searchInput.addEventListener('input', function() {
-        const searchTerm = this.value.toLowerCase();
-        const rows = employeeTable.querySelectorAll('tbody tr');
+        clearTimeout(searchTimeout);
+        const searchTerm = this.value.trim();
         
-        rows.forEach(row => {
-          const text = row.textContent.toLowerCase();
-          if (text.includes(searchTerm)) {
-            row.style.display = '';
+        // Redirect to employees page with search query
+        searchTimeout = setTimeout(() => {
+          const url = new URL(window.location.href);
+          if (searchTerm) {
+            url.searchParams.set('search', searchTerm);
           } else {
-            row.style.display = 'none';
+            url.searchParams.delete('search');
           }
-        });
+          url.searchParams.delete('page'); // Reset to first page on new search
+          window.location.href = url.toString();
+        }, 500); // Debounce for 500ms
       });
-    }
-    
-    // View employee modal functionality
-    const viewModal = document.getElementById('viewEmployeeModal');
-    if (viewModal) {
-      viewModal.addEventListener('show.bs.modal', function(event) {
-        const button = event.relatedTarget;
-        const employeeId = button.getAttribute('data-employee-id');
-        
-        // Here you would typically fetch employee data based on employeeId
-        // For now, we'll use the sample data
-        const employeeData = {
-          1: {
-            name: 'John Doe',
-            code: 'EMP-001',
-            initials: 'JD',
-            email: 'john.doe@company.com',
-            phone: '+91 98765 43210',
-            designation: 'Software Engineer',
-            department: 'IT',
-            joiningDate: '15 Jan 2024',
-            status: 'Active',
-            address: '123 Main Street, City, State, 12345'
-          },
-          2: {
-            name: 'Jane Smith',
-            code: 'EMP-002',
-            initials: 'JS',
-            email: 'jane.smith@company.com',
-            phone: '+91 98765 43211',
-            designation: 'Project Manager',
-            department: 'Operations',
-            joiningDate: '20 Feb 2024',
-            status: 'Active',
-            address: '456 Oak Avenue, City, State, 12345'
-          },
-          3: {
-            name: 'Mike Johnson',
-            code: 'EMP-003',
-            initials: 'MJ',
-            email: 'mike.johnson@company.com',
-            phone: '+91 98765 43212',
-            designation: 'HR Manager',
-            department: 'Human Resources',
-            joiningDate: '10 Mar 2024',
-            status: 'On Leave',
-            address: '789 Pine Street, City, State, 12345'
+      
+      // Handle Enter key
+      searchInput.addEventListener('keypress', function(e) {
+        if (e.key === 'Enter') {
+          e.preventDefault();
+          clearTimeout(searchTimeout);
+          const searchTerm = this.value.trim();
+          const url = new URL(window.location.href);
+          if (searchTerm) {
+            url.searchParams.set('search', searchTerm);
+          } else {
+            url.searchParams.delete('search');
           }
-        };
-        
-        const employee = employeeData[employeeId];
-        if (employee) {
-          const modalTitle = viewModal.querySelector('.modal-title');
-          const avatar = viewModal.querySelector('.avatar-lg span');
-          const name = viewModal.querySelector('.col-md-4 h6');
-          const code = viewModal.querySelector('.col-md-4 small');
-          const email = viewModal.querySelector('label[for="email"] + p');
-          const phone = viewModal.querySelector('label[for="phone"] + p');
-          const designation = viewModal.querySelector('label[for="designation"] + p');
-          const department = viewModal.querySelector('label[for="department"] + p');
-          const joiningDate = viewModal.querySelector('label[for="joining"] + p');
-          const status = viewModal.querySelector('label[for="status"] + p span');
-          const address = viewModal.querySelector('label[for="address"] + p');
-          
-          if (modalTitle) modalTitle.textContent = `${employee.name} - Employee Details`;
-          if (avatar) avatar.textContent = employee.initials;
-          if (name) name.textContent = employee.name;
-          if (code) code.textContent = employee.code;
-          if (email) email.textContent = employee.email;
-          if (phone) phone.textContent = employee.phone;
-          if (designation) designation.textContent = employee.designation;
-          if (department) department.textContent = employee.department;
-          if (joiningDate) joiningDate.textContent = employee.joiningDate;
-          if (status) {
-            status.textContent = employee.status;
-            status.className = employee.status === 'Active' ? 'badge bg-success' : 'badge bg-warning';
-          }
-          if (address) address.textContent = employee.address;
+          url.searchParams.delete('page');
+          window.location.href = url.toString();
         }
       });
     }
+    
+    // Handle search button click
+    const searchBtn = document.querySelector('#employeeSearch').parentElement.querySelector('button');
+    if (searchBtn) {
+      searchBtn.addEventListener('click', function(e) {
+        e.preventDefault();
+        const searchTerm = searchInput.value.trim();
+        const url = new URL(window.location.href);
+        if (searchTerm) {
+          url.searchParams.set('search', searchTerm);
+        } else {
+          url.searchParams.delete('search');
+        }
+        url.searchParams.delete('page');
+        window.location.href = url.toString();
+      });
+    }
+    
+    // View employee
+    window.viewEmployee = function(id) {
+      console.log('View employee called with ID:', id);
+      fetch(`/employees/${id}/view/`)
+        .then(response => {
+          console.log('Response status:', response.status);
+          return response.json();
+        })
+        .then(data => {
+          console.log('Response data:', data);
+          if (data.success && data.employee) {
+            const emp = data.employee;
+            
+            // Update modal content
+            const modal = document.getElementById('viewEmployeeModal');
+            if (!modal) {
+              alert('Modal not found!');
+              return;
+            }
+            
+            // Avatar and name
+            const avatar = modal.querySelector('.avatar-lg span');
+            const name = modal.querySelector('.col-md-4 h6');
+            const code = modal.querySelector('.col-md-4 small');
+            
+            if (avatar) avatar.textContent = emp.initials || 'U';
+            if (name) name.textContent = `${emp.first_name} ${emp.last_name}`;
+            if (code) code.textContent = emp.emp_code || 'No Code';
+            
+            // Update all p tags directly
+            const pTags = modal.querySelectorAll('.modal-body p.mb-0');
+            if (pTags.length >= 7) {
+              // Email
+              pTags[0].textContent = emp.email || '-';
+              // Phone
+              pTags[1].textContent = emp.phone || '-';
+              // Designation
+              pTags[2].textContent = emp.designation || '-';
+              // Department
+              pTags[3].textContent = emp.department || '-';
+              // Joining Date
+              if (emp.joining_date) {
+                try {
+                  const joinDate = new Date(emp.joining_date);
+                  pTags[4].textContent = joinDate.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+                } catch (e) {
+                  pTags[4].textContent = emp.joining_date;
+                }
+              } else {
+                pTags[4].textContent = '-';
+              }
+              
+              // Status badge
+              const statusBadge = modal.querySelector('.col-sm-6:last-child .badge');
+              if (statusBadge) {
+                const statusText = emp.status === 'active' ? 'Active' : 
+                                 emp.status === 'on_leave' ? 'On Leave' :
+                                 emp.status === 'inactive' ? 'Inactive' :
+                                 emp.status === 'terminated' ? 'Terminated' : emp.status || '-';
+                statusBadge.textContent = statusText;
+                statusBadge.className = 'badge ' + 
+                  (emp.status === 'active' ? 'bg-success' :
+                   emp.status === 'on_leave' ? 'bg-warning' :
+                   emp.status === 'inactive' ? 'bg-secondary' :
+                   emp.status === 'terminated' ? 'bg-danger' : 'bg-secondary');
+              }
+              
+              // Address
+              pTags[6].textContent = emp.address_current || emp.address_permanent || '-';
+            }
+            
+            // Show modal
+            const bsModal = new bootstrap.Modal(modal);
+            bsModal.show();
+          } else {
+            alert('Error loading employee details: ' + (data.error || 'Unknown error'));
+          }
+        })
+        .catch(error => {
+          console.error('Error:', error);
+          alert('Error loading employee details. Please check console for details.');
+        });
+    };
+    
+    // Edit employee
+    window.editEmployee = function(id) {
+      // Fetch employee data and populate form
+      fetch(`/employees/${id}/view/`)
+        .then(response => response.json())
+        .then(data => {
+          if (data.success && data.employee) {
+            const emp = data.employee;
+            
+            // Populate form fields
+            const form = document.getElementById('employeeForm');
+            if (form) {
+              form.querySelector('[name="first_name"]').value = emp.first_name || '';
+              form.querySelector('[name="last_name"]').value = emp.last_name || '';
+              form.querySelector('[name="emp_code"]').value = emp.emp_code || '';
+              form.querySelector('[name="email"]').value = emp.email || '';
+              form.querySelector('[name="phone"]').value = emp.phone || '';
+              
+              if (emp.gender) form.querySelector('[name="gender"]').value = emp.gender;
+              if (emp.dob) form.querySelector('[name="dob"]').value = emp.dob;
+              if (emp.address_current) form.querySelector('[name="address_current"]').value = emp.address_current;
+              if (emp.address_permanent) form.querySelector('[name="address_permanent"]').value = emp.address_permanent;
+              
+              if (emp.designation) form.querySelector('[name="designation"]').value = emp.designation;
+              if (emp.department) form.querySelector('[name="department"]').value = emp.department;
+              if (emp.manager) form.querySelector('[name="manager"]').value = emp.manager;
+              if (emp.employment_type) form.querySelector('[name="employment_type"]').value = emp.employment_type;
+              if (emp.location) form.querySelector('[name="location"]').value = emp.location;
+              if (emp.joining_date) form.querySelector('[name="joining_date"]').value = emp.joining_date;
+              
+              // Leave balances
+              if (emp.annual_leave !== undefined) {
+                form.querySelector('[name="annual_leave"]').value = emp.annual_leave;
+                document.getElementById('annual_leave_display').textContent = emp.annual_leave;
+              }
+              if (emp.sick_leave !== undefined) {
+                form.querySelector('[name="sick_leave"]').value = emp.sick_leave;
+                document.getElementById('sick_leave_display').textContent = emp.sick_leave;
+              }
+              if (emp.personal_leave !== undefined) {
+                form.querySelector('[name="personal_leave"]').value = emp.personal_leave;
+                document.getElementById('personal_leave_display').textContent = emp.personal_leave;
+              }
+              if (emp.maternity_leave !== undefined) {
+                form.querySelector('[name="maternity_leave"]').value = emp.maternity_leave;
+                document.getElementById('maternity_leave_display').textContent = emp.maternity_leave;
+              }
+              if (emp.paternity_leave !== undefined) {
+                form.querySelector('[name="paternity_leave"]').value = emp.paternity_leave;
+                document.getElementById('paternity_leave_display').textContent = emp.paternity_leave;
+              }
+              if (emp.emergency_leave !== undefined) {
+                form.querySelector('[name="emergency_leave"]').value = emp.emergency_leave;
+                document.getElementById('emergency_leave_display').textContent = emp.emergency_leave;
+              }
+              
+              // Scroll to top and show Personal tab
+              window.scrollTo({ top: 0, behavior: 'smooth' });
+              const personalTab = document.querySelector('#personal-tab');
+              if (personalTab) {
+                const tab = new bootstrap.Tab(personalTab);
+                tab.show();
+              }
+              
+              alert('Employee data loaded. Please review and update, then click "Save Employee" to update.');
+            }
+          } else {
+            alert('Error loading employee data: ' + (data.error || 'Unknown error'));
+          }
+        })
+        .catch(error => {
+          console.error('Error:', error);
+          alert('Error loading employee data');
+        });
+    };
+    
+    // Delete employee
+    window.deleteEmployee = function(id) {
+      if (confirm('Are you sure you want to delete this employee? This action cannot be undone.')) {
+        // Get CSRF token
+        const csrftoken = getCookie('csrftoken');
+        
+        fetch(`/employees/${id}/delete/`, {
+          method: 'POST',
+          headers: {
+            'X-CSRFToken': csrftoken,
+            'Content-Type': 'application/json'
+          }
+        })
+          .then(response => response.json())
+          .then(data => {
+            if (data.success) {
+              alert(data.message || 'Employee deleted successfully!');
+              // Reload page to refresh list
+              setTimeout(() => location.reload(), 500);
+            } else {
+              alert('Error: ' + (data.error || 'Failed to delete employee'));
+            }
+          })
+          .catch(error => {
+            console.error('Error:', error);
+            alert('Error deleting employee');
+          });
+      }
+    };
+    
+    // Helper function to get CSRF token
+    function getCookie(name) {
+      let cookieValue = null;
+      if (document.cookie && document.cookie !== '') {
+        const cookies = document.cookie.split(';');
+        for (let i = 0; i < cookies.length; i++) {
+          const cookie = cookies[i].trim();
+          if (cookie.substring(0, name.length + 1) === (name + '=')) {
+            cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+            break;
+          }
+        }
+      }
+      return cookieValue;
+    }
+    
+    // Show success/error messages
+    {% if messages %}
+      {% for message in messages %}
+        alert('{{ message }}');
+      {% endfor %}
+    {% endif %}
   });
+  
+  // Toggle leave edit mode
+  function toggleLeaveEdit() {
+    const isEditMode = document.querySelector('.leave-days-input:not(.d-none)');
+    const editMode = isEditMode === null;
+    
+    document.querySelectorAll('.leave-days-display').forEach(el => {
+      el.classList.toggle('d-none', editMode);
+    });
+    
+    document.querySelectorAll('.leave-days-input').forEach(el => {
+      el.classList.toggle('d-none', !editMode);
+    });
+    
+    document.querySelectorAll('.leave-edit-btn').forEach(el => {
+      el.classList.toggle('d-none', !editMode);
+    });
+    
+    const btn = document.getElementById('toggleLeaveEditBtn');
+    if (btn) {
+      if (editMode) {
+        btn.innerHTML = '<i class="bi bi-x"></i> Cancel';
+        btn.classList.remove('btn-outline-primary');
+        btn.classList.add('btn-outline-danger');
+      } else {
+        btn.innerHTML = '<i class="bi bi-pencil"></i> Edit Leaves';
+        btn.classList.remove('btn-outline-danger');
+        btn.classList.add('btn-outline-primary');
+      }
+    }
+  }
+  
+  // Save individual leave days
+  function saveLeaveDays(leaveType) {
+    const input = document.getElementById(leaveType + '_input');
+    const display = document.getElementById(leaveType + '_display');
+    const btn = document.querySelector(`button[onclick*="${leaveType}"]`);
+    const value = parseInt(input.value) || 0;
+    
+    if (value < 0) {
+      alert('Leave days cannot be negative!');
+      input.value = display.textContent;
+      return;
+    }
+    
+    // Update display
+    display.textContent = value;
+    
+    // Update input value for form submission
+    input.value = value;
+    
+    // Show success indicator
+    if (btn) {
+      const originalHTML = btn.innerHTML;
+      btn.innerHTML = '<i class="bi bi-check text-success"></i>';
+      setTimeout(() => {
+        btn.innerHTML = originalHTML;
+      }, 1000);
+    }
+    
+    // Note: Changes will be saved when the main employee form is submitted
+  }
+  
+  // Initialize leave values from database if editing existing employee
+  // This would be populated from server-side if editing
 </script>
 {% endblock%}

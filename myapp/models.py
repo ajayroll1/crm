@@ -329,8 +329,8 @@ class ClientOnboarding(models.Model):
             'completed': 'bg-info'
         }
         return status_classes.get(self.status, 'bg-secondary')
-
-
+# 
+# 
 class Attendance(models.Model):
     """Employee attendance check in/out records"""
     user = models.ForeignKey(
@@ -378,3 +378,127 @@ class Attendance(models.Model):
             'total_seconds': total_seconds,
             'formatted': f"{hours}h {minutes}m {seconds}s"
         }
+
+class Employee(models.Model):
+    """Employee master data model"""
+    STATUS_CHOICES = [
+        ('active', 'Active'),
+        ('inactive', 'Inactive'),
+        ('on_leave', 'On Leave'),
+        ('terminated', 'Terminated'),
+    ]
+    
+    GENDER_CHOICES = [
+        ('Male', 'Male'),
+        ('Female', 'Female'),
+        ('Other', 'Other'),
+    ]
+    
+    EMPLOYMENT_TYPE_CHOICES = [
+        ('Full-time', 'Full-time'),
+        ('Part-time', 'Part-time'),
+        ('Contract', 'Contract'),
+        ('Intern', 'Intern'),
+    ]
+    
+    PAY_CYCLE_CHOICES = [
+        ('Monthly', 'Monthly'),
+        ('Bi-weekly', 'Bi-weekly'),
+    ]
+    
+    # Personal Information
+    first_name = models.CharField(max_length=100, verbose_name="First Name")
+    last_name = models.CharField(max_length=100, verbose_name="Last Name")
+    emp_code = models.CharField(max_length=50, unique=True, blank=True, null=True, verbose_name="Employee Code")
+    gender = models.CharField(max_length=10, choices=GENDER_CHOICES, blank=True, null=True)
+    dob = models.DateField(blank=True, null=True, verbose_name="Date of Birth")
+    email = models.EmailField(verbose_name="Email")
+    phone = models.CharField(max_length=20, verbose_name="Phone")
+    address_current = models.TextField(blank=True, null=True, verbose_name="Current Address")
+    address_permanent = models.TextField(blank=True, null=True, verbose_name="Permanent Address")
+    
+    # Job Information
+    designation = models.CharField(max_length=100, blank=True, null=True, verbose_name="Designation")
+    department = models.CharField(max_length=100, blank=True, null=True, verbose_name="Department")
+    manager = models.CharField(max_length=100, blank=True, null=True, verbose_name="Reporting Manager")
+    employment_type = models.CharField(max_length=20, choices=EMPLOYMENT_TYPE_CHOICES, blank=True, null=True)
+    location = models.CharField(max_length=100, blank=True, null=True)
+    joining_date = models.DateField(blank=True, null=True)
+    probation = models.IntegerField(blank=True, null=True, verbose_name="Probation (months)")
+    
+    # Payroll
+    ctc = models.DecimalField(max_digits=12, decimal_places=2, blank=True, null=True, verbose_name="CTC (Annual)")
+    basic = models.DecimalField(max_digits=12, decimal_places=2, blank=True, null=True)
+    hra = models.DecimalField(max_digits=12, decimal_places=2, blank=True, null=True, verbose_name="HRA")
+    allowances = models.DecimalField(max_digits=12, decimal_places=2, blank=True, null=True)
+    deductions = models.DecimalField(max_digits=12, decimal_places=2, blank=True, null=True)
+    variable = models.DecimalField(max_digits=12, decimal_places=2, blank=True, null=True, verbose_name="Variable/Bonus")
+    pay_cycle = models.CharField(max_length=20, choices=PAY_CYCLE_CHOICES, blank=True, null=True)
+    
+    # Banking
+    bank_name = models.CharField(max_length=200, blank=True, null=True)
+    account_number = models.CharField(max_length=50, blank=True, null=True)
+    ifsc = models.CharField(max_length=20, blank=True, null=True, verbose_name="IFSC")
+    upi = models.CharField(max_length=100, blank=True, null=True, verbose_name="UPI ID")
+    pan = models.CharField(max_length=20, blank=True, null=True, verbose_name="PAN")
+    aadhaar = models.CharField(max_length=20, blank=True, null=True, verbose_name="Aadhaar")
+    
+    # Tax/IDs
+    uan = models.CharField(max_length=50, blank=True, null=True, verbose_name="UAN (PF)")
+    esic = models.CharField(max_length=50, blank=True, null=True, verbose_name="ESIC No")
+    gst = models.CharField(max_length=50, blank=True, null=True, verbose_name="GST (if any)")
+    
+    # Emergency Contacts
+    emg_name1 = models.CharField(max_length=100, blank=True, null=True, verbose_name="Primary Contact Name")
+    emg_relation1 = models.CharField(max_length=50, blank=True, null=True, verbose_name="Primary Relation")
+    emg_phone1 = models.CharField(max_length=20, blank=True, null=True, verbose_name="Primary Phone")
+    emg_name2 = models.CharField(max_length=100, blank=True, null=True, verbose_name="Secondary Contact Name")
+    emg_relation2 = models.CharField(max_length=50, blank=True, null=True, verbose_name="Secondary Relation")
+    emg_phone2 = models.CharField(max_length=20, blank=True, null=True, verbose_name="Secondary Phone")
+    
+    # Assets
+    asset_laptop = models.CharField(max_length=200, blank=True, null=True)
+    asset_phone = models.CharField(max_length=200, blank=True, null=True)
+    asset_other = models.CharField(max_length=200, blank=True, null=True)
+    
+    # Access
+    work_email = models.EmailField(blank=True, null=True, verbose_name="Work Email")
+    github = models.CharField(max_length=200, blank=True, null=True, verbose_name="Git/GitHub")
+    pm_tool = models.CharField(max_length=200, blank=True, null=True, verbose_name="Jira/PM Tool")
+    vpn = models.CharField(max_length=10, blank=True, null=True, verbose_name="VPN Access")
+    access_level = models.CharField(max_length=20, blank=True, null=True, verbose_name="Access Level")
+    
+    # Notes
+    notes = models.TextField(blank=True, null=True)
+    
+    # Leave Balances
+    annual_leave = models.IntegerField(default=20, verbose_name="Annual Leave Days")
+    sick_leave = models.IntegerField(default=12, verbose_name="Sick Leave Days")
+    personal_leave = models.IntegerField(default=5, verbose_name="Personal Leave Days")
+    maternity_leave = models.IntegerField(default=90, verbose_name="Maternity Leave Days")
+    paternity_leave = models.IntegerField(default=15, verbose_name="Paternity Leave Days")
+    emergency_leave = models.IntegerField(default=3, verbose_name="Emergency Leave Days")
+    
+    # Status
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='active')
+    
+    # Timestamps
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    
+    class Meta:
+        ordering = ['-created_at']
+        verbose_name = "Employee"
+        verbose_name_plural = "Employees"
+    
+    def __str__(self):
+        return f"{self.first_name} {self.last_name} - {self.emp_code or 'No Code'}"
+    
+    def get_full_name(self):
+        return f"{self.first_name} {self.last_name}".strip()
+    
+    def get_initials(self):
+        """Get initials for avatar"""
+        first = self.first_name[0].upper() if self.first_name else ''
+        last = self.last_name[0].upper() if self.last_name else ''
+        return (first + last)[:2]

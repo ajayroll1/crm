@@ -12,7 +12,7 @@
     <div class="metric-card">
       <div class="d-flex align-items-center">
         <div class="metric-icon success">
-          <i class="bi bi-calendar-check"></i>
+          <i class="bi bi-calendar3-range"></i>
         </div>
         <div>
           <div class="metric-title">Annual Leave</div>
@@ -27,7 +27,7 @@
     <div class="metric-card">
       <div class="d-flex align-items-center">
         <div class="metric-icon warning">
-          <i class="bi bi-heart-pulse"></i>
+          <i class="bi bi-hospital"></i>
         </div>
         <div>
           <div class="metric-title">Sick Leave</div>
@@ -42,7 +42,7 @@
     <div class="metric-card">
       <div class="d-flex align-items-center">
         <div class="metric-icon info">
-          <i class="bi bi-person"></i>
+          <i class="bi bi-person-circle"></i>
         </div>
         <div>
           <div class="metric-title">Personal Leave</div>
@@ -57,7 +57,7 @@
     <div class="metric-card">
       <div class="d-flex align-items-center">
         <div class="metric-icon primary">
-          <i class="bi bi-gender-female"></i>
+          <i class="bi bi-heart"></i>
         </div>
         <div>
           <div class="metric-title">Maternity</div>
@@ -72,7 +72,7 @@
     <div class="metric-card">
       <div class="d-flex align-items-center">
         <div class="metric-icon secondary">
-          <i class="bi bi-gender-male"></i>
+          <i class="bi bi-person-badge"></i>
         </div>
         <div>
           <div class="metric-title">Paternity</div>
@@ -87,7 +87,7 @@
     <div class="metric-card">
       <div class="d-flex align-items-center">
         <div class="metric-icon danger">
-          <i class="bi bi-exclamation-triangle"></i>
+          <i class="bi bi-lightning-charge"></i>
         </div>
         <div>
           <div class="metric-title">Emergency</div>
@@ -156,13 +156,20 @@
                     <div class="d-flex align-items-center">
                       <div class="leave-type-icon me-2">
                         {% if request.type == 'Annual Leave' %}
-                          <i class="bi bi-calendar-check text-success"></i>
+                          <i class="bi bi-calendar3-range text-success"></i>
                         {% elif request.type == 'Sick Leave' %}
-                          <i class="bi bi-heart-pulse text-warning"></i>
+                          <i class="bi bi-hospital text-warning"></i>
                         {% elif request.type == 'Personal Leave' %}
-                          <i class="bi bi-person text-info"></i>
+                          <i class="bi bi-person-circle text-info"></i>
+                        {% elif request.type == 'Maternity' %}
+
+                        <i class="bi bi-heart text-primary"></i>
+                        {% elif request.type == 'Paternity' %}
+                          <i class="bi bi-person-badge text-secondary"></i>
+                        {% elif request.type == 'Emergency' %}
+                          <i class="bi bi-lightning-charge text-danger"></i>
                         {% else %}
-                          <i class="bi bi-exclamation-triangle text-danger"></i>
+                          <i class="bi bi-lightning-charge text-danger"></i>
                         {% endif %}
                       </div>
                       <span class="fw-bold">{{ request.type }}</span>
@@ -252,13 +259,19 @@
                   <div class="d-flex align-items-center">
                     <div class="leave-type-icon me-2">
                       {% if request.type == 'Annual Leave' %}
-                        <i class="bi bi-calendar-check text-success"></i>
+                        <i class="bi bi-calendar3-range text-success"></i>
                       {% elif request.type == 'Sick Leave' %}
-                        <i class="bi bi-heart-pulse text-warning"></i>
+                        <i class="bi bi-hospital text-warning"></i>
                       {% elif request.type == 'Personal Leave' %}
-                        <i class="bi bi-person text-info"></i>
+                        <i class="bi bi-person-circle text-info"></i>
+                      {% elif request.type == 'Maternity' %}
+                        <i class="bi bi-heart-fill text-primary"></i>
+                      {% elif request.type == 'Paternity' %}
+                        <i class="bi bi-person-badge text-secondary"></i>
+                      {% elif request.type == 'Emergency' %}
+                        <i class="bi bi-lightning-charge-fill text-danger"></i>
                       {% else %}
-                        <i class="bi bi-exclamation-triangle text-danger"></i>
+                        <i class="bi bi-lightning-charge-fill text-danger"></i>
                       {% endif %}
                     </div>
                     <span class="fw-bold">{{ request.type }}</span>
@@ -305,6 +318,11 @@
       </div>
       <div class="card-body">
         <form id="quickLeaveForm">
+          <div class="mb-3">
+            <label for="quickApplicantName" class="form-label">Name *</label>
+            <input type="text" class="form-control" id="quickApplicantName" value="{% if request.user.is_authenticated %}{{ request.user.get_full_name|default:request.user.username }}{% else %}{{ employee_name|default:'N/A' }}{% endif %}" readonly>
+            <div class="form-text">This field is automatically filled with your name</div>
+          </div>
           <div class="mb-3">
             <label for="leaveType" class="form-label">Leave Type</label>
             <select class="form-select" id="leaveType" required>
@@ -404,6 +422,69 @@
   </div>
 </div>
 
+<!-- View Leave Request Modal -->
+<div class="modal fade" id="viewLeaveModal" tabindex="-1" aria-labelledby="viewLeaveModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="viewLeaveModalLabel">Leave Request Details</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <div class="row mb-3">
+          <div class="col-md-6"><strong>Applicant:</strong></div>
+          <div class="col-md-6" id="view-applicant">-</div>
+        </div>
+        <div class="row mb-3">
+          <div class="col-md-6"><strong>Leave Type:</strong></div>
+          <div class="col-md-6" id="view-leave-type">-</div>
+        </div>
+        <div class="row mb-3">
+          <div class="col-md-6"><strong>Start Date:</strong></div>
+          <div class="col-md-6" id="view-start-date">-</div>
+        </div>
+        <div class="row mb-3">
+          <div class="col-md-6"><strong>End Date:</strong></div>
+          <div class="col-md-6" id="view-end-date">-</div>
+        </div>
+        <div class="row mb-3">
+          <div class="col-md-6"><strong>Number of Days:</strong></div>
+          <div class="col-md-6" id="view-days">-</div>
+        </div>
+        <div class="row mb-3">
+          <div class="col-md-6"><strong>Status:</strong></div>
+          <div class="col-md-6" id="view-status">-</div>
+        </div>
+        <hr>
+        <div class="row mb-3">
+          <div class="col-md-6"><strong>Reason:</strong></div>
+          <div class="col-md-6" id="view-reason">-</div>
+        </div>
+        <div class="row mb-3">
+          <div class="col-md-6"><strong>Emergency Contact:</strong></div>
+          <div class="col-md-6" id="view-contact">-</div>
+        </div>
+        <div class="row mb-3">
+          <div class="col-md-6"><strong>Work Handover:</strong></div>
+          <div class="col-md-6" id="view-handover">-</div>
+        </div>
+        <hr>
+        <div class="row mb-3">
+          <div class="col-md-6"><strong>Applied At:</strong></div>
+          <div class="col-md-6" id="view-applied-at">-</div>
+        </div>
+        <div class="row mb-3">
+          <div class="col-md-6"><strong>Updated At:</strong></div>
+          <div class="col-md-6" id="view-updated-at">-</div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <!-- Apply Leave Modal -->
 <div class="modal fade" id="applyLeaveModal" tabindex="-1">
   <div class="modal-dialog modal-lg">
@@ -415,6 +496,11 @@
       <div class="modal-body">
         <form id="applyLeaveForm">
           <div class="row">
+            <div class="col-md-6 mb-3">
+              <label for="modalApplicantName" class="form-label">Name *</label>
+              <input type="text" class="form-control" id="modalApplicantName" value="{% if request.user.is_authenticated %}{{ request.user.get_full_name|default:request.user.username }}{% else %}{{ employee_name|default:'N/A' }}{% endif %}" readonly>
+              <div class="form-text">This field is automatically filled with your name</div>
+            </div>
             <div class="col-md-6 mb-3">
               <label for="modalLeaveType" class="form-label">Leave Type *</label>
               <select class="form-select" id="modalLeaveType" required>
@@ -511,11 +597,30 @@
   
   .metric-card {
     transition: all 0.3s ease;
+    height: 100%;
+    min-height: 140px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+  }
+  
+  .metric-card .d-flex.align-items-center {
+    height: 100%;
+    width: 100%;
   }
   
   .metric-card:hover {
     transform: translateY(-2px);
     box-shadow: 0 8px 30px rgba(0, 0, 0, 0.12);
+  }
+  
+  /* Ensure all metric cards have same height */
+  .row.mb-4 > div {
+    display: flex;
+  }
+  
+  .row.mb-4 > div > .metric-card {
+    width: 100%;
   }
   
   .table-responsive {
@@ -536,15 +641,19 @@
       flex: 0 0 50%;
       max-width: 50%;
       margin-bottom: 1rem;
+      display: flex;
     }
     
     .metric-card {
       padding: 1rem;
+      min-height: 120px;
+      width: 100%;
     }
     
     .metric-card .d-flex.align-items-center {
       flex-direction: row;
       gap: 0.75rem;
+      height: 100%;
     }
     
     .metric-icon {
@@ -758,16 +867,25 @@
       width: 100%;
       flex: 0 0 100%;
       max-width: 100%;
+      display: flex;
+      margin-bottom: 1rem;
     }
     
     .metric-card {
       padding: 0.75rem;
+      min-height: 110px;
+      width: 100%;
+    }
+    
+    .metric-card .d-flex.align-items-center {
+      height: 100%;
     }
     
     .metric-icon {
       width: 40px;
       height: 40px;
       font-size: 1rem;
+      flex-shrink: 0;
     }
     
     .metric-value {
@@ -970,6 +1088,7 @@
   // Submit quick leave
   function submitQuickLeave() {
     const formData = {
+      applicantName: document.getElementById('quickApplicantName').value,
       type: document.getElementById('leaveType').value,
       startDate: document.getElementById('startDate').value,
       endDate: document.getElementById('endDate').value,
@@ -995,7 +1114,14 @@
     postLeave(formData).then(ok => {
       if (ok) {
         showNotification('Leave request submitted successfully!', 'success');
+        // Reset form but preserve name field
         document.getElementById('quickLeaveForm').reset();
+        // Restore name field value after reset
+        const nameField = document.getElementById('quickApplicantName');
+        const savedName = nameField.value;
+        setTimeout(() => {
+          nameField.value = savedName || '{% if request.user.is_authenticated %}{{ request.user.get_full_name|default:request.user.username }}{% else %}{{ employee_name|default:"N/A" }}{% endif %}';
+        }, 100);
       }
     });
   }
@@ -1003,6 +1129,7 @@
   // Submit leave request
   function submitLeaveRequest() {
     const formData = {
+      applicantName: document.getElementById('modalApplicantName').value,
       type: document.getElementById('modalLeaveType').value,
       days: document.getElementById('modalDays').value,
       startDate: document.getElementById('modalStartDate').value,
@@ -1022,7 +1149,14 @@
         showNotification('Leave request submitted successfully!', 'success');
         const modal = bootstrap.Modal.getInstance(document.getElementById('applyLeaveModal'));
         modal.hide();
+        // Reset form but preserve name field
         document.getElementById('applyLeaveForm').reset();
+        // Restore name field value after reset
+        const nameField = document.getElementById('modalApplicantName');
+        const savedName = nameField.value;
+        setTimeout(() => {
+          nameField.value = savedName || '{% if request.user.is_authenticated %}{{ request.user.get_full_name|default:request.user.username }}{% else %}{{ employee_name|default:"N/A" }}{% endif %}';
+        }, 100);
       }
     });
   }
@@ -1058,18 +1192,67 @@
   
   // View leave request
   function viewLeaveRequest(id) {
-    showNotification(`Viewing leave request #${id}`, 'info');
+    fetch(`/employee/leave/${id}/view/`)
+      .then(response => response.json())
+      .then(data => {
+        if (data.error) {
+          showNotification('Error: ' + data.error, 'danger');
+          return;
+        }
+        
+        // Populate modal with leave request data
+        document.getElementById('view-leave-type').textContent = data.leave_type || '-';
+        document.getElementById('view-start-date').textContent = data.start_date_display || '-';
+        document.getElementById('view-end-date').textContent = data.end_date_display || '-';
+        document.getElementById('view-days').textContent = data.days + ' days';
+        document.getElementById('view-reason').textContent = data.reason || '-';
+        document.getElementById('view-status').innerHTML = `<span class="badge bg-${data.status === 'Approved' ? 'success' : data.status === 'Rejected' || data.status === 'Cancelled' ? 'danger' : 'warning'}">${data.status}</span>`;
+        document.getElementById('view-contact').textContent = data.contact || '-';
+        document.getElementById('view-handover').textContent = data.handover || '-';
+        document.getElementById('view-applicant').textContent = data.applicant_name || '-';
+        document.getElementById('view-applied-at').textContent = data.applied_at || '-';
+        document.getElementById('view-updated-at').textContent = data.updated_at || '-';
+        
+        // Show modal
+        const modal = new bootstrap.Modal(document.getElementById('viewLeaveModal'));
+        modal.show();
+      })
+      .catch(error => {
+        console.error('Error fetching leave request:', error);
+        showNotification('Error loading leave request details', 'danger');
+      });
   }
   
   // Edit leave request
   function editLeaveRequest(id) {
-    showNotification(`Editing leave request #${id}`, 'info');
+    // For now, redirect to view or show message
+    // You can implement full edit modal later
+    viewLeaveRequest(id);
+    showNotification('Edit functionality coming soon. Currently showing details.', 'info');
   }
   
   // Cancel leave request
   function cancelLeaveRequest(id) {
     if (confirm('Are you sure you want to cancel this leave request?')) {
-      showNotification(`Leave request #${id} cancelled`, 'success');
+      fetch(`/employee/leave/${id}/cancel/`, {
+        method: 'POST',
+        headers: {
+          'X-CSRFToken': getCookie('csrftoken') || document.querySelector('[name=csrfmiddlewaretoken]')?.value || ''
+        }
+      })
+      .then(response => response.json())
+      .then(data => {
+        if (data.success) {
+          showNotification(data.message || 'Leave request cancelled successfully!', 'success');
+          setTimeout(() => location.reload(), 1500);
+        } else {
+          showNotification(data.error || 'Failed to cancel leave request', 'danger');
+        }
+      })
+      .catch(error => {
+        console.error('Error cancelling leave request:', error);
+        showNotification('Error cancelling leave request', 'danger');
+      });
     }
   }
   

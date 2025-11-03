@@ -1,569 +1,488 @@
 {% extends "employee/base.html" %}
-{% load static %}
-
-{% block title %}Quotations - Sujata Associates{% endblock %}
-{% block page_title %}Quotations{% endblock %}
-{% block page_description %}Create professional quotes and manage them here{% endblock %}
-{% block mobile_title %}Quotes{% endblock %}
+{% block title %}Quotes - Sujata Associates{% endblock %}
 
 {% block content %}
+<!-- Display messages -->
+{% if messages %}
+  {% for message in messages %}
+    <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+      {{ message }}
+      <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+  {% endfor %}
+{% endif %}
+
+<div class="dashboard-header d-flex align-items-center justify-content-between mb-4">
+  <div>
+    <h1>Quotes & Onboarding</h1>
+    <p class="text-muted">Manage quotes and client onboarding</p>
+  </div>
+</div>
+
 <style>
   .nav-tabs .nav-link { color: #000 !important; }
   .nav-tabs .nav-link.active { color: #000 !important; }
   .nav-tabs .nav-link:hover { color: #fff !important; background-color: var(--primary-color) !important; }
 
-  /* Mobile responsive table - convert to card layout */
+  /* Mobile Responsive Styles */
   @media (max-width: 768px) {
-    .quotes-table { border: 0; }
-    .quotes-table thead { display: none; }
-    .quotes-table tbody tr { display: block; margin: 0 0 1rem 0; border: 1px solid #eee; border-radius: 8px; background: #fff; }
-    .quotes-table tbody tr td { display: flex; justify-content: space-between; align-items: center; gap: 1rem; padding: 0.5rem 1rem; border-bottom: 1px solid #f1f1f1; }
-    .quotes-table tbody tr td:last-child { border-bottom: 0; }
-    .quotes-table tbody tr td::before { content: attr(data-label); font-weight: 600; color: #666; }
-    .quotes-table .btn { padding: .25rem .5rem; }
-    .quotes-table tbody tr td[data-label="Actions"] { justify-content: space-between; gap: .5rem; }
-    .quotes-table tbody tr td[data-label="Actions"] .btn-view { margin-left: auto; }
-  }
-
-  .currency { font-variant-numeric: tabular-nums; }
-  .table tfoot th, .table tfoot td { border-top: 2px solid #e9ecef; }
-
-  /* Create Quote - Line items mobile layout */
-  @media (max-width: 768px) {
-    #q-items thead { display: none; }
-    #q-items tbody tr { display: block; border: 1px solid #eee; border-radius: 8px; margin-bottom: 1rem; background: #fff; }
-    #q-items tbody tr td { display: flex; justify-content: space-between; align-items: center; gap: 1rem; padding: .5rem 1rem; border-bottom: 1px solid #f1f1f1; }
-    #q-items tbody tr td:last-child { border-bottom: 0; }
-    #q-items tbody tr td::before { content: attr(data-label); font-weight: 600; color: #666; }
-    #q-items tbody input.form-control-sm { width: 60%; }
-    #q-items tfoot { display: block; }
-    #q-items tfoot tr { display: grid; grid-template-columns: 1fr 1fr; padding: .25rem 0; }
-    #q-items tfoot td, #q-items tfoot th { border-top: 0; }
-  }
-
-  /* Onboarding Table - Mobile responsive */
-  @media (max-width: 768px) {
-    #onboard-table { border: 0; }
-    #onboard-table thead { display: none; }
-    #onboard-table tbody tr { 
-      display: block; 
-      margin: 0 0 1rem 0; 
-      border: 1px solid #eee; 
-      border-radius: 8px; 
-      background: #fff; 
-      padding: 1rem;
-    }
-    #onboard-table tbody tr td { 
+    .dashboard-header { flex-direction: column; align-items: flex-start !important; }
+    .dashboard-header h1 { font-size: 1.5rem; }
+    .form-row { flex-direction: column; }
+    .form-row .col-md-6, .form-row .col-md-4, .form-row .col-md-3 { width: 100% !important; max-width: 100% !important; margin-bottom: 1rem; }
+    
+    /* Responsive Table - Convert to Card Layout */
+    .table-responsive { overflow-x: visible; }
+    .table thead { display: none; }
+    .table, .table tbody, .table tr, .table td { display: block; width: 100%; }
+    .table tr { border: 1px solid #dee2e6; margin-bottom: 1rem; border-radius: 0.5rem; padding: 0.75rem; background: #fff; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+    .table td { 
+      border: none; 
+      padding: 0.75rem 0; 
+      position: relative; 
+      padding-left: 45%; 
+      text-align: right; 
+      min-height: 2rem;
       display: flex; 
-      justify-content: space-between; 
       align-items: center; 
-      gap: 1rem; 
-      padding: 0.5rem 0; 
-      border-bottom: 1px solid #f1f1f1; 
-      text-align: left;
+      justify-content: flex-end;
+      word-wrap: break-word;
+      overflow-wrap: break-word;
     }
-    #onboard-table tbody tr td:last-child { border-bottom: 0; padding-top: 1rem; margin-top: 0.5rem; border-top: 1px solid #e9ecef; }
-    #onboard-table tbody tr td::before { 
+    .table td:before { 
       content: attr(data-label); 
+      position: absolute; 
+      left: 0; 
+      width: 40%; 
+      padding-right: 10px; 
       font-weight: 600; 
-      color: #666; 
-      flex-shrink: 0;
-      min-width: 110px;
-      font-size: 0.875rem;
+      color: #495057;
+      text-align: left;
+      display: flex;
+      align-items: center;
     }
+    .table td:last-child { border-bottom: 0; }
     
-    /* Engineer cell on mobile */
-    #onboard-table tbody tr td[data-label="Engineer"] .d-flex {
-      flex-wrap: wrap;
-      gap: 0.5rem !important;
+    /* Action buttons in table */
+    .table td[data-label="Actions"] { 
+      padding-left: 0; 
+      padding-top: 1rem;
+      justify-content: center;
     }
-    
-    /* Actions cell spacing on mobile */
-    #onboard-table tbody tr td[data-label="Actions"] {
-      justify-content: flex-start;
+    .table td[data-label="Actions"]:before { display: none; }
+    .table td .btn-group { 
+      flex-direction: row; 
+      width: 100%; 
+      justify-content: center; 
       gap: 0.5rem;
-    }
-    
-    #onboard-table tbody tr td[data-label="Actions"]::before {
-      display: none;
-    }
-    
-    #onboard-table .btn { padding: .25rem .5rem; font-size: 0.875rem; }
-    
-    /* Search and Add button on mobile */
-    .card-header .d-flex.gap-2 {
-      flex-direction: column;
-      width: 100%;
-    }
-    .card-header .d-flex.gap-2 input {
-      max-width: 100% !important;
-    }
-    
-    /* Onboarding form mobile responsive */
-    #onboard-form .row.g-3 > [class*="col-md-"] {
-      width: 100%;
-    }
-    
-    #onboard-form .input-group .form-select {
-      max-width: 100px !important;
-    }
-    
-    /* Mobile tabs */
-    .nav-tabs {
       flex-wrap: wrap;
+    }
+    .table td .btn-group .btn { width: auto; flex: 1; min-width: 80px; }
+    
+    .btn-group { flex-direction: column; width: 100%; }
+    .btn-group .btn { width: 100%; margin-bottom: 0.5rem; }
+    .card { margin-bottom: 1rem; }
+    .items-table { font-size: 0.8rem; }
+    .items-table th, .items-table td { padding: 0.5rem; }
+    
+    /* Nav tabs - stack vertically */
+    .nav-tabs { flex-direction: column; }
+    .nav-tabs .nav-link { width: 100%; margin-bottom: 0.25rem; }
+    
+    /* Modal adjustments */
+    .modal-dialog { margin: 0.5rem; }
+    .modal-content { border-radius: 0.5rem; }
+    
+    /* Form adjustments */
+    .row.mb-3 { margin-bottom: 0.75rem !important; }
+    .col-md-6 { margin-bottom: 0.5rem; }
+  }
+  
+  @media (max-width: 576px) {
+    .dashboard-header h1 { font-size: 1.25rem; }
+    .card-body { padding: 0.75rem; }
+    .btn { padding: 0.5rem 1rem; font-size: 0.875rem; }
+    .table td { 
+      padding-left: 40%; 
       font-size: 0.875rem;
+      padding-top: 0.5rem;
+      padding-bottom: 0.5rem;
     }
-    
-    .nav-tabs .nav-item {
-      flex: 1 1 auto;
-      text-align: center;
-    }
-    
-    .nav-tabs .nav-link {
-      padding: 0.5rem 0.25rem;
+    .table td:before { 
+      width: 35%; 
       font-size: 0.8rem;
+      padding-right: 8px;
     }
-    
-    .nav-tabs .ms-auto {
-      display: none !important;
+    .table tr { padding: 0.5rem; }
+    .modal-body { padding: 1rem; }
+    .modal-body .row { margin-bottom: 0.5rem !important; }
+    .modal-body .col-md-6 { padding: 0.25rem 0; }
+  }
+  
+  /* Extra small devices */
+  @media (max-width: 375px) {
+    .dashboard-header h1 { font-size: 1.1rem; }
+    .card-body { padding: 0.5rem; }
+    .btn { padding: 0.4rem 0.8rem; font-size: 0.8rem; }
+    .table td { 
+      padding-left: 35%; 
+      font-size: 0.8rem; 
+      padding-top: 0.4rem;
+      padding-bottom: 0.4rem;
     }
-    
-    /* Dashboard header mobile */
-    .dashboard-header h1 {
-      font-size: 1.5rem;
+    .table td:before { 
+      width: 30%; 
+      font-size: 0.75rem; 
+      padding-right: 5px;
     }
-    
-    .dashboard-header p {
-      font-size: 0.875rem;
-    }
-    
-    /* Card spacing on mobile */
-    .card {
-      margin-bottom: 1rem;
-    }
-    
-    .card-header h5 {
-      font-size: 1rem;
-    }
+    .table tr { padding: 0.4rem; }
   }
 </style>
 
-<!-- Tabs: List | Create | Onboarding -->
-<ul class="nav nav-tabs" id="quotesTabs" role="tablist">
+<!-- Tabs: List | Create Quote | Onboarding -->
+<ul class="nav nav-tabs mb-4" id="quotesTabs" role="tablist">
   <li class="nav-item" role="presentation">
-    <button class="nav-link active" id="q-list-tab" data-bs-toggle="tab" data-bs-target="#q-list" type="button" role="tab" aria-controls="q-list" aria-selected="true">
-      <i class="bi bi-table"></i> List
+    <button class="nav-link active" id="list-tab" data-bs-toggle="tab" data-bs-target="#list" type="button" role="tab">
+      <i class="bi bi-list-ul"></i> List
     </button>
   </li>
   <li class="nav-item" role="presentation">
-    <button class="nav-link" id="q-create-tab" data-bs-toggle="tab" data-bs-target="#q-create" type="button" role="tab" aria-controls="q-create" aria-selected="false">
+    <button class="nav-link" id="create-tab" data-bs-toggle="tab" data-bs-target="#create" type="button" role="tab">
       <i class="bi bi-plus-circle"></i> Create Quote
     </button>
   </li>
   <li class="nav-item" role="presentation">
-    <button class="nav-link" id="q-onboard-tab" data-bs-toggle="tab" data-bs-target="#q-onboard" type="button" role="tab" aria-controls="q-onboard" aria-selected="false">
-      <i class="bi bi-person-check"></i> Onboarding
+    <button class="nav-link" id="onboard-tab" data-bs-toggle="tab" data-bs-target="#onboard" type="button" role="tab">
+      <i class="bi bi-person-plus"></i> Onboarding
     </button>
   </li>
-  <li class="nav-item ms-auto d-none d-md-block">
-    <button class="nav-link" id="q-print" type="button"><i class="bi bi-printer"></i> Print</button>
-  </li>
-  <li class="nav-item d-none d-md-block">
-    <button class="nav-link" id="q-export" type="button"><i class="bi bi-download"></i> Export CSV</button>
-  </li>
-  
 </ul>
 
-<div class="tab-content pt-3" id="quotesTabsContent">
+<div class="tab-content" id="quotesTabsContent">
   <!-- List Tab -->
-  <div class="tab-pane fade show active" id="q-list" role="tabpanel" aria-labelledby="q-list-tab">
+  <div class="tab-pane fade show active" id="list" role="tabpanel">
+    <div class="row">
+      <!-- Quotes List -->
+      <div class="col-12 col-lg-6 mb-4">
     <div class="card">
-      <div class="card-header d-flex align-items-center justify-content-between">
-        <h5 class="card-title mb-0">All Quotations</h5>
-        <div class="d-flex gap-2">
-          <input id="q-search" class="form-control form-control-sm" style="max-width: 220px;" type="search" placeholder="Search quotes...">
-          <button class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" data-bs-target="#q-filterModal"><i class="bi bi-funnel"></i> Filter</button>
+          <div class="card-header d-flex justify-content-between align-items-center">
+            <h5 class="mb-0">Quotes</h5>
         </div>
-      </div>
-      <div class="card-body p-0">
+          <div class="card-body">
         <div class="table-responsive">
-          <table class="table table-hover align-middle mb-0 quotes-table">
-            <thead class="table-light">
+              <table class="table table-hover">
+                <thead>
               <tr>
                 <th>Quote #</th>
                 <th>Client</th>
-                <th>Company</th>
-                <th>Owner</th>
-                <th>Status</th>
                 <th>Total</th>
-                <th>Valid Until</th>
+                    <th>Status</th>
                 <th>Actions</th>
               </tr>
             </thead>
-            <tbody id="q-tbody">
+                <tbody>
               {% for quote in quotes %}
-              <tr data-quote-id="{{ quote.id }}" data-valid="{{ quote.valid_until|date:'Y-m-d' }}" data-total="{{ quote.total }}" data-status="{{ quote.status }}">
+                  <tr>
                 <td data-label="Quote #">{{ quote.quote_number }}</td>
                 <td data-label="Client">{{ quote.client_name }}</td>
-                <td data-label="Company">{{ quote.company|default:"N/A" }}</td>
-                <td data-label="Owner">{{ quote.owner }}</td>
+                    <td data-label="Total">₹{{ quote.total }}</td>
                 <td data-label="Status"><span class="badge {{ quote.get_status_badge_class }}">{{ quote.status }}</span></td>
-                <td data-label="Total" class="currency">₹{{ quote.total|floatformat:0 }}</td>
-                <td data-label="Valid Until">{{ quote.valid_until|date:"d-M-Y" }}</td>
                 <td data-label="Actions">
-                  <button type="button" class="btn btn-sm btn-outline-primary btn-view" data-quote-id="{{ quote.id }}" title="View"><i class="bi bi-eye"></i></button>
-                  <button type="button" class="btn btn-sm btn-outline-primary btn-edit" data-quote-id="{{ quote.id }}" title="Edit"><i class="bi bi-pencil"></i></button>
-                  <button type="button" class="btn btn-sm btn-outline-danger btn-delete-quote" data-quote-id="{{ quote.id }}" data-quote-number="{{ quote.quote_number }}" title="Delete"><i class="bi bi-trash"></i></button>
+                      <div class="btn-group btn-group-sm" role="group">
+                        <button type="button" class="btn btn-outline-primary" onclick="viewQuote({{ quote.id }})" title="View">
+                          <i class="bi bi-eye"></i>
+                        </button>
+                        <button type="button" class="btn btn-outline-danger" onclick="deleteQuote({{ quote.id }})" title="Delete">
+                          <i class="bi bi-trash"></i>
+                        </button>
+                      </div>
                 </td>
               </tr>
               {% empty %}
               <tr>
-                <td colspan="8" class="text-center text-muted py-4">
-                  <i class="bi bi-inbox fs-1 d-block mb-2"></i>
-                  No quotes found. Create your first quote!
-                </td>
+                    <td colspan="5" class="text-center text-muted">No quotes found</td>
               </tr>
               {% endfor %}
             </tbody>
           </table>
+            </div>
+          </div>
         </div>
       </div>
       
-      <!-- Quotes Pagination -->
-      {% if quotes.has_other_pages %}
-      <div class="card-footer">
-        <nav aria-label="Quotes pagination">
-          <ul class="pagination pagination-sm mb-0 justify-content-center">
-            {% if quotes.has_previous %}
-            <li class="page-item">
-              <a class="page-link" href="?quote_page=1{% if onboardings.has_other_pages %}&onboard_page={{ onboardings.number }}{% endif %}">First</a>
-            </li>
-            <li class="page-item">
-              <a class="page-link" href="?quote_page={{ quotes.previous_page_number }}{% if onboardings.has_other_pages %}&onboard_page={{ onboardings.number }}{% endif %}">Previous</a>
-            </li>
-            {% else %}
-            <li class="page-item disabled"><span class="page-link">First</span></li>
-            <li class="page-item disabled"><span class="page-link">Previous</span></li>
-            {% endif %}
-            
-            <li class="page-item active">
-              <span class="page-link">Page {{ quotes.number }} of {{ quotes.paginator.num_pages }}</span>
-            </li>
-            
-            {% if quotes.has_next %}
-            <li class="page-item">
-              <a class="page-link" href="?quote_page={{ quotes.next_page_number }}{% if onboardings.has_other_pages %}&onboard_page={{ onboardings.number }}{% endif %}">Next</a>
-            </li>
-            <li class="page-item">
-              <a class="page-link" href="?quote_page={{ quotes.paginator.num_pages }}{% if onboardings.has_other_pages %}&onboard_page={{ onboardings.number }}{% endif %}">Last</a>
-            </li>
-            {% else %}
-            <li class="page-item disabled"><span class="page-link">Next</span></li>
-            <li class="page-item disabled"><span class="page-link">Last</span></li>
-            {% endif %}
-          </ul>
-        </nav>
+      <!-- Onboarding List -->
+      <div class="col-12 col-lg-6 mb-4">
+        <div class="card">
+          <div class="card-header d-flex justify-content-between align-items-center">
+            <h5 class="mb-0">Onboarding</h5>
       </div>
-      {% endif %}
+          <div class="card-body">
+            <div class="table-responsive">
+              <table class="table table-hover">
+                <thead>
+                  <tr>
+                    <th>Client</th>
+                    <th>Project</th>
+                    <th>Cost</th>
+                    <th>Status</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {% for onboard in onboardings %}
+                  <tr>
+                    <td data-label="Client">{{ onboard.client_name }}</td>
+                    <td data-label="Project">{{ onboard.project_name }}</td>
+                    <td data-label="Cost">₹{{ onboard.project_cost }}</td>
+                    <td data-label="Status"><span class="badge {{ onboard.get_status_badge_class }}">{{ onboard.status }}</span></td>
+                    <td data-label="Actions">
+                      <div class="btn-group btn-group-sm" role="group">
+                        <button type="button" class="btn btn-outline-primary" onclick="viewOnboard({{ onboard.id }})" title="View">
+                          <i class="bi bi-eye"></i>
+                        </button>
+                        <button type="button" class="btn btn-outline-danger" onclick="deleteOnboard({{ onboard.id }})" title="Delete">
+                          <i class="bi bi-trash"></i>
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                  {% empty %}
+                  <tr>
+                    <td colspan="5" class="text-center text-muted">No onboarding found</td>
+                  </tr>
+                  {% endfor %}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
   </div>
 
-  <!-- Create Tab -->
-  <div class="tab-pane fade" id="q-create" role="tabpanel" aria-labelledby="q-create-tab">
-    <form id="q-form" method="post" enctype="multipart/form-data" novalidate>
-      {% csrf_token %}
+  <!-- Create Quote Tab -->
+  <div class="tab-pane fade" id="create" role="tabpanel">
       <div class="card">
-        <div class="card-header d-flex flex-wrap align-items-center justify-content-between gap-2">
-          <h5 class="card-title mb-0">Create quotation</h5>
+      <div class="card-header">
+        <h5 class="mb-0">Create Quote</h5>
         </div>
         <div class="card-body">
-          <div class="row g-3">
-            <div class="col-md-4">
-              <label class="form-label">Client name<span class="text-danger">*</span></label>
-              <input type="text" name="client" class="form-control" placeholder="Client full name" required>
+        <form id="quote-form" method="post" action="{% url 'employee_quotes' %}" enctype="multipart/form-data">
+          {% csrf_token %}
+          
+          <div class="row mb-3">
+            <div class="col-12 col-md-6 mb-2 mb-md-0">
+              <label class="form-label">Client Name <span class="text-danger">*</span></label>
+              <input type="text" class="form-control" name="client_name" required>
             </div>
-            <div class="col-md-4">
+            <div class="col-12 col-md-6">
               <label class="form-label">Company</label>
-              <input type="text" name="company" class="form-control" placeholder="Company name">
+              <input type="text" class="form-control" name="company">
             </div>
-            <div class="col-md-4">
-              <label class="form-label">Owner (assignee)<span class="text-danger">*</span></label>
-              <input type="text" name="owner" class="form-control" placeholder="Assigned to" required>
             </div>
 
-            <div class="col-md-4">
+          <div class="row mb-3">
+            <div class="col-12 col-md-6">
               <label class="form-label">Email</label>
-              <input type="email" name="email" class="form-control" placeholder="name@example.com">
+              <input type="email" class="form-control" name="email">
             </div>
-            <div class="col-md-4">
+            <div class="col-12 col-md-6">
               <label class="form-label">Phone</label>
-              <input type="tel" name="phone" class="form-control" placeholder="e.g. +91 98765 43210">
+              <input type="tel" class="form-control" name="phone">
             </div>
-            <div class="col-md-4">
-              <label class="form-label">Valid Until<span class="text-danger">*</span></label>
-              <input type="date" name="valid_until" class="form-control" required>
             </div>
 
-            <div class="col-md-4">
-              <label class="form-label">Quote #</label>
-              <input type="text" name="quote_no" class="form-control" placeholder="Auto or custom e.g. Q-1003">
+          <div class="row mb-3">
+            <div class="col-12 col-md-4">
+              <label class="form-label">Quote Number</label>
+              <input type="text" class="form-control" name="quote_number" placeholder="Auto-generated if empty">
             </div>
-            <div class="col-md-4">
-              <label class="form-label">Status</label>
-              <select name="status" class="form-select">
-                <option>Draft</option>
-                <option selected>Sent</option>
-                <option>Accepted</option>
-                <option>Declined</option>
-              </select>
+            <div class="col-12 col-md-4">
+              <label class="form-label">Owner <span class="text-danger">*</span></label>
+              <input type="text" class="form-control" name="owner" required>
             </div>
-            <div class="col-md-4">
-              <label class="form-label">Currency</label>
-              <select name="currency" class="form-select">
-                <option selected>INR (₹)</option>
-                <option>USD ($)</option>
-                <option>EUR (€)</option>
-              </select>
-            </div>
-            <div class="col-md-4">
-              <label class="form-label">Project Details (PDF)</label>
-              <input type="file" name="project_pdf" class="form-control" accept="application/pdf">
-              <div class="form-text">Upload a single PDF (max 10MB).</div>
+            <div class="col-12 col-md-4">
+              <label class="form-label">Valid Until <span class="text-danger">*</span></label>
+              <input type="date" class="form-control" name="valid_until" required>
             </div>
           </div>
-
-          <hr class="my-4">
+          
+          <div class="row mb-3">
+            <div class="col-12 col-md-6">
+              <label class="form-label">Status</label>
+              <select class="form-select" name="status">
+                <option value="Draft">Draft</option>
+                <option value="Sent" selected>Sent</option>
+                <option value="Accepted">Accepted</option>
+                <option value="Declined">Declined</option>
+              </select>
+            </div>
+            <div class="col-12 col-md-6">
+              <label class="form-label">Currency</label>
+              <select class="form-select" name="currency">
+                <option value="INR" selected>INR (₹)</option>
+                <option value="USD">USD ($)</option>
+                <option value="EUR">EUR (€)</option>
+              </select>
+            </div>
+          </div>
 
           <!-- Line Items -->
-          <div class="d-flex align-items-center justify-content-between mb-2">
-            <h6 class="mb-0">Line items</h6>
-            <button class="btn btn-sm btn-outline-primary" type="button" id="q-add-item"><i class="bi bi-plus-lg"></i> Add item</button>
-          </div>
+          <div class="mb-3">
+            <label class="form-label">Line Items</label>
           <div class="table-responsive">
-            <table class="table align-middle" id="q-items">
-              <thead class="table-light">
-                <tr>
-                  <th style="min-width: 240px;">Item</th>
-                  <th style="width: 120px;">Qty</th>
-                  <th style="width: 140px;">Unit Price</th>
-                  <th style="width: 140px;">GST %</th>
-                  <th style="width: 160px;">Amount</th>
-                  <th style="width: 60px;"></th>
+              <table class="table table-sm items-table">
+                <thead>
+                  <tr>
+                    <th>Description</th>
+                    <th>Qty</th>
+                    <th>Unit Price</th>
+                    <th>GST %</th>
+                    <th>Amount</th>
+                    <th>Action</th>
                 </tr>
               </thead>
-              <tbody></tbody>
-              <tfoot>
-                <tr>
-                  <td colspan="4" class="text-end">Subtotal</td>
-                  <td><span id="q-subtotal" class="currency">₹0</span></td>
-                  <td></td>
+                <tbody id="items-tbody">
+                  <tr>
+                    <td><input type="text" class="form-control form-control-sm item-desc" placeholder="Item description"></td>
+                    <td><input type="number" class="form-control form-control-sm item-qty" value="1" min="1"></td>
+                    <td><input type="number" class="form-control form-control-sm item-price" step="0.01" placeholder="0.00"></td>
+                    <td><input type="number" class="form-control form-control-sm item-gst" value="0" step="0.01"></td>
+                    <td><input type="text" class="form-control form-control-sm item-amount" readonly></td>
+                    <td><button type="button" class="btn btn-sm btn-danger" onclick="removeItem(this)"><i class="bi bi-trash"></i></button></td>
                 </tr>
-                <tr>
-                  <td colspan="4" class="text-end">Discount</td>
-                  <td>
-                    <div class="input-group input-group-sm">
-                      <input type="number" step="0.01" min="0" value="0" id="q-discount" class="form-control" aria-label="Discount">
-                      <span class="input-group-text">₹</span>
-                    </div>
-                  </td>
-                  <td></td>
-                </tr>
-                <tr>
-                  <td colspan="4" class="text-end fw-semibold">Grand Total</td>
-                  <td class="fw-semibold"><span id="q-total" class="currency">₹0</span></td>
-                  <td></td>
-                </tr>
-              </tfoot>
+                </tbody>
             </table>
+            </div>
+            <button type="button" class="btn btn-sm btn-outline-primary" onclick="addItem()">
+              <i class="bi bi-plus"></i> Add Item
+            </button>
           </div>
 
-          <div class="row g-3 mt-2">
-            <div class="col-md-6">
-              <label class="form-label">Notes</label>
-              <textarea name="notes" class="form-control" rows="3" placeholder="Visible to client"></textarea>
+          <div class="row mb-3">
+            <div class="col-12 col-md-4">
+              <label class="form-label">Subtotal</label>
+              <input type="text" class="form-control" name="subtotal" id="subtotal" readonly value="0.00">
             </div>
-            <div class="col-md-6">
-              <label class="form-label">Terms & Conditions</label>
-              <textarea name="terms" class="form-control" rows="3" placeholder="Payment, delivery, warranty, etc."></textarea>
+            <div class="col-12 col-md-4">
+              <label class="form-label">Discount</label>
+              <input type="number" class="form-control" name="discount" id="discount" step="0.01" value="0.00" onchange="calculateTotal()">
             </div>
+            <div class="col-12 col-md-4">
+              <label class="form-label">Total</label>
+              <input type="text" class="form-control" name="total" id="total" readonly value="0.00">
           </div>
         </div>
-        <div class="card-footer d-flex justify-content-end gap-2">
-          <button class="btn btn-outline-secondary" type="reset"><i class="bi bi-x-circle"></i> Reset</button>
-          <button class="btn btn-primary" type="submit" name="quote_submit" id="q-submit"><i class="bi bi-save"></i> Save Quote</button>
+          
+          <div class="row mb-3">
+            <div class="col-12">
+              <label class="form-label">Notes</label>
+              <textarea class="form-control" name="notes" rows="3"></textarea>
         </div>
-        <!-- Hidden fields for financial data -->
-        <input type="hidden" name="subtotal" id="hidden-subtotal" value="0">
-        <input type="hidden" name="total" id="hidden-total" value="0">
-        <input type="hidden" name="items_data" id="hidden-items-data" value="[]">
-      </div>
-    </form>
   </div>
 
-  <!-- Onboarding Tab -->
-  <div class="tab-pane fade" id="q-onboard" role="tabpanel" aria-labelledby="q-onboard-tab">
-    <!-- Onboarded Clients List -->
-    <div class="card mb-4">
-      <div class="card-header d-flex align-items-center justify-content-between">
-        <h5 class="card-title mb-0">Onboarded Clients</h5>
-        <div class="d-flex gap-2">
-          <input id="onboard-search" class="form-control form-control-sm" style="max-width: 220px;" type="search" placeholder="Search clients...">
-          <button class="btn btn-sm btn-success" onclick="document.getElementById('onboard-form-section').scrollIntoView({behavior: 'smooth'})">
-            <i class="bi bi-plus-lg"></i> Add Client
-          </button>
+          <div class="row mb-3">
+            <div class="col-12">
+              <label class="form-label">Terms & Conditions</label>
+              <textarea class="form-control" name="terms" rows="3"></textarea>
         </div>
       </div>
-      <div class="card-body p-0">
-        <div class="table-responsive">
-          <table class="table table-hover align-middle mb-0" id="onboard-table">
-            <thead class="table-light">
-              <tr>
-                <th>Client Name</th>
-                <th>Project Name</th>
-                <th>Duration</th>
-                <th>Cost</th>
-                <th>Assigned Engineer</th>
-                <th>Status</th>
-                <th>Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {% for onboard in onboardings %}
-              <tr>
-                <td data-label="Client">
-                  <div class="fw-bold">{{ onboard.client_name }}</div>
-                  <small class="text-muted">{{ onboard.company_name|default:"N/A" }}</small>
-                </td>
-                <td data-label="Project">{{ onboard.project_name }}</td>
-                <td data-label="Duration">{{ onboard.get_duration_display_text|title }}</td>
-                <td data-label="Cost" class="currency">₹{{ onboard.project_cost|floatformat:0 }}</td>
-                <td data-label="Engineer">
-                  <div class="d-flex align-items-center">
-                    <div class="bg-primary text-white rounded-circle d-flex align-items-center justify-content-center me-2" style="width: 30px; height: 30px; font-size: 12px;">
-                      {{ onboard.assigned_engineer|slice:":2"|upper }}
-                    </div>
-                    <span>{{ onboard.assigned_engineer }}</span>
-                  </div>
-                </td>
-                <td data-label="Status"><span class="badge {{ onboard.get_status_badge_class }}">{{ onboard.get_status_display }}</span></td>
-                <td data-label="Actions">
-                  <button type="button" class="btn btn-sm btn-outline-primary btn-view-onboard" data-onboard-id="{{ onboard.id }}" title="View"><i class="bi bi-eye"></i></button>
-                  <button type="button" class="btn btn-sm btn-outline-secondary btn-edit-onboard" data-onboard-id="{{ onboard.id }}" title="Edit"><i class="bi bi-pencil"></i></button>
-                  <button type="button" class="btn btn-sm btn-outline-danger btn-delete-onboard" data-onboard-id="{{ onboard.id }}" data-client-name="{{ onboard.client_name }}" title="Delete"><i class="bi bi-trash"></i></button>
-                </td>
-              </tr>
-              {% empty %}
-              <tr>
-                <td colspan="7" class="text-center text-muted py-4">
-                  <i class="bi bi-person-plus fs-1 d-block mb-2"></i>
-                  No clients onboarded yet. Start onboarding!
-                </td>
-              </tr>
-              {% endfor %}
-            </tbody>
-          </table>
+          
+          <div class="row mb-3">
+            <div class="col-12">
+              <label class="form-label">Project PDF</label>
+              <input type="file" class="form-control" name="project_pdf" accept=".pdf">
         </div>
       </div>
       
-      <!-- Onboardings Pagination -->
-      {% if onboardings.has_other_pages %}
-      <div class="card-footer">
-        <nav aria-label="Onboardings pagination">
-          <ul class="pagination pagination-sm mb-0 justify-content-center">
-            {% if onboardings.has_previous %}
-            <li class="page-item">
-              <a class="page-link" href="?onboard_page=1{% if quotes.has_other_pages %}&quote_page={{ quotes.number }}{% endif %}">First</a>
-            </li>
-            <li class="page-item">
-              <a class="page-link" href="?onboard_page={{ onboardings.previous_page_number }}{% if quotes.has_other_pages %}&quote_page={{ quotes.number }}{% endif %}">Previous</a>
-            </li>
-            {% else %}
-            <li class="page-item disabled"><span class="page-link">First</span></li>
-            <li class="page-item disabled"><span class="page-link">Previous</span></li>
-            {% endif %}
-            
-            <li class="page-item active">
-              <span class="page-link">Page {{ onboardings.number }} of {{ onboardings.paginator.num_pages }}</span>
-            </li>
-            
-            {% if onboardings.has_next %}
-            <li class="page-item">
-              <a class="page-link" href="?onboard_page={{ onboardings.next_page_number }}{% if quotes.has_other_pages %}&quote_page={{ quotes.number }}{% endif %}">Next</a>
-            </li>
-            <li class="page-item">
-              <a class="page-link" href="?onboard_page={{ onboardings.paginator.num_pages }}{% if quotes.has_other_pages %}&quote_page={{ quotes.number }}{% endif %}">Last</a>
-            </li>
-            {% else %}
-            <li class="page-item disabled"><span class="page-link">Next</span></li>
-            <li class="page-item disabled"><span class="page-link">Last</span></li>
-            {% endif %}
-          </ul>
-        </nav>
+          <input type="hidden" name="items_data" id="items_data" value="[]">
+          <button type="submit" name="quote_submit" class="btn btn-primary">
+            <i class="bi bi-save"></i> Save Quote
+          </button>
+        </form>
       </div>
-      {% endif %}
+    </div>
     </div>
 
-    <!-- Onboarding Form -->
-    <div class="card" id="onboard-form-section">
+  <!-- Onboarding Tab -->
+  <div class="tab-pane fade" id="onboard" role="tabpanel">
+    <div class="card">
       <div class="card-header">
-        <h5 class="card-title mb-0">Onboard New Client</h5>
+        <h5 class="mb-0">Client Onboarding</h5>
       </div>
       <div class="card-body">
-        <form id="onboard-form" method="post">
+        <form id="onboard-form" method="post" action="{% url 'employee_quotes' %}">
           {% csrf_token %}
-          <div class="row g-3">
-            <div class="col-md-6">
-              <label class="form-label">Client Name<span class="text-danger">*</span></label>
-              <input type="text" name="client_name" class="form-control" placeholder="Enter client name" required>
+          
+          <div class="row mb-3">
+            <div class="col-12 col-md-6">
+              <label class="form-label">Client Name <span class="text-danger">*</span></label>
+              <input type="text" class="form-control" name="client_name" required>
             </div>
-            <div class="col-md-6">
+            <div class="col-12 col-md-6">
               <label class="form-label">Company Name</label>
-              <input type="text" name="company_name" class="form-control" placeholder="Enter company name">
+              <input type="text" class="form-control" name="company_name">
             </div>
-            <div class="col-md-6">
+          </div>
+          
+          <div class="row mb-3">
+            <div class="col-12 col-md-6">
               <label class="form-label">Email</label>
-              <input type="email" name="client_email" class="form-control" placeholder="client@example.com">
+              <input type="email" class="form-control" name="client_email">
             </div>
-            <div class="col-md-6">
+            <div class="col-12 col-md-6">
               <label class="form-label">Phone</label>
-              <input type="tel" name="client_phone" class="form-control" placeholder="+91 98765 43210">
+              <input type="tel" class="form-control" name="client_phone">
             </div>
-            <div class="col-md-12">
-              <label class="form-label">Project Name<span class="text-danger">*</span></label>
-              <input type="text" name="project_name" class="form-control" placeholder="Enter project name" required>
             </div>
-            <div class="col-md-4">
-              <label class="form-label">Project Duration<span class="text-danger">*</span></label>
-              <div class="input-group">
-                <input type="number" name="project_duration" class="form-control" placeholder="Enter duration" min="1" required>
-                <select class="form-select" name="duration_unit" style="max-width: 120px;">
+          
+          <div class="row mb-3">
+            <div class="col-12">
+              <label class="form-label">Project Name <span class="text-danger">*</span></label>
+              <input type="text" class="form-control" name="project_name" required>
+            </div>
+          </div>
+          
+          <div class="row mb-3">
+            <div class="col-12">
+              <label class="form-label">Project Description</label>
+              <textarea class="form-control" name="project_description" rows="3"></textarea>
+            </div>
+          </div>
+          
+          <div class="row mb-3">
+            <div class="col-12 col-md-4">
+              <label class="form-label">Duration <span class="text-danger">*</span></label>
+              <input type="number" class="form-control" name="project_duration" required min="1">
+            </div>
+            <div class="col-12 col-md-4">
+              <label class="form-label">Duration Unit</label>
+              <select class="form-select" name="duration_unit">
                   <option value="days">Days</option>
                   <option value="weeks">Weeks</option>
                   <option value="months" selected>Months</option>
                   <option value="years">Years</option>
                 </select>
               </div>
+            <div class="col-12 col-md-4">
+              <label class="form-label">Project Cost <span class="text-danger">*</span></label>
+              <input type="number" class="form-control" name="project_cost" required step="0.01" min="0">
             </div>
-            <div class="col-md-4">
-              <label class="form-label">Project Cost (₹)<span class="text-danger">*</span></label>
-              <input type="number" name="project_cost" class="form-control" placeholder="Enter cost" min="0" step="0.01" required>
             </div>
-            <div class="col-md-4">
-              <label class="form-label">Assign to Engineer<span class="text-danger">*</span></label>
-              <select class="form-select" name="assigned_engineer" required>
-                <option value="">Select Engineer</option>
-                <option value="amit_kumar">Amit Kumar</option>
-                <option value="priya_verma">Priya Verma</option>
-                <option value="rajesh_patel">Rajesh Patel</option>
-                <option value="john_doe">John Doe</option>
-                <option value="sarah_johnson">Sarah Johnson</option>
-              </select>
+          
+          <div class="row mb-3">
+            <div class="col-12 col-md-6">
+              <label class="form-label">Assigned Engineer <span class="text-danger">*</span></label>
+              <input type="text" class="form-control" name="assigned_engineer" required>
             </div>
-            <div class="col-md-6">
+            <div class="col-12 col-md-6">
               <label class="form-label">Start Date</label>
-              <input type="date" name="start_date" class="form-control">
+              <input type="date" class="form-control" name="start_date">
             </div>
-            <div class="col-md-6">
+          </div>
+          
+          <div class="row mb-3">
+            <div class="col-12 col-md-6">
               <label class="form-label">Status</label>
               <select class="form-select" name="status">
                 <option value="active" selected>Active</option>
@@ -572,19 +491,11 @@
                 <option value="completed">Completed</option>
               </select>
             </div>
-            <div class="col-md-12">
-              <label class="form-label">Project Description</label>
-              <textarea name="project_description" class="form-control" rows="3" placeholder="Enter project details and requirements..."></textarea>
             </div>
-          </div>
-          <div class="d-flex justify-content-end gap-2 mt-4">
-            <button type="reset" class="btn btn-outline-secondary" id="onboard-reset-btn">
-              <i class="bi bi-x-circle"></i> Reset
+          
+          <button type="submit" name="onboard_submit" class="btn btn-primary">
+            <i class="bi bi-save"></i> Save Onboarding
             </button>
-            <button type="submit" name="onboard_submit" class="btn btn-success" id="onboard-submit-btn">
-              <i class="bi bi-check-circle"></i> <span id="onboard-btn-text">Onboard Client</span>
-            </button>
-          </div>
         </form>
       </div>
     </div>
@@ -592,897 +503,373 @@
 </div>
 
 <!-- View Quote Modal -->
-<div class="modal fade" id="q-viewModal" tabindex="-1" aria-hidden="true">
+<div class="modal fade" id="viewQuoteModal" tabindex="-1" aria-labelledby="viewQuoteModalLabel" aria-hidden="true">
   <div class="modal-dialog modal-lg">
     <div class="modal-content">
       <div class="modal-header">
-        <h5 class="modal-title"><i class="bi bi-receipt"></i> Quote Details</h5>
+        <h5 class="modal-title" id="viewQuoteModalLabel">Quote Details</h5>
         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
       </div>
       <div class="modal-body">
-        <div class="row g-3" id="q-details"></div>
+        <div class="row mb-3">
+          <div class="col-md-6"><strong>Quote Number:</strong></div>
+          <div class="col-md-6" id="view-quote-number">-</div>
+        </div>
+        <div class="row mb-3">
+          <div class="col-md-6"><strong>Client Name:</strong></div>
+          <div class="col-md-6" id="view-client-name">-</div>
+        </div>
+        <div class="row mb-3">
+          <div class="col-md-6"><strong>Company:</strong></div>
+          <div class="col-md-6" id="view-company">-</div>
+        </div>
+        <div class="row mb-3">
+          <div class="col-md-6"><strong>Email:</strong></div>
+          <div class="col-md-6" id="view-email">-</div>
+        </div>
+        <div class="row mb-3">
+          <div class="col-md-6"><strong>Phone:</strong></div>
+          <div class="col-md-6" id="view-phone">-</div>
+        </div>
+        <div class="row mb-3">
+          <div class="col-md-6"><strong>Owner/Assignee:</strong></div>
+          <div class="col-md-6" id="view-owner">-</div>
+        </div>
+        <div class="row mb-3">
+          <div class="col-md-6"><strong>Status:</strong></div>
+          <div class="col-md-6" id="view-status">-</div>
+        </div>
+        <div class="row mb-3">
+          <div class="col-md-6"><strong>Currency:</strong></div>
+          <div class="col-md-6" id="view-currency">-</div>
+        </div>
+        <div class="row mb-3">
+          <div class="col-md-6"><strong>Valid Until:</strong></div>
+          <div class="col-md-6" id="view-valid-until">-</div>
+        </div>
+        <div class="row mb-3">
+          <div class="col-md-6"><strong>Subtotal:</strong></div>
+          <div class="col-md-6" id="view-subtotal">-</div>
+        </div>
+        <div class="row mb-3">
+          <div class="col-md-6"><strong>Discount:</strong></div>
+          <div class="col-md-6" id="view-discount">-</div>
+        </div>
+        <div class="row mb-3">
+          <div class="col-md-6"><strong>Total:</strong></div>
+          <div class="col-md-6" id="view-total">-</div>
+        </div>
+        <hr>
+        <div class="row mb-3">
+          <div class="col-12"><strong>Quote Items:</strong></div>
+          <div class="col-12 mt-2">
+            <div class="table-responsive">
+              <table class="table table-sm table-bordered">
+                <thead>
+                  <tr>
+                    <th>Description</th>
+                    <th>Qty</th>
+                    <th>Unit Price</th>
+                    <th>GST %</th>
+                    <th>Amount</th>
+                  </tr>
+                </thead>
+                <tbody id="view-items-body">
+                  <tr><td colspan="5" class="text-center text-muted">No items</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+        <div class="row mb-3">
+          <div class="col-md-6"><strong>Notes:</strong></div>
+          <div class="col-md-6" id="view-notes">-</div>
+        </div>
+        <div class="row mb-3">
+          <div class="col-md-6"><strong>Terms & Conditions:</strong></div>
+          <div class="col-md-6" id="view-terms">-</div>
+        </div>
+        <div class="row mb-3">
+          <div class="col-md-6"><strong>Project PDF:</strong></div>
+          <div class="col-md-6" id="view-project-pdf">-</div>
+        </div>
+        <div class="row mb-3">
+          <div class="col-md-6"><strong>Created At:</strong></div>
+          <div class="col-md-6" id="view-created-at">-</div>
+        </div>
+        <div class="row mb-3">
+          <div class="col-md-6"><strong>Updated At:</strong></div>
+          <div class="col-md-6" id="view-updated-at">-</div>
+        </div>
       </div>
       <div class="modal-footer">
-        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Close</button>
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
       </div>
     </div>
   </div>
 </div>
   
-<!-- Filter Modal -->
-<div class="modal fade" id="q-filterModal" tabindex="-1" aria-labelledby="q-filterLabel" aria-hidden="true">
-  <div class="modal-dialog">
+<!-- View Onboarding Modal -->
+<div class="modal fade" id="viewOnboardModal" tabindex="-1" aria-labelledby="viewOnboardModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-lg">
     <div class="modal-content">
       <div class="modal-header">
-        <h5 class="modal-title" id="q-filterLabel"><i class="bi bi-funnel"></i> Filter Quotes by Valid Until</h5>
+        <h5 class="modal-title" id="viewOnboardModalLabel">Onboarding Details</h5>
         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
       </div>
-      <form id="q-filterForm">
         <div class="modal-body">
-          <div class="mb-3">
-            <label class="form-label">Filter Type</label>
-            <div class="d-flex flex-wrap gap-3">
-              <div class="form-check">
-                <input class="form-check-input" type="radio" name="filter_type" id="qft_date" value="date" checked>
-                <label class="form-check-label" for="qft_date">Date</label>
+        <div class="row mb-3">
+          <div class="col-md-6"><strong>Client Name:</strong></div>
+          <div class="col-md-6" id="view-onboard-client-name">-</div>
               </div>
-              <div class="form-check">
-                <input class="form-check-input" type="radio" name="filter_type" id="qft_month" value="month">
-                <label class="form-check-label" for="qft_month">Month</label>
+        <div class="row mb-3">
+          <div class="col-md-6"><strong>Company Name:</strong></div>
+          <div class="col-md-6" id="view-onboard-company-name">-</div>
               </div>
-              <div class="form-check">
-                <input class="form-check-input" type="radio" name="filter_type" id="qft_year" value="year">
-                <label class="form-check-label" for="qft_year">Year</label>
+        <div class="row mb-3">
+          <div class="col-md-6"><strong>Client Email:</strong></div>
+          <div class="col-md-6" id="view-onboard-client-email">-</div>
               </div>
-              <div class="form-check">
-                <input class="form-check-input" type="radio" name="filter_type" id="qft_between" value="between">
-                <label class="form-check-label" for="qft_between">Between</label>
+        <div class="row mb-3">
+          <div class="col-md-6"><strong>Client Phone:</strong></div>
+          <div class="col-md-6" id="view-onboard-client-phone">-</div>
               </div>
+        <hr>
+        <div class="row mb-3">
+          <div class="col-md-6"><strong>Project Name:</strong></div>
+          <div class="col-md-6" id="view-onboard-project-name">-</div>
             </div>
+        <div class="row mb-3">
+          <div class="col-md-6"><strong>Project Description:</strong></div>
+          <div class="col-md-6" id="view-onboard-project-description">-</div>
           </div>
-          <div class="row g-3">
-            <div class="col-12" data-ft="date">
-              <label class="form-label">Select date</label>
-              <input type="date" name="single_date" class="form-control">
+        <div class="row mb-3">
+          <div class="col-md-6"><strong>Project Duration:</strong></div>
+          <div class="col-md-6" id="view-onboard-project-duration">-</div>
             </div>
-            <div class="col-12 d-none" data-ft="month">
-              <label class="form-label">Select month</label>
-              <input type="month" name="month" class="form-control">
+        <div class="row mb-3">
+          <div class="col-md-6"><strong>Project Cost:</strong></div>
+          <div class="col-md-6" id="view-onboard-project-cost">-</div>
             </div>
-            <div class="col-12 d-none" data-ft="year">
-              <label class="form-label">Select year</label>
-              <input type="number" name="year" class="form-control" min="2000" max="2100" placeholder="e.g. 2025">
+        <hr>
+        <div class="row mb-3">
+          <div class="col-md-6"><strong>Assigned Engineer:</strong></div>
+          <div class="col-md-6" id="view-onboard-assigned-engineer">-</div>
             </div>
-            <div class="col-12 d-none" data-ft="between">
-              <div class="row g-3">
-                <div class="col-6">
-                  <label class="form-label">From</label>
-                  <input type="date" name="from_date" class="form-control">
+        <div class="row mb-3">
+          <div class="col-md-6"><strong>Start Date:</strong></div>
+          <div class="col-md-6" id="view-onboard-start-date">-</div>
                 </div>
-                <div class="col-6">
-                  <label class="form-label">To</label>
-                  <input type="date" name="to_date" class="form-control">
+        <div class="row mb-3">
+          <div class="col-md-6"><strong>Status:</strong></div>
+          <div class="col-md-6" id="view-onboard-status">-</div>
                 </div>
+        <hr>
+        <div class="row mb-3">
+          <div class="col-md-6"><strong>Created At:</strong></div>
+          <div class="col-md-6" id="view-onboard-created-at">-</div>
               </div>
-            </div>
+        <div class="row mb-3">
+          <div class="col-md-6"><strong>Updated At:</strong></div>
+          <div class="col-md-6" id="view-onboard-updated-at">-</div>
           </div>
         </div>
         <div class="modal-footer">
-          <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Close</button>
-          <button type="submit" class="btn btn-primary">Apply</button>
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
         </div>
-      </form>
     </div>
   </div>
 </div>
 
 <script>
-  document.addEventListener('DOMContentLoaded', function () {
-    // Elements
-    const qTable = document.querySelector('.quotes-table');
-    const qTableWrapper = document.querySelector('#q-list .card .table-responsive');
-    const qSearch = document.getElementById('q-search');
-    const qFilterForm = document.getElementById('q-filterForm');
-    const qCreateTabBtn = document.getElementById('q-create-tab');
-    const qForm = document.getElementById('q-form');
-    const qItemsBody = document.querySelector('#q-items tbody');
-    const qSubtotalEl = document.getElementById('q-subtotal');
-    const qTotalEl = document.getElementById('q-total');
-    const qDiscountEl = document.getElementById('q-discount');
-    const qExport = document.getElementById('q-export');
-    const qPrint = document.getElementById('q-print');
-    const qSend = document.getElementById('q-send');
+// Quote form handling
+let itemCount = 1;
 
-    function updateTableScrollQuotes() {
-      if (!qTable || !qTableWrapper) return;
-      const visibleRows = Array.from(qTable.querySelectorAll('tbody tr')).filter(r => r.style.display !== 'none');
-      if (visibleRows.length > 10) {
-        qTableWrapper.style.maxHeight = '480px';
-        qTableWrapper.style.overflowY = 'auto';
-      } else {
-        qTableWrapper.style.maxHeight = '';
-        qTableWrapper.style.overflowY = '';
-      }
-    }
-    updateTableScrollQuotes();
+function addItem() {
+  const tbody = document.getElementById('items-tbody');
+  const row = document.createElement('tr');
+  row.innerHTML = `
+    <td><input type="text" class="form-control form-control-sm item-desc" placeholder="Item description"></td>
+    <td><input type="number" class="form-control form-control-sm item-qty" value="1" min="1" onchange="calculateItemAmount(this)"></td>
+    <td><input type="number" class="form-control form-control-sm item-price" step="0.01" placeholder="0.00" onchange="calculateItemAmount(this)"></td>
+    <td><input type="number" class="form-control form-control-sm item-gst" value="0" step="0.01" onchange="calculateItemAmount(this)"></td>
+    <td><input type="text" class="form-control form-control-sm item-amount" readonly></td>
+    <td><button type="button" class="btn btn-sm btn-danger" onclick="removeItem(this)"><i class="bi bi-trash"></i></button></td>
+  `;
+  tbody.appendChild(row);
+  itemCount++;
+}
 
-    // Search filter
-    if (qSearch) {
-      qSearch.addEventListener('input', function () {
-        const term = qSearch.value.toLowerCase();
-        const rows = qTable.querySelectorAll('tbody tr');
-        rows.forEach(row => {
-          const text = row.textContent.toLowerCase();
-          row.style.display = text.includes(term) ? '' : 'none';
-        });
-        updateTableScrollQuotes();
-      });
-    }
+function removeItem(btn) {
+  if (document.querySelectorAll('#items-tbody tr').length > 1) {
+    btn.closest('tr').remove();
+    calculateTotal();
+  }
+}
 
-    // Filter modal logic: toggle sections
-    (function setupFilterSections(){
-      const form = qFilterForm;
-      if (!form) return;
-      const radios = form.querySelectorAll('input[name="filter_type"]');
-      const sections = form.querySelectorAll('[data-ft]');
-      function updateSections(){
-        const selected = form.querySelector('input[name="filter_type"]:checked').value;
-        sections.forEach(sec => sec.classList.toggle('d-none', sec.getAttribute('data-ft') !== selected));
-      }
-      radios.forEach(r => r.addEventListener('change', updateSections));
-      updateSections();
-    })();
+function calculateItemAmount(input) {
+  const row = input.closest('tr');
+  const qty = parseFloat(row.querySelector('.item-qty').value) || 0;
+  const price = parseFloat(row.querySelector('.item-price').value) || 0;
+  const gst = parseFloat(row.querySelector('.item-gst').value) || 0;
+  const amount = (qty * price) * (1 + gst / 100);
+  row.querySelector('.item-amount').value = amount.toFixed(2);
+  calculateTotal();
+}
 
-    // Apply filter
-    if (qFilterForm) {
-      qFilterForm.addEventListener('submit', function (e) {
-        e.preventDefault();
-        const type = qFilterForm.querySelector('[name="filter_type"]:checked').value;
-        const date = qFilterForm.querySelector('[name="single_date"]').value;
-        const month = qFilterForm.querySelector('[name="month"]').value;
-        const year = qFilterForm.querySelector('[name="year"]').value;
-        const from = qFilterForm.querySelector('[name="from_date"]').value;
-        const to = qFilterForm.querySelector('[name="to_date"]').value;
-
-        const rows = qTable.querySelectorAll('tbody tr');
-        rows.forEach(row => {
-          const validStr = row.getAttribute('data-valid');
-          if (!validStr) { row.style.display = ''; return; }
-          const valid = new Date(validStr);
-          let show = true;
-          if (type === 'date' && date) {
-            const d = new Date(date);
-            show = valid.getFullYear() === d.getFullYear() && valid.getMonth() === d.getMonth() && valid.getDate() === d.getDate();
-          } else if (type === 'month' && month) {
-            const [y, m] = month.split('-').map(n => parseInt(n, 10));
-            show = valid.getFullYear() === y && (valid.getMonth() + 1) === m;
-          } else if (type === 'year' && year) {
-            const y = parseInt(year, 10);
-            show = valid.getFullYear() === y;
-          } else if (type === 'between' && from && to) {
-            const f = new Date(from);
-            const t = new Date(to);
-            show = valid >= new Date(f.setHours(0,0,0,0)) && valid <= new Date(t.setHours(23,59,59,999));
-          }
-          row.style.display = show ? '' : 'none';
-        });
-
-        const modalEl = document.getElementById('q-filterModal');
-        const modal = bootstrap.Modal.getInstance(modalEl) || new bootstrap.Modal(modalEl);
-        modal.hide();
-        updateTableScrollQuotes();
-      });
-    }
-
-    // CSV Export
-    if (qExport) {
-      qExport.addEventListener('click', function(){
-        const rows = Array.from(qTable.querySelectorAll('tbody tr')).filter(r => r.style.display !== 'none');
-        const header = ['Quote #','Client','Company','Owner','Status','Total','Valid Until'];
-        const data = rows.map(r => [
-          r.querySelector('[data-label="Quote #"]').innerText.trim(),
-          r.querySelector('[data-label="Client"]').innerText.trim(),
-          r.querySelector('[data-label="Company"]').innerText.trim(),
-          r.querySelector('[data-label="Owner"]').innerText.trim(),
-          r.querySelector('[data-label="Status"]').innerText.trim(),
-          r.querySelector('[data-label="Total"]').innerText.trim(),
-          r.querySelector('[data-label="Valid Until"]').innerText.trim(),
-        ]);
-        const csv = [header, ...data].map(row => row.map(v => '"' + v.replaceAll('"','""') + '"').join(',')).join('\n');
-        const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url; a.download = 'quotations.csv'; a.click();
-        URL.revokeObjectURL(url);
-      });
-    }
-
-    // Print
-    if (qPrint) {
-      qPrint.addEventListener('click', function(){
-        window.print();
-      });
-    }
-
-    // ========== QUOTES TABLE ACTIONS - REBUILT ==========
-    // Get CSRF token
-    function getCSRFToken() {
-      const token = document.querySelector('input[name="csrfmiddlewaretoken"]');
-      return token ? token.value : '';
-    }
-
-    // Quote View Handler
-    function handleQuoteView(quoteId) {
-      if (!quoteId) {
-        alert('Quote ID not found');
-        return;
-      }
-      fetch(`/employee/quotes/${quoteId}/view/`)
-        .then(r => {
-          if (!r.ok) throw new Error('Failed to fetch quote');
-          return r.json();
-        })
-        .then(data => {
-          const detailsEl = document.getElementById('q-details');
-          if (detailsEl) {
-            let itemsHtml = '';
-            if (data.items && data.items.length > 0) {
-              itemsHtml = '<div class="col-12 mt-3"><strong>Items:</strong><ul class="mt-2">';
-              data.items.forEach(item => {
-                itemsHtml += `<li>${item.description} - Qty: ${item.quantity}, Price: ₹${item.unit_price}, GST: ${item.gst_percent}%, Amount: ₹${item.amount}</li>`;
-              });
-              itemsHtml += '</ul></div>';
-            }
-            detailsEl.innerHTML = `
-              <div class="col-md-6"><strong>Quote #:</strong> ${data.quote_number || ''}</div>
-              <div class="col-md-6"><strong>Client:</strong> ${data.client_name || ''}</div>
-              <div class="col-md-6"><strong>Company:</strong> ${data.company || 'N/A'}</div>
-              <div class="col-md-6"><strong>Owner:</strong> ${data.owner || ''}</div>
-              <div class="col-md-6"><strong>Status:</strong> ${data.status || ''}</div>
-              <div class="col-md-6"><strong>Total:</strong> ₹${data.total || '0'}</div>
-              <div class="col-md-6"><strong>Valid Until:</strong> ${data.valid_until || ''}</div>
-              ${itemsHtml}
-            `;
-            const modal = new bootstrap.Modal(document.getElementById('q-viewModal'));
-            document.querySelector('#q-viewModal .modal-title').innerHTML = '<i class="bi bi-receipt"></i> Quote Details';
-            modal.show();
-          }
-        })
-        .catch(err => {
-          console.error('View error:', err);
-          alert('Error loading quote details: ' + err.message);
-        });
-    }
-
-    // Quote Edit Handler
-    function handleQuoteEdit(quoteId) {
-      if (!qCreateTabBtn || !qForm) return;
-      
-      // Get quote data from row
-      const row = document.querySelector(`tr[data-quote-id="${quoteId}"]`) || 
-                  document.querySelector(`.btn-edit[data-quote-id="${quoteId}"]`)?.closest('tr');
-      
-      if (row) {
-        const data = {
-          no: row.querySelector('[data-label="Quote #"]')?.textContent.trim() || '',
-          client: row.querySelector('[data-label="Client"]')?.textContent.trim() || '',
-          company: row.querySelector('[data-label="Company"]')?.textContent.trim() || '',
-          owner: row.querySelector('[data-label="Owner"]')?.textContent.trim() || '',
-          status: row.querySelector('[data-label="Status"]')?.textContent.trim() || '',
-          validIso: row.getAttribute('data-valid') || ''
-        };
-        
-        // Switch to Create tab
-        const tab = new bootstrap.Tab(qCreateTabBtn);
-        tab.show();
-        
-        // Fill form
-        setTimeout(() => {
-          if (qForm.querySelector('[name="quote_no"]')) qForm.querySelector('[name="quote_no"]').value = data.no;
-          if (qForm.querySelector('[name="client"]')) qForm.querySelector('[name="client"]').value = data.client;
-          if (qForm.querySelector('[name="company"]')) qForm.querySelector('[name="company"]').value = data.company;
-          if (qForm.querySelector('[name="owner"]')) qForm.querySelector('[name="owner"]').value = data.owner;
-          
-          const statusSel = qForm.querySelector('[name="status"]');
-          if (statusSel) {
-            const statuses = ['Draft', 'Sent', 'Accepted', 'Declined'];
-            statusSel.value = statuses.find(s => data.status.includes(s)) || 'Sent';
-          }
-          
-          if (data.validIso && qForm.querySelector('[name="valid_until"]')) {
-            qForm.querySelector('[name="valid_until"]').value = data.validIso;
-          }
-          
-          qForm.scrollIntoView({ behavior: 'smooth', block: 'start' });
-        }, 100);
-      }
-    }
-
-    // Quote Delete Handler
-    function handleQuoteDelete(quoteId, quoteNumber) {
-      if (!quoteId) {
-        alert('Quote ID not found');
-        return;
-      }
-      if (!confirm(`Are you sure you want to delete quote ${quoteNumber}? This action cannot be undone.`)) {
-        return;
-      }
-      
-      fetch(`/employee/quotes/${quoteId}/delete/`, {
-        method: 'POST',
-        headers: {
-          'X-CSRFToken': getCSRFToken(),
-          'Content-Type': 'application/json'
-        }
-      })
-      .then(r => {
-        if (!r.ok) throw new Error('Failed to delete quote');
-        return r.json();
-      })
-      .then(result => {
-        if (result.success) {
-          alert(result.message || 'Quote deleted successfully!');
-          location.reload();
-        } else {
-          alert(result.error || 'Error deleting quote');
-        }
-      })
-      .catch(err => {
-        console.error('Delete error:', err);
-        alert('Error deleting quote: ' + err.message);
-      });
-    }
-
-    // Attach Quote Button Handlers
-    document.addEventListener('click', function(e) {
-      // Quote View Button
-      if (e.target.closest('.btn-view')) {
-        e.preventDefault();
-        e.stopPropagation();
-        const btn = e.target.closest('.btn-view');
-        const quoteId = btn.getAttribute('data-quote-id');
-        handleQuoteView(quoteId);
-        return;
-      }
-      
-      // Quote Edit Button
-      if (e.target.closest('.btn-edit')) {
-        e.preventDefault();
-        e.stopPropagation();
-        const btn = e.target.closest('.btn-edit');
-        const quoteId = btn.getAttribute('data-quote-id');
-        handleQuoteEdit(quoteId);
-        return;
-      }
-      
-      // Quote Delete Button
-      if (e.target.closest('.btn-delete-quote')) {
-        e.preventDefault();
-        e.stopPropagation();
-        const btn = e.target.closest('.btn-delete-quote');
-        const quoteId = btn.getAttribute('data-quote-id');
-        const quoteNumber = btn.getAttribute('data-quote-number');
-        handleQuoteDelete(quoteId, quoteNumber);
-        return;
-      }
-    });
-
-    // ========== ONBOARDED CLIENTS TABLE ACTIONS - REBUILT ==========
-    
-    // Onboard View Handler
-    function handleOnboardView(onboardId) {
-      if (!onboardId) {
-        alert('Onboarding ID not found');
-        return;
-      }
-      fetch(`/employee/quotes/onboard/${onboardId}/view/`)
-        .then(r => {
-          if (!r.ok) throw new Error('Failed to fetch onboarding');
-          return r.json();
-        })
-        .then(data => {
-          const modalEl = document.getElementById('q-viewModal');
-          const modalBody = modalEl.querySelector('.modal-body .row');
-          if (modalBody) {
-            modalBody.innerHTML = `
-              <div class="col-md-6"><strong>Client Name:</strong> ${data.client_name || ''}</div>
-              <div class="col-md-6"><strong>Company:</strong> ${data.company_name || 'N/A'}</div>
-              <div class="col-md-6"><strong>Email:</strong> ${data.client_email || 'N/A'}</div>
-              <div class="col-md-6"><strong>Phone:</strong> ${data.client_phone || 'N/A'}</div>
-              <div class="col-md-12"><strong>Project:</strong> ${data.project_name || ''}</div>
-              <div class="col-md-6"><strong>Duration:</strong> ${data.project_duration || ''} ${data.duration_unit || ''}</div>
-              <div class="col-md-6"><strong>Cost:</strong> ₹${data.project_cost || '0'}</div>
-              <div class="col-md-6"><strong>Engineer:</strong> ${data.assigned_engineer || ''}</div>
-              <div class="col-md-6"><strong>Status:</strong> ${data.status_display || ''}</div>
-              <div class="col-md-6"><strong>Start Date:</strong> ${data.start_date || 'Not set'}</div>
-              ${data.project_description ? `<div class="col-12"><strong>Description:</strong><p>${data.project_description}</p></div>` : ''}
-            `;
-            document.querySelector('#q-viewModal .modal-title').innerHTML = '<i class="bi bi-person-check"></i> Onboarding Details';
-            new bootstrap.Modal(modalEl).show();
-          }
-        })
-        .catch(err => {
-          console.error('View error:', err);
-          alert('Error loading onboarding details: ' + err.message);
-        });
-    }
-
-    // Onboard Edit Handler
-    function handleOnboardEdit(onboardId) {
-      if (!onboardId) {
-        alert('Onboarding ID not found');
-        return;
-      }
-      
-      const qOnboardTabBtn = document.getElementById('q-onboard-tab');
-      if (!qOnboardTabBtn) return;
-      
-      // Switch to Onboarding tab
-      const tab = new bootstrap.Tab(qOnboardTabBtn);
-      tab.show();
-      
-      // Load data
-      fetch(`/employee/quotes/onboard/${onboardId}/view/`)
-        .then(r => {
-          if (!r.ok) throw new Error('Failed to fetch onboarding');
-          return r.json();
-        })
-        .then(data => {
-          const form = document.getElementById('onboard-form');
-          if (form) {
-            setTimeout(() => {
-              if (form.querySelector('[name="client_name"]')) form.querySelector('[name="client_name"]').value = data.client_name || '';
-              if (form.querySelector('[name="company_name"]')) form.querySelector('[name="company_name"]').value = data.company_name || '';
-              if (form.querySelector('[name="client_email"]')) form.querySelector('[name="client_email"]').value = data.client_email || '';
-              if (form.querySelector('[name="client_phone"]')) form.querySelector('[name="client_phone"]').value = data.client_phone || '';
-              if (form.querySelector('[name="project_name"]')) form.querySelector('[name="project_name"]').value = data.project_name || '';
-              if (form.querySelector('[name="project_duration"]')) form.querySelector('[name="project_duration"]').value = data.project_duration || '';
-              if (form.querySelector('[name="duration_unit"]')) form.querySelector('[name="duration_unit"]').value = data.duration_unit || '';
-              if (form.querySelector('[name="project_cost"]')) form.querySelector('[name="project_cost"]').value = data.project_cost || '';
-              if (form.querySelector('[name="assigned_engineer"]')) form.querySelector('[name="assigned_engineer"]').value = data.assigned_engineer || '';
-              if (form.querySelector('[name="status"]')) form.querySelector('[name="status"]').value = data.status || 'active';
-              if (form.querySelector('[name="start_date"]')) form.querySelector('[name="start_date"]').value = data.start_date || '';
-              if (form.querySelector('[name="project_description"]')) form.querySelector('[name="project_description"]').value = data.project_description || '';
-              
-              // Add hidden field for edit mode
-              let editField = form.querySelector('[name="onboard_id"]');
-              if (!editField) {
-                editField = document.createElement('input');
-                editField.type = 'hidden';
-                editField.name = 'onboard_id';
-                form.appendChild(editField);
-              }
-              editField.value = onboardId;
-              
-              // Update button text
-              const submitBtn = document.getElementById('onboard-submit-btn');
-              const btnText = document.getElementById('onboard-btn-text');
-              if (submitBtn && btnText) {
-                btnText.textContent = 'Update Onboarding';
-                submitBtn.className = 'btn btn-primary';
-              }
-              
-              form.querySelector('#onboard-form-section')?.scrollIntoView({ behavior: 'smooth' });
-            }, 200);
-          }
-        })
-        .catch(err => {
-          console.error('Edit error:', err);
-          alert('Error loading onboarding data: ' + err.message);
-        });
-    }
-
-    // Onboard Delete Handler
-    function handleOnboardDelete(onboardId, clientName) {
-      if (!onboardId) {
-        alert('Onboarding ID not found');
-        return;
-      }
-      if (!confirm(`Are you sure you want to delete onboarding for ${clientName}? This action cannot be undone.`)) {
-        return;
-      }
-      
-      fetch(`/employee/quotes/onboard/${onboardId}/delete/`, {
-        method: 'POST',
-        headers: {
-          'X-CSRFToken': getCSRFToken(),
-          'Content-Type': 'application/json'
-        }
-      })
-      .then(r => {
-        if (!r.ok) throw new Error('Failed to delete onboarding');
-        return r.json();
-      })
-      .then(result => {
-        if (result.success) {
-          alert(result.message || 'Onboarding deleted successfully!');
-          location.reload();
-        } else {
-          alert(result.error || 'Error deleting onboarding');
-        }
-      })
-      .catch(err => {
-        console.error('Delete error:', err);
-        alert('Error deleting onboarding: ' + err.message);
-      });
-    }
-
-    // Attach Onboard Button Handlers
-    document.addEventListener('click', function(e) {
-      // Onboard View Button
-      if (e.target.closest('.btn-view-onboard')) {
-        e.preventDefault();
-        e.stopPropagation();
-        const btn = e.target.closest('.btn-view-onboard');
-        const onboardId = btn.getAttribute('data-onboard-id');
-        handleOnboardView(onboardId);
-        return;
-      }
-      
-      // Onboard Edit Button
-      if (e.target.closest('.btn-edit-onboard')) {
-        e.preventDefault();
-        e.stopPropagation();
-        const btn = e.target.closest('.btn-edit-onboard');
-        const onboardId = btn.getAttribute('data-onboard-id');
-        handleOnboardEdit(onboardId);
-        return;
-      }
-      
-      // Onboard Delete Button
-      if (e.target.closest('.btn-delete-onboard')) {
-        e.preventDefault();
-        e.stopPropagation();
-        const btn = e.target.closest('.btn-delete-onboard');
-        const onboardId = btn.getAttribute('data-onboard-id');
-        const clientName = btn.getAttribute('data-client-name');
-        handleOnboardDelete(onboardId, clientName);
-        return;
-      }
-    });
-
-    // Reset form button text handler
-    const resetBtn = document.getElementById('onboard-reset-btn');
-    if (resetBtn) {
-      resetBtn.addEventListener('click', function() {
-        setTimeout(() => {
-          const submitBtn = document.getElementById('onboard-submit-btn');
-          const btnText = document.getElementById('onboard-btn-text');
-          const editField = document.querySelector('[name="onboard_id"]');
-          if (submitBtn && btnText && (!editField || !editField.value)) {
-            btnText.textContent = 'Onboard Client';
-            submitBtn.className = 'btn btn-success';
-          }
-        }, 100);
-      });
-    }
-
-    // Helpers for numbers
-    function parseNum(v){ const n = parseFloat(String(v).replace(/[^0-9.-]/g,'')); return isNaN(n) ? 0 : n; }
-    function formatINR(n){ try { return new Intl.NumberFormat('en-IN',{ style:'currency', currency:'INR', maximumFractionDigits:2 }).format(n); } catch { return `₹${n.toFixed(2)}`; } }
-
-    // Line item row template
-    function createItemRow(){
-      const tr = document.createElement('tr');
-      tr.innerHTML = `
-        <td data-label="Item">
-          <input type="text" class="form-control form-control-sm" name="item_desc" placeholder="Description" required>
-        </td>
-        <td data-label="Qty">
-          <input type="number" class="form-control form-control-sm" name="item_qty" min="1" step="1" value="1" required>
-        </td>
-        <td data-label="Unit Price">
-          <input type="number" class="form-control form-control-sm" name="item_price" min="0" step="0.01" value="0" required>
-        </td>
-        <td data-label="GST %">
-          <input type="number" class="form-control form-control-sm" name="item_tax" min="0" max="28" step="0.01" value="0" placeholder="GST %">
-        </td>
-        <td class="currency" data-label="Amount"><span class="item_amount">₹0</span></td>
-        <td class="text-end" data-label="Remove">
-          <button type="button" class="btn btn-sm btn-outline-danger q-remove-item"><i class="bi bi-x"></i></button>
-        </td>`;
-      return tr;
-    }
-
-    function recalcTotals(){
+function calculateTotal() {
       let subtotal = 0;
-      const rows = qItemsBody.querySelectorAll('tr');
-      rows.forEach(row => {
-        let qty = parseNum(row.querySelector('[name="item_qty"]').value);
-        let price = parseNum(row.querySelector('[name="item_price"]').value);
-        let tax = parseNum(row.querySelector('[name="item_tax"]').value); // GST %
-        // clamp values to sane ranges
-        qty = Math.max(1, Math.floor(qty));
-        price = Math.max(0, price);
-        tax = Math.min(28, Math.max(0, tax));
-        row.querySelector('[name="item_qty"]').value = qty;
-        row.querySelector('[name="item_price"]').value = price;
-        row.querySelector('[name="item_tax"]').value = tax;
-        const base = qty * price;
-        const amount = base + (base * tax / 100);
-        row.querySelector('.item_amount').textContent = formatINR(amount);
-        subtotal += amount;
-      });
-      qSubtotalEl.textContent = formatINR(subtotal);
-      let discount = parseNum(qDiscountEl.value);
-      // discount cannot exceed subtotal
-      if (discount > subtotal) {
-        discount = subtotal;
-        qDiscountEl.value = subtotal.toFixed(2);
-      }
-      const total = Math.max(0, subtotal - discount);
-      qTotalEl.textContent = formatINR(total);
-      
-      // Update hidden fields
-      document.getElementById('hidden-subtotal').value = subtotal.toFixed(2);
-      document.getElementById('hidden-total').value = total.toFixed(2);
-    }
+  document.querySelectorAll('.item-amount').forEach(input => {
+    subtotal += parseFloat(input.value) || 0;
+  });
+  const discount = parseFloat(document.getElementById('discount').value) || 0;
+  const total = subtotal - discount;
+  document.getElementById('subtotal').value = subtotal.toFixed(2);
+  document.getElementById('total').value = total.toFixed(2);
+}
 
-    // Send Email via mailto
-    if (qSend) {
-      qSend.addEventListener('click', function(){
-        if (!qForm) return;
-        // basic validation reuse
-        const client = qForm.querySelector('[name="client"]').value.trim();
-        const owner = qForm.querySelector('[name="owner"]').value.trim();
-        const validUntil = qForm.querySelector('[name="valid_until"]').value.trim();
-        const email = qForm.querySelector('[name="email"]').value.trim();
-        const phone = qForm.querySelector('[name="phone"]').value.trim();
-        let messages = [];
-        if (!client) messages.push('Client name is required');
-        if (!owner) messages.push('Owner is required');
-        if (!validUntil) messages.push('Valid Until is required');
-        if (!email && !phone) messages.push('Either Email or Phone is required');
-        if (email) {
-          const emailOk = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
-          if (!emailOk) messages.push('Enter a valid email');
-        }
-        const hasItem = Array.from(qItemsBody.querySelectorAll('[name="item_desc"]')).some(i => i.value.trim());
-        if (!hasItem) messages.push('Add at least one line item');
-        if (messages.length) {
-          const alert = document.createElement('div');
-          alert.className = 'alert alert-danger';
-          alert.innerHTML = '<strong>Please fix the following:</strong><ul class="mb-0">' + messages.map(m => `<li>${m}</li>`).join('') + '</ul>';
-          qForm.querySelectorAll('.alert-danger').forEach(x => x.remove());
-          qForm.querySelector('.card-body').prepend(alert);
-          alert.scrollIntoView({ behavior: 'smooth', block: 'center' });
-          return;
-        }
-
-        // Build email content
-        const quoteNo = qForm.querySelector('[name="quote_no"]').value.trim() || 'New Quote';
-        const currency = qForm.querySelector('[name="currency"]').value;
-        const status = qForm.querySelector('[name="status"]').value;
-        const notes = qForm.querySelector('[name="notes"]').value.trim();
-        const terms = qForm.querySelector('[name="terms"]').value.trim();
-
-        // Collect items
-        const items = Array.from(qItemsBody.querySelectorAll('tr')).map(row => {
-          const desc = row.querySelector('[name="item_desc"]').value.trim();
-          const qty = row.querySelector('[name="item_qty"]').value.trim();
-          const price = row.querySelector('[name="item_price"]').value.trim();
-          const gst = row.querySelector('[name="item_tax"]').value.trim();
-          const amount = row.querySelector('.item_amount').textContent.trim();
-          return `- ${desc} | Qty: ${qty} | Price: ${price} | GST: ${gst}% | Amount: ${amount}`;
-        }).filter(Boolean);
-
-        const subject = encodeURIComponent(`Quotation ${quoteNo} - ${client}`);
-        const lines = [
-          `Dear ${client},`,
-          '',
-          `Please find your quotation below:`,
-          '',
-          `Quote #: ${quoteNo}`,
-          `Status: ${status}`,
-          `Valid Until: ${validUntil}`,
-          '',
-          'Items:',
-          ...items,
-          '',
-          `Subtotal: ${qSubtotalEl.textContent}`,
-          `Discount: ₹${(parseNum(qSubtotalEl.textContent) - parseNum(qTotalEl.textContent)).toFixed(2)}`,
-          `Grand Total: ${qTotalEl.textContent}`,
-          '',
-          (notes ? `Notes: ${notes}` : ''),
-          (terms ? `Terms: ${terms}` : ''),
-          '',
-          'Regards,',
-          owner
-        ].filter(Boolean);
-        const body = encodeURIComponent(lines.join('\n'));
-        const to = email || '';
-        window.location.href = `mailto:${to}?subject=${subject}&body=${body}`;
-      });
-    }
-
-    // Add first row by default
-    if (qItemsBody) {
-      qItemsBody.appendChild(createItemRow());
-      recalcTotals();
-      qItemsBody.addEventListener('input', function(e){
-        if (e.target.matches('[name="item_qty"], [name="item_price"], [name="item_tax"]')) recalcTotals();
-      });
-      qItemsBody.addEventListener('click', function(e){
-        if (e.target.closest('.q-remove-item')) {
-          const row = e.target.closest('tr');
-          row.remove();
-          if (qItemsBody.querySelectorAll('tr').length === 0) qItemsBody.appendChild(createItemRow());
-          recalcTotals();
-        }
-      });
-      document.getElementById('q-add-item').addEventListener('click', function(){
-        qItemsBody.appendChild(createItemRow());
-        recalcTotals();
-      });
-      qDiscountEl.addEventListener('input', recalcTotals);
-    }
-
-    // Client-side validation and form submission
-    if (qForm) {
-      qForm.addEventListener('submit', function(e){
-        // Don't prevent default if validation passes - let form submit normally
-        
-        const client = qForm.querySelector('[name="client"]').value.trim();
-        const owner = qForm.querySelector('[name="owner"]').value.trim();
-        const validUntil = qForm.querySelector('[name="valid_until"]').value.trim();
-        const email = qForm.querySelector('[name="email"]').value.trim();
-        const phone = qForm.querySelector('[name="phone"]').value.trim();
-        let messages = [];
-        if (!client) messages.push('Client name is required');
-        if (!owner) messages.push('Owner is required');
-        if (!validUntil) messages.push('Valid Until is required');
-        if (!email && !phone) messages.push('Either Email or Phone is required');
-        if (email) {
-          const emailOk = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
-          if (!emailOk) messages.push('Enter a valid email');
-        }
-        if (phone) {
-          const phoneOk = /^[0-9+\-()\s]{7,20}$/.test(phone);
-          if (!phoneOk) messages.push('Enter a valid phone number');
-        }
-        // Ensure at least one non-empty item description
-        const hasItem = Array.from(qItemsBody.querySelectorAll('[name="item_desc"]')).some(i => i.value.trim());
-        if (!hasItem) messages.push('Add at least one line item');
-
-        // Validate Project PDF (client-only)
-        const pdf = qForm.querySelector('[name="project_pdf"]').files[0];
-        if (pdf) {
-          const isPdf = pdf.type === 'application/pdf' || (pdf.name || '').toLowerCase().endsWith('.pdf');
-          const sizeOk = pdf.size <= 10 * 1024 * 1024; // 10MB
-          if (!isPdf) messages.push('Project Details must be a PDF');
-          if (!sizeOk) messages.push('Project PDF must be ≤ 10MB');
-        }
-
-        // Valid Until must be today or future
-        if (validUntil) {
-          const today = new Date(); today.setHours(0,0,0,0);
-          const v = new Date(validUntil); v.setHours(0,0,0,0);
-          if (v < today) messages.push('Valid Until cannot be in the past');
-        }
-
-        if (messages.length) {
-          e.preventDefault();
-          const alert = document.createElement('div');
-          alert.className = 'alert alert-danger';
-          alert.innerHTML = '<strong>Please fix the following:</strong><ul class="mb-0">' + messages.map(m => `<li>${m}</li>`).join('') + '</ul>';
-          qForm.querySelectorAll('.alert-danger').forEach(x => x.remove());
-          qForm.querySelector('.card-body').prepend(alert);
-          alert.scrollIntoView({ behavior: 'smooth', block: 'center' });
-          return;
-        }
-
-        // Collect items data
+// Initialize item calculation listeners
+document.addEventListener('DOMContentLoaded', function() {
+  document.querySelectorAll('.item-qty, .item-price, .item-gst').forEach(input => {
+    input.addEventListener('change', function() {
+      calculateItemAmount(this);
+    });
+  });
+  
+  // Quote form submission
+  document.getElementById('quote-form').addEventListener('submit', function(e) {
         const items = [];
-        qItemsBody.querySelectorAll('tr').forEach(row => {
-          const desc = row.querySelector('[name="item_desc"]')?.value.trim() || '';
+    document.querySelectorAll('#items-tbody tr').forEach(row => {
+      const desc = row.querySelector('.item-desc').value.trim();
           if (desc) {
             items.push({
               description: desc,
-              quantity: row.querySelector('[name="item_qty"]')?.value || '1',
-              unit_price: row.querySelector('[name="item_price"]')?.value || '0',
-              gst_percent: row.querySelector('[name="item_tax"]')?.value || '0',
-              amount: parseNum(row.querySelector('.item_amount')?.textContent || '0')
-            });
-          }
+          quantity: parseInt(row.querySelector('.item-qty').value) || 1,
+          unit_price: parseFloat(row.querySelector('.item-price').value) || 0,
+          gst_percent: parseFloat(row.querySelector('.item-gst').value) || 0,
+          amount: parseFloat(row.querySelector('.item-amount').value) || 0
         });
-        
-        // Update hidden items data field
-        const itemsDataField = document.getElementById('hidden-items-data');
-        if (itemsDataField) {
-          itemsDataField.value = JSON.stringify(items);
-        }
-        
-        // Update discount field
-        const discountValue = parseNum(qDiscountEl?.value || '0');
-        let discountField = qForm.querySelector('[name="discount"]');
-        if (!discountField) {
-          discountField = document.createElement('input');
-          discountField.type = 'hidden';
-          discountField.name = 'discount';
-          qForm.appendChild(discountField);
-        }
-        discountField.value = discountValue.toFixed(2);
-        
-        // Ensure all hidden fields are set
-        const subtotalField = document.getElementById('hidden-subtotal');
-        const totalField = document.getElementById('hidden-total');
-        if (subtotalField) subtotalField.value = parseNum(qSubtotalEl?.textContent || '0').toFixed(2);
-        if (totalField) totalField.value = parseNum(qTotalEl?.textContent || '0').toFixed(2);
-        
-        // All validation passed - form will submit normally
-        const submitBtn = qForm.querySelector('button[name="quote_submit"]');
-        if (submitBtn) {
-          submitBtn.disabled = true;
-          submitBtn.innerHTML = '<i class="bi bi-hourglass-split"></i> Saving...';
-        }
-        
-        // Don't prevent default - let form submit normally to Django
-      });
-    }
-
-    // Onboarding Section - Search functionality
-    const onboardSearch = document.getElementById('onboard-search');
-    const onboardTable = document.getElementById('onboard-table');
-    
-    if (onboardSearch && onboardTable) {
-      onboardSearch.addEventListener('input', function() {
-        const term = onboardSearch.value.toLowerCase();
-        const rows = onboardTable.querySelectorAll('tbody tr');
-        rows.forEach(row => {
-          const text = row.textContent.toLowerCase();
-          row.style.display = text.includes(term) ? '' : 'none';
-        });
-      });
-    }
-
-    // Onboarding Form Validation and Submission
-    const onboardForm = document.getElementById('onboard-form');
-    if (onboardForm) {
-      onboardForm.addEventListener('submit', function(e) {
-        e.preventDefault(); // Prevent default first
-        
-        const clientName = onboardForm.querySelector('[name="client_name"]').value.trim();
-        const projectName = onboardForm.querySelector('[name="project_name"]').value.trim();
-        const projectDuration = onboardForm.querySelector('[name="project_duration"]').value.trim();
-        const projectCost = onboardForm.querySelector('[name="project_cost"]').value.trim();
-        const assignedEngineer = onboardForm.querySelector('[name="assigned_engineer"]').value.trim();
-        
-        if (!clientName || !projectName || !projectDuration || !projectCost || !assignedEngineer) {
-          e.preventDefault();
-          alert('Please fill in all required fields!');
-          return;
-        }
-        
-        // Validate project cost is a valid number
-        if (isNaN(parseFloat(projectCost)) || parseFloat(projectCost) < 0) {
-          e.preventDefault();
-          alert('Project cost must be a valid positive number!');
-          return;
-        }
-        
-        // Validate project duration is a valid positive integer
-        if (isNaN(parseInt(projectDuration)) || parseInt(projectDuration) < 1) {
-          e.preventDefault();
-          alert('Project duration must be a valid positive number!');
-          return;
-        }
-        
-        // All validation passed - form will submit normally
-        const submitBtn = onboardForm.querySelector('button[name="onboard_submit"]');
-        if (submitBtn) {
-          submitBtn.disabled = true;
-          const btnText = submitBtn.querySelector('#onboard-btn-text') || submitBtn;
-          if (btnText.textContent !== undefined) {
-            btnText.textContent = 'Saving...';
-          } else {
-            btnText.innerHTML = '<i class="bi bi-hourglass-split"></i> Saving...';
-          }
-        }
-        
-        // Don't prevent default - let form submit normally to Django
-      });
-    }
+      }
+    });
+    document.getElementById('items_data').value = JSON.stringify(items);
   });
+});
+
+// View/Delete functions
+function viewQuote(id) {
+  fetch(`/employee/quotes/${id}/view/`)
+    .then(response => response.json())
+    .then(data => {
+      if (data.error) {
+        alert('Error: ' + data.error);
+        return;
+      }
+      
+      // Populate modal with quote data
+      document.getElementById('view-quote-number').textContent = data.quote_number || '-';
+      document.getElementById('view-client-name').textContent = data.client_name || '-';
+      document.getElementById('view-company').textContent = data.company || '-';
+      document.getElementById('view-email').textContent = data.email || '-';
+      document.getElementById('view-phone').textContent = data.phone || '-';
+      document.getElementById('view-owner').textContent = data.owner || '-';
+      document.getElementById('view-status').innerHTML = `<span class="badge bg-info">${data.status || '-'}</span>`;
+      document.getElementById('view-currency').textContent = data.currency || '-';
+      document.getElementById('view-valid-until').textContent = data.valid_until_display || '-';
+      document.getElementById('view-subtotal').textContent = data.currency + ' ' + parseFloat(data.subtotal || 0).toFixed(2);
+      document.getElementById('view-discount').textContent = data.currency + ' ' + parseFloat(data.discount || 0).toFixed(2);
+      document.getElementById('view-total').innerHTML = `<strong>${data.currency} ${parseFloat(data.total || 0).toFixed(2)}</strong>`;
+      document.getElementById('view-notes').textContent = data.notes || '-';
+      document.getElementById('view-terms').textContent = data.terms || '-';
+      document.getElementById('view-project-pdf').innerHTML = data.project_pdf 
+        ? `<a href="${data.project_pdf}" target="_blank" class="btn btn-sm btn-outline-primary"><i class="bi bi-file-pdf"></i> View PDF</a>`
+        : '-';
+      document.getElementById('view-created-at').textContent = data.created_at || '-';
+      document.getElementById('view-updated-at').textContent = data.updated_at || '-';
+      
+      // Populate items table
+      const itemsBody = document.getElementById('view-items-body');
+      itemsBody.innerHTML = '';
+            if (data.items && data.items.length > 0) {
+              data.items.forEach(item => {
+          const row = document.createElement('tr');
+          row.innerHTML = `
+            <td>${item.description || '-'}</td>
+            <td>${item.quantity || 1}</td>
+            <td>${parseFloat(item.unit_price || 0).toFixed(2)}</td>
+            <td>${parseFloat(item.gst_percent || 0).toFixed(2)}%</td>
+            <td><strong>${parseFloat(item.amount || 0).toFixed(2)}</strong></td>
+          `;
+          itemsBody.appendChild(row);
+        });
+      } else {
+        itemsBody.innerHTML = '<tr><td colspan="5" class="text-center text-muted">No items</td></tr>';
+      }
+      
+      // Show modal
+      const modal = new bootstrap.Modal(document.getElementById('viewQuoteModal'));
+            modal.show();
+    })
+    .catch(error => {
+      console.error('Error fetching quote:', error);
+      alert('Error loading quote details');
+    });
+}
+
+function deleteQuote(id) {
+  if (confirm('Are you sure you want to delete this quote?')) {
+    fetch(`/employee/quotes/${id}/delete/`, {
+        method: 'POST',
+        headers: {
+        'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+      }
+    }).then(() => location.reload());
+  }
+}
+
+function viewOnboard(id) {
+  fetch(`/employee/quotes/onboard/${id}/view/`)
+    .then(response => response.json())
+        .then(data => {
+      if (data.error) {
+        alert('Error: ' + data.error);
+        return;
+      }
+      
+      // Populate modal with onboarding data
+      document.getElementById('view-onboard-client-name').textContent = data.client_name || '-';
+      document.getElementById('view-onboard-company-name').textContent = data.company_name || '-';
+      document.getElementById('view-onboard-client-email').textContent = data.client_email || '-';
+      document.getElementById('view-onboard-client-phone').textContent = data.client_phone || '-';
+      document.getElementById('view-onboard-project-name').textContent = data.project_name || '-';
+      document.getElementById('view-onboard-project-description').textContent = data.project_description || '-';
+      document.getElementById('view-onboard-project-duration').textContent = data.duration_display || '-';
+      document.getElementById('view-onboard-project-cost').innerHTML = `<strong>₹${parseFloat(data.project_cost || 0).toFixed(2)}</strong>`;
+      document.getElementById('view-onboard-assigned-engineer').textContent = data.assigned_engineer || '-';
+      document.getElementById('view-onboard-start-date').textContent = data.start_date_display || '-';
+      document.getElementById('view-onboard-status').innerHTML = `<span class="badge bg-info">${data.status_display || '-'}</span>`;
+      document.getElementById('view-onboard-created-at').textContent = data.created_at || '-';
+      document.getElementById('view-onboard-updated-at').textContent = data.updated_at || '-';
+      
+      // Show modal
+      const modal = new bootstrap.Modal(document.getElementById('viewOnboardModal'));
+      modal.show();
+    })
+    .catch(error => {
+      console.error('Error fetching onboarding:', error);
+      alert('Error loading onboarding details');
+    });
+}
+
+function deleteOnboard(id) {
+  if (confirm('Are you sure you want to delete this onboarding?')) {
+    fetch(`/employee/quotes/onboard/${id}/delete/`, {
+        method: 'POST',
+        headers: {
+        'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+      }
+    }).then(() => location.reload());
+  }
+}
 </script>
 {% endblock %}
 

@@ -1,0 +1,764 @@
+{% extends "dashboard/dashboard_base.html" %}
+{% block title %}Leave Management - Sujata Associates{% endblock %}
+
+{% block content %}
+<div class="dashboard-header">
+  <h1><i class="bi bi-calendar-event me-2"></i>Leave Management</h1>
+  <p class="text-muted">Manage and approve all employee leave requests</p>
+</div>
+
+<!-- Status Summary Cards -->
+<div class="row mb-4">
+  <div class="col-lg-3 col-md-6 mb-3">
+    <div class="card border-left-primary">
+      <div class="card-body">
+        <div class="d-flex justify-content-between align-items-center">
+          <div>
+            <div class="text-muted small">Total Requests</div>
+            <div class="h4 mb-0">{{ status_counts.total }}</div>
+          </div>
+          <div class="text-primary">
+            <i class="bi bi-calendar3-range fs-2"></i>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="col-lg-3 col-md-6 mb-3">
+    <div class="card border-left-warning">
+      <div class="card-body">
+        <div class="d-flex justify-content-between align-items-center">
+          <div>
+            <div class="text-muted small">Pending</div>
+            <div class="h4 mb-0">{{ status_counts.pending }}</div>
+          </div>
+          <div class="text-warning">
+            <i class="bi bi-clock-history fs-2"></i>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="col-lg-3 col-md-6 mb-3">
+    <div class="card border-left-success">
+      <div class="card-body">
+        <div class="d-flex justify-content-between align-items-center">
+          <div>
+            <div class="text-muted small">Approved</div>
+            <div class="h4 mb-0">{{ status_counts.approved }}</div>
+          </div>
+          <div class="text-success">
+            <i class="bi bi-check-circle fs-2"></i>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="col-lg-3 col-md-6 mb-3">
+    <div class="card border-left-danger">
+      <div class="card-body">
+        <div class="d-flex justify-content-between align-items-center">
+          <div>
+            <div class="text-muted small">Rejected</div>
+            <div class="h4 mb-0">{{ status_counts.rejected }}</div>
+          </div>
+          <div class="text-danger">
+            <i class="bi bi-x-circle fs-2"></i>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Filters and Search -->
+<div class="card mb-4">
+  <div class="card-body">
+    <form method="get" class="row g-3">
+      <div class="col-md-4">
+        <label for="search" class="form-label">Search</label>
+        <input type="text" class="form-control" id="search" name="search" value="{{ search_query }}" placeholder="Search by name, type, reason...">
+      </div>
+      <div class="col-md-3">
+        <label for="status" class="form-label">Filter by Status</label>
+        <div class="dropdown w-100">
+          <button class="btn btn-outline-secondary dropdown-toggle w-100 text-start d-flex justify-content-between align-items-center" type="button" id="statusDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+            <span id="statusDisplay">
+              {% if status_filter %}
+                {{ status_filter }}
+              {% else %}
+                All Status
+              {% endif %}
+            </span>
+            <i class="bi bi-chevron-down"></i>
+          </button>
+          <input type="hidden" id="status" name="status" value="{{ status_filter }}">
+          <ul class="dropdown-menu w-100" aria-labelledby="statusDropdown">
+            <li><a class="dropdown-item status-option" href="#" data-value="">All Status</a></li>
+            <li><a class="dropdown-item status-option" href="#" data-value="Pending">Pending</a></li>
+            <li><a class="dropdown-item status-option" href="#" data-value="Approved">Approved</a></li>
+            <li><a class="dropdown-item status-option" href="#" data-value="Rejected">Rejected</a></li>
+            <li><a class="dropdown-item status-option" href="#" data-value="Cancelled">Cancelled</a></li>
+          </ul>
+        </div>
+      </div>
+      <div class="col-md-3 d-flex align-items-end">
+        <button type="submit" class="btn btn-primary w-100">
+          <i class="bi bi-search me-2"></i>Filter
+        </button>
+      </div>
+      <div class="col-md-2 d-flex align-items-end">
+        <a href="{% url 'dashboard_leaves' %}" class="btn btn-outline-secondary w-100">
+          <i class="bi bi-arrow-clockwise me-2"></i>Reset
+        </a>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Leave Requests Table -->
+<div class="card">
+  <div class="card-header">
+    <h5 class="mb-0"><i class="bi bi-list-ul me-2"></i>All Leave Requests</h5>
+  </div>
+  <div class="card-body">
+    <div class="table-responsive">
+      <table class="table table-hover" id="leaveRequestsTable">
+        <thead>
+          <tr>
+            <th>Employee</th>
+            <th>Leave Type</th>
+            <th>Start Date</th>
+            <th>End Date</th>
+            <th>Days</th>
+            <th>Reason</th>
+            <th>Status</th>
+            <th>Applied At</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% if leave_requests %}
+            {% for request in leave_requests %}
+            <tr>
+              <td data-label="Employee">
+                <div class="d-flex align-items-center">
+                  <div class="avatar-circle me-2">
+                    {% if request.applicant_name %}
+                      {{ request.applicant_name|first|upper }}
+                    {% else %}
+                      {% if request.user %}
+                        {{ request.user.username|first|upper|default:"U" }}
+                      {% else %}
+                        U
+                      {% endif %}
+                    {% endif %}
+                  </div>
+                  <div>
+                    <div class="fw-bold">{{ request.applicant_name|default:"N/A" }}</div>
+                    {% if request.user %}
+                    <small class="text-muted">{{ request.user.username }}</small>
+                    {% endif %}
+                  </div>
+                </div>
+              </td>
+              <td data-label="Leave Type">
+                <div class="d-flex align-items-center">
+                  <div class="leave-type-icon me-2">
+                    {% if request.leave_type == 'Annual Leave' %}
+                      <i class="bi bi-calendar3-range text-success"></i>
+                    {% elif request.leave_type == 'Sick Leave' %}
+                      <i class="bi bi-hospital text-warning"></i>
+                    {% elif request.leave_type == 'Personal Leave' %}
+                      <i class="bi bi-person-circle text-info"></i>
+                    {% elif request.leave_type == 'Maternity' %}
+                      <i class="bi bi-heart text-primary"></i>
+                    {% elif request.leave_type == 'Paternity' %}
+                      <i class="bi bi-person-badge text-secondary"></i>
+                    {% elif request.leave_type == 'Emergency' %}
+                      <i class="bi bi-lightning-charge text-danger"></i>
+                    {% else %}
+                      <i class="bi bi-calendar3 text-muted"></i>
+                    {% endif %}
+                  </div>
+                  <span class="fw-bold">{{ request.leave_type }}</span>
+                </div>
+              </td>
+              <td data-label="Start Date">{{ request.start_date|date:"M d, Y" }}</td>
+              <td data-label="End Date">{{ request.end_date|date:"M d, Y" }}</td>
+              <td data-label="Days">
+                <span class="badge bg-info">{{ request.days }} day{{ request.days|pluralize }}</span>
+              </td>
+              <td data-label="Reason">
+                <div class="text-truncate" style="max-width: 200px;" title="{{ request.reason }}">
+                  {{ request.reason }}
+                </div>
+              </td>
+              <td data-label="Status">
+                {% if request.status == 'Approved' %}
+                  <span class="badge bg-success">{{ request.status }}</span>
+                {% elif request.status == 'Rejected' %}
+                  <span class="badge bg-danger">{{ request.status }}</span>
+                {% elif request.status == 'Cancelled' %}
+                  <span class="badge bg-secondary">{{ request.status }}</span>
+                {% else %}
+                  <span class="badge bg-warning text-dark">{{ request.status }}</span>
+                {% endif %}
+              </td>
+              <td data-label="Applied At">
+                <small class="text-muted">{{ request.applied_at|date:"M d, Y H:i" }}</small>
+              </td>
+              <td data-label="Actions">
+                <div class="d-flex justify-content-center">
+                  <div class="btn-group" role="group">
+                    <button type="button" class="btn btn-sm btn-outline-primary" onclick="viewLeaveRequest({{ request.id }})" title="View Details">
+                      <i class="bi bi-eye"></i>
+                    </button>
+                    <div class="btn-group" role="group">
+                      <button type="button" class="btn btn-sm btn-outline-secondary dropdown-toggle" data-bs-toggle="dropdown" title="Change Status">
+                        <i class="bi bi-gear"></i>
+                      </button>
+                      <ul class="dropdown-menu">
+                        <li><a class="dropdown-item" href="#" onclick="updateStatus({{ request.id }}, 'Pending'); return false;">
+                          <i class="bi bi-clock text-warning me-2"></i>Pending
+                        </a></li>
+                        <li><a class="dropdown-item" href="#" onclick="updateStatus({{ request.id }}, 'Approved'); return false;">
+                          <i class="bi bi-check-circle text-success me-2"></i>Approved
+                        </a></li>
+                        <li><a class="dropdown-item" href="#" onclick="updateStatus({{ request.id }}, 'Rejected'); return false;">
+                          <i class="bi bi-x-circle text-danger me-2"></i>Rejected
+                        </a></li>
+                        <li><a class="dropdown-item" href="#" onclick="updateStatus({{ request.id }}, 'Cancelled'); return false;">
+                          <i class="bi bi-x-square text-secondary me-2"></i>Cancelled
+                        </a></li>
+                      </ul>
+                    </div>
+                  </div>
+                </div>
+              </td>
+            </tr>
+            {% endfor %}
+          {% else %}
+            <tr>
+              <td colspan="9" class="text-center py-4">
+                <i class="bi bi-inbox fs-1 text-muted d-block mb-2"></i>
+                <p class="text-muted">No leave requests found</p>
+              </td>
+            </tr>
+          {% endif %}
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Pagination -->
+    {% if leave_requests.has_other_pages %}
+    <nav aria-label="Page navigation">
+      <ul class="pagination justify-content-center mt-4">
+        {% if leave_requests.has_previous %}
+          <li class="page-item">
+            <a class="page-link" href="?page=1{% if search_query %}&search={{ search_query }}{% endif %}{% if status_filter %}&status={{ status_filter }}{% endif %}">First</a>
+          </li>
+          <li class="page-item">
+            <a class="page-link" href="?page={{ leave_requests.previous_page_number }}{% if search_query %}&search={{ search_query }}{% endif %}{% if status_filter %}&status={{ status_filter }}{% endif %}">Previous</a>
+          </li>
+        {% endif %}
+        
+        <li class="page-item active">
+          <span class="page-link">Page {{ leave_requests.number }} of {{ leave_requests.paginator.num_pages }}</span>
+        </li>
+        
+        {% if leave_requests.has_next %}
+          <li class="page-item">
+            <a class="page-link" href="?page={{ leave_requests.next_page_number }}{% if search_query %}&search={{ search_query }}{% endif %}{% if status_filter %}&status={{ status_filter }}{% endif %}">Next</a>
+          </li>
+          <li class="page-item">
+            <a class="page-link" href="?page={{ leave_requests.paginator.num_pages }}{% if search_query %}&search={{ search_query }}{% endif %}{% if status_filter %}&status={{ status_filter }}{% endif %}">Last</a>
+          </li>
+        {% endif %}
+      </ul>
+    </nav>
+    {% endif %}
+  </div>
+</div>
+
+<!-- View Leave Details Modal -->
+<div class="modal fade" id="viewLeaveModal" tabindex="-1">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title"><i class="bi bi-calendar-event me-2"></i>Leave Request Details</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <div class="row mb-3">
+          <div class="col-md-6">
+            <strong>Employee Name:</strong>
+            <p id="view-applicant">-</p>
+          </div>
+          <div class="col-md-6">
+            <strong>Leave Type:</strong>
+            <p id="view-leave-type">-</p>
+          </div>
+        </div>
+        <div class="row mb-3">
+          <div class="col-md-6">
+            <strong>Start Date:</strong>
+            <p id="view-start-date">-</p>
+          </div>
+          <div class="col-md-6">
+            <strong>End Date:</strong>
+            <p id="view-end-date">-</p>
+          </div>
+        </div>
+        <div class="row mb-3">
+          <div class="col-md-6">
+            <strong>Total Days:</strong>
+            <p id="view-days">-</p>
+          </div>
+          <div class="col-md-6">
+            <strong>Status:</strong>
+            <p id="view-status">-</p>
+          </div>
+        </div>
+        <div class="mb-3">
+          <strong>Reason:</strong>
+          <p id="view-reason" class="text-muted">-</p>
+        </div>
+        <div class="mb-3">
+          <strong>Contact:</strong>
+          <p id="view-contact" class="text-muted">-</p>
+        </div>
+        <div class="mb-3">
+          <strong>Work Handover:</strong>
+          <p id="view-handover" class="text-muted">-</p>
+        </div>
+        <div class="row">
+          <div class="col-md-6">
+            <strong>Applied At:</strong>
+            <p id="view-applied-at" class="text-muted small">-</p>
+          </div>
+          <div class="col-md-6">
+            <strong>Last Updated:</strong>
+            <p id="view-updated-at" class="text-muted small">-</p>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<style>
+  .border-left-primary {
+    border-left: 4px solid #007bff;
+  }
+  .border-left-warning {
+    border-left: 4px solid #ffc107;
+  }
+  .border-left-success {
+    border-left: 4px solid #28a745;
+  }
+  .border-left-danger {
+    border-left: 4px solid #dc3545;
+  }
+  .avatar-circle {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+    font-size: 1.1rem;
+  }
+  .leave-type-icon {
+    width: 24px;
+    height: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  
+  /* Center Actions column */
+  table td:last-child,
+  table th:last-child {
+    text-align: center;
+  }
+  
+  table td:last-child .d-flex {
+    justify-content: center;
+  }
+
+  /* Mobile Responsive Styles */
+  @media (max-width: 768px) {
+    /* Prevent dropdown overflow on mobile */
+    .card-body {
+      overflow-x: hidden;
+      position: relative;
+    }
+    
+    .form-select {
+      position: relative;
+      width: 100%;
+    }
+    
+    /* Contain dropdown menu within viewport */
+    .form-select:focus {
+      z-index: 1050;
+    }
+    
+    /* Ensure form elements are contained */
+    .row.g-3 {
+      margin-left: 0;
+      margin-right: 0;
+      overflow-x: hidden;
+    }
+    
+    .row.g-3 > [class*="col-"] {
+      padding-left: 0.5rem;
+      padding-right: 0.5rem;
+      width: 100%;
+      margin-bottom: 1rem;
+    }
+    
+    .table-responsive {
+      overflow-x: auto;
+    }
+    
+    .table {
+      font-size: 0.875rem;
+    }
+    
+    .table thead {
+      display: none;
+    }
+    
+    .table tbody tr {
+      display: block;
+      margin-bottom: 1rem;
+      border: 1px solid #dee2e6;
+      border-radius: 8px;
+      padding: 1rem;
+      background: white;
+    }
+    
+    .table tbody td {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 0.5rem 0;
+      border: none;
+      text-align: right;
+    }
+    
+    .table tbody td:before {
+      content: attr(data-label);
+      font-weight: 600;
+      color: #495057;
+      text-align: left;
+      margin-right: 1rem;
+      flex: 0 0 40%;
+    }
+    
+    .table tbody td[data-label="Actions"] {
+      justify-content: center;
+      padding-top: 1rem;
+      text-align: center;
+    }
+    
+    .table tbody td[data-label="Actions"]:before {
+      display: none;
+    }
+    
+    .table tbody td[data-label="Actions"] .d-flex {
+      justify-content: center;
+      width: 100%;
+    }
+    
+    .btn-group {
+      width: auto;
+      flex-wrap: nowrap;
+    }
+    
+    .btn-group .btn {
+      flex: none;
+    }
+    
+    .dashboard-header h1 {
+      font-size: 1.5rem;
+    }
+    
+    .card-header h5 {
+      font-size: 1rem;
+    }
+    
+    .text-truncate {
+      max-width: 100% !important;
+    }
+    
+    /* Fix dropdown menu positioning for mobile */
+    .dropdown-menu {
+      max-width: 100% !important;
+      width: 100% !important;
+      left: 0 !important;
+      right: 0 !important;
+      transform: translateX(0) !important;
+    }
+    
+    .dropdown {
+      width: 100% !important;
+    }
+    
+    /* Status summary cards mobile layout */
+    .row.mb-4 > div {
+      margin-bottom: 1rem;
+    }
+  }
+  
+  @media (max-width: 576px) {
+    /* Extra small screens - tighter spacing */
+    .status-summary .col-lg-3 {
+      margin-bottom: 1rem;
+    }
+    
+    /* Form controls on mobile */
+    .card-body form {
+      padding: 0.5rem;
+    }
+    
+    .form-select, .form-control {
+      font-size: 0.875rem;
+      padding: 0.5rem;
+    }
+    
+    .form-label {
+      font-size: 0.875rem;
+      margin-bottom: 0.25rem;
+    }
+    
+    .btn {
+      font-size: 0.875rem;
+      padding: 0.5rem 1rem;
+    }
+    
+    /* Ensure dropdown doesn't overflow */
+    .form-select {
+      max-width: 100%;
+    }
+    
+    select.form-select {
+      -webkit-appearance: none;
+      -moz-appearance: none;
+      appearance: none;
+    }
+    
+    .table tbody td {
+      font-size: 0.8rem;
+      padding: 0.4rem 0;
+    }
+    
+    .table tbody td:before {
+      font-size: 0.75rem;
+    }
+    
+    .btn-sm {
+      padding: 0.25rem 0.5rem;
+      font-size: 0.75rem;
+    }
+    
+    /* Dropdown menu adjustments for very small screens */
+    .dropdown-menu {
+      max-width: calc(100vw - 1rem);
+      font-size: 0.875rem;
+    }
+  }
+</style>
+
+<script>
+  // Get CSRF token
+  function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+      const cookies = document.cookie.split(';');
+      for (let i = 0; i < cookies.length; i++) {
+        const cookie = cookies[i].trim();
+        if (cookie.substring(0, name.length + 1) === (name + '=')) {
+          cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+          break;
+        }
+      }
+    }
+    return cookieValue;
+  }
+
+  // View leave request details
+  function viewLeaveRequest(id) {
+    fetch(`/employee/leave/${id}/view/`)
+      .then(response => response.json())
+      .then(data => {
+        if (data.error) {
+          alert('Error: ' + data.error);
+          return;
+        }
+
+        // Populate modal
+        document.getElementById('view-applicant').textContent = data.applicant_name || '-';
+        document.getElementById('view-leave-type').textContent = data.leave_type || '-';
+        document.getElementById('view-start-date').textContent = data.start_date_display || '-';
+        document.getElementById('view-end-date').textContent = data.end_date_display || '-';
+        document.getElementById('view-days').textContent = data.days + ' days';
+        document.getElementById('view-reason').textContent = data.reason || '-';
+        document.getElementById('view-contact').textContent = data.contact || '-';
+        document.getElementById('view-handover').textContent = data.handover || '-';
+        document.getElementById('view-applied-at').textContent = data.applied_at || '-';
+        document.getElementById('view-updated-at').textContent = data.updated_at || '-';
+        
+        // Status badge
+        const statusBadge = data.status === 'Approved' 
+          ? '<span class="badge bg-success">' + data.status + '</span>'
+          : data.status === 'Rejected' 
+          ? '<span class="badge bg-danger">' + data.status + '</span>'
+          : data.status === 'Cancelled'
+          ? '<span class="badge bg-secondary">' + data.status + '</span>'
+          : '<span class="badge bg-warning text-dark">' + data.status + '</span>';
+        document.getElementById('view-status').innerHTML = statusBadge;
+
+        // Show modal
+        const modal = new bootstrap.Modal(document.getElementById('viewLeaveModal'));
+        modal.show();
+      })
+      .catch(error => {
+        console.error('Error:', error);
+        alert('Error loading leave request details');
+      });
+  }
+
+  // Update leave status
+  function updateStatus(leaveId, newStatus) {
+    if (!confirm(`Are you sure you want to change the status to "${newStatus}"?`)) {
+      return;
+    }
+
+    const formData = new FormData();
+    formData.append('status', newStatus);
+    formData.append('csrfmiddlewaretoken', getCookie('csrftoken'));
+
+    fetch(`/dashboard/leaves/${leaveId}/update-status/`, {
+      method: 'POST',
+      body: formData,
+      headers: {
+        'X-CSRFToken': getCookie('csrftoken')
+      }
+    })
+      .then(response => response.json())
+      .then(data => {
+        if (data.success) {
+          alert(data.message || 'Status updated successfully!');
+          location.reload();
+        } else {
+          alert(data.error || 'Failed to update status');
+        }
+      })
+      .catch(error => {
+        console.error('Error:', error);
+        alert('Error updating status');
+      });
+  }
+
+  // Bootstrap dropdown for status filter
+  document.addEventListener('DOMContentLoaded', function() {
+    const statusOptions = document.querySelectorAll('.status-option');
+    const statusInput = document.getElementById('status');
+    const statusDisplay = document.getElementById('statusDisplay');
+    const statusDropdown = document.getElementById('statusDropdown');
+    
+    // Mark current selection
+    const currentValue = statusInput.value;
+    statusOptions.forEach(option => {
+      if (option.getAttribute('data-value') === currentValue) {
+        option.classList.add('active');
+      }
+    });
+    
+    // Handle dropdown item click
+    statusOptions.forEach(option => {
+      option.addEventListener('click', function(e) {
+        e.preventDefault();
+        const value = this.getAttribute('data-value');
+        const text = this.textContent.trim();
+        
+        // Update hidden input
+        statusInput.value = value;
+        
+        // Update display text
+        statusDisplay.textContent = text;
+        
+        // Update active state
+        statusOptions.forEach(opt => opt.classList.remove('active'));
+        this.classList.add('active');
+        
+        // Close dropdown
+        const dropdownInstance = bootstrap.Dropdown.getInstance(statusDropdown);
+        if (dropdownInstance) {
+          dropdownInstance.hide();
+        }
+        
+        // Auto-submit form
+        const form = statusInput.closest('form');
+        if (form) {
+          form.submit();
+        }
+      });
+    });
+  });
+
+  // Show notifications
+  {% if messages %}
+    {% for message in messages %}
+      alert('{{ message }}');
+    {% endfor %}
+  {% endif %}
+</script>
+
+<style>
+  /* Bootstrap Dropdown Mobile Fixes */
+  .dropdown-menu {
+    max-width: 100%;
+    width: 100%;
+  }
+  
+  .dropdown-toggle::after {
+    margin-left: auto;
+  }
+  
+  .dropdown-item.active {
+    background-color: #0d6efd;
+    color: white;
+  }
+  
+  @media (max-width: 768px) {
+    .dropdown-menu {
+      position: absolute !important;
+      left: 0 !important;
+      right: 0 !important;
+      width: 100% !important;
+      max-width: 100% !important;
+      transform: translateX(0) !important;
+    }
+    
+    .dropdown {
+      width: 100% !important;
+    }
+    
+    .dropdown-toggle {
+      width: 100% !important;
+      text-align: left !important;
+    }
+  }
+</style>
+{% endblock %}
+
