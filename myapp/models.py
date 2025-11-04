@@ -512,3 +512,51 @@ class Employee(models.Model):
         first = self.first_name[0].upper() if self.first_name else ''
         last = self.last_name[0].upper() if self.last_name else ''
         return (first + last)[:2]
+
+
+class EmployeeMessage(models.Model):
+    """Employee messaging system - messages between employees and admin"""
+    sender = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name='sent_messages',
+        null=True,
+        blank=True,
+        verbose_name="Sender User"
+    )
+    receiver_id = models.CharField(max_length=100, verbose_name="Receiver ID")  # Can be employee ID or admin_{user_id}
+    receiver_name = models.CharField(max_length=200, verbose_name="Receiver Name")
+    
+    # Sender information (logged in user details)
+    sender_name = models.CharField(max_length=200, verbose_name="Sender Name")
+    sender_designation = models.CharField(max_length=100, blank=True, null=True, verbose_name="Sender Designation")
+    sender_department = models.CharField(max_length=100, blank=True, null=True, verbose_name="Sender Department")
+    
+    # Message content
+    message = models.TextField(verbose_name="Message", blank=True, null=True)
+    
+    # Attachments
+    image = models.ImageField(upload_to='messages/images/%Y/%m/%d/', blank=True, null=True, verbose_name="Image")
+    attachment = models.FileField(upload_to='messages/attachments/%Y/%m/%d/', blank=True, null=True, verbose_name="Attachment")
+    attachment_name = models.CharField(max_length=255, blank=True, null=True, verbose_name="Attachment Name")
+    
+    # Status
+    is_read = models.BooleanField(default=False, verbose_name="Is Read")
+    
+    # Timestamps
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    
+    class Meta:
+        ordering = ['-created_at']
+        verbose_name = "Employee Message"
+        verbose_name_plural = "Employee Messages"
+    
+    def __str__(self):
+        return f"{self.sender_name} -> {self.receiver_name}: {self.message[:50]}"
+    
+    def get_receiver_type(self):
+        """Check if receiver is admin or employee"""
+        if self.receiver_id.startswith('admin_'):
+            return 'admin'
+        return 'employee'

@@ -95,17 +95,10 @@
       <h3 class="nav-section-title">COMMUNICATION</h3>
       <ul class="nav-list">
         <li class="nav-item">
-          <a href="#" class="nav-link">
+          <a href="{% url 'employee_messages' %}" class="nav-link">
             <i class="bi bi-chat-dots"></i>
             <span>Messages</span>
             <span class="nav-badge">5</span>
-          </a>
-        </li>
-        <li class="nav-item">
-          <a href="#" class="nav-link">
-            <i class="bi bi-bell"></i>
-            <span>Notifications</span>
-            <span class="nav-badge">3</span>
           </a>
         </li>
       </ul>
@@ -133,12 +126,6 @@
             <span>Payroll</span>
           </a>
         </li>
-        <li class="nav-item">
-          <a href="{% url 'employee_achievements' %}" class="nav-link">
-            <i class="bi bi-award"></i>
-            <span>Achievements</span>
-          </a>
-        </li>
       </ul>
     </div>
     
@@ -150,12 +137,6 @@
       <a href="{% url 'employee_settings' %}" class="nav-link">
         <i class="bi bi-gear"></i>
         <span>Settings</span>
-      </a>
-    </div>
-    <div class="nav-item">
-      <a href="#" class="nav-link">
-        <i class="bi bi-question-circle"></i>
-        <span>Help & Support</span>
       </a>
     </div>
     <div class="nav-item">

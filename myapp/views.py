@@ -7,10 +7,10 @@ from django.utils import timezone
 from datetime import datetime, date
 from decimal import Decimal
 import json
-from .models import Lead, LeaveRequest, Document, Attendance, Quote, ClientOnboarding, Employee
+from .models import Lead, LeaveRequest, Document, Attendance, Quote, ClientOnboarding, Employee, EmployeeMessage
 from .forms import LeadForm, LeadFilterForm
 from django.views.decorators.http import require_POST
-from django.views.decorators.csrf import csrf_exempt
+from django.views.decorators.csrf import csrf_exempt, ensure_csrf_cookie
 
 def home(request):
   return render(request,'pages/homepage.html')
@@ -1060,110 +1060,508 @@ def project_onboard_update(request, onboard_id):
 
 # Employee Portal Views
 def employee_dashboard(request):
-    """Employee dashboard view"""
+    """Employee dashboard view - fetches data from employee tables"""
+    from datetime import timedelta
+    from django.db.models import Q, Sum
+    from django.utils import timezone
+    
+    # Get logged-in user's information
+    employee_obj = None
+    employee_name = 'Guest User'
+    employee_role = 'Employee'
+    employee_id = 'N/A'
+    
+    if request.user.is_authenticated:
+        # Get user's full name or username safely
+        try:
+            user_full_name = request.user.get_full_name() or request.user.username or ''
+        except AttributeError:
+            # Fallback if get_full_name doesn't exist
+            user_full_name = getattr(request.user, 'first_name', '') + ' ' + getattr(request.user, 'last_name', '')
+            user_full_name = user_full_name.strip() or request.user.username or ''
+        
+        # Try to match employee by name
+        name_parts = user_full_name.strip().split(' ', 1)
+        first_name = name_parts[0] if name_parts else ''
+        last_name = name_parts[1] if len(name_parts) > 1 else ''
+        
+        # Try to find employee by matching name
+        if first_name and last_name:
+            employee_obj = Employee.objects.filter(
+                first_name__iexact=first_name,
+                last_name__iexact=last_name
+            ).first()
+        
+        # If not found by name, try by email
+        if not employee_obj:
+            user_email = getattr(request.user, 'email', None)
+            if user_email:
+                employee_obj = Employee.objects.filter(
+                    email__iexact=user_email
+                ).first()
+        
+        # If still not found, try by partial name match
+        if not employee_obj and user_full_name:
+            user_email = getattr(request.user, 'email', None)
+            employees = Employee.objects.filter(
+                Q(first_name__icontains=first_name) |
+                Q(last_name__icontains=first_name) |
+                Q(email__icontains=user_email if user_email else '')
+            )
+            employee_obj = employees.first()
+        
+        # Set employee info
+        if employee_obj:
+            employee_name = employee_obj.get_full_name()
+            employee_role = employee_obj.designation or 'Employee'
+            employee_id = employee_obj.emp_code or 'N/A'
+        else:
+            employee_name = user_full_name
+            employee_role = 'Employee'
+    
+    # Get current date and time
+    now = timezone.now()
+    current_date = now.strftime('%b %d, %Y')  # Format: "Dec 15, 2024"
+    current_time = now.strftime('%I:%M %p')
+    
+    # Check today's attendance status
+    today = now.date()
+    today_attendance = None
+    attendance_status = 'Absent'
+    is_checked_in = False
+    
+    if request.user.is_authenticated:
+        today_attendance = Attendance.objects.filter(
+            user=request.user,
+            date=today
+        ).first()
+        
+        if today_attendance:
+            if today_attendance.check_in_time and not today_attendance.check_out_time:
+                attendance_status = 'Present'
+                is_checked_in = True
+            elif today_attendance.check_in_time and today_attendance.check_out_time:
+                attendance_status = 'Present'
+    
+    # Get projects from ClientOnboarding (similar to employee_projects)
+    if request.user.is_authenticated:
+        try:
+            user_name = employee_name if employee_obj else (request.user.get_full_name() or request.user.username or '')
+        except AttributeError:
+            user_name = employee_name if employee_obj else request.user.username or ''
+    else:
+        user_name = employee_name
+    client_onboardings = ClientOnboarding.objects.filter(
+        assigned_engineer__iexact=user_name
+    ).only(
+        'id',
+        'project_name',
+        'project_description',
+        'status',
+        'start_date',
+        'project_duration',
+        'duration_unit',
+        'assigned_engineer'
+    ).order_by('-created_at')[:5]  # Get top 5 projects for dashboard
+    
+    # Convert to project data structure
+    projects = []
+    active_projects_count = 0
+    tasks_completed_total = 0
+    
+    for onboarding in client_onboardings:
+        # Calculate due date
+        due_date = None
+        if onboarding.start_date:
+            duration_days = 0
+            if onboarding.duration_unit == 'days':
+                duration_days = onboarding.project_duration
+            elif onboarding.duration_unit == 'weeks':
+                duration_days = onboarding.project_duration * 7
+            elif onboarding.duration_unit == 'months':
+                duration_days = onboarding.project_duration * 30
+            elif onboarding.duration_unit == 'years':
+                duration_days = onboarding.project_duration * 365
+            due_date = onboarding.start_date + timedelta(days=duration_days)
+        
+        # Map status
+        status_map = {
+            'active': 'In Progress',
+            'pending': 'Pending',
+            'on_hold': 'On Hold',
+            'completed': 'Completed'
+        }
+        template_status = status_map.get(onboarding.status, 'Pending')
+        
+        # Count active projects
+        if onboarding.status == 'active':
+            active_projects_count += 1
+        
+        # Calculate progress
+        progress_map = {
+            'active': 50,
+            'pending': 0,
+            'on_hold': 30,
+            'completed': 100
+        }
+        progress = progress_map.get(onboarding.status, 0)
+        
+        # Calculate tasks
+        tasks_map = {
+            'active': {'total': 10, 'completed': 5, 'pending': 5},
+            'pending': {'total': 8, 'completed': 0, 'pending': 8},
+            'on_hold': {'total': 12, 'completed': 4, 'pending': 8},
+            'completed': {'total': 10, 'completed': 10, 'pending': 0}
+        }
+        tasks = tasks_map.get(onboarding.status, {'total': 8, 'completed': 0, 'pending': 8})
+        tasks_completed_total += tasks['completed']
+        
+        # Derive project type
+        project_type = 'Project'
+        if onboarding.project_description:
+            desc_lower = onboarding.project_description.lower()
+            if 'web' in desc_lower or 'website' in desc_lower:
+                project_type = 'Web Application'
+            elif 'mobile' in desc_lower or 'app' in desc_lower:
+                project_type = 'Mobile Application'
+            elif 'database' in desc_lower or 'backend' in desc_lower:
+                project_type = 'Backend Task'
+            elif 'security' in desc_lower:
+                project_type = 'Security Task'
+            elif 'dashboard' in desc_lower or 'analytics' in desc_lower:
+                project_type = 'Data Visualization'
+            elif 'cloud' in desc_lower or 'infrastructure' in desc_lower:
+                project_type = 'Infrastructure'
+        
+        # Format due date
+        due_date_display = None
+        if due_date:
+            due_date_display = due_date.strftime('%b %d, %Y')
+        
+        project_data = {
+            'id': onboarding.id,
+            'name': onboarding.project_name,
+            'type': project_type,
+            'progress': progress,
+            'due_date': due_date_display,
+            'status': template_status,
+            'description': onboarding.project_description or 'No description available.'
+        }
+        projects.append(project_data)
+    
+    # Calculate hours worked this week
+    hours_worked = 0
+    if request.user.is_authenticated:
+        # Get start of week (Monday)
+        today = now.date()
+        start_of_week = today - timedelta(days=today.weekday())
+        
+        # Get all attendance records for this week
+        week_attendance = Attendance.objects.filter(
+            user=request.user,
+            date__gte=start_of_week,
+            date__lte=today
+        )
+        
+        for att in week_attendance:
+            work_hours = att.calculate_work_hours()
+            if work_hours:
+                hours_worked += work_hours['hours'] + (work_hours['minutes'] / 60)
+    
+    # Calculate attendance percentage for this month
+    attendance_percentage = 0
+    if request.user.is_authenticated:
+        # Get start of month
+        start_of_month = now.replace(day=1).date()
+        
+        # Get total working days (excluding weekends - simplified)
+        total_days = (today - start_of_month).days + 1
+        working_days = sum(1 for i in range(total_days) if (start_of_month + timedelta(days=i)).weekday() < 5)
+        
+        # Get present days
+        present_days = Attendance.objects.filter(
+            user=request.user,
+            date__gte=start_of_month,
+            date__lte=today,
+            check_in_time__isnull=False
+        ).count()
+        
+        if working_days > 0:
+            attendance_percentage = round((present_days / working_days) * 100, 1)
+    
+    # Get recent tasks from projects (derive from project status and tasks)
+    recent_tasks = []
+    for project in projects[:3]:  # Get top 3 projects for tasks
+        if project['status'] != 'Completed':
+            # Create sample tasks based on project
+            task_status = 'In Progress' if project['status'] == 'In Progress' else 'Pending'
+            recent_tasks.append({
+                'title': f"Work on {project['name']}",
+                'project': project['name'],
+                'status': task_status,
+                'completed': task_status == 'In Progress'
+            })
+    
+    # Get today's schedule (attendance check-in/out, upcoming leaves)
+    today_schedule = []
+    if request.user.is_authenticated:
+        # Add check-in time if exists
+        if today_attendance and today_attendance.check_in_time:
+            check_in_str = today_attendance.check_in_time.strftime('%I:%M %p')
+            today_schedule.append({
+                'title': 'Check In',
+                'time': f"{check_in_str}",
+                'location': 'Office',
+                'type': 'checkin'
+            })
+        
+        # Get upcoming leave requests for today
+        today_leaves = LeaveRequest.objects.filter(
+            user=request.user,
+            start_date__lte=today,
+            end_date__gte=today,
+            status='Approved'
+        ).first()
+        
+        if today_leaves:
+            today_schedule.append({
+                'title': f'On Leave - {today_leaves.leave_type}',
+                'time': 'All Day',
+                'location': 'Leave',
+                'type': 'leave'
+            })
+    
+    # Get notifications (upcoming project deadlines, newly assigned projects)
+    notifications = []
+    notification_count = 0
+    
+    # Check for projects due soon (within 7 days) and new projects
+    for i, project in enumerate(projects):
+        # Check due dates
+        if project.get('due_date'):
+            try:
+                due = datetime.strptime(project['due_date'], '%b %d, %Y').date()
+                days_until = (due - today).days
+                if 0 <= days_until <= 7:
+                    notification_count += 1
+                    notifications.append({
+                        'type': 'warning' if days_until <= 3 else 'info',
+                        'title': 'Deadline approaching',
+                        'message': f'"{project["name"]}" project due in {days_until} day(s)',
+                        'time': f'{days_until} days ago' if days_until == 0 else f'Due in {days_until} days'
+                    })
+            except:
+                pass
+        
+        # Check for new projects (created in last 7 days)
+        if i < len(client_onboardings):
+            onboarding = client_onboardings[i]
+            if onboarding.created_at and (now.date() - onboarding.created_at.date()).days <= 7:
+                notification_count += 1
+                notifications.append({
+                    'type': 'info',
+                    'title': 'New project assigned',
+                    'message': f'You have been assigned to "{project["name"]}" project',
+                    'time': f'{(now.date() - onboarding.created_at.date()).days} days ago'
+                })
+    
+    # Get weekly performance data for chart (last 7 days from attendance records)
+    weekly_performance = {
+        'tasks': [],
+        'hours': [],
+        'labels': []
+    }
+    if request.user.is_authenticated:
+        # Get last 7 days data (Monday to Sunday of current week)
+        # Start from Monday of current week
+        start_of_week = today - timedelta(days=today.weekday())
+        
+        for i in range(7):
+            day = start_of_week + timedelta(days=i)
+            day_name = day.strftime('%a')  # Mon, Tue, Wed, etc.
+            weekly_performance['labels'].append(day_name)
+            
+            day_attendance = Attendance.objects.filter(
+                user=request.user,
+                date=day
+            ).first()
+            
+            if day_attendance:
+                work_hours = day_attendance.calculate_work_hours()
+                if work_hours:
+                    # Calculate total hours (hours + minutes/60 + seconds/3600)
+                    hours = work_hours['hours'] + (work_hours['minutes'] / 60) + (work_hours['seconds'] / 3600)
+                    weekly_performance['hours'].append(round(hours, 2))
+                else:
+                    weekly_performance['hours'].append(0)
+            else:
+                weekly_performance['hours'].append(0)
+            
+            # Tasks completed (simplified - distribute tasks across week)
+            # For now, use a simple distribution based on active projects
+            daily_tasks = int(tasks_completed_total / 7) if tasks_completed_total > 0 else 0
+            weekly_performance['tasks'].append(daily_tasks)
+    else:
+        # Default labels if not authenticated
+        weekly_performance['labels'] = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
+        weekly_performance['hours'] = [0, 0, 0, 0, 0, 0, 0]
+        weekly_performance['tasks'] = [0, 0, 0, 0, 0, 0, 0]
+    
+    # Convert weekly_performance to JSON for JavaScript
+    weekly_performance_json = json.dumps(weekly_performance)
+    
     context = {
-        'employee_name': 'John Doe',
-        'employee_role': 'Software Developer',
-        'employee_id': 'EMP001',
-        'current_date': '2024-12-10',
-        'current_time': '09:30 AM',
-        'attendance_status': 'Present',
-        'active_projects': 3,
-        'tasks_completed': 12,
-        'hours_worked': 32.5,
-        'attendance_percentage': 95,
+        'employee_name': employee_name,
+        'employee_role': employee_role,
+        'employee_id': employee_id,
+        'current_date': current_date,
+        'current_time': current_time,
+        'attendance_status': attendance_status,
+        'active_projects': active_projects_count,
+        'tasks_completed': tasks_completed_total,
+        'hours_worked': round(hours_worked, 1),
+        'attendance_percentage': attendance_percentage,
+        'projects': projects,  # For dashboard projects table
+        'recent_tasks': recent_tasks[:4],  # Top 4 recent tasks
+        'today_schedule': today_schedule,
+        'notifications': notifications[:3],  # Top 3 notifications
+        'notification_count': notification_count,
+        'weekly_performance': weekly_performance_json,  # JSON string for JavaScript
     }
     return render(request, 'employee/dashboard.html', context)
 
 def employee_projects(request):
-    """Employee projects view"""
-    projects = [
-        {
-            'id': 1,
-            'name': 'CRM System Development',
-            'type': 'Web Application',
-            'progress': 75,
-            'due_date': '2024-12-15',
-            'status': 'In Progress',
-            'tasks_total': 12,
-            'tasks_completed': 9,
-            'tasks_pending': 3,
-            'priority': 'High',
-            'description': 'A comprehensive Customer Relationship Management system for managing leads, accounts, and projects.'
-        },
-        {
-            'id': 2,
-            'name': 'Mobile App UI/UX',
-            'type': 'Mobile Application',
-            'progress': 45,
-            'due_date': '2025-01-20',
-            'status': 'Pending',
-            'tasks_total': 8,
-            'tasks_completed': 3,
-            'tasks_pending': 5,
-            'priority': 'Medium',
-            'description': 'Design and develop a modern mobile application with intuitive user interface and experience.'
-        },
-        {
-            'id': 3,
-            'name': 'Database Optimization',
-            'type': 'Backend Task',
-            'progress': 90,
-            'due_date': '2024-12-10',
-            'status': 'Almost Done',
-            'tasks_total': 6,
-            'tasks_completed': 5,
-            'tasks_pending': 1,
-            'priority': 'High',
-            'description': 'Optimize database performance and implement efficient query strategies for better system performance.'
-        },
-        {
-            'id': 4,
-            'name': 'Security Audit',
-            'type': 'Security Task',
-            'progress': 100,
-            'due_date': '2024-11-28',
-            'status': 'Completed',
-            'tasks_total': 10,
-            'tasks_completed': 10,
-            'tasks_pending': 0,
-            'priority': 'High',
-            'description': 'Comprehensive security audit and implementation of security best practices across all systems.'
-        },
-        {
-            'id': 5,
-            'name': 'Analytics Dashboard',
-            'type': 'Data Visualization',
-            'progress': 30,
-            'due_date': '2025-02-15',
-            'status': 'On Hold',
-            'tasks_total': 15,
-            'tasks_completed': 4,
-            'tasks_pending': 11,
-            'priority': 'Low',
-            'description': 'Create interactive dashboards and reports for business intelligence and data analysis.'
-        },
-        {
-            'id': 6,
-            'name': 'Cloud Migration',
-            'type': 'Infrastructure',
-            'progress': 60,
-            'due_date': '2025-03-10',
-            'status': 'In Progress',
-            'tasks_total': 20,
-            'tasks_completed': 12,
-            'tasks_pending': 8,
-            'priority': 'Medium',
-            'description': 'Migrate existing infrastructure to cloud platforms for better scalability and performance.'
+    """Employee projects view - fetches data from myapp_clientonboarding table"""
+    from datetime import timedelta
+    
+    # Get logged-in user's name to match with assigned_engineer
+    user_name = None
+    if request.user.is_authenticated:
+        user_name = request.user.get_full_name() or request.user.username or ''
+    
+    # Fetch only required fields from ClientOnboarding for fast indexing
+    # Match with assigned_engineer field
+    client_onboardings = ClientOnboarding.objects.filter(
+        assigned_engineer__iexact=user_name
+    ).only(
+        'id',
+        'project_name',
+        'project_description',
+        'status',
+        'start_date',
+        'project_duration',
+        'duration_unit',
+        'assigned_engineer'
+    ).order_by('-created_at')
+    
+    # Convert to project data structure
+    projects = []
+    today = date.today()
+    next_week = today + timedelta(days=7)
+    
+    for onboarding in client_onboardings:
+        # Calculate due date from start_date and duration
+        due_date = None
+        if onboarding.start_date:
+            duration_days = 0
+            if onboarding.duration_unit == 'days':
+                duration_days = onboarding.project_duration
+            elif onboarding.duration_unit == 'weeks':
+                duration_days = onboarding.project_duration * 7
+            elif onboarding.duration_unit == 'months':
+                duration_days = onboarding.project_duration * 30
+            elif onboarding.duration_unit == 'years':
+                duration_days = onboarding.project_duration * 365
+            
+            due_date = onboarding.start_date + timedelta(days=duration_days)
+        
+        # Map status from ClientOnboarding to template status
+        status_map = {
+            'active': 'In Progress',
+            'pending': 'Pending',
+            'on_hold': 'On Hold',
+            'completed': 'Completed'
         }
-    ]
+        template_status = status_map.get(onboarding.status, 'Pending')
+        
+        # Calculate progress based on status (simplified)
+        progress_map = {
+            'active': 50,
+            'pending': 0,
+            'on_hold': 30,
+            'completed': 100
+        }
+        progress = progress_map.get(onboarding.status, 0)
+        
+        # Calculate tasks (simplified - not in model, using status-based estimates)
+        tasks_map = {
+            'active': {'total': 10, 'completed': 5, 'pending': 5},
+            'pending': {'total': 8, 'completed': 0, 'pending': 8},
+            'on_hold': {'total': 12, 'completed': 4, 'pending': 8},
+            'completed': {'total': 10, 'completed': 10, 'pending': 0}
+        }
+        tasks = tasks_map.get(onboarding.status, {'total': 8, 'completed': 0, 'pending': 8})
+        
+        # Derive project type from description (simplified)
+        project_type = 'Project'
+        if onboarding.project_description:
+            desc_lower = onboarding.project_description.lower()
+            if 'web' in desc_lower or 'website' in desc_lower:
+                project_type = 'Web Application'
+            elif 'mobile' in desc_lower or 'app' in desc_lower:
+                project_type = 'Mobile Application'
+            elif 'database' in desc_lower or 'backend' in desc_lower:
+                project_type = 'Backend Task'
+            elif 'security' in desc_lower:
+                project_type = 'Security Task'
+            elif 'dashboard' in desc_lower or 'analytics' in desc_lower:
+                project_type = 'Data Visualization'
+            elif 'cloud' in desc_lower or 'infrastructure' in desc_lower:
+                project_type = 'Infrastructure'
+        
+        # Format due_date for display
+        due_date_display = None
+        if due_date:
+            due_date_display = due_date.strftime('%b %d, %Y')  # Format: "Dec 15, 2024"
+        
+        project_data = {
+            'id': onboarding.id,
+            'name': onboarding.project_name,
+            'type': project_type,
+            'progress': progress,
+            'due_date': due_date_display,  # Formatted date string
+            'due_date_raw': due_date.strftime('%Y-%m-%d') if due_date else None,  # For calculations
+            'status': template_status,
+            'tasks_total': tasks['total'],
+            'tasks_completed': tasks['completed'],
+            'tasks_pending': tasks['pending'],
+            'priority': 'Medium',  # Default priority
+            'description': onboarding.project_description or 'No description available.'
+        }
+        projects.append(project_data)
+    
+    # Calculate stats
+    total_projects = len(projects)
+    completed_projects = len([p for p in projects if p['status'] == 'Completed'])
+    in_progress_projects = len([p for p in projects if p['status'] == 'In Progress'])
+    
+    # Count projects due this week
+    due_this_week = 0
+    for p in projects:
+        if p.get('due_date_raw'):
+            try:
+                due = datetime.strptime(p['due_date_raw'], '%Y-%m-%d').date()
+                if today <= due <= next_week:
+                    due_this_week += 1
+            except:
+                pass
     
     context = {
         'projects': projects,
-        'total_projects': len(projects),
-        'completed_projects': len([p for p in projects if p['status'] == 'Completed']),
-        'in_progress_projects': len([p for p in projects if p['status'] == 'In Progress']),
-        'due_this_week': len([p for p in projects if p['due_date'] <= '2024-12-17']),
+        'total_projects': total_projects,
+        'completed_projects': completed_projects,
+        'in_progress_projects': in_progress_projects,
+        'due_this_week': due_this_week,
     }
     return render(request, 'employee/projects.html', context)
 
@@ -2133,6 +2531,572 @@ def employee_payroll(request):
         }
     
     return render(request, 'employee/payroll.html', context)
+
+@ensure_csrf_cookie
+def employee_messages(request):
+    """Employee messages view - allows messaging between employees and admin"""
+    from django.contrib.auth.models import User
+    from .models import EmployeeMessage
+    
+    # Get current user
+    current_user = request.user
+    contacts = []
+    current_user_employee = None
+    
+    print("=" * 50)
+    print("DEBUG: Starting employee_messages view")
+    print(f"DEBUG: Current user authenticated: {current_user.is_authenticated}")
+    
+    if current_user.is_authenticated:
+        print(f"DEBUG: Current user - Username: {current_user.username}, Email: {getattr(current_user, 'email', 'N/A')}, Name: {current_user.get_full_name()}")
+        
+        # STEP 1: Get all employees from myapp_employee table
+        all_employees = Employee.objects.all().order_by('first_name', 'last_name')
+        print(f"DEBUG: STEP 1 - Total employees in myapp_employee table: {all_employees.count()}")
+        
+        # STEP 2: Try to find current user's employee record
+        try:
+            current_user_employee = Employee.objects.filter(
+                Q(email=current_user.email) | 
+                Q(first_name__iexact=current_user.first_name) |
+                Q(last_name__iexact=current_user.last_name)
+            ).first()
+            
+            if current_user_employee:
+                print(f"DEBUG: STEP 2 - Found matching employee for current user: {current_user_employee.get_full_name()} (ID: {current_user_employee.id})")
+                print(f"DEBUG: Current user email: {getattr(current_user, 'email', 'N/A')}")
+                print(f"DEBUG: Employee email: {current_user_employee.email}")
+            else:
+                print(f"DEBUG: STEP 2 - No matching employee found for current user")
+        except Exception as e:
+            print(f"DEBUG: STEP 2 - Error finding current user employee: {e}")
+        
+        # STEP 3: Show ALL employees (temporarily no exclusion for testing)
+        # TODO: Later we can exclude current user if needed
+        employees_to_show = all_employees
+        print(f"DEBUG: STEP 3 - Showing ALL employees (no exclusion) - Count: {employees_to_show.count()}")
+        
+        # STEP 4: Add all employees to contacts list
+        print(f"DEBUG: STEP 4 - Adding employees to contacts list...")
+        for emp in employees_to_show:
+            # Count unread messages
+            unread_count = EmployeeMessage.objects.filter(
+                receiver_id=str(emp.id),
+                sender=current_user,
+                is_read=False
+            ).count()
+            
+            # Create contact with first name, last name, designation, and department
+            contact_data = {
+                'id': emp.id,
+                'name': emp.get_full_name(),  # Full name (first_name + last_name)
+                'first_name': emp.first_name or '',
+                'last_name': emp.last_name or '',
+                'role': emp.designation or 'Employee',
+                'designation': emp.designation or '',
+                'department': emp.department or '',
+                'email': emp.email or '',
+                'unread_count': unread_count
+            }
+            contacts.append(contact_data)
+            print(f"DEBUG: Added contact - ID: {contact_data['id']}, Name: {contact_data['name']}, First: {contact_data['first_name']}, Last: {contact_data['last_name']}, Designation: {contact_data['designation']}, Department: {contact_data['department']}")
+        
+        print(f"DEBUG: STEP 4 - Total contacts added from employees: {len(contacts)}")
+        
+        # STEP 5: Add admin users as contacts
+        admin_users = User.objects.filter(is_staff=True, is_active=True).exclude(
+            id=current_user.id if hasattr(current_user, 'id') else None
+        ).order_by('first_name', 'last_name', 'username')
+        
+        print(f"DEBUG: STEP 5 - Admin users found: {admin_users.count()}")
+        for admin in admin_users:
+            admin_name = admin.get_full_name() or admin.username
+            admin_id = f'admin_{admin.id}'
+            
+            # Count unread messages
+            unread_count = EmployeeMessage.objects.filter(
+                receiver_id=admin_id,
+                sender=current_user,
+                is_read=False
+            ).count()
+            
+            contacts.append({
+                'id': admin_id,
+                'name': admin_name,
+                'first_name': admin.first_name or '',
+                'last_name': admin.last_name or '',
+                'role': 'Admin',
+                'designation': 'Admin',
+                'department': '',
+                'email': admin.email if hasattr(admin, 'email') else '',
+                'unread_count': unread_count
+            })
+    else:
+        print("DEBUG: User not authenticated!")
+    
+    # Get selected contact ID from query params
+    selected_contact_id = request.GET.get('contact_id', None)
+    
+    # Final debug summary
+    print("=" * 50)
+    print(f"DEBUG: FINAL SUMMARY")
+    print(f"DEBUG: Total contacts in list: {len(contacts)}")
+    print(f"DEBUG: Employee contacts: {len([c for c in contacts if not str(c.get('id', '')).startswith('admin_')])}")
+    print(f"DEBUG: Admin contacts: {len([c for c in contacts if str(c.get('id', '')).startswith('admin_')])}")
+    
+    if contacts:
+        print("DEBUG: First 3 contacts:")
+        for contact in contacts[:3]:
+            print(f"  - ID: {contact.get('id')}, Name: {contact.get('name')}, Designation: {contact.get('designation')}, Department: {contact.get('department')}")
+    else:
+        print("DEBUG: WARNING - Contacts list is EMPTY!")
+        # Emergency fallback - show all employees without exclusion
+        all_emps_emergency = Employee.objects.all()
+        print(f"DEBUG: Emergency - Total employees available: {all_emps_emergency.count()}")
+        if all_emps_emergency.count() > 0:
+            print("DEBUG: Emergency fallback - Adding all employees without exclusion")
+            for emp in all_emps_emergency:
+                contact_data = {
+                    'id': emp.id,
+                    'name': emp.get_full_name(),
+                    'first_name': emp.first_name or '',
+                    'last_name': emp.last_name or '',
+                    'role': emp.designation or 'Employee',
+                    'designation': emp.designation or '',
+                    'department': emp.department or '',
+                    'email': emp.email or '',
+                    'unread_count': 0
+                }
+                contacts.append(contact_data)
+            print(f"DEBUG: Emergency - Added {len(contacts)} contacts")
+    
+    print("=" * 50)
+    
+    context = {
+        'contacts': contacts,
+        'selected_contact_id': selected_contact_id,
+        'employee_name': current_user.get_full_name() if current_user.is_authenticated else 'Guest',
+        'current_user_employee': current_user_employee,
+    }
+    
+    print(f"DEBUG: Context passed with {len(context.get('contacts', []))} contacts")
+    return render(request, 'employee/messages.html', context)
+
+@csrf_exempt
+@require_POST
+def employee_send_message(request):
+    """Send a message to another employee or admin - Authentication not required"""
+    try:
+        # Get user from session if available, otherwise use default
+        user = None
+        if request.user.is_authenticated:
+            user = request.user
+        else:
+            # Try to get user from session
+            user_id = None
+            if hasattr(request, 'session'):
+                user_id = request.session.get('_auth_user_id')
+            
+            if user_id:
+                from django.contrib.auth import get_user_model
+                User = get_user_model()
+                try:
+                    user = User.objects.get(id=user_id)
+                except User.DoesNotExist:
+                    pass
+        
+        # If still no user, try to get from request.POST or use anonymous
+        if not user:
+            # Try to get username from POST data as fallback
+            username = request.POST.get('username') or request.POST.get('sender_name')
+            if username:
+                from django.contrib.auth import get_user_model
+                User = get_user_model()
+                try:
+                    user = User.objects.filter(username=username).first()
+                except:
+                    pass
+        
+        # If no user found, create a message anyway with default sender
+        # This allows messages to be saved even without authentication
+        
+        receiver_id = request.POST.get('receiver_id')
+        message_text = request.POST.get('message', '').strip()
+        
+        # Get uploaded files
+        image_file = request.FILES.get('image')
+        attachment_file = request.FILES.get('attachment')
+        
+        # At least one of message, image, or attachment must be provided
+        if not receiver_id or (not message_text and not image_file and not attachment_file):
+            return JsonResponse({'success': False, 'error': 'Receiver ID and at least message, image, or attachment is required'}, status=400)
+        
+        # Get sender name and employee details
+        sender_name = 'Guest User'
+        sender_designation = ''
+        sender_department = ''
+        
+        if user:
+            # Get current user's employee record to get designation and department
+            current_user_employee = Employee.objects.filter(
+                Q(email=user.email) |
+                Q(first_name__iexact=user.first_name) |
+                Q(last_name__iexact=user.last_name)
+            ).first()
+            
+            # Get sender name - use full name or username, but ensure it's consistent
+            sender_name = user.get_full_name() or user.username or 'Guest User'
+            # Ensure sender_name is not empty
+            if not sender_name or sender_name.strip() == '':
+                sender_name = user.username or 'Guest User'
+            sender_designation = current_user_employee.designation if current_user_employee else ''
+            sender_department = current_user_employee.department if current_user_employee else ''
+        else:
+            # Try to get sender name from POST data
+            sender_name = request.POST.get('sender_name', 'Guest User')
+        
+        # Get receiver name
+        receiver_name = 'Unknown'
+        if receiver_id.startswith('admin_'):
+            # Admin user
+            from django.contrib.auth.models import User
+            admin_id = int(receiver_id.replace('admin_', ''))
+            try:
+                admin_user = User.objects.get(id=admin_id, is_staff=True)
+                receiver_name = admin_user.get_full_name() or admin_user.username
+            except User.DoesNotExist:
+                return JsonResponse({'success': False, 'error': 'Admin user not found'}, status=404)
+        else:
+            # Employee
+            try:
+                receiver_employee = Employee.objects.get(id=receiver_id, status='active')
+                receiver_name = receiver_employee.get_full_name()
+            except Employee.DoesNotExist:
+                return JsonResponse({'success': False, 'error': 'Employee not found'}, status=404)
+        
+        # Create message (allow null sender for unauthenticated users)
+        message = EmployeeMessage.objects.create(
+            sender=user,  # Can be None if user not authenticated
+            receiver_id=receiver_id,
+            receiver_name=receiver_name,
+            sender_name=sender_name,
+            sender_designation=sender_designation or '',
+            sender_department=sender_department or '',
+            message=message_text if message_text else '',
+            is_read=False
+        )
+        
+        # Handle image upload
+        if image_file:
+            message.image = image_file
+            message.save()
+        
+        # Handle attachment upload
+        if attachment_file:
+            message.attachment = attachment_file
+            message.attachment_name = attachment_file.name
+            message.save()
+        
+        # Prepare response data with is_sender flag
+        # Determine if current user is sender for immediate display
+        is_sender_response = False
+        if user:
+            is_sender_response = (message.sender == user) if message.sender else False
+        
+        # Prepare response data
+        response_data = {
+            'id': message.id,
+            'message': message.message or '',
+            'sender_name': message.sender_name,
+            'created_at': message.created_at.strftime('%Y-%m-%d %H:%M:%S'),
+            'is_sender': is_sender_response  # Add is_sender flag for immediate display
+        }
+        
+        # Add image URL if exists
+        if message.image:
+            response_data['image_url'] = message.image.url
+        
+        # Add attachment URL if exists
+        if message.attachment:
+            response_data['attachment_url'] = message.attachment.url
+            response_data['attachment_name'] = message.attachment_name or message.attachment.name
+        
+        return JsonResponse({
+            'success': True,
+            'message': response_data
+        })
+    
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': str(e)}, status=500)
+
+@csrf_exempt
+def employee_get_messages(request):
+    """Get messages between current user and a contact - Authentication not required"""
+    try:
+        receiver_id = request.GET.get('receiver_id')
+        
+        if not receiver_id:
+            return JsonResponse({'success': False, 'error': 'Receiver ID is required'}, status=400)
+        
+        # Get user from session if available
+        user = None
+        if request.user.is_authenticated:
+            user = request.user
+        else:
+            # Try to get user from session
+            user_id = None
+            if hasattr(request, 'session'):
+                user_id = request.session.get('_auth_user_id')
+            
+            if user_id:
+                from django.contrib.auth import get_user_model
+                User = get_user_model()
+                try:
+                    user = User.objects.get(id=user_id)
+                except User.DoesNotExist:
+                    pass
+        
+        # Get current user's ID for receiver matching
+        current_user_id = None
+        if user:
+            # Check if current user is an employee
+            current_user_employee = Employee.objects.filter(
+                Q(email=user.email) | 
+                Q(first_name__iexact=user.first_name) |
+                Q(last_name__iexact=user.last_name)
+            ).first()
+            
+            if current_user_employee:
+                current_user_id = str(current_user_employee.id)
+            else:
+                # If user is admin
+                current_user_id = f'admin_{user.id}'
+        
+        # Get pagination parameters
+        limit = int(request.GET.get('limit', 50))  # Default 50 messages per load
+        before_id = request.GET.get('before_id')  # Load messages before this ID
+        
+        # Get messages between current user and receiver
+        # Get messages where:
+        # 1. Current user sent to receiver_id, OR
+        # 2. Receiver sent to current user (receiver_id = current_user_id)
+        if user and current_user_id:
+            # Get all potential messages - both sent and received
+            messages = EmployeeMessage.objects.filter(
+                # Current user sent to receiver
+                (Q(sender=user) & Q(receiver_id=receiver_id)) |
+                # Messages received by current user (need to check if sender matches receiver_id)
+                Q(receiver_id=current_user_id) |
+                # Also get messages sent to receiver_id (in case sender matches receiver_id we're looking for)
+                Q(receiver_id=receiver_id)
+            )
+            
+            # Filter to show only relevant conversation messages
+            filtered_messages = []
+            for msg in messages:
+                include = False
+                
+                # Case 1: Current user sent to receiver_id
+                if msg.sender == user and msg.receiver_id == receiver_id:
+                    include = True
+                # Case 2: Message received by current user, check if sender's employee_id matches receiver_id
+                elif msg.receiver_id == current_user_id:
+                    if msg.sender:
+                        sender_employee = Employee.objects.filter(
+                            Q(email=msg.sender.email) |
+                            Q(first_name__iexact=msg.sender.first_name) |
+                            Q(last_name__iexact=msg.sender.last_name)
+                        ).first()
+                        if sender_employee and str(sender_employee.id) == receiver_id:
+                            include = True
+                # Case 3: Message sent to receiver_id, check if sender is current user
+                elif msg.receiver_id == receiver_id and msg.sender == user:
+                    include = True
+                
+                if include:
+                    filtered_messages.append(msg.id)
+            
+            # Get final queryset
+            if filtered_messages:
+                messages = EmployeeMessage.objects.filter(id__in=filtered_messages)
+            else:
+                messages = EmployeeMessage.objects.none()
+        else:
+            # If no user authenticated, get all messages for this receiver_id
+            messages = EmployeeMessage.objects.filter(
+                Q(receiver_id=receiver_id)
+            )
+        
+        # Apply pagination: if before_id is provided, load messages before that ID
+        if before_id:
+            try:
+                before_id_int = int(before_id)
+                messages = messages.filter(id__lt=before_id_int)
+            except (ValueError, TypeError):
+                pass
+        
+        # Order by created_at (oldest first for lazy loading, then reverse at end if needed)
+        messages = messages.order_by('-created_at')[:limit]
+        
+        # Reverse to get chronological order (oldest to newest)
+        messages = list(reversed(messages))
+        
+        print(f"DEBUG: Found {len(messages)} messages between user and receiver {receiver_id} (limit={limit}, before_id={before_id})")
+        
+        # Mark messages as read where current user is receiver
+        if current_user_id and user:
+            EmployeeMessage.objects.filter(
+                receiver_id=current_user_id,
+                sender__isnull=False,
+                is_read=False
+            ).exclude(sender=user).update(is_read=True)
+        
+        messages_list = []
+        # Get current user's name for comparison (important for when sender is None)
+        current_user_name = None
+        current_user_names = []  # List of possible names to match
+        if user:
+            full_name = user.get_full_name() or ''
+            username = user.username or ''
+            first_name = getattr(user, 'first_name', '') or ''
+            last_name = getattr(user, 'last_name', '') or ''
+            
+            # Build list of possible names to match
+            if full_name:
+                current_user_names.append(full_name.strip().lower())
+            if username:
+                current_user_names.append(username.strip().lower())
+            if first_name and last_name:
+                current_user_names.append(f'{first_name} {last_name}'.strip().lower())
+            
+            # Use the first available name as primary
+            current_user_name = current_user_names[0] if current_user_names else None
+        
+        for msg in messages:
+            # Determine if current user is the sender (WhatsApp-style: sent = right/green, received = left/white)
+            is_sender = False
+            
+            if user and current_user_id:
+                # PRIORITY 1: Check if sender is current user (by sender object - most reliable)
+                if msg.sender and msg.sender.id == user.id:
+                    # Current user is the sender
+                    if msg.receiver_id == receiver_id:
+                        # Sent to the contact we're viewing → right side (sent)
+                        is_sender = True
+                    elif msg.receiver_id == current_user_id:
+                        # This shouldn't happen, but if it does, it's received
+                        is_sender = False
+                    else:
+                        # Sent to someone else (shouldn't be in this conversation, but mark as sent)
+                        is_sender = True
+                # PRIORITY 2: Check if we received this message (receiver_id is current_user_id)
+                elif msg.receiver_id == current_user_id:
+                    # We received this message → left side (received)
+                    is_sender = False
+                # PRIORITY 3: Check by sender_name if sender is None (for unauthenticated messages)
+                # This is CRITICAL because messages might have sender=None but sender_name filled
+                elif not msg.sender or msg.sender is None:
+                    if msg.sender_name and current_user_names:
+                        sender_name_lower = msg.sender_name.strip().lower()
+                        # Check if sender_name matches any of current user's possible names
+                        name_matches = sender_name_lower in current_user_names
+                        
+                        if name_matches:
+                            # Sender name matches current user → it's a sent message
+                            if msg.receiver_id == receiver_id:
+                                # Sent to the contact we're viewing → right side (sent)
+                                is_sender = True
+                            elif msg.receiver_id == current_user_id:
+                                # This shouldn't happen, but mark as received
+                                is_sender = False
+                            else:
+                                # Sent to someone else, but based on name match, it's sent
+                                is_sender = True
+                        else:
+                            # Sender name doesn't match current user → it's a received message
+                            if msg.receiver_id == current_user_id:
+                                # Received message (sender_name doesn't match, and we're the receiver)
+                                is_sender = False
+                            elif msg.receiver_id == receiver_id:
+                                # Message sent to the contact we're viewing, but sender_name doesn't match us
+                                # This means someone else sent it to this contact → received from our perspective
+                                is_sender = False
+            
+            # Debug: Print sender info
+            print(f"DEBUG Message {msg.id}: sender={msg.sender}, sender.id={msg.sender.id if msg.sender else None}, user.id={user.id if user else None}, sender_name={msg.sender_name}, receiver_id={msg.receiver_id}, receiver_id_param={receiver_id}, current_user_id={current_user_id}, is_sender={is_sender}")
+            
+            message_data = {
+                'id': msg.id,
+                'message': msg.message or '',
+                'sender_name': msg.sender_name,
+                'sender_designation': msg.sender_designation or '',
+                'sender_department': msg.sender_department or '',
+                'is_sender': is_sender,
+                'created_at': msg.created_at.strftime('%Y-%m-%d %H:%M:%S'),
+                'time_ago': get_time_ago(msg.created_at)
+            }
+            
+            # Add image URL if exists
+            if msg.image:
+                message_data['image_url'] = msg.image.url
+            
+            # Add attachment URL if exists
+            if msg.attachment:
+                message_data['attachment_url'] = msg.attachment.url
+                message_data['attachment_name'] = msg.attachment_name or msg.attachment.name
+            
+            messages_list.append(message_data)
+        
+        # Return pagination info
+        has_more = False
+        oldest_message_id = None
+        if messages_list:
+            oldest_message_id = messages_list[0]['id']
+            # Check if there are more messages before this one
+            if user and current_user_id:
+                if filtered_messages:
+                    remaining = EmployeeMessage.objects.filter(
+                        id__in=filtered_messages,
+                        id__lt=oldest_message_id
+                    ).exists()
+                    has_more = remaining
+                else:
+                    has_more = False
+            else:
+                remaining = EmployeeMessage.objects.filter(
+                    Q(receiver_id=receiver_id),
+                    id__lt=oldest_message_id
+                ).exists()
+                has_more = remaining
+        
+        return JsonResponse({
+            'success': True,
+            'messages': messages_list,
+            'has_more': has_more,
+            'oldest_message_id': oldest_message_id
+        })
+    
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': str(e)}, status=500)
+
+def get_time_ago(dt):
+    """Get human-readable time ago string"""
+    from datetime import datetime
+    from django.utils import timezone
+    
+    now = timezone.now()
+    diff = now - dt
+    
+    if diff.days > 0:
+        return f"{diff.days} day{'s' if diff.days > 1 else ''} ago"
+    elif diff.seconds >= 3600:
+        hours = diff.seconds // 3600
+        return f"{hours} hour{'s' if hours > 1 else ''} ago"
+    elif diff.seconds >= 60:
+        minutes = diff.seconds // 60
+        return f"{minutes} minute{'s' if minutes > 1 else ''} ago"
+    else:
+        return "Just now"
 
 def employee_achievements(request):
     """Employee achievements view"""

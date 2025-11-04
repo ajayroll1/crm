@@ -16,7 +16,7 @@
         </div>
         <div>
           <div class="metric-title">Total Projects</div>
-          <div class="metric-value">8</div>
+          <div class="metric-value">{{ total_projects }}</div>
           <div class="metric-subtitle">All time</div>
         </div>
       </div>
@@ -31,7 +31,7 @@
         </div>
         <div>
           <div class="metric-title">Completed</div>
-          <div class="metric-value">5</div>
+          <div class="metric-value">{{ completed_projects }}</div>
           <div class="metric-subtitle">This year</div>
         </div>
       </div>
@@ -46,7 +46,7 @@
         </div>
         <div>
           <div class="metric-title">In Progress</div>
-          <div class="metric-value">3</div>
+          <div class="metric-value">{{ in_progress_projects }}</div>
           <div class="metric-subtitle">Active now</div>
         </div>
       </div>
@@ -61,7 +61,7 @@
         </div>
         <div>
           <div class="metric-title">Due This Week</div>
-          <div class="metric-value">2</div>
+          <div class="metric-value">{{ due_this_week }}</div>
           <div class="metric-subtitle">Deadlines</div>
         </div>
       </div>
@@ -110,455 +110,155 @@
 
 <!-- Projects Grid View -->
 <div class="row" id="projectsGrid">
-  <!-- Project Card 1 -->
-  <div class="col-xl-4 col-lg-6 col-md-6 col-sm-12 mb-4">
-    <div class="card h-100 project-card">
-      <div class="card-header d-flex justify-content-between align-items-center">
-        <div class="d-flex align-items-center">
-          <div class="bg-primary text-white rounded-circle d-flex align-items-center justify-content-center me-3" style="width: 40px; height: 40px;">
-            <i class="bi bi-code-slash"></i>
+  {% if projects %}
+    {% for project in projects %}
+      <div class="col-xl-4 col-lg-6 col-md-6 col-sm-12 mb-4">
+        <div class="card h-100 project-card">
+          <div class="card-header d-flex justify-content-between align-items-center">
+            <div class="d-flex align-items-center">
+              {% if project.type == "Web Application" %}
+                <div class="bg-primary text-white rounded-circle d-flex align-items-center justify-content-center me-3" style="width: 40px; height: 40px;">
+                  <i class="bi bi-code-slash"></i>
+                </div>
+              {% elif project.type == "Mobile Application" %}
+                <div class="bg-warning text-white rounded-circle d-flex align-items-center justify-content-center me-3" style="width: 40px; height: 40px;">
+                  <i class="bi bi-mobile"></i>
+                </div>
+              {% elif project.type == "Backend Task" %}
+                <div class="bg-info text-white rounded-circle d-flex align-items-center justify-content-center me-3" style="width: 40px; height: 40px;">
+                  <i class="bi bi-database"></i>
+                </div>
+              {% elif project.type == "Security Task" %}
+                <div class="bg-success text-white rounded-circle d-flex align-items-center justify-content-center me-3" style="width: 40px; height: 40px;">
+                  <i class="bi bi-shield-check"></i>
+                </div>
+              {% elif project.type == "Data Visualization" %}
+                <div class="bg-danger text-white rounded-circle d-flex align-items-center justify-content-center me-3" style="width: 40px; height: 40px;">
+                  <i class="bi bi-graph-up"></i>
+                </div>
+              {% elif project.type == "Infrastructure" %}
+                <div class="bg-secondary text-white rounded-circle d-flex align-items-center justify-content-center me-3" style="width: 40px; height: 40px;">
+                  <i class="bi bi-cloud"></i>
+                </div>
+              {% else %}
+                <div class="bg-primary text-white rounded-circle d-flex align-items-center justify-content-center me-3" style="width: 40px; height: 40px;">
+                  <i class="bi bi-kanban"></i>
+                </div>
+              {% endif %}
+              <div>
+                <h6 class="mb-0">{{ project.name }}</h6>
+                <small class="text-muted">{{ project.type }}</small>
+              </div>
+            </div>
+            <div class="dropdown">
+              <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                <i class="bi bi-three-dots-vertical"></i>
+              </button>
+              <ul class="dropdown-menu">
+                <li><a class="dropdown-item" href="{% url 'employee_project_detail' project_id=project.id %}"><i class="bi bi-eye me-2"></i>View Details</a></li>
+                <li><a class="dropdown-item" href="#"><i class="bi bi-pencil me-2"></i>Edit</a></li>
+                <li><a class="dropdown-item" href="#"><i class="bi bi-download me-2"></i>Export</a></li>
+                <li><hr class="dropdown-divider"></li>
+                <li><a class="dropdown-item text-danger" href="#"><i class="bi bi-trash me-2"></i>Delete</a></li>
+              </ul>
+            </div>
           </div>
-          <div>
-            <h6 class="mb-0">CRM System Development</h6>
-            <small class="text-muted">Web Application</small>
+          <div class="card-body">
+            <p class="text-muted small mb-3">{{ project.description|truncatewords:20 }}</p>
+            
+            <div class="mb-3">
+              <div class="d-flex justify-content-between align-items-center mb-1">
+                <span class="small fw-bold">Progress</span>
+                <span class="small text-muted">{{ project.progress }}%</span>
+              </div>
+              <div class="progress" style="height: 8px;">
+                {% if project.progress >= 80 %}
+                  <div class="progress-bar bg-success" style="width: {{ project.progress }}%"></div>
+                {% elif project.progress >= 50 %}
+                  <div class="progress-bar bg-info" style="width: {{ project.progress }}%"></div>
+                {% elif project.progress >= 30 %}
+                  <div class="progress-bar bg-warning" style="width: {{ project.progress }}%"></div>
+                {% else %}
+                  <div class="progress-bar bg-danger" style="width: {{ project.progress }}%"></div>
+                {% endif %}
+              </div>
+            </div>
+            
+            <div class="row text-center mb-3">
+              <div class="col-4">
+                <div class="fw-bold text-primary">{{ project.tasks_total }}</div>
+                <div class="small text-muted">Tasks</div>
+              </div>
+              <div class="col-4">
+                <div class="fw-bold text-success">{{ project.tasks_completed }}</div>
+                <div class="small text-muted">Completed</div>
+              </div>
+              <div class="col-4">
+                <div class="fw-bold text-warning">{{ project.tasks_pending }}</div>
+                <div class="small text-muted">Pending</div>
+              </div>
+            </div>
+            
+            <div class="d-flex justify-content-between align-items-center">
+              <div>
+                {% if project.status == "Completed" %}
+                  <div class="small text-muted">Completed</div>
+                {% else %}
+                  <div class="small text-muted">Due Date</div>
+                {% endif %}
+                {% if project.due_date %}
+                  <div class="fw-bold">{{ project.due_date }}</div>
+                {% else %}
+                  <div class="fw-bold">N/A</div>
+                {% endif %}
+              </div>
+              {% if project.status == "In Progress" %}
+                <span class="status-badge status-active">{{ project.status }}</span>
+              {% elif project.status == "Pending" %}
+                <span class="status-badge status-pending">{{ project.status }}</span>
+              {% elif project.status == "On Hold" %}
+                <span class="status-badge status-pending">{{ project.status }}</span>
+              {% elif project.status == "Completed" %}
+                <span class="status-badge status-completed">{{ project.status }}</span>
+              {% else %}
+                <span class="status-badge status-pending">{{ project.status }}</span>
+              {% endif %}
+            </div>
           </div>
-        </div>
-        <div class="dropdown">
-          <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown">
-            <i class="bi bi-three-dots-vertical"></i>
-          </button>
-          <ul class="dropdown-menu">
-            <li><a class="dropdown-item" href="#"><i class="bi bi-eye me-2"></i>View Details</a></li>
-            <li><a class="dropdown-item" href="#"><i class="bi bi-pencil me-2"></i>Edit</a></li>
-            <li><a class="dropdown-item" href="#"><i class="bi bi-download me-2"></i>Export</a></li>
-            <li><hr class="dropdown-divider"></li>
-            <li><a class="dropdown-item text-danger" href="#"><i class="bi bi-trash me-2"></i>Delete</a></li>
-          </ul>
+          <div class="card-footer bg-transparent">
+            <div class="d-flex justify-content-between">
+              <a href="{% url 'employee_project_detail' project_id=project.id %}" class="btn btn-sm btn-outline-primary">
+                <i class="bi bi-eye me-1"></i>View Details
+              </a>
+              {% if project.status == "Completed" %}
+                <a href="{% url 'employee_project_detail' project_id=project.id %}" class="btn btn-sm btn-outline-success">
+                  <i class="bi bi-download me-1"></i>Report
+                </a>
+              {% elif project.status == "In Progress" %}
+                <a href="{% url 'employee_continue_project' project_id=project.id %}" class="btn btn-sm btn-primary">
+                  <i class="bi bi-play me-1"></i>Continue
+                </a>
+              {% elif project.status == "On Hold" %}
+                <a href="{% url 'employee_start_project' project_id=project.id %}" class="btn btn-sm btn-outline-warning">
+                  <i class="bi bi-play me-1"></i>Resume
+                </a>
+              {% else %}
+                <a href="{% url 'employee_start_project' project_id=project.id %}" class="btn btn-sm btn-warning">
+                  <i class="bi bi-play me-1"></i>Start
+                </a>
+              {% endif %}
+            </div>
+          </div>
         </div>
       </div>
-      <div class="card-body">
-        <p class="text-muted small mb-3">A comprehensive Customer Relationship Management system for managing leads, accounts, and projects.</p>
-        
-        <div class="mb-3">
-          <div class="d-flex justify-content-between align-items-center mb-1">
-            <span class="small fw-bold">Progress</span>
-            <span class="small text-muted">75%</span>
-          </div>
-          <div class="progress" style="height: 8px;">
-            <div class="progress-bar bg-success" style="width: 75%"></div>
-          </div>
-        </div>
-        
-        <div class="row text-center mb-3">
-          <div class="col-4">
-            <div class="fw-bold text-primary">12</div>
-            <div class="small text-muted">Tasks</div>
-          </div>
-          <div class="col-4">
-            <div class="fw-bold text-success">9</div>
-            <div class="small text-muted">Completed</div>
-          </div>
-          <div class="col-4">
-            <div class="fw-bold text-warning">3</div>
-            <div class="small text-muted">Pending</div>
-          </div>
-        </div>
-        
-        <div class="d-flex justify-content-between align-items-center">
-          <div>
-            <div class="small text-muted">Due Date</div>
-            <div class="fw-bold">Dec 15, 2024</div>
-          </div>
-          <span class="status-badge status-active">In Progress</span>
-        </div>
-      </div>
-      <div class="card-footer bg-transparent">
-        <div class="d-flex justify-content-between">
-          <a href="{% url 'employee_project_detail' project_id=1 %}" class="btn btn-sm btn-outline-primary">
-            <i class="bi bi-eye me-1"></i>View Details
-          </a>
-          <a href="{% url 'employee_continue_project' project_id=1 %}" class="btn btn-sm btn-primary">
-            <i class="bi bi-play me-1"></i>Continue
-          </a>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- Project Card 2 -->
-  <div class="col-xl-4 col-lg-6 col-md-6 col-sm-12 mb-4">
-    <div class="card h-100 project-card">
-      <div class="card-header d-flex justify-content-between align-items-center">
-        <div class="d-flex align-items-center">
-          <div class="bg-warning text-white rounded-circle d-flex align-items-center justify-content-center me-3" style="width: 40px; height: 40px;">
-            <i class="bi bi-mobile"></i>
-          </div>
-          <div>
-            <h6 class="mb-0">Mobile App UI/UX</h6>
-            <small class="text-muted">Mobile Application</small>
-          </div>
-        </div>
-        <div class="dropdown">
-          <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown">
-            <i class="bi bi-three-dots-vertical"></i>
-          </button>
-          <ul class="dropdown-menu">
-            <li><a class="dropdown-item" href="#"><i class="bi bi-eye me-2"></i>View Details</a></li>
-            <li><a class="dropdown-item" href="#"><i class="bi bi-pencil me-2"></i>Edit</a></li>
-            <li><a class="dropdown-item" href="#"><i class="bi bi-download me-2"></i>Export</a></li>
-            <li><hr class="dropdown-divider"></li>
-            <li><a class="dropdown-item text-danger" href="#"><i class="bi bi-trash me-2"></i>Delete</a></li>
-          </ul>
-        </div>
-      </div>
-      <div class="card-body">
-        <p class="text-muted small mb-3">Design and develop a modern mobile application with intuitive user interface and experience.</p>
-        
-        <div class="mb-3">
-          <div class="d-flex justify-content-between align-items-center mb-1">
-            <span class="small fw-bold">Progress</span>
-            <span class="small text-muted">45%</span>
-          </div>
-          <div class="progress" style="height: 8px;">
-            <div class="progress-bar bg-warning" style="width: 45%"></div>
-          </div>
-        </div>
-        
-        <div class="row text-center mb-3">
-          <div class="col-4">
-            <div class="fw-bold text-primary">8</div>
-            <div class="small text-muted">Tasks</div>
-          </div>
-          <div class="col-4">
-            <div class="fw-bold text-success">3</div>
-            <div class="small text-muted">Completed</div>
-          </div>
-          <div class="col-4">
-            <div class="fw-bold text-warning">5</div>
-            <div class="small text-muted">Pending</div>
-          </div>
-        </div>
-        
-        <div class="d-flex justify-content-between align-items-center">
-          <div>
-            <div class="small text-muted">Due Date</div>
-            <div class="fw-bold">Jan 20, 2025</div>
-          </div>
-          <span class="status-badge status-pending">Pending</span>
-        </div>
-      </div>
-      <div class="card-footer bg-transparent">
-        <div class="d-flex justify-content-between">
-          <a href="{% url 'employee_project_detail' project_id=1 %}" class="btn btn-sm btn-outline-primary">
-            <i class="bi bi-eye me-1"></i>View Details
-          </a>
-          <a href="{% url 'employee_start_project' project_id=2 %}" class="btn btn-sm btn-warning">
-            <i class="bi bi-play me-1"></i>Start
-          </a>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- Project Card 3 -->
-  <div class="col-xl-4 col-lg-6 col-md-6 col-sm-12 mb-4">
-    <div class="card h-100 project-card">
-      <div class="card-header d-flex justify-content-between align-items-center">
-        <div class="d-flex align-items-center">
-          <div class="bg-info text-white rounded-circle d-flex align-items-center justify-content-center me-3" style="width: 40px; height: 40px;">
-            <i class="bi bi-database"></i>
-          </div>
-          <div>
-            <h6 class="mb-0">Database Optimization</h6>
-            <small class="text-muted">Backend Task</small>
-          </div>
-        </div>
-        <div class="dropdown">
-          <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown">
-            <i class="bi bi-three-dots-vertical"></i>
-          </button>
-          <ul class="dropdown-menu">
-            <li><a class="dropdown-item" href="#"><i class="bi bi-eye me-2"></i>View Details</a></li>
-            <li><a class="dropdown-item" href="#"><i class="bi bi-pencil me-2"></i>Edit</a></li>
-            <li><a class="dropdown-item" href="#"><i class="bi bi-download me-2"></i>Export</a></li>
-            <li><hr class="dropdown-divider"></li>
-            <li><a class="dropdown-item text-danger" href="#"><i class="bi bi-trash me-2"></i>Delete</a></li>
-          </ul>
-        </div>
-      </div>
-      <div class="card-body">
-        <p class="text-muted small mb-3">Optimize database performance and implement efficient query strategies for better system performance.</p>
-        
-        <div class="mb-3">
-          <div class="d-flex justify-content-between align-items-center mb-1">
-            <span class="small fw-bold">Progress</span>
-            <span class="small text-muted">90%</span>
-          </div>
-          <div class="progress" style="height: 8px;">
-            <div class="progress-bar bg-info" style="width: 90%"></div>
-          </div>
-        </div>
-        
-        <div class="row text-center mb-3">
-          <div class="col-4">
-            <div class="fw-bold text-primary">6</div>
-            <div class="small text-muted">Tasks</div>
-          </div>
-          <div class="col-4">
-            <div class="fw-bold text-success">5</div>
-            <div class="small text-muted">Completed</div>
-          </div>
-          <div class="col-4">
-            <div class="fw-bold text-warning">1</div>
-            <div class="small text-muted">Pending</div>
-          </div>
-        </div>
-        
-        <div class="d-flex justify-content-between align-items-center">
-          <div>
-            <div class="small text-muted">Due Date</div>
-            <div class="fw-bold">Dec 10, 2024</div>
-          </div>
-          <span class="status-badge status-completed">Almost Done</span>
-        </div>
-      </div>
-      <div class="card-footer bg-transparent">
-        <div class="d-flex justify-content-between">
-          <a href="{% url 'employee_project_detail' project_id=1 %}" class="btn btn-sm btn-outline-primary">
-            <i class="bi bi-eye me-1"></i>View Details
-          </a>
-          <a href="{% url 'employee_finish_project' project_id=3 %}" class="btn btn-sm btn-success">
-            <i class="bi bi-check me-1"></i>Finish
-          </a>
-        </div>
+    {% endfor %}
+  {% else %}
+    <div class="col-12">
+      <div class="alert alert-info text-center">
+        <i class="bi bi-info-circle me-2"></i>No projects assigned to you yet.
       </div>
     </div>
-  </div>
-
-  <!-- Project Card 4 -->
-  <div class="col-xl-4 col-lg-6 col-md-6 col-sm-12 mb-4">
-    <div class="card h-100 project-card">
-      <div class="card-header d-flex justify-content-between align-items-center">
-        <div class="d-flex align-items-center">
-          <div class="bg-success text-white rounded-circle d-flex align-items-center justify-content-center me-3" style="width: 40px; height: 40px;">
-            <i class="bi bi-shield-check"></i>
-          </div>
-          <div>
-            <h6 class="mb-0">Security Audit</h6>
-            <small class="text-muted">Security Task</small>
-          </div>
-        </div>
-        <div class="dropdown">
-          <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown">
-            <i class="bi bi-three-dots-vertical"></i>
-          </button>
-          <ul class="dropdown-menu">
-            <li><a class="dropdown-item" href="#"><i class="bi bi-eye me-2"></i>View Details</a></li>
-            <li><a class="dropdown-item" href="#"><i class="bi bi-pencil me-2"></i>Edit</a></li>
-            <li><a class="dropdown-item" href="#"><i class="bi bi-download me-2"></i>Export</a></li>
-            <li><hr class="dropdown-divider"></li>
-            <li><a class="dropdown-item text-danger" href="#"><i class="bi bi-trash me-2"></i>Delete</a></li>
-          </ul>
-        </div>
-      </div>
-      <div class="card-body">
-        <p class="text-muted small mb-3">Comprehensive security audit and implementation of security best practices across all systems.</p>
-        
-        <div class="mb-3">
-          <div class="d-flex justify-content-between align-items-center mb-1">
-            <span class="small fw-bold">Progress</span>
-            <span class="small text-muted">100%</span>
-          </div>
-          <div class="progress" style="height: 8px;">
-            <div class="progress-bar bg-success" style="width: 100%"></div>
-          </div>
-        </div>
-        
-        <div class="row text-center mb-3">
-          <div class="col-4">
-            <div class="fw-bold text-primary">10</div>
-            <div class="small text-muted">Tasks</div>
-          </div>
-          <div class="col-4">
-            <div class="fw-bold text-success">10</div>
-            <div class="small text-muted">Completed</div>
-          </div>
-          <div class="col-4">
-            <div class="fw-bold text-success">0</div>
-            <div class="small text-muted">Pending</div>
-          </div>
-        </div>
-        
-        <div class="d-flex justify-content-between align-items-center">
-          <div>
-            <div class="small text-muted">Completed</div>
-            <div class="fw-bold">Nov 28, 2024</div>
-          </div>
-          <span class="status-badge status-completed">Completed</span>
-        </div>
-      </div>
-      <div class="card-footer bg-transparent">
-        <div class="d-flex justify-content-between">
-          <a href="{% url 'employee_project_detail' project_id=1 %}" class="btn btn-sm btn-outline-primary">
-            <i class="bi bi-eye me-1"></i>View Details
-          </a>
-          <a href="{% url 'employee_project_detail' project_id=4 %}" class="btn btn-sm btn-outline-success">
-            <i class="bi bi-download me-1"></i>Report
-          </a>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- Project Card 5 -->
-  <div class="col-xl-4 col-lg-6 col-md-6 col-sm-12 mb-4">
-    <div class="card h-100 project-card">
-      <div class="card-header d-flex justify-content-between align-items-center">
-        <div class="d-flex align-items-center">
-          <div class="bg-danger text-white rounded-circle d-flex align-items-center justify-content-center me-3" style="width: 40px; height: 40px;">
-            <i class="bi bi-graph-up"></i>
-          </div>
-          <div>
-            <h6 class="mb-0">Analytics Dashboard</h6>
-            <small class="text-muted">Data Visualization</small>
-          </div>
-        </div>
-        <div class="dropdown">
-          <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown">
-            <i class="bi bi-three-dots-vertical"></i>
-          </button>
-          <ul class="dropdown-menu">
-            <li><a class="dropdown-item" href="#"><i class="bi bi-eye me-2"></i>View Details</a></li>
-            <li><a class="dropdown-item" href="#"><i class="bi bi-pencil me-2"></i>Edit</a></li>
-            <li><a class="dropdown-item" href="#"><i class="bi bi-download me-2"></i>Export</a></li>
-            <li><hr class="dropdown-divider"></li>
-            <li><a class="dropdown-item text-danger" href="#"><i class="bi bi-trash me-2"></i>Delete</a></li>
-          </ul>
-        </div>
-      </div>
-      <div class="card-body">
-        <p class="text-muted small mb-3">Create interactive dashboards and reports for business intelligence and data analysis.</p>
-        
-        <div class="mb-3">
-          <div class="d-flex justify-content-between align-items-center mb-1">
-            <span class="small fw-bold">Progress</span>
-            <span class="small text-muted">30%</span>
-          </div>
-          <div class="progress" style="height: 8px;">
-            <div class="progress-bar bg-danger" style="width: 30%"></div>
-          </div>
-        </div>
-        
-        <div class="row text-center mb-3">
-          <div class="col-4">
-            <div class="fw-bold text-primary">15</div>
-            <div class="small text-muted">Tasks</div>
-          </div>
-          <div class="col-4">
-            <div class="fw-bold text-success">4</div>
-            <div class="small text-muted">Completed</div>
-          </div>
-          <div class="col-4">
-            <div class="fw-bold text-warning">11</div>
-            <div class="small text-muted">Pending</div>
-          </div>
-        </div>
-        
-        <div class="d-flex justify-content-between align-items-center">
-          <div>
-            <div class="small text-muted">Due Date</div>
-            <div class="fw-bold">Feb 15, 2025</div>
-          </div>
-          <span class="status-badge status-pending">On Hold</span>
-        </div>
-      </div>
-      <div class="card-footer bg-transparent">
-        <div class="d-flex justify-content-between">
-          <a href="{% url 'employee_project_detail' project_id=1 %}" class="btn btn-sm btn-outline-primary">
-            <i class="bi bi-eye me-1"></i>View Details
-          </a>
-          <a href="{% url 'employee_start_project' project_id=5 %}" class="btn btn-sm btn-outline-warning">
-            <i class="bi bi-play me-1"></i>Resume
-          </a>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- Project Card 6 -->
-  <div class="col-xl-4 col-lg-6 col-md-6 col-sm-12 mb-4">
-    <div class="card h-100 project-card">
-      <div class="card-header d-flex justify-content-between align-items-center">
-        <div class="d-flex align-items-center">
-          <div class="bg-secondary text-white rounded-circle d-flex align-items-center justify-content-center me-3" style="width: 40px; height: 40px;">
-            <i class="bi bi-cloud"></i>
-          </div>
-          <div>
-            <h6 class="mb-0">Cloud Migration</h6>
-            <small class="text-muted">Infrastructure</small>
-          </div>
-        </div>
-        <div class="dropdown">
-          <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown">
-            <i class="bi bi-three-dots-vertical"></i>
-          </button>
-          <ul class="dropdown-menu">
-            <li><a class="dropdown-item" href="#"><i class="bi bi-eye me-2"></i>View Details</a></li>
-            <li><a class="dropdown-item" href="#"><i class="bi bi-pencil me-2"></i>Edit</a></li>
-            <li><a class="dropdown-item" href="#"><i class="bi bi-download me-2"></i>Export</a></li>
-            <li><hr class="dropdown-divider"></li>
-            <li><a class="dropdown-item text-danger" href="#"><i class="bi bi-trash me-2"></i>Delete</a></li>
-          </ul>
-        </div>
-      </div>
-      <div class="card-body">
-        <p class="text-muted small mb-3">Migrate existing infrastructure to cloud platforms for better scalability and performance.</p>
-        
-        <div class="mb-3">
-          <div class="d-flex justify-content-between align-items-center mb-1">
-            <span class="small fw-bold">Progress</span>
-            <span class="small text-muted">60%</span>
-          </div>
-          <div class="progress" style="height: 8px;">
-            <div class="progress-bar bg-secondary" style="width: 60%"></div>
-          </div>
-        </div>
-        
-        <div class="row text-center mb-3">
-          <div class="col-4">
-            <div class="fw-bold text-primary">20</div>
-            <div class="small text-muted">Tasks</div>
-          </div>
-          <div class="col-4">
-            <div class="fw-bold text-success">12</div>
-            <div class="small text-muted">Completed</div>
-          </div>
-          <div class="col-4">
-            <div class="fw-bold text-warning">8</div>
-            <div class="small text-muted">Pending</div>
-          </div>
-        </div>
-        
-        <div class="d-flex justify-content-between align-items-center">
-          <div>
-            <div class="small text-muted">Due Date</div>
-            <div class="fw-bold">Mar 10, 2025</div>
-          </div>
-          <span class="status-badge status-active">In Progress</span>
-        </div>
-      </div>
-      <div class="card-footer bg-transparent">
-        <div class="d-flex justify-content-between">
-          <a href="{% url 'employee_project_detail' project_id=1 %}" class="btn btn-sm btn-outline-primary">
-            <i class="bi bi-eye me-1"></i>View Details
-          </a>
-          <a href="{% url 'employee_continue_project' project_id=1 %}" class="btn btn-sm btn-primary">
-            <i class="bi bi-play me-1"></i>Continue
-          </a>
-        </div>
-      </div>
-    </div>
-  </div>
+  {% endif %}
 </div>
 
 <!-- Projects List View (Hidden by default) -->
@@ -579,38 +279,103 @@
               </tr>
             </thead>
             <tbody>
-              <tr>
-                <td>
-                  <div class="d-flex align-items-center">
-                    <div class="bg-primary text-white rounded-circle d-flex align-items-center justify-content-center me-3" style="width: 40px; height: 40px;">
-                      <i class="bi bi-code-slash"></i>
+              {% if projects %}
+                {% for project in projects %}
+                  <tr>
+                    <td>
+                      <div class="d-flex align-items-center">
+                        {% if project.type == "Web Application" %}
+                          <div class="bg-primary text-white rounded-circle d-flex align-items-center justify-content-center me-3" style="width: 40px; height: 40px;">
+                            <i class="bi bi-code-slash"></i>
+                          </div>
+                        {% elif project.type == "Mobile Application" %}
+                          <div class="bg-warning text-white rounded-circle d-flex align-items-center justify-content-center me-3" style="width: 40px; height: 40px;">
+                            <i class="bi bi-mobile"></i>
+                          </div>
+                        {% elif project.type == "Backend Task" %}
+                          <div class="bg-info text-white rounded-circle d-flex align-items-center justify-content-center me-3" style="width: 40px; height: 40px;">
+                            <i class="bi bi-database"></i>
+                          </div>
+                        {% elif project.type == "Security Task" %}
+                          <div class="bg-success text-white rounded-circle d-flex align-items-center justify-content-center me-3" style="width: 40px; height: 40px;">
+                            <i class="bi bi-shield-check"></i>
+                          </div>
+                        {% elif project.type == "Data Visualization" %}
+                          <div class="bg-danger text-white rounded-circle d-flex align-items-center justify-content-center me-3" style="width: 40px; height: 40px;">
+                            <i class="bi bi-graph-up"></i>
+                          </div>
+                        {% elif project.type == "Infrastructure" %}
+                          <div class="bg-secondary text-white rounded-circle d-flex align-items-center justify-content-center me-3" style="width: 40px; height: 40px;">
+                            <i class="bi bi-cloud"></i>
+                          </div>
+                        {% else %}
+                          <div class="bg-primary text-white rounded-circle d-flex align-items-center justify-content-center me-3" style="width: 40px; height: 40px;">
+                            <i class="bi bi-kanban"></i>
+                          </div>
+                        {% endif %}
+                        <div>
+                          <div class="fw-bold">{{ project.name }}</div>
+                          <small class="text-muted">{{ project.type }}</small>
+                        </div>
+                      </div>
+                    </td>
+                    <td>
+                      <div class="progress" style="height: 8px; width: 100px;">
+                        {% if project.progress >= 80 %}
+                          <div class="progress-bar bg-success" style="width: {{ project.progress }}%"></div>
+                        {% elif project.progress >= 50 %}
+                          <div class="progress-bar bg-info" style="width: {{ project.progress }}%"></div>
+                        {% elif project.progress >= 30 %}
+                          <div class="progress-bar bg-warning" style="width: {{ project.progress }}%"></div>
+                        {% else %}
+                          <div class="progress-bar bg-danger" style="width: {{ project.progress }}%"></div>
+                        {% endif %}
+                      </div>
+                      <small class="text-muted">{{ project.progress }}%</small>
+                    </td>
+                    <td>
+                      <span class="badge bg-primary">{{ project.tasks_total }}</span>
+                      <small class="text-muted ms-1">({{ project.tasks_completed }} completed)</small>
+                    </td>
+                    <td>{{ project.due_date|default:"N/A" }}</td>
+                    <td>
+                      {% if project.status == "In Progress" %}
+                        <span class="status-badge status-active">{{ project.status }}</span>
+                      {% elif project.status == "Pending" %}
+                        <span class="status-badge status-pending">{{ project.status }}</span>
+                      {% elif project.status == "On Hold" %}
+                        <span class="status-badge status-pending">{{ project.status }}</span>
+                      {% elif project.status == "Completed" %}
+                        <span class="status-badge status-completed">{{ project.status }}</span>
+                      {% else %}
+                        <span class="status-badge status-pending">{{ project.status }}</span>
+                      {% endif %}
+                    </td>
+                    <td>
+                      <div class="btn-group btn-group-sm">
+                        <a href="{% url 'employee_project_detail' project_id=project.id %}" class="btn btn-outline-primary">View</a>
+                        {% if project.status == "Completed" %}
+                          <a href="{% url 'employee_project_detail' project_id=project.id %}" class="btn btn-success">Report</a>
+                        {% elif project.status == "In Progress" %}
+                          <a href="{% url 'employee_continue_project' project_id=project.id %}" class="btn btn-primary">Continue</a>
+                        {% elif project.status == "On Hold" %}
+                          <a href="{% url 'employee_start_project' project_id=project.id %}" class="btn btn-warning">Resume</a>
+                        {% else %}
+                          <a href="{% url 'employee_start_project' project_id=project.id %}" class="btn btn-warning">Start</a>
+                        {% endif %}
+                      </div>
+                    </td>
+                  </tr>
+                {% endfor %}
+              {% else %}
+                <tr>
+                  <td colspan="6" class="text-center">
+                    <div class="alert alert-info mb-0">
+                      <i class="bi bi-info-circle me-2"></i>No projects assigned to you yet.
                     </div>
-                    <div>
-                      <div class="fw-bold">CRM System Development</div>
-                      <small class="text-muted">Web Application</small>
-                    </div>
-                  </div>
-                </td>
-                <td>
-                  <div class="progress" style="height: 8px; width: 100px;">
-                    <div class="progress-bar bg-success" style="width: 75%"></div>
-                  </div>
-                  <small class="text-muted">75%</small>
-                </td>
-                <td>
-                  <span class="badge bg-primary">12</span>
-                  <small class="text-muted ms-1">(9 completed)</small>
-                </td>
-                <td>Dec 15, 2024</td>
-                <td><span class="status-badge status-active">In Progress</span></td>
-                <td>
-                  <div class="btn-group btn-group-sm">
-                    <button class="btn btn-outline-primary">View</button>
-                    <button class="btn btn-primary">Continue</button>
-                  </div>
-                </td>
-              </tr>
-              <!-- Add more rows as needed -->
+                  </td>
+                </tr>
+              {% endif %}
             </tbody>
           </table>
         </div>

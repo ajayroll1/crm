@@ -16,7 +16,7 @@
         </div>
         <div>
           <div class="metric-title">Current Salary</div>
-          <div class="metric-value">${{ current_salary }}</div>
+          <div class="metric-value">₹{{ current_salary }}</div>
           <div class="metric-subtitle">Monthly</div>
         </div>
       </div>
@@ -31,7 +31,7 @@
         </div>
         <div>
           <div class="metric-title">Last Payment</div>
-          <div class="metric-value">${{ last_payment }}</div>
+          <div class="metric-value">₹{{ last_payment }}</div>
           <div class="metric-subtitle">{{ last_payment_date }}</div>
         </div>
       </div>
@@ -46,7 +46,7 @@
         </div>
         <div>
           <div class="metric-title">YTD Earnings</div>
-          <div class="metric-value">${{ ytd_earnings }}</div>
+          <div class="metric-value">₹{{ ytd_earnings }}</div>
           <div class="metric-subtitle">This year</div>
         </div>
       </div>
@@ -82,24 +82,24 @@
             <h6 class="text-success mb-3">Earnings</h6>
             <div class="d-flex justify-content-between mb-2">
               <span>Regular Hours ({{ regular_hours }} hrs)</span>
-              <span class="fw-bold">${{ regular_pay }}</span>
+              <span class="fw-bold">₹{{ regular_pay }}</span>
             </div>
             <div class="d-flex justify-content-between mb-2">
               <span>Overtime Hours ({{ overtime_hours }} hrs)</span>
-              <span class="fw-bold">${{ overtime_pay }}</span>
+              <span class="fw-bold">₹{{ overtime_pay }}</span>
             </div>
             <div class="d-flex justify-content-between mb-2">
               <span>Bonus</span>
-              <span class="fw-bold">${{ bonus }}</span>
+              <span class="fw-bold">₹{{ bonus }}</span>
             </div>
             <div class="d-flex justify-content-between mb-2">
               <span>Commission</span>
-              <span class="fw-bold">${{ commission }}</span>
+              <span class="fw-bold">₹{{ commission }}</span>
             </div>
             <hr>
             <div class="d-flex justify-content-between mb-3">
               <span class="fw-bold">Total Earnings</span>
-              <span class="fw-bold text-success">${{ total_earnings }}</span>
+              <span class="fw-bold text-success">₹{{ total_earnings }}</span>
             </div>
           </div>
           
@@ -107,7 +107,7 @@
             <h6 class="text-danger mb-3">Deductions</h6>
             <div class="d-flex justify-content-between mb-2">
               <span>Federal Tax</span>
-              <span class="fw-bold">${{ federal_tax }}</span>
+              <span class="fw-bold">₹{{ federal_tax }}</span>
             </div>
             <div class="d-flex justify-content-between mb-2">
               <span>State Tax</span>

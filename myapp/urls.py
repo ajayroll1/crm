@@ -66,6 +66,9 @@ urlpatterns =[
   path('employee/documents/<int:doc_id>/delete/',views.employee_documents_delete,name='employee_documents_delete'),
   path('employee/payroll/',views.employee_payroll,name='employee_payroll'),
   path('employee/achievements/',views.employee_achievements,name='employee_achievements'),
+  path('employee/messages/',views.employee_messages,name='employee_messages'),
+  path('employee/messages/send/',views.employee_send_message,name='employee_send_message'),
+  path('employee/messages/get/',views.employee_get_messages,name='employee_get_messages'),
   
   path('leads/<int:lead_id>/assign_engineer/', views.assign_engineer, name='assign_engineer'),
 
