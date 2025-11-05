@@ -34,19 +34,28 @@
               <h3><i class="bi bi-box-arrow-in-right me-2"></i>Welcome Back</h3>
               <p>Sign in to your account</p>
             </div>
-            <form class="auth-form-content">
+            <form class="auth-form-content" method="POST" action="{% url 'login' %}">
+              {% csrf_token %}
+              {% if messages %}
+                {% for message in messages %}
+                  <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert" style="display: none;">
+                    {{ message }}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                  </div>
+                {% endfor %}
+              {% endif %}
               <div class="form-group">
                 <label for="loginEmail">Email Address</label>
                 <div class="input-group">
                   <span class="input-group-text"><i class="bi bi-envelope"></i></span>
-                  <input type="email" class="form-control" id="loginEmail" placeholder="Enter your email" required>
+                  <input type="email" class="form-control" id="loginEmail" name="email" placeholder="Enter your email" required>
                 </div>
               </div>
               <div class="form-group">
-                <label for="loginPassword">Password</label>
+                <label for="loginPassword">Phone Number</label>
                 <div class="input-group">
-                  <span class="input-group-text"><i class="bi bi-lock"></i></span>
-                  <input type="password" class="form-control" id="loginPassword" placeholder="Enter your password" required>
+                  <span class="input-group-text"><i class="bi bi-phone"></i></span>
+                  <input type="tel" class="form-control" id="loginPassword" name="password" placeholder="Enter your phone number" required>
                   <button class="btn btn-outline-secondary" type="button" onclick="togglePassword('loginPassword')">
                     <i class="bi bi-eye"></i>
                   </button>
@@ -504,13 +513,15 @@
   
   // Form validation and submission
   document.addEventListener('DOMContentLoaded', function() {
-    const forms = document.querySelectorAll('.auth-form-content');
+    // Only handle registration form submission (for OTP simulation)
+    // Login form should submit normally to Django backend
+    const registerForm = document.querySelector('#registerForm .auth-form-content');
     
-    forms.forEach(form => {
-      form.addEventListener('submit', function(e) {
+    if (registerForm) {
+      registerForm.addEventListener('submit', function(e) {
         e.preventDefault();
         
-        const submitBtn = form.querySelector('button[type="submit"]');
+        const submitBtn = registerForm.querySelector('button[type="submit"]');
         const originalText = submitBtn.innerHTML;
         
         submitBtn.innerHTML = '<i class="bi bi-hourglass-split me-2"></i>Processing...';
@@ -522,11 +533,22 @@
           setTimeout(() => {
             submitBtn.innerHTML = originalText;
             submitBtn.disabled = false;
-            form.reset();
+            registerForm.reset();
           }, 2000);
         }, 2000);
       });
-    });
+    }
+    
+    // Login form - let it submit naturally to Django backend
+    // No preventDefault needed - form will submit to {% url 'login' %}
+    
+    // Auto-hide alert messages after 2 seconds
+    setTimeout(function() {
+      const alerts = document.querySelectorAll('.alert');
+      alerts.forEach(function(alert) {
+        alert.style.display = 'none';
+      });
+    }, 2000);
   });
 </script>
 {% endblock %}

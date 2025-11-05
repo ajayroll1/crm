@@ -1,7 +1,9 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.http import HttpResponse, JsonResponse
 from django.contrib import messages
-from django.contrib.auth import logout as auth_logout
+from django.contrib.auth import logout as auth_logout, login as auth_login, authenticate
+from django.contrib.auth.decorators import login_required
+from django.contrib.auth.models import User
 from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
 from django.db.models import Q
 from django.utils import timezone
@@ -14,7 +16,124 @@ from django.views.decorators.http import require_POST
 from django.views.decorators.csrf import csrf_exempt, ensure_csrf_cookie
 
 def home(request):
+  """Home page - show login form if not authenticated, else redirect to dashboard"""
+  if request.user.is_authenticated:
+    # Check user role and redirect accordingly
+    try:
+      employee = Employee.objects.get(email=request.user.email)
+      if employee.role == 'Admin':
+        return redirect('dashboard')
+      else:
+        return redirect('employee_dashboard')
+    except Employee.DoesNotExist:
+      # If no employee record, check if user is staff/admin
+      if request.user.is_staff:
+        return redirect('dashboard')
+      else:
+        return redirect('employee_dashboard')
   return render(request,'pages/homepage.html')
+
+def login_view(request):
+  """Login view - authenticate user with email (from Employee) and phone number (as password) and redirect based on role"""
+  if request.method == 'POST':
+    email = request.POST.get('email', '').strip()
+    phone_number = request.POST.get('password', '').strip()  # Password field contains phone number
+    
+    if not email or not phone_number:
+      messages.error(request, 'Please provide both email and phone number.')
+      return redirect('home')
+    
+    # Find Employee by email
+    try:
+      employee = Employee.objects.get(email=email)
+    except Employee.DoesNotExist:
+      messages.error(request, 'Invalid email address. Please check your email and try again.')
+      return redirect('home')
+    
+    # Verify phone number matches
+    # Normalize phone numbers for comparison (remove spaces, dashes, etc.)
+    employee_phone = ''.join(filter(str.isdigit, employee.phone or ''))
+    input_phone = ''.join(filter(str.isdigit, phone_number))
+    
+    if employee_phone != input_phone:
+      messages.error(request, 'Invalid phone number. Please check and try again.')
+      return redirect('home')
+    
+    # Check if employee is active
+    if employee.status != 'active':
+      messages.error(request, 'Your account has been deactivated. Please contact administrator.')
+      return redirect('home')
+    
+    # Get or create User account for this employee
+    user = None
+    try:
+      # Try to find existing user by email
+      user = User.objects.get(email=email)
+    except User.DoesNotExist:
+      # Create User account for Employee if it doesn't exist
+      username = email.split('@')[0]  # Use email prefix as username
+      # Ensure username is unique
+      base_username = username
+      counter = 1
+      while User.objects.filter(username=username).exists():
+        username = f"{base_username}{counter}"
+        counter += 1
+      
+      # Create user with phone number as password
+      user = User.objects.create_user(
+        username=username,
+        email=email,
+        password=phone_number,  # Use phone number as password
+        first_name=employee.first_name,
+        last_name=employee.last_name,
+        is_staff=(employee.role == 'Admin')
+      )
+    
+    # Authenticate user
+    authenticated_user = authenticate(request, username=user.username, password=phone_number)
+    
+    if authenticated_user is not None:
+      if authenticated_user.is_active:
+        # Login the user
+        auth_login(request, authenticated_user)
+        
+        # Get role from Employee model
+        role = employee.role or 'Employee'
+        
+        # Redirect based on role
+        if role == 'Admin':
+          messages.success(request, f'Welcome back, {employee.get_full_name()}!')
+          return redirect('dashboard')
+        else:
+          messages.success(request, f'Welcome back, {employee.get_full_name()}!')
+          return redirect('employee_dashboard')
+      else:
+        messages.error(request, 'Your account has been disabled.')
+        return redirect('home')
+    else:
+      # Authentication failed - update user password (phone might have changed)
+      if user is not None:
+        user.set_password(phone_number)
+        user.save()
+        authenticated_user = authenticate(request, username=user.username, password=phone_number)
+        if authenticated_user:
+          auth_login(request, authenticated_user)
+          role = employee.role or 'Employee'
+          if role == 'Admin':
+            messages.success(request, f'Welcome back, {employee.get_full_name()}!')
+            return redirect('dashboard')
+          else:
+            messages.success(request, f'Welcome back, {employee.get_full_name()}!')
+            return redirect('employee_dashboard')
+        else:
+          messages.error(request, 'Authentication failed. Please try again.')
+          return redirect('home')
+      else:
+        messages.error(request, 'User account not found. Please contact administrator.')
+        return redirect('home')
+  
+  # If GET request, redirect to home
+  return redirect('home')
 
 def logout_view(request):
   """Logout view - logs out user and redirects to home"""
@@ -47,11 +166,36 @@ def quote(request):
   return HttpResponse('Get a Quote Page ')
 
 
+@login_required
 def dashboard(request):
+  """Admin dashboard - requires login and Admin role"""
+  # Check if user has Admin role
+  try:
+    employee = Employee.objects.get(email=request.user.email)
+    if employee.role != 'Admin':
+      messages.warning(request, 'You do not have permission to access this page.')
+      return redirect('employee_dashboard')
+  except Employee.DoesNotExist:
+    # If no employee record, check if user is staff
+    if not request.user.is_staff:
+      messages.warning(request, 'You do not have permission to access this page.')
+      return redirect('employee_dashboard')
+  
   return render(request, 'dashboard/dashboard.html')
 
+@login_required
 def dashboard_leaves(request):
-    """Dashboard view to manage all leave requests"""
+    """Dashboard view to manage all leave requests - requires login and Admin role"""
+    # Check if user has Admin role
+    try:
+      employee = Employee.objects.get(email=request.user.email)
+      if employee.role != 'Admin':
+        messages.warning(request, 'You do not have permission to access this page.')
+        return redirect('employee_dashboard')
+    except Employee.DoesNotExist:
+      if not request.user.is_staff:
+        messages.warning(request, 'You do not have permission to access this page.')
+        return redirect('employee_dashboard')
     from django.core.paginator import Paginator
     
     # Get all leave requests from database
@@ -99,6 +243,7 @@ def dashboard_leaves(request):
     return render(request, 'dashboard/leaves.html', context)
 
 @require_POST
+@login_required
 def leave_status_update(request, leave_id):
     """Update leave request status and update employee leave balance when approved"""
     try:
@@ -267,6 +412,7 @@ def leads(request):
     return render(request, 'leads_section/leads.html', context)
 
 
+@login_required
 def lead_detail(request, lead_id):
     """
     View individual lead details
@@ -281,6 +427,7 @@ def lead_detail(request, lead_id):
     return render(request, 'leads_section/lead_detail.html', context)
 
 
+@login_required
 def lead_edit(request, lead_id):
     """
     Edit existing lead
@@ -311,6 +458,7 @@ def lead_edit(request, lead_id):
     return render(request, 'leads_section/lead_form.html', context)
 
 
+@login_required
 def lead_delete(request, lead_id):
     """
     Delete lead (soft delete)
@@ -580,6 +728,7 @@ def assign_engineer(request, lead_id):
 
 
 
+@login_required
 def accounts(request):
   return render(request, 'accounnts/accounts.html')
 ## Kanban removed
@@ -590,6 +739,7 @@ def leads_import_export(request):
   return render(request, 'leads_section/leads_import_export.html', { 'export_fields': export_fields })
 
 
+@login_required
 def employees(request):
     """Employee management view - handles form submission and displays employee list"""
     from django.core.paginator import Paginator
@@ -845,6 +995,7 @@ def employees(request):
     return render(request, 'human_resource/employee.html', context)
 
 
+@login_required
 def employee_view(request, employee_id):
     """View employee details via AJAX"""
     try:
@@ -921,6 +1072,7 @@ def employee_view(request, employee_id):
         return JsonResponse({'success': False, 'error': str(e)}, status=500)
 
 
+@login_required
 def quotes(request):
     """
     Dashboard quotes view - displays quotes from database with tabs
@@ -1020,6 +1172,7 @@ def quotes(request):
         return render(request, 'dashboard/quotes.html', context)
 
 
+@login_required
 def contacts(request):
     """
     Contacts view - displays employee contact information
@@ -1151,6 +1304,7 @@ def contacts(request):
 
 
 @require_POST
+@login_required
 def employee_delete(request, employee_id):
     """Delete employee"""
     try:
@@ -1170,10 +1324,12 @@ def attendance(request):
 def leave(request):
     return render(request,'human_resource/leave.html')
 
+@login_required
 def reports(request):
     return render(request, 'dashboard/reports.html')
     
 
+@login_required
 def settings_view(request):
   return render(request, 'setting.html')
 
@@ -1181,6 +1337,7 @@ def in_out(request):
   return render(request, 'human_resource/in_out.html')
 
 
+@login_required
 def project_management(request):
   """Project management view - displays ClientOnboarding data"""
   from django.core.paginator import Paginator
@@ -1229,6 +1386,7 @@ def project_management(request):
   }
   return render(request, "project_managemnet'/project.html", context)
 
+@login_required
 def project_onboard_view(request, onboard_id):
     """Get client onboarding details as JSON"""
     try:
@@ -1259,6 +1417,7 @@ def project_onboard_view(request, onboard_id):
         return JsonResponse({'error': str(e)}, status=500)
 
 @require_POST
+@login_required
 def project_onboard_update(request, onboard_id):
     """Update client onboarding record"""
     try:
@@ -1677,6 +1836,7 @@ def employee_dashboard(request):
     }
     return render(request, 'employee/dashboard.html', context)
 
+@login_required
 def employee_projects(request):
     """Employee projects view - fetches data from myapp_clientonboarding table"""
     from datetime import timedelta
@@ -1812,6 +1972,7 @@ def employee_projects(request):
     }
     return render(request, 'employee/projects.html', context)
 
+@login_required
 def employee_in_out(request):
     """Employee check in/out view"""
     # Get logged-in user's name
@@ -1840,6 +2001,7 @@ def employee_in_out(request):
     }
     return render(request, 'employee/in_out.html', context)
 
+@login_required
 def employee_settings(request):
     """Employee settings view"""
     context = {
@@ -1888,6 +2050,7 @@ def employee_settings(request):
     }
     return render(request, 'employee/setting.html', context)
 
+@login_required
 def employee_leave(request):
     """Employee leave management view - fetches data from myapp_employee table"""
     from django.db.models import Q
@@ -2026,6 +2189,7 @@ def employee_leave(request):
     return render(request, 'employee/leave.html', context)
 
 
+@login_required
 def employee_leave_view(request, leave_id):
     """Get leave request details as JSON"""
     try:
@@ -2056,6 +2220,7 @@ def employee_leave_view(request, leave_id):
         return JsonResponse({'error': str(e)}, status=500)
 
 @require_POST
+@login_required
 def employee_leave_cancel(request, leave_id):
     """Cancel a leave request"""
     try:
@@ -2077,6 +2242,7 @@ def employee_leave_cancel(request, leave_id):
     except Exception as e:
         return JsonResponse({'success': False, 'error': str(e)}, status=500)
 
+@login_required
 def employee_leave_apply(request):
     """Create a leave request from employee/leave page (AJAX or form POST)."""
     try:
@@ -2181,6 +2347,7 @@ def employee_leave_apply(request):
     except Exception as e:
         return JsonResponse({'success': False, 'error': str(e)}, status=500)
 
+@login_required
 def employee_new_project(request):
     """Employee new project creation view"""
     if request.method == 'POST':
@@ -2206,6 +2373,7 @@ def employee_new_project(request):
     }
     return render(request, 'employee/new_project.html', context)
 
+@login_required
 def employee_project_detail(request, project_id):
     """Employee project detail view"""
     # Mock project data - in real app, fetch from database
@@ -2261,24 +2429,28 @@ def employee_project_detail(request, project_id):
     }
     return render(request, 'employee/project_detail.html', context)
 
+@login_required
 def employee_start_project(request, project_id):
     """Start a project"""
     # In real app, update project status in database
     # For now, just redirect back to projects with success message
     return redirect('employee_projects')
 
+@login_required
 def employee_continue_project(request, project_id):
     """Continue working on a project"""
     # In real app, log activity or update project status
     # For now, just redirect back to projects with success message
     return redirect('employee_projects')
 
+@login_required
 def employee_finish_project(request, project_id):
     """Finish a project"""
     # In real app, update project status to completed
     # For now, just redirect back to projects with success message
     return redirect('employee_projects')
 
+@login_required
 def employee_profile(request):
     """Employee profile view - fetches data from myapp_employee table"""
     from django.db.models import Q
@@ -2424,6 +2596,7 @@ def employee_profile(request):
     }
     return render(request, 'employee/profile.html', context)
 
+@login_required
 def employee_documents(request):
     """Employee documents view - fetch from DB"""
     qs = Document.objects.all()
@@ -2483,6 +2656,7 @@ def employee_documents(request):
 
 
 @require_POST
+@login_required
 def employee_documents_upload(request):
     """Handle document uploads (multiple)."""
     try:
@@ -2514,6 +2688,7 @@ def employee_documents_upload(request):
 
 
 @require_POST
+@login_required
 def employee_documents_delete(request, doc_id):
     """Delete a document if it belongs to the current user (or no user)."""
     try:
@@ -2535,6 +2710,7 @@ def employee_documents_delete(request, doc_id):
     except Exception as e:
         return JsonResponse({'success': False, 'error': str(e)}, status=500)
 
+@login_required
 def employee_payroll(request):
     """Employee payroll view - fetches data from myapp_employee table"""
     from django.db.models import Q
@@ -2780,6 +2956,7 @@ def employee_payroll(request):
     return render(request, 'employee/payroll.html', context)
 
 @ensure_csrf_cookie
+@login_required
 def employee_messages(request):
     """Employee messages view - allows messaging between employees and admin"""
     from django.contrib.auth.models import User
@@ -2931,6 +3108,7 @@ def employee_messages(request):
 
 @csrf_exempt
 @require_POST
+@login_required
 def employee_send_message(request):
     """Send a message to another employee or admin - Authentication not required"""
     try:
@@ -3077,6 +3255,7 @@ def employee_send_message(request):
         return JsonResponse({'success': False, 'error': str(e)}, status=500)
 
 @csrf_exempt
+@login_required
 def employee_get_messages(request):
     """Get messages between current user and a contact - Authentication not required"""
     try:
@@ -3345,6 +3524,7 @@ def get_time_ago(dt):
     else:
         return "Just now"
 
+@login_required
 def employee_achievements(request):
     """Employee achievements view"""
     achievements = [
@@ -3470,6 +3650,7 @@ def employee_achievements(request):
     }
     return render(request, 'employee/achievements.html', context)
 
+@login_required
 def employee_leads(request):
     # Same data/loading as public leads(), but using employee-styled template
     leads_list = Lead.objects.filter(is_active=True).order_by('-created_at')
@@ -3520,6 +3701,7 @@ def employee_leads(request):
 
 @csrf_exempt
 @require_POST
+@login_required
 def employee_attendance_check_in(request):
     """Handle check-in submission"""
     try:
@@ -3569,6 +3751,7 @@ def employee_attendance_check_in(request):
 
 @csrf_exempt
 @require_POST
+@login_required
 def employee_attendance_check_out(request):
     """Handle check-out submission"""
     try:
@@ -3617,6 +3800,7 @@ def employee_attendance_check_out(request):
         return JsonResponse({'success': False, 'error': str(e)}, status=500)
 
 
+@login_required
 def employee_attendance_records(request):
     """Get attendance records for the logged-in user with pagination"""
     try:
@@ -3685,6 +3869,7 @@ def employee_attendance_records(request):
 
 
 
+@login_required
 def employee_quotes(request):
     """Employee portal quotation management"""
     
@@ -3878,6 +4063,7 @@ def employee_quotes(request):
     return render(request, 'employee/quotes.html', context)
 
 
+@login_required
 def employee_quote_view(request, quote_id):
     """Get quote details as JSON"""
     try:
@@ -3908,6 +4094,7 @@ def employee_quote_view(request, quote_id):
 
 
 @require_POST
+@login_required
 def employee_quote_delete(request, quote_id):
     """Delete a quote"""
     try:
@@ -3922,6 +4109,7 @@ def employee_quote_delete(request, quote_id):
         return JsonResponse({'success': False, 'error': str(e)}, status=500)
 
 
+@login_required
 def employee_onboard_view(request, onboard_id):
     """Get onboarding details as JSON"""
     try:
@@ -3950,6 +4138,7 @@ def employee_onboard_view(request, onboard_id):
 
 
 @require_POST
+@login_required
 def employee_onboard_delete(request, onboard_id):
     """Delete an onboarding"""
     try:
