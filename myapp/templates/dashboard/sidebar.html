@@ -19,7 +19,7 @@
           </a>
         </li>
         <li class="nav-item">
-          <a href="{% url 'employee_quotes' %}" class="nav-link">
+          <a href="{% url 'quotes' %}" class="nav-link">
             <i class="bi bi-file-text"></i>
             <span>Quotes</span>
           </a>
@@ -37,7 +37,7 @@
           </a>
         </li>
         <li class="nav-item">
-          <a href="#" class="nav-link">
+          <a href="{% url 'contacts' %}" class="nav-link">
             <i class="bi bi-people"></i>
             <span>Contacts</span>
           </a>
@@ -99,6 +99,12 @@
       <a href="{% url 'settings' %}" class="nav-link">
         <i class="bi bi-gear"></i>
         <span>Settings</span>
+      </a>
+    </div>
+    <div class="nav-item">
+      <a href="{% url 'logout' %}" class="nav-link text-danger">
+        <i class="bi bi-box-arrow-right"></i>
+        <span>Logout</span>
       </a>
     </div>
   </div>

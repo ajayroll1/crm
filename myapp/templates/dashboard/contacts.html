@@ -1,0 +1,904 @@
+{% extends "dashboard/dashboard_base.html" %}
+{% load static %}
+{% block title %}Contacts - Sujata Associates{% endblock %}
+
+{% block content %}
+<div class="contacts-container" style="width: 100%; max-width: 100%; overflow-x: hidden;">
+  <div class="dashboard-header">
+    <h1>Employee Contacts</h1>
+    <p class="text-muted">View and manage employee contact information</p>
+  </div>
+
+  <!-- Messages Display -->
+  {% if messages %}
+    <div class="messages-container mb-3">
+      {% for message in messages %}
+        <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+          {{ message }}
+          <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+      {% endfor %}
+    </div>
+  {% endif %}
+
+  <!-- Search and Filter Section -->
+  <div class="card mb-4">
+    <div class="card-body">
+      <form method="GET" action="{% url 'contacts' %}" class="row g-3 align-items-end" id="contactsSearchForm">
+        <div class="col-12 col-md-6 col-lg-6">
+          <label for="search" class="form-label">
+            <i class="bi bi-search me-1"></i>Search
+          </label>
+          <input 
+            type="text" 
+            class="form-control" 
+            id="search" 
+            name="search" 
+            placeholder="Search by name, email, phone, designation, or department..."
+            value="{{ search_query|default:'' }}"
+            maxlength="200"
+            autocomplete="off"
+          >
+          <small class="form-text text-muted">Minimum 2 characters required</small>
+        </div>
+        <div class="col-12 col-md-4 col-lg-4">
+          <label for="department" class="form-label">
+            <i class="bi bi-funnel me-1"></i>Filter by Department
+          </label>
+          <div class="dropdown">
+            <button 
+              class="btn btn-outline-secondary dropdown-toggle w-100 text-start d-flex justify-content-between align-items-center" 
+              type="button" 
+              id="departmentDropdown" 
+              data-bs-toggle="dropdown" 
+              aria-expanded="false"
+              style="font-size: 16px;"
+            >
+              <span id="departmentDisplay">
+                {% if department_filter %}
+                  {{ department_filter }}
+                {% else %}
+                  All Departments
+                {% endif %}
+              </span>
+              <i class="bi bi-chevron-down"></i>
+            </button>
+            <ul class="dropdown-menu w-100" aria-labelledby="departmentDropdown" id="departmentMenu">
+              <li>
+                <a class="dropdown-item {% if not department_filter %}active{% endif %}" 
+                   href="#" 
+                   data-value=""
+                   onclick="selectDepartment('', 'All Departments'); return false;">
+                  <i class="bi bi-list me-2"></i>All Departments
+                </a>
+              </li>
+              {% for dept in departments %}
+                <li>
+                  <a class="dropdown-item {% if department_filter == dept %}active{% endif %}" 
+                     href="#" 
+                     data-value="{{ dept }}"
+                     onclick="selectDepartment('{{ dept }}', '{{ dept }}'); return false;">
+                    <i class="bi bi-building me-2"></i>{{ dept }}
+                  </a>
+                </li>
+              {% endfor %}
+            </ul>
+            <!-- Hidden input for form submission -->
+            <input type="hidden" id="department" name="department" value="{{ department_filter|default:'' }}">
+          </div>
+        </div>
+        <div class="col-12 col-md-2 col-lg-2">
+          <label class="form-label d-none d-md-block">&nbsp;</label>
+          <button type="submit" class="btn btn-primary w-100">
+            <i class="bi bi-search me-1 d-none d-md-inline"></i>
+            <span class="d-md-none">Search</span>
+            <span class="d-none d-md-inline">Search</span>
+          </button>
+        </div>
+      </form>
+      {% if search_query or department_filter %}
+        <div class="mt-3 d-flex flex-wrap align-items-center gap-2">
+          <a href="{% url 'contacts' %}" class="btn btn-outline-secondary btn-sm">
+            <i class="bi bi-x-circle me-1"></i>Clear Filters
+          </a>
+          <span class="text-muted">
+            <i class="bi bi-info-circle me-1"></i>
+            Showing {{ total_employees }} result{{ total_employees|pluralize }}
+          </span>
+        </div>
+      {% endif %}
+    </div>
+  </div>
+
+  <!-- Contacts Grid -->
+  <div class="row g-3 g-md-4 mb-4 mx-0">
+    {% if employees %}
+      {% for employee in employees %}
+        <div class="col-12 col-sm-6 col-lg-4 col-xl-3 px-2 px-sm-3">
+          <div class="card contact-card h-100">
+            <div class="card-body">
+              <!-- Employee Avatar and Name -->
+              <div class="d-flex align-items-center mb-3">
+                <div class="contact-avatar me-3 flex-shrink-0">
+                  {{ employee.get_initials }}
+                </div>
+                <div class="flex-grow-1 min-w-0">
+                  <h5 class="mb-0 text-truncate" title="{{ employee.get_full_name }}">
+                    {{ employee.get_full_name }}
+                  </h5>
+                  <small class="text-muted d-block">
+                    {% if employee.emp_code %}
+                      <i class="bi bi-hash me-1"></i>{{ employee.emp_code }}
+                    {% else %}
+                      <i class="bi bi-hash me-1"></i>No Code
+                    {% endif %}
+                  </small>
+                </div>
+              </div>
+
+              <!-- Contact Information -->
+              <div class="contact-info">
+                <!-- Email -->
+                <div class="contact-item mb-2">
+                  <i class="bi bi-envelope me-2 text-primary flex-shrink-0"></i>
+                  <span class="text-break">
+                    {% if employee.email %}
+                      <a href="mailto:{{ employee.email }}" class="contact-link" title="Send email">
+                        {{ employee.email }}
+                      </a>
+                    {% else %}
+                      <span class="text-muted">N/A</span>
+                    {% endif %}
+                  </span>
+                </div>
+
+                <!-- Phone -->
+                <div class="contact-item mb-2">
+                  <i class="bi bi-telephone me-2 text-success flex-shrink-0"></i>
+                  <span>
+                    {% if employee.phone %}
+                      <a href="tel:{{ employee.phone }}" class="contact-link" title="Call">
+                        {{ employee.phone }}
+                      </a>
+                    {% else %}
+                      <span class="text-muted">N/A</span>
+                    {% endif %}
+                  </span>
+                </div>
+
+                <!-- Designation -->
+                <div class="contact-item mb-2">
+                  <i class="bi bi-briefcase me-2 text-warning flex-shrink-0"></i>
+                  <span class="text-truncate d-block" title="{% if employee.designation %}{{ employee.designation }}{% endif %}">
+                    {% if employee.designation %}
+                      {{ employee.designation }}
+                    {% else %}
+                      <span class="text-muted">N/A</span>
+                    {% endif %}
+                  </span>
+                </div>
+
+                <!-- Department -->
+                <div class="contact-item mb-2">
+                  <i class="bi bi-building me-2 text-info flex-shrink-0"></i>
+                  <span class="text-truncate d-block" title="{% if employee.department %}{{ employee.department }}{% endif %}">
+                    {% if employee.department %}
+                      {{ employee.department }}
+                    {% else %}
+                      <span class="text-muted">N/A</span>
+                    {% endif %}
+                  </span>
+                </div>
+
+                <!-- Emergency Contact 1 -->
+                {% if employee.emg_phone1 %}
+                  <div class="contact-item mb-2 emergency-contact">
+                    <i class="bi bi-person-exclamation me-2 text-danger flex-shrink-0"></i>
+                    <span class="small">
+                      <strong>Emergency 1:</strong>
+                      {% if employee.emg_name1 %}
+                        <span class="d-block">{{ employee.emg_name1 }} ({{ employee.emg_relation1|default:"N/A" }})</span>
+                      {% endif %}
+                      <a href="tel:{{ employee.emg_phone1 }}" class="contact-link d-block mt-1" title="Call emergency contact">
+                        {{ employee.emg_phone1 }}
+                      </a>
+                    </span>
+                  </div>
+                {% endif %}
+
+                <!-- Emergency Contact 2 -->
+                {% if employee.emg_phone2 %}
+                  <div class="contact-item mb-2 emergency-contact">
+                    <i class="bi bi-person-exclamation me-2 text-danger flex-shrink-0"></i>
+                    <span class="small">
+                      <strong>Emergency 2:</strong>
+                      {% if employee.emg_name2 %}
+                        <span class="d-block">{{ employee.emg_name2 }} ({{ employee.emg_relation2|default:"N/A" }})</span>
+                      {% endif %}
+                      <a href="tel:{{ employee.emg_phone2 }}" class="contact-link d-block mt-1" title="Call emergency contact">
+                        {{ employee.emg_phone2 }}
+                      </a>
+                    </span>
+                  </div>
+                {% endif %}
+              </div>
+            </div>
+          </div>
+        </div>
+      {% endfor %}
+    {% else %}
+      <div class="col-12">
+        <div class="alert alert-info text-center">
+          <i class="bi bi-info-circle me-2"></i>
+          No employees found matching your search criteria.
+        </div>
+      </div>
+    {% endif %}
+  </div>
+
+  <!-- Pagination -->
+  {% if employees and employees.has_other_pages %}
+    <nav aria-label="Contacts pagination" class="mt-4">
+      <ul class="pagination justify-content-center flex-wrap">
+        {% if employees.has_previous %}
+          <li class="page-item">
+            <a class="page-link" href="?page=1{% if search_query %}&search={{ search_query|urlencode }}{% endif %}{% if department_filter %}&department={{ department_filter|urlencode }}{% endif %}">
+              <i class="bi bi-chevron-double-left d-none d-sm-inline"></i>
+              <span class="d-sm-none">First</span>
+            </a>
+          </li>
+          <li class="page-item">
+            <a class="page-link" href="?page={{ employees.previous_page_number }}{% if search_query %}&search={{ search_query|urlencode }}{% endif %}{% if department_filter %}&department={{ department_filter|urlencode }}{% endif %}">
+              <i class="bi bi-chevron-left d-none d-sm-inline"></i>
+              <span class="d-sm-none">Prev</span>
+            </a>
+          </li>
+        {% else %}
+          <li class="page-item disabled">
+            <span class="page-link">
+              <i class="bi bi-chevron-double-left d-none d-sm-inline"></i>
+              <span class="d-sm-none">First</span>
+            </span>
+          </li>
+          <li class="page-item disabled">
+            <span class="page-link">
+              <i class="bi bi-chevron-left d-none d-sm-inline"></i>
+              <span class="d-sm-none">Prev</span>
+            </span>
+          </li>
+        {% endif %}
+
+        <li class="page-item active">
+          <span class="page-link">
+            Page {{ employees.number }} of {{ employees.paginator.num_pages }}
+          </span>
+        </li>
+
+        {% if employees.has_next %}
+          <li class="page-item">
+            <a class="page-link" href="?page={{ employees.next_page_number }}{% if search_query %}&search={{ search_query|urlencode }}{% endif %}{% if department_filter %}&department={{ department_filter|urlencode }}{% endif %}">
+              <i class="bi bi-chevron-right d-none d-sm-inline"></i>
+              <span class="d-sm-none">Next</span>
+            </a>
+          </li>
+          <li class="page-item">
+            <a class="page-link" href="?page={{ employees.paginator.num_pages }}{% if search_query %}&search={{ search_query|urlencode }}{% endif %}{% if department_filter %}&department={{ department_filter|urlencode }}{% endif %}">
+              <i class="bi bi-chevron-double-right d-none d-sm-inline"></i>
+              <span class="d-sm-none">Last</span>
+            </a>
+          </li>
+        {% else %}
+          <li class="page-item disabled">
+            <span class="page-link">
+              <i class="bi bi-chevron-right d-none d-sm-inline"></i>
+              <span class="d-sm-none">Next</span>
+            </span>
+          </li>
+          <li class="page-item disabled">
+            <span class="page-link">
+              <i class="bi bi-chevron-double-right d-none d-sm-inline"></i>
+              <span class="d-sm-none">Last</span>
+            </span>
+          </li>
+        {% endif %}
+      </ul>
+    </nav>
+  {% endif %}
+</div>
+
+<style>
+  /* Production-ready mobile responsive styles */
+  .contacts-container {
+    padding: 0;
+    width: 100%;
+    max-width: 100%;
+    overflow-x: hidden;
+  }
+
+  /* Contact Card Styles */
+  .contact-card {
+    border: 1px solid #e9ecef;
+    border-radius: 10px;
+    transition: all 0.3s ease;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .contact-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    border-color: var(--secondary-color);
+  }
+
+  .contact-avatar {
+    width: 60px;
+    height: 60px;
+    min-width: 60px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--secondary-color), var(--primary-color));
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    font-size: 1.2rem;
+    flex-shrink: 0;
+  }
+
+  .contact-info {
+    border-top: 1px solid #e9ecef;
+    padding-top: 1rem;
+    margin-top: auto;
+  }
+
+  .contact-item {
+    display: flex;
+    align-items: flex-start;
+    font-size: 0.9rem;
+    line-height: 1.5;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+  }
+
+  .contact-item i {
+    min-width: 20px;
+    margin-top: 2px;
+    flex-shrink: 0;
+  }
+
+  .contact-link {
+    color: var(--primary-color);
+    text-decoration: none;
+    word-break: break-all;
+  }
+
+  .contact-link:hover {
+    text-decoration: underline;
+    color: var(--secondary-color);
+  }
+
+  .emergency-contact {
+    background-color: #fff5f5;
+    padding: 0.5rem;
+    border-radius: 5px;
+    margin-top: 0.5rem;
+  }
+
+  /* Mobile Responsive Styles - Fix for all screen sizes */
+  @media (max-width: 576px) {
+    .contacts-container {
+      padding: 0.5rem !important;
+      width: 100% !important;
+      max-width: 100% !important;
+      margin: 0 !important;
+    }
+
+    .dashboard-header {
+      padding: 0.5rem 0 !important;
+      margin-bottom: 1rem !important;
+    }
+
+    .dashboard-header h1 {
+      font-size: 1.25rem !important;
+      margin-bottom: 0.25rem !important;
+    }
+
+    .dashboard-header p {
+      font-size: 0.85rem !important;
+      margin: 0 !important;
+    }
+
+    .card {
+      margin-bottom: 1rem !important;
+      border-radius: 8px !important;
+    }
+
+    .card-body {
+      padding: 0.75rem !important;
+    }
+
+    .contact-card {
+      margin-bottom: 1rem !important;
+      border-radius: 8px !important;
+      width: 100% !important;
+      max-width: 100% !important;
+    }
+
+    .contact-avatar {
+      width: 45px !important;
+      height: 45px !important;
+      min-width: 45px !important;
+      font-size: 0.9rem !important;
+    }
+
+    .contact-item {
+      font-size: 0.8rem !important;
+      line-height: 1.4 !important;
+    }
+
+    .contact-item i {
+      min-width: 18px !important;
+      font-size: 0.9rem !important;
+    }
+
+    .form-label {
+      font-size: 0.85rem !important;
+      margin-bottom: 0.25rem !important;
+      font-weight: 500 !important;
+    }
+
+    .form-control,
+    .form-select,
+    .dropdown-toggle {
+      font-size: 16px !important; /* Prevents zoom on iOS */
+      padding: 0.5rem !important;
+      border-radius: 6px !important;
+    }
+
+    .dropdown-menu {
+      font-size: 16px !important;
+      max-height: 300px !important;
+      overflow-y: auto !important;
+    }
+
+    .dropdown-item {
+      padding: 0.5rem 1rem !important;
+      font-size: 0.9rem !important;
+    }
+
+    .btn {
+      font-size: 0.9rem !important;
+      padding: 0.5rem 1rem !important;
+    }
+
+    .row.g-3 {
+      margin-left: 0 !important;
+      margin-right: 0 !important;
+    }
+
+    .row.g-3 > * {
+      padding-left: 0.5rem !important;
+      padding-right: 0.5rem !important;
+    }
+
+    /* Force single column on mobile */
+    .col-12,
+    .col-sm-6,
+    .col-md-6,
+    .col-md-4,
+    .col-md-2,
+    .col-lg-4,
+    .col-xl-3 {
+      width: 100% !important;
+      flex: 0 0 100% !important;
+      max-width: 100% !important;
+      margin-bottom: 0.75rem !important;
+    }
+
+    /* Pagination mobile fix */
+    .pagination {
+      font-size: 0.8rem !important;
+      flex-wrap: wrap !important;
+      justify-content: center !important;
+    }
+
+    .page-link {
+      padding: 0.375rem 0.5rem !important;
+      font-size: 0.8rem !important;
+    }
+
+    /* Messages container */
+    .messages-container {
+      padding: 0 !important;
+      margin-bottom: 0.75rem !important;
+    }
+
+    .alert {
+      font-size: 0.85rem !important;
+      padding: 0.75rem !important;
+      margin-bottom: 0.5rem !important;
+    }
+  }
+
+  @media (max-width: 768px) {
+    .contacts-container {
+      padding: 0.75rem !important;
+      width: 100% !important;
+      max-width: 100% !important;
+    }
+
+    .main-content {
+      padding: 0.5rem !important;
+    }
+
+    .contact-card {
+      margin-bottom: 1rem !important;
+      width: 100% !important;
+    }
+
+    .row.g-3.g-md-4 {
+      --bs-gutter-y: 1rem !important;
+      --bs-gutter-x: 0.5rem !important;
+      margin-left: -0.5rem !important;
+      margin-right: -0.5rem !important;
+    }
+
+    .row.g-3.g-md-4 > * {
+      padding-left: 0.5rem !important;
+      padding-right: 0.5rem !important;
+    }
+
+    /* Stack form fields on mobile */
+    .col-md-6,
+    .col-md-4,
+    .col-md-2 {
+      margin-bottom: 0.75rem !important;
+      width: 100% !important;
+      flex: 0 0 100% !important;
+      max-width: 100% !important;
+    }
+
+    /* Dropdown mobile styles */
+    .dropdown-toggle {
+      width: 100% !important;
+      text-align: left !important;
+    }
+
+    .dropdown-menu {
+      width: 100% !important;
+      max-height: 250px !important;
+      overflow-y: auto !important;
+    }
+
+    /* Make pagination mobile-friendly */
+    .pagination {
+      font-size: 0.85rem !important;
+      flex-wrap: wrap !important;
+    }
+
+    .page-link {
+      padding: 0.4rem 0.6rem !important;
+    }
+
+    /* Contact card responsive */
+    .col-sm-6 {
+      width: 100% !important;
+      flex: 0 0 100% !important;
+      max-width: 100% !important;
+    }
+  }
+
+  @media (min-width: 577px) and (max-width: 767px) {
+    .col-sm-6 {
+      flex: 0 0 auto;
+      width: 50% !important;
+    }
+  }
+
+  @media (min-width: 769px) and (max-width: 991px) {
+    .contact-card {
+      margin-bottom: 1rem;
+    }
+    
+    .col-lg-4 {
+      flex: 0 0 auto;
+      width: 50%;
+    }
+  }
+
+  /* Tablet Styles */
+  @media (min-width: 768px) and (max-width: 1024px) {
+    .col-lg-4 {
+      flex: 0 0 auto;
+      width: 50%;
+    }
+  }
+
+  /* Large Desktop Optimization */
+  @media (min-width: 1400px) {
+    .col-xl-3 {
+      flex: 0 0 auto;
+      width: 25%;
+    }
+  }
+
+  /* Accessibility Improvements */
+  .contact-link:focus {
+    outline: 2px solid var(--secondary-color);
+    outline-offset: 2px;
+  }
+
+  .btn:focus {
+    box-shadow: 0 0 0 0.25rem rgba(52, 152, 219, 0.25);
+  }
+
+  /* Loading and Empty States */
+  .alert {
+    border-radius: 8px;
+  }
+
+  /* Print Styles */
+  @media print {
+    .contact-card {
+      break-inside: avoid;
+      page-break-inside: avoid;
+    }
+
+    .btn,
+    .pagination {
+      display: none;
+    }
+  }
+
+  /* Utility Classes */
+  .min-w-0 {
+    min-width: 0;
+  }
+
+  /* Fix for main content area on mobile */
+  @media (max-width: 768px) {
+    .main-content {
+      padding: 0.5rem !important;
+      margin-left: 0 !important;
+    }
+  }
+
+  /* Ensure cards don't overflow */
+  .contact-card {
+    box-sizing: border-box !important;
+    word-wrap: break-word !important;
+    overflow-wrap: break-word !important;
+  }
+
+  /* Fix text overflow */
+  .text-truncate {
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+    white-space: nowrap !important;
+  }
+
+  /* Responsive form */
+  @media (max-width: 768px) {
+    #contactsSearchForm {
+      margin: 0 !important;
+    }
+    
+    #contactsSearchForm .row {
+      margin-left: 0 !important;
+      margin-right: 0 !important;
+    }
+    
+    #contactsSearchForm .row > * {
+      padding-left: 0 !important;
+      padding-right: 0 !important;
+    }
+  }
+
+  /* Additional mobile fixes */
+  @media (max-width: 480px) {
+    html, body {
+      overflow-x: hidden !important;
+      width: 100% !important;
+      max-width: 100% !important;
+    }
+
+    .contacts-container {
+      padding: 0.25rem !important;
+    }
+
+    .contact-card .card-body {
+      padding: 0.75rem !important;
+    }
+
+    h5 {
+      font-size: 1rem !important;
+    }
+
+    small {
+      font-size: 0.75rem !important;
+    }
+  }
+
+  /* Fix for very small screens */
+  @media (max-width: 360px) {
+    .contact-avatar {
+      width: 40px !important;
+      height: 40px !important;
+      min-width: 40px !important;
+      font-size: 0.8rem !important;
+    }
+
+    .dashboard-header h1 {
+      font-size: 1.1rem !important;
+    }
+
+    .form-control,
+    .form-select,
+    .dropdown-toggle {
+      font-size: 16px !important;
+    }
+
+    .dropdown-menu {
+      font-size: 0.85rem !important;
+    }
+  }
+
+  /* Prevent horizontal scroll */
+  * {
+    box-sizing: border-box;
+  }
+
+  body {
+    overflow-x: hidden;
+  }
+
+  /* Bootstrap Dropdown Custom Styles */
+  .dropdown-toggle::after {
+    display: none !important;
+  }
+
+  .dropdown-toggle .bi-chevron-down {
+    transition: transform 0.3s ease;
+  }
+
+  .dropdown-toggle[aria-expanded="true"] .bi-chevron-down {
+    transform: rotate(180deg);
+  }
+
+  .dropdown-item:hover,
+  .dropdown-item:focus {
+    background-color: var(--secondary-color) !important;
+    color: white !important;
+  }
+
+  .dropdown-item.active {
+    background-color: var(--primary-color) !important;
+    color: white !important;
+  }
+
+  .dropdown-item i {
+    width: 20px;
+    text-align: center;
+  }
+
+  /* Dropdown button styling */
+  #departmentDropdown {
+    border: 1px solid #ced4da;
+    background-color: white;
+    color: #212529;
+  }
+
+  #departmentDropdown:hover {
+    background-color: #f8f9fa;
+    border-color: var(--secondary-color);
+  }
+
+  #departmentDropdown:focus {
+    box-shadow: 0 0 0 0.25rem rgba(52, 152, 219, 0.25);
+    border-color: var(--secondary-color);
+  }
+</style>
+
+<!-- Production-ready JavaScript for form validation -->
+<script>
+  document.addEventListener('DOMContentLoaded', function() {
+    // Form validation
+    const searchForm = document.getElementById('contactsSearchForm');
+    const searchInput = document.getElementById('search');
+
+    if (searchForm && searchInput) {
+      searchForm.addEventListener('submit', function(e) {
+        const searchValue = searchInput.value.trim();
+        
+        // Minimum 2 characters validation
+        if (searchValue && searchValue.length < 2) {
+          e.preventDefault();
+          alert('Please enter at least 2 characters to search.');
+          searchInput.focus();
+          return false;
+        }
+
+        // Maximum length check (already handled server-side, but good UX)
+        if (searchValue.length > 200) {
+          searchInput.value = searchValue.substring(0, 200);
+        }
+      });
+
+      // Auto-submit on Enter key
+      searchInput.addEventListener('keypress', function(e) {
+        if (e.key === 'Enter') {
+          e.preventDefault();
+          if (searchInput.value.trim().length >= 2 || searchInput.value.trim().length === 0) {
+            searchForm.submit();
+          }
+        }
+      });
+    }
+
+    // Auto-dismiss alerts after 5 seconds
+    const alerts = document.querySelectorAll('.alert');
+    alerts.forEach(function(alert) {
+      setTimeout(function() {
+        const bsAlert = new bootstrap.Alert(alert);
+        if (bsAlert) {
+          bsAlert.close();
+        }
+      }, 5000);
+    });
+
+    // Smooth scroll to top on pagination
+    const paginationLinks = document.querySelectorAll('.pagination .page-link');
+    paginationLinks.forEach(function(link) {
+      link.addEventListener('click', function() {
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      });
+    });
+
+    // Initialize Bootstrap dropdown
+    const dropdownElementList = document.querySelectorAll('.dropdown-toggle');
+    const dropdownList = [...dropdownElementList].map(dropdownToggleEl => new bootstrap.Dropdown(dropdownToggleEl));
+  });
+
+  // Department dropdown selection function
+  function selectDepartment(value, displayText) {
+    // Update hidden input
+    const hiddenInput = document.getElementById('department');
+    if (hiddenInput) {
+      hiddenInput.value = value;
+    }
+
+    // Update display text
+    const displayElement = document.getElementById('departmentDisplay');
+    if (displayElement) {
+      displayElement.textContent = displayText;
+    }
+
+    // Remove active class from all items
+    const allItems = document.querySelectorAll('#departmentMenu .dropdown-item');
+    allItems.forEach(item => {
+      item.classList.remove('active');
+    });
+
+    // Add active class to selected item
+    const selectedItem = document.querySelector(`#departmentMenu .dropdown-item[data-value="${value}"]`);
+    if (selectedItem) {
+      selectedItem.classList.add('active');
+    }
+
+    // Close dropdown
+    const dropdown = bootstrap.Dropdown.getInstance(document.getElementById('departmentDropdown'));
+    if (dropdown) {
+      dropdown.hide();
+    }
+
+    // Auto-submit form
+    const form = document.getElementById('contactsSearchForm');
+    if (form) {
+      form.submit();
+    }
+  }
+</script>
+{% endblock %}
+

@@ -343,12 +343,60 @@
 
             <div class="col-md-3">
               <label class="form-label">Gender</label>
-              <select class="form-select" name="gender">
-                <option value="">Select</option>
-                <option>Male</option>
-                <option>Female</option>
-                <option>Other</option>
-              </select>
+              <div class="dropdown">
+                <button 
+                  class="btn btn-outline-secondary dropdown-toggle w-100 text-start d-flex justify-content-between align-items-center" 
+                  type="button" 
+                  id="genderDropdown" 
+                  data-bs-toggle="dropdown" 
+                  aria-expanded="false"
+                  style="font-size: 16px;"
+                >
+                  <span id="genderDisplay">
+                    {% if edit_employee and edit_employee.gender %}
+                      {{ edit_employee.gender }}
+                    {% else %}
+                      Select
+                    {% endif %}
+                  </span>
+                  <i class="bi bi-chevron-down"></i>
+                </button>
+                <ul class="dropdown-menu w-100" aria-labelledby="genderDropdown" id="genderMenu">
+                  <li>
+                    <a class="dropdown-item {% if not edit_employee or not edit_employee.gender %}active{% endif %}" 
+                       href="#"
+                       data-value=""
+                       onclick="selectGender('', 'Select'); return false;">
+                      <i class="bi bi-list me-2"></i>Select
+                    </a>
+                  </li>
+                  <li>
+                    <a class="dropdown-item {% if edit_employee and edit_employee.gender == 'Male' %}active{% endif %}" 
+                       href="#"
+                       data-value="Male"
+                       onclick="selectGender('Male', 'Male'); return false;">
+                      <i class="bi bi-gender-male me-2"></i>Male
+                    </a>
+                  </li>
+                  <li>
+                    <a class="dropdown-item {% if edit_employee and edit_employee.gender == 'Female' %}active{% endif %}" 
+                       href="#"
+                       data-value="Female"
+                       onclick="selectGender('Female', 'Female'); return false;">
+                      <i class="bi bi-gender-female me-2"></i>Female
+                    </a>
+                  </li>
+                  <li>
+                    <a class="dropdown-item {% if edit_employee and edit_employee.gender == 'Other' %}active{% endif %}" 
+                       href="#"
+                       data-value="Other"
+                       onclick="selectGender('Other', 'Other'); return false;">
+                      <i class="bi bi-person me-2"></i>Other
+                    </a>
+                  </li>
+                </ul>
+                <input type="hidden" id="gender" name="gender" value="{% if edit_employee and edit_employee.gender %}{{ edit_employee.gender }}{% endif %}">
+              </div>
             </div>
             <div class="col-md-3">
               <label class="form-label">Date of Birth</label>
@@ -399,11 +447,103 @@
               <label class="form-label">Reporting Manager</label>
               <input type="text" class="form-control" name="manager">
             </div>
+            <div class="col-md-4">
+              <label class="form-label">Role</label>
+              <div class="dropdown">
+                <button 
+                  class="btn btn-outline-secondary dropdown-toggle w-100 text-start d-flex justify-content-between align-items-center" 
+                  type="button" 
+                  id="roleDropdown" 
+                  data-bs-toggle="dropdown" 
+                  aria-expanded="false"
+                  style="font-size: 16px;"
+                >
+                  <span id="roleDisplay">
+                    {% if edit_employee and edit_employee.role %}
+                      {{ edit_employee.role }}
+                    {% else %}
+                      Employee
+                    {% endif %}
+                  </span>
+                  <i class="bi bi-chevron-down"></i>
+                </button>
+                <ul class="dropdown-menu w-100" aria-labelledby="roleDropdown" id="roleMenu">
+                  <li>
+                    <a class="dropdown-item {% if not edit_employee or edit_employee.role == 'Employee' %}active{% endif %}" 
+                       href="#"
+                       data-value="Employee"
+                       onclick="selectRole('Employee', 'Employee'); return false;">
+                      <i class="bi bi-person me-2"></i>Employee
+                    </a>
+                  </li>
+                  <li>
+                    <a class="dropdown-item {% if edit_employee and edit_employee.role == 'Admin' %}active{% endif %}" 
+                       href="#"
+                       data-value="Admin"
+                       onclick="selectRole('Admin', 'Admin'); return false;">
+                      <i class="bi bi-shield-check me-2"></i>Admin
+                    </a>
+                  </li>
+                </ul>
+                <input type="hidden" id="role" name="role" value="{% if edit_employee and edit_employee.role %}{{ edit_employee.role }}{% else %}Employee{% endif %}">
+              </div>
+            </div>
             <div class="col-md-3">
               <label class="form-label">Employment Type</label>
-              <select class="form-select" name="employment_type">
-                <option>Full-time</option><option>Part-time</option><option>Contract</option><option>Intern</option>
-              </select>
+              <div class="dropdown">
+                <button 
+                  class="btn btn-outline-secondary dropdown-toggle w-100 text-start d-flex justify-content-between align-items-center" 
+                  type="button" 
+                  id="employmentTypeDropdown" 
+                  data-bs-toggle="dropdown" 
+                  aria-expanded="false"
+                  style="font-size: 16px;"
+                >
+                  <span id="employmentTypeDisplay">
+                    {% if edit_employee and edit_employee.employment_type %}
+                      {{ edit_employee.employment_type }}
+                    {% else %}
+                      Full-time
+                    {% endif %}
+                  </span>
+                  <i class="bi bi-chevron-down"></i>
+                </button>
+                <ul class="dropdown-menu w-100" aria-labelledby="employmentTypeDropdown" id="employmentTypeMenu">
+                  <li>
+                    <a class="dropdown-item {% if not edit_employee or edit_employee.employment_type == 'Full-time' %}active{% endif %}" 
+                       href="#"
+                       data-value="Full-time"
+                       onclick="selectEmploymentType('Full-time', 'Full-time'); return false;">
+                      <i class="bi bi-calendar-check me-2"></i>Full-time
+                    </a>
+                  </li>
+                  <li>
+                    <a class="dropdown-item {% if edit_employee and edit_employee.employment_type == 'Part-time' %}active{% endif %}" 
+                       href="#"
+                       data-value="Part-time"
+                       onclick="selectEmploymentType('Part-time', 'Part-time'); return false;">
+                      <i class="bi bi-calendar3 me-2"></i>Part-time
+                    </a>
+                  </li>
+                  <li>
+                    <a class="dropdown-item {% if edit_employee and edit_employee.employment_type == 'Contract' %}active{% endif %}" 
+                       href="#"
+                       data-value="Contract"
+                       onclick="selectEmploymentType('Contract', 'Contract'); return false;">
+                      <i class="bi bi-file-earmark-text me-2"></i>Contract
+                    </a>
+                  </li>
+                  <li>
+                    <a class="dropdown-item {% if edit_employee and edit_employee.employment_type == 'Intern' %}active{% endif %}" 
+                       href="#"
+                       data-value="Intern"
+                       onclick="selectEmploymentType('Intern', 'Intern'); return false;">
+                      <i class="bi bi-mortarboard me-2"></i>Intern
+                    </a>
+                  </li>
+                </ul>
+                <input type="hidden" id="employment_type" name="employment_type" value="{% if edit_employee and edit_employee.employment_type %}{{ edit_employee.employment_type }}{% else %}Full-time{% endif %}">
+              </div>
             </div>
             <div class="col-md-3">
               <label class="form-label">Location</label>
@@ -459,7 +599,44 @@
             </div>
             <div class="col-md-3">
               <label class="form-label">Pay Cycle</label>
-              <select class="form-select" name="pay_cycle"><option>Monthly</option><option>Bi-weekly</option></select>
+              <div class="dropdown">
+                <button 
+                  class="btn btn-outline-secondary dropdown-toggle w-100 text-start d-flex justify-content-between align-items-center" 
+                  type="button" 
+                  id="payCycleDropdown" 
+                  data-bs-toggle="dropdown" 
+                  aria-expanded="false"
+                  style="font-size: 16px;"
+                >
+                  <span id="payCycleDisplay">
+                    {% if edit_employee and edit_employee.pay_cycle %}
+                      {{ edit_employee.pay_cycle }}
+                    {% else %}
+                      Monthly
+                    {% endif %}
+                  </span>
+                  <i class="bi bi-chevron-down"></i>
+                </button>
+                <ul class="dropdown-menu w-100" aria-labelledby="payCycleDropdown" id="payCycleMenu">
+                  <li>
+                    <a class="dropdown-item {% if not edit_employee or edit_employee.pay_cycle == 'Monthly' %}active{% endif %}" 
+                       href="#"
+                       data-value="Monthly"
+                       onclick="selectPayCycle('Monthly', 'Monthly'); return false;">
+                      <i class="bi bi-calendar-month me-2"></i>Monthly
+                    </a>
+                  </li>
+                  <li>
+                    <a class="dropdown-item {% if edit_employee and edit_employee.pay_cycle == 'Bi-weekly' %}active{% endif %}" 
+                       href="#"
+                       data-value="Bi-weekly"
+                       onclick="selectPayCycle('Bi-weekly', 'Bi-weekly'); return false;">
+                      <i class="bi bi-calendar-week me-2"></i>Bi-weekly
+                    </a>
+                  </li>
+                </ul>
+                <input type="hidden" id="pay_cycle" name="pay_cycle" value="{% if edit_employee and edit_employee.pay_cycle %}{{ edit_employee.pay_cycle }}{% else %}Monthly{% endif %}">
+              </div>
             </div>
           </div>
         </div>
@@ -683,11 +860,93 @@
             </div>
             <div class="col-md-4">
               <label class="form-label">VPN Access</label>
-              <select class="form-select" name="vpn"><option>Yes</option><option>No</option></select>
+              <div class="dropdown">
+                <button 
+                  class="btn btn-outline-secondary dropdown-toggle w-100 text-start d-flex justify-content-between align-items-center" 
+                  type="button" 
+                  id="vpnDropdown" 
+                  data-bs-toggle="dropdown" 
+                  aria-expanded="false"
+                  style="font-size: 16px;"
+                >
+                  <span id="vpnDisplay">
+                    {% if edit_employee and edit_employee.vpn %}
+                      {{ edit_employee.vpn }}
+                    {% else %}
+                      Yes
+                    {% endif %}
+                  </span>
+                  <i class="bi bi-chevron-down"></i>
+                </button>
+                <ul class="dropdown-menu w-100" aria-labelledby="vpnDropdown" id="vpnMenu">
+                  <li>
+                    <a class="dropdown-item {% if not edit_employee or edit_employee.vpn == 'Yes' %}active{% endif %}" 
+                       href="#"
+                       data-value="Yes"
+                       onclick="selectVPN('Yes', 'Yes'); return false;">
+                      <i class="bi bi-check-circle me-2 text-success"></i>Yes
+                    </a>
+                  </li>
+                  <li>
+                    <a class="dropdown-item {% if edit_employee and edit_employee.vpn == 'No' %}active{% endif %}" 
+                       href="#"
+                       data-value="No"
+                       onclick="selectVPN('No', 'No'); return false;">
+                      <i class="bi bi-x-circle me-2 text-danger"></i>No
+                    </a>
+                  </li>
+                </ul>
+                <input type="hidden" id="vpn" name="vpn" value="{% if edit_employee and edit_employee.vpn %}{{ edit_employee.vpn }}{% else %}Yes{% endif %}">
+              </div>
             </div>
             <div class="col-md-4">
               <label class="form-label">Access Level</label>
-              <select class="form-select" name="access_level"><option>User</option><option>Manager</option><option>Admin</option></select>
+              <div class="dropdown">
+                <button 
+                  class="btn btn-outline-secondary dropdown-toggle w-100 text-start d-flex justify-content-between align-items-center" 
+                  type="button" 
+                  id="accessLevelDropdown" 
+                  data-bs-toggle="dropdown" 
+                  aria-expanded="false"
+                  style="font-size: 16px;"
+                >
+                  <span id="accessLevelDisplay">
+                    {% if edit_employee and edit_employee.access_level %}
+                      {{ edit_employee.access_level }}
+                    {% else %}
+                      User
+                    {% endif %}
+                  </span>
+                  <i class="bi bi-chevron-down"></i>
+                </button>
+                <ul class="dropdown-menu w-100" aria-labelledby="accessLevelDropdown" id="accessLevelMenu">
+                  <li>
+                    <a class="dropdown-item {% if not edit_employee or edit_employee.access_level == 'User' %}active{% endif %}" 
+                       href="#"
+                       data-value="User"
+                       onclick="selectAccessLevel('User', 'User'); return false;">
+                      <i class="bi bi-person me-2"></i>User
+                    </a>
+                  </li>
+                  <li>
+                    <a class="dropdown-item {% if edit_employee and edit_employee.access_level == 'Manager' %}active{% endif %}" 
+                       href="#"
+                       data-value="Manager"
+                       onclick="selectAccessLevel('Manager', 'Manager'); return false;">
+                      <i class="bi bi-person-badge me-2"></i>Manager
+                    </a>
+                  </li>
+                  <li>
+                    <a class="dropdown-item {% if edit_employee and edit_employee.access_level == 'Admin' %}active{% endif %}" 
+                       href="#"
+                       data-value="Admin"
+                       onclick="selectAccessLevel('Admin', 'Admin'); return false;">
+                      <i class="bi bi-shield-check me-2"></i>Admin
+                    </a>
+                  </li>
+                </ul>
+                <input type="hidden" id="access_level" name="access_level" value="{% if edit_employee and edit_employee.access_level %}{{ edit_employee.access_level }}{% else %}User{% endif %}">
+              </div>
             </div>
           </div>
         </div>
@@ -1294,7 +1553,11 @@
               form.querySelector('[name="email"]').value = emp.email || '';
               form.querySelector('[name="phone"]').value = emp.phone || '';
               
-              if (emp.gender) form.querySelector('[name="gender"]').value = emp.gender;
+              if (emp.gender !== undefined) {
+                const genderInput = document.getElementById('gender');
+                if (genderInput) genderInput.value = emp.gender || '';
+                selectGender(emp.gender || '', emp.gender || 'Select');
+              }
               if (emp.dob) form.querySelector('[name="dob"]').value = emp.dob;
               if (emp.address_current) form.querySelector('[name="address_current"]').value = emp.address_current;
               if (emp.address_permanent) form.querySelector('[name="address_permanent"]').value = emp.address_permanent;
@@ -1302,7 +1565,16 @@
               if (emp.designation) form.querySelector('[name="designation"]').value = emp.designation;
               if (emp.department) form.querySelector('[name="department"]').value = emp.department;
               if (emp.manager) form.querySelector('[name="manager"]').value = emp.manager;
-              if (emp.employment_type) form.querySelector('[name="employment_type"]').value = emp.employment_type;
+              if (emp.role) {
+                const roleInput = document.getElementById('role');
+                if (roleInput) roleInput.value = emp.role;
+                selectRole(emp.role, emp.role);
+              }
+              if (emp.employment_type) {
+                const empTypeInput = document.getElementById('employment_type');
+                if (empTypeInput) empTypeInput.value = emp.employment_type;
+                selectEmploymentType(emp.employment_type, emp.employment_type);
+              }
               if (emp.location) form.querySelector('[name="location"]').value = emp.location;
               if (emp.joining_date) form.querySelector('[name="joining_date"]').value = emp.joining_date;
               if (emp.probation !== undefined) form.querySelector('[name="probation"]').value = emp.probation || '';
@@ -1314,7 +1586,11 @@
               if (emp.allowances !== undefined) form.querySelector('[name="allowances"]').value = emp.allowances || '';
               if (emp.deductions !== undefined) form.querySelector('[name="deductions"]').value = emp.deductions || '';
               if (emp.variable !== undefined) form.querySelector('[name="variable"]').value = emp.variable || '';
-              if (emp.pay_cycle) form.querySelector('[name="pay_cycle"]').value = emp.pay_cycle;
+              if (emp.pay_cycle) {
+                const payCycleInput = document.getElementById('pay_cycle');
+                if (payCycleInput) payCycleInput.value = emp.pay_cycle;
+                selectPayCycle(emp.pay_cycle, emp.pay_cycle);
+              }
               
               // Banking
               if (emp.bank_name) form.querySelector('[name="bank_name"]').value = emp.bank_name;
@@ -1346,8 +1622,16 @@
               if (emp.work_email) form.querySelector('[name="work_email"]').value = emp.work_email;
               if (emp.github) form.querySelector('[name="github"]').value = emp.github;
               if (emp.pm_tool) form.querySelector('[name="pm_tool"]').value = emp.pm_tool;
-              if (emp.vpn) form.querySelector('[name="vpn"]').value = emp.vpn;
-              if (emp.access_level) form.querySelector('[name="access_level"]').value = emp.access_level;
+              if (emp.vpn) {
+                const vpnInput = document.getElementById('vpn');
+                if (vpnInput) vpnInput.value = emp.vpn;
+                selectVPN(emp.vpn, emp.vpn);
+              }
+              if (emp.access_level) {
+                const accessLevelInput = document.getElementById('access_level');
+                if (accessLevelInput) accessLevelInput.value = emp.access_level;
+                selectAccessLevel(emp.access_level, emp.access_level);
+              }
               
               // Notes
               if (emp.notes) form.querySelector('[name="notes"]').value = emp.notes;
@@ -1662,5 +1946,241 @@
   
   // Initialize leave values from database if editing existing employee
   // This would be populated from server-side if editing
+  
+  // Role dropdown function
+  function selectRole(value, displayText) {
+    const hiddenInput = document.getElementById('role');
+    if (hiddenInput) {
+      hiddenInput.value = value;
+    }
+    const displayElement = document.getElementById('roleDisplay');
+    if (displayElement) {
+      displayElement.textContent = displayText;
+    }
+    
+    // Update active state
+    const allItems = document.querySelectorAll('#roleMenu .dropdown-item');
+    allItems.forEach(item => {
+      item.classList.remove('active');
+    });
+    const selectedItem = document.querySelector(`#roleMenu .dropdown-item[data-value="${value}"]`);
+    if (selectedItem) {
+      selectedItem.classList.add('active');
+    }
+    
+    // Hide dropdown
+    const dropdown = bootstrap.Dropdown.getInstance(document.getElementById('roleDropdown'));
+    if (dropdown) {
+      dropdown.hide();
+    }
+  }
+  
+  // Employment Type dropdown function
+  function selectEmploymentType(value, displayText) {
+    const hiddenInput = document.getElementById('employment_type');
+    if (hiddenInput) {
+      hiddenInput.value = value;
+    }
+    const displayElement = document.getElementById('employmentTypeDisplay');
+    if (displayElement) {
+      displayElement.textContent = displayText;
+    }
+    
+    // Update active state
+    const allItems = document.querySelectorAll('#employmentTypeMenu .dropdown-item');
+    allItems.forEach(item => {
+      item.classList.remove('active');
+    });
+    const selectedItem = document.querySelector(`#employmentTypeMenu .dropdown-item[data-value="${value}"]`);
+    if (selectedItem) {
+      selectedItem.classList.add('active');
+    }
+    
+    // Hide dropdown
+    const dropdown = bootstrap.Dropdown.getInstance(document.getElementById('employmentTypeDropdown'));
+    if (dropdown) {
+      dropdown.hide();
+    }
+  }
+  
+  // Gender dropdown function
+  function selectGender(value, displayText) {
+    const hiddenInput = document.getElementById('gender');
+    if (hiddenInput) {
+      hiddenInput.value = value;
+    }
+    const displayElement = document.getElementById('genderDisplay');
+    if (displayElement) {
+      displayElement.textContent = displayText;
+    }
+    
+    // Update active state
+    const allItems = document.querySelectorAll('#genderMenu .dropdown-item');
+    allItems.forEach(item => {
+      item.classList.remove('active');
+    });
+    const selectedItem = document.querySelector(`#genderMenu .dropdown-item[data-value="${value}"]`);
+    if (selectedItem) {
+      selectedItem.classList.add('active');
+    }
+    
+    // Hide dropdown
+    const dropdown = bootstrap.Dropdown.getInstance(document.getElementById('genderDropdown'));
+    if (dropdown) {
+      dropdown.hide();
+    }
+  }
+  
+  // Pay Cycle dropdown function
+  function selectPayCycle(value, displayText) {
+    const hiddenInput = document.getElementById('pay_cycle');
+    if (hiddenInput) {
+      hiddenInput.value = value;
+    }
+    const displayElement = document.getElementById('payCycleDisplay');
+    if (displayElement) {
+      displayElement.textContent = displayText;
+    }
+    
+    // Update active state
+    const allItems = document.querySelectorAll('#payCycleMenu .dropdown-item');
+    allItems.forEach(item => {
+      item.classList.remove('active');
+    });
+    const selectedItem = document.querySelector(`#payCycleMenu .dropdown-item[data-value="${value}"]`);
+    if (selectedItem) {
+      selectedItem.classList.add('active');
+    }
+    
+    // Hide dropdown
+    const dropdown = bootstrap.Dropdown.getInstance(document.getElementById('payCycleDropdown'));
+    if (dropdown) {
+      dropdown.hide();
+    }
+  }
+  
+  // VPN dropdown function
+  function selectVPN(value, displayText) {
+    const hiddenInput = document.getElementById('vpn');
+    if (hiddenInput) {
+      hiddenInput.value = value;
+    }
+    const displayElement = document.getElementById('vpnDisplay');
+    if (displayElement) {
+      displayElement.textContent = displayText;
+    }
+    
+    // Update active state
+    const allItems = document.querySelectorAll('#vpnMenu .dropdown-item');
+    allItems.forEach(item => {
+      item.classList.remove('active');
+    });
+    const selectedItem = document.querySelector(`#vpnMenu .dropdown-item[data-value="${value}"]`);
+    if (selectedItem) {
+      selectedItem.classList.add('active');
+    }
+    
+    // Hide dropdown
+    const dropdown = bootstrap.Dropdown.getInstance(document.getElementById('vpnDropdown'));
+    if (dropdown) {
+      dropdown.hide();
+    }
+  }
+  
+  // Access Level dropdown function
+  function selectAccessLevel(value, displayText) {
+    const hiddenInput = document.getElementById('access_level');
+    if (hiddenInput) {
+      hiddenInput.value = value;
+    }
+    const displayElement = document.getElementById('accessLevelDisplay');
+    if (displayElement) {
+      displayElement.textContent = displayText;
+    }
+    
+    // Update active state
+    const allItems = document.querySelectorAll('#accessLevelMenu .dropdown-item');
+    allItems.forEach(item => {
+      item.classList.remove('active');
+    });
+    const selectedItem = document.querySelector(`#accessLevelMenu .dropdown-item[data-value="${value}"]`);
+    if (selectedItem) {
+      selectedItem.classList.add('active');
+    }
+    
+    // Hide dropdown
+    const dropdown = bootstrap.Dropdown.getInstance(document.getElementById('accessLevelDropdown'));
+    if (dropdown) {
+      dropdown.hide();
+    }
+  }
 </script>
+
+<style>
+  /* Bootstrap Dropdown Responsive Styles */
+  .dropdown-menu {
+    max-width: 100%;
+    width: 100%;
+  }
+  
+  .dropdown-toggle::after {
+    margin-left: auto;
+  }
+  
+  .dropdown-item.active {
+    background-color: #0d6efd;
+    color: white;
+  }
+  
+  .dropdown-item:hover {
+    background-color: #f8f9fa;
+  }
+  
+  .dropdown-item.active:hover {
+    background-color: #0b5ed7;
+    color: white;
+  }
+  
+  @media (max-width: 768px) {
+    .dropdown-menu {
+      position: absolute !important;
+      left: 0 !important;
+      right: 0 !important;
+      width: 100% !important;
+      max-width: 100% !important;
+      transform: translateX(0) !important;
+    }
+    
+    .dropdown {
+      width: 100% !important;
+    }
+    
+    .dropdown-toggle {
+      width: 100% !important;
+      text-align: left !important;
+      font-size: 16px !important;
+    }
+    
+    .dropdown-item {
+      padding: 0.75rem 1rem !important;
+      font-size: 16px !important;
+    }
+    
+    .dropdown-item i {
+      font-size: 1rem !important;
+    }
+  }
+  
+  @media (max-width: 576px) {
+    .dropdown-toggle {
+      font-size: 16px !important;
+      padding: 0.5rem 0.75rem !important;
+    }
+    
+    .dropdown-item {
+      padding: 0.625rem 0.875rem !important;
+      font-size: 15px !important;
+    }
+  }
+</style>
 {% endblock%}

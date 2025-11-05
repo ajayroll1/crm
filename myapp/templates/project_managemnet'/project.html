@@ -35,6 +35,22 @@
     .card{ margin-left: 0; margin-right: 0; }
     .table-responsive{ overflow-x: auto; }
   }
+  
+  /* Pagination - Wrap on Mobile */
+  .pagination {
+    flex-wrap: wrap !important;
+  }
+  
+  .pagination .page-item {
+    margin-bottom: 0.25rem !important;
+  }
+  
+  @media (max-width: 576px) {
+    .pagination .page-link {
+      padding: 0.5rem 0.75rem !important;
+      font-size: 0.875rem !important;
+    }
+  }
 </style>
 
 <div class="kpi-grid mb-3">
@@ -171,16 +187,27 @@
   </div>
   
   <!-- Pagination -->
-  {% if client_onboarding_list.has_other_pages %}
+  {% if client_onboarding_list.has_other_pages and total_projects > 10 %}
   <div class="card-footer">
     <nav aria-label="Page navigation">
-      <ul class="pagination justify-content-center mb-0">
+      <ul class="pagination justify-content-center mb-0 flex-wrap">
         {% if client_onboarding_list.has_previous %}
           <li class="page-item">
-            <a class="page-link" href="?page=1{% if search_query %}&search={{ search_query }}{% endif %}{% if status_filter %}&status={{ status_filter }}{% endif %}">First</a>
+            <a class="page-link" href="?page=1{% if search_query %}&search={{ search_query }}{% endif %}{% if status_filter %}&status={{ status_filter }}{% endif %}">
+              <i class="bi bi-chevron-double-left"></i>
+            </a>
           </li>
           <li class="page-item">
-            <a class="page-link" href="?page={{ client_onboarding_list.previous_page_number }}{% if search_query %}&search={{ search_query }}{% endif %}{% if status_filter %}&status={{ status_filter }}{% endif %}">Previous</a>
+            <a class="page-link" href="?page={{ client_onboarding_list.previous_page_number }}{% if search_query %}&search={{ search_query }}{% endif %}{% if status_filter %}&status={{ status_filter }}{% endif %}">
+              <i class="bi bi-chevron-left"></i>
+            </a>
+          </li>
+        {% else %}
+          <li class="page-item disabled">
+            <span class="page-link"><i class="bi bi-chevron-double-left"></i></span>
+          </li>
+          <li class="page-item disabled">
+            <span class="page-link"><i class="bi bi-chevron-left"></i></span>
           </li>
         {% endif %}
         
@@ -190,10 +217,21 @@
         
         {% if client_onboarding_list.has_next %}
           <li class="page-item">
-            <a class="page-link" href="?page={{ client_onboarding_list.next_page_number }}{% if search_query %}&search={{ search_query }}{% endif %}{% if status_filter %}&status={{ status_filter }}{% endif %}">Next</a>
+            <a class="page-link" href="?page={{ client_onboarding_list.next_page_number }}{% if search_query %}&search={{ search_query }}{% endif %}{% if status_filter %}&status={{ status_filter }}{% endif %}">
+              <i class="bi bi-chevron-right"></i>
+            </a>
           </li>
           <li class="page-item">
-            <a class="page-link" href="?page={{ client_onboarding_list.paginator.num_pages }}{% if search_query %}&search={{ search_query }}{% endif %}{% if status_filter %}&status={{ status_filter }}{% endif %}">Last</a>
+            <a class="page-link" href="?page={{ client_onboarding_list.paginator.num_pages }}{% if search_query %}&search={{ search_query }}{% endif %}{% if status_filter %}&status={{ status_filter }}{% endif %}">
+              <i class="bi bi-chevron-double-right"></i>
+            </a>
+          </li>
+        {% else %}
+          <li class="page-item disabled">
+            <span class="page-link"><i class="bi bi-chevron-right"></i></span>
+          </li>
+          <li class="page-item disabled">
+            <span class="page-link"><i class="bi bi-chevron-double-right"></i></span>
           </li>
         {% endif %}
       </ul>

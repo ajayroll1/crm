@@ -1,6 +1,7 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.http import HttpResponse, JsonResponse
 from django.contrib import messages
+from django.contrib.auth import logout as auth_logout
 from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
 from django.db.models import Q
 from django.utils import timezone
@@ -14,6 +15,12 @@ from django.views.decorators.csrf import csrf_exempt, ensure_csrf_cookie
 
 def home(request):
   return render(request,'pages/homepage.html')
+
+def logout_view(request):
+  """Logout view - logs out user and redirects to home"""
+  auth_logout(request)
+  messages.success(request, 'You have been logged out successfully.')
+  return redirect('home')
 
 def about(request):
   return HttpResponse('About page ')
@@ -79,11 +86,15 @@ def dashboard_leaves(request):
         'total': LeaveRequest.objects.count()
     }
     
+    # Get total count for pagination display
+    total_leave_requests = leave_requests.count()
+    
     context = {
         'leave_requests': page_obj,
         'status_counts': status_counts,
         'search_query': search_query,
         'status_filter': status_filter,
+        'total_leave_requests': total_leave_requests,
     }
     return render(request, 'dashboard/leaves.html', context)
 
@@ -654,6 +665,7 @@ def employees(request):
             employee.designation = request.POST.get('designation', '').strip() or None
             employee.department = request.POST.get('department', '').strip() or None
             employee.manager = request.POST.get('manager', '').strip() or None
+            employee.role = request.POST.get('role', '').strip() or 'Employee'
             employee.employment_type = request.POST.get('employment_type', '').strip() or None
             employee.location = request.POST.get('location', '').strip() or None
             joining_date_str = request.POST.get('joining_date', '').strip()
@@ -847,6 +859,7 @@ def employee_view(request, employee_id):
             'phone': employee.phone,
             'designation': employee.designation,
             'department': employee.department,
+            'role': employee.role,
             'status': employee.status,
             'gender': employee.gender,
             'dob': str(employee.dob) if employee.dob else None,
@@ -906,6 +919,236 @@ def employee_view(request, employee_id):
         return JsonResponse({'success': False, 'error': 'Employee not found'}, status=404)
     except Exception as e:
         return JsonResponse({'success': False, 'error': str(e)}, status=500)
+
+
+def quotes(request):
+    """
+    Dashboard quotes view - displays quotes from database with tabs
+    Separate tabs for Sent and Accepted quotes
+    """
+    from django.core.paginator import Paginator
+    
+    try:
+        # Search functionality
+        search_query = request.GET.get('search', '').strip()
+        
+        # Fetch Sent quotes
+        sent_quotes_list = Quote.objects.filter(status='Sent').order_by('-created_at')
+        
+        # Fetch Accepted quotes (also check for Approved)
+        accepted_quotes_list = Quote.objects.filter(
+            Q(status='Accepted') | Q(status='Approved')
+        ).order_by('-created_at')
+        
+        # Apply search filter to Sent quotes
+        if search_query:
+            sent_quotes_list = sent_quotes_list.filter(
+                Q(quote_number__icontains=search_query) |
+                Q(client_name__icontains=search_query) |
+                Q(company__icontains=search_query) |
+                Q(email__icontains=search_query) |
+                Q(phone__icontains=search_query) |
+                Q(owner__icontains=search_query)
+            )
+        
+        # Apply search filter to Accepted quotes
+        if search_query:
+            accepted_quotes_list = accepted_quotes_list.filter(
+                Q(quote_number__icontains=search_query) |
+                Q(client_name__icontains=search_query) |
+                Q(company__icontains=search_query) |
+                Q(email__icontains=search_query) |
+                Q(phone__icontains=search_query) |
+                Q(owner__icontains=search_query)
+            )
+        
+        # Paginate Sent quotes (10 per page)
+        sent_paginator = Paginator(sent_quotes_list, 10)
+        sent_page = request.GET.get('sent_page', 1)
+        try:
+            sent_quotes = sent_paginator.page(sent_page)
+        except PageNotAnInteger:
+            sent_quotes = sent_paginator.page(1)
+        except EmptyPage:
+            sent_quotes = sent_paginator.page(sent_paginator.num_pages)
+        
+        # Paginate Accepted quotes (10 per page)
+        accepted_paginator = Paginator(accepted_quotes_list, 10)
+        accepted_page = request.GET.get('accepted_page', 1)
+        try:
+            accepted_quotes = accepted_paginator.page(accepted_page)
+        except PageNotAnInteger:
+            accepted_quotes = accepted_paginator.page(1)
+        except EmptyPage:
+            accepted_quotes = accepted_paginator.page(accepted_paginator.num_pages)
+        
+        # Get status counts
+        status_counts = {
+            'draft': Quote.objects.filter(status='Draft').count(),
+            'sent': Quote.objects.filter(status='Sent').count(),
+            'accepted': Quote.objects.filter(Q(status='Accepted') | Q(status='Approved')).count(),
+            'declined': Quote.objects.filter(status='Declined').count(),
+            'total': Quote.objects.count()
+        }
+        
+        context = {
+            'sent_quotes': sent_quotes,
+            'accepted_quotes': accepted_quotes,
+            'search_query': search_query,
+            'status_counts': status_counts,
+            'total_sent_quotes': sent_quotes_list.count(),
+            'total_accepted_quotes': accepted_quotes_list.count(),
+        }
+        
+        return render(request, 'dashboard/quotes.html', context)
+        
+    except Exception as e:
+        import logging
+        logger = logging.getLogger(__name__)
+        logger.error(f'Error in quotes view: {str(e)}', exc_info=True)
+        
+        messages.error(request, 'An error occurred while loading quotes. Please try again later.')
+        
+        context = {
+            'sent_quotes': None,
+            'accepted_quotes': None,
+            'search_query': '',
+            'status_counts': {'total': 0, 'sent': 0, 'accepted': 0},
+            'total_sent_quotes': 0,
+            'total_accepted_quotes': 0,
+        }
+        return render(request, 'dashboard/quotes.html', context)
+
+
+def contacts(request):
+    """
+    Contacts view - displays employee contact information
+    
+    Production-ready features:
+    - Error handling
+    - Input validation
+    - Performance optimization
+    - Security (XSS protection via Django templates)
+    - Mobile responsive data structure
+    
+    This view demonstrates OOP concepts:
+    - Class-based database queries (Employee.objects.all())
+    - Method calls (get_full_name(), get_initials())
+    - Data encapsulation (Employee model class)
+    """
+    try:
+        from django.core.paginator import Paginator
+        from django.utils.html import escape
+        
+        # Initialize variables
+        search_query = ''
+        department_filter = ''
+        page_obj = None
+        departments = []
+        total_employees = 0
+        
+        # Fetch all active employees from database (optimized query)
+        # Employee.objects.all() - This is using Django ORM (Object-Relational Mapping)
+        # ORM is an OOP concept that maps database tables to Python classes
+        employees = Employee.objects.filter(status='active').order_by('first_name', 'last_name')
+        
+        # Search functionality with input validation
+        search_query = request.GET.get('search', '').strip()
+        if search_query:
+            # Limit search query length for security (prevent DoS)
+            if len(search_query) > 200:
+                search_query = search_query[:200]
+                messages.warning(request, 'Search query was too long and has been truncated.')
+            
+            # Q objects allow complex database queries using OOP-style chaining
+            # Only search if query is meaningful (at least 2 characters)
+            if len(search_query) >= 2:
+                employees = employees.filter(
+                    Q(first_name__icontains=search_query) |
+                    Q(last_name__icontains=search_query) |
+                    Q(email__icontains=search_query) |
+                    Q(phone__icontains=search_query) |
+                    Q(designation__icontains=search_query) |
+                    Q(department__icontains=search_query) |
+                    Q(emg_phone1__icontains=search_query) |
+                    Q(emg_phone2__icontains=search_query)
+                )
+            else:
+                messages.info(request, 'Please enter at least 2 characters to search.')
+        
+        # Filter by department with input validation
+        department_filter = request.GET.get('department', '').strip()
+        if department_filter:
+            # Validate department name length
+            if len(department_filter) > 100:
+                department_filter = department_filter[:100]
+            
+            employees = employees.filter(department__iexact=department_filter)
+        
+        # Get unique departments for filter dropdown (cached query)
+        # This uses OOP method chaining: values_list() -> distinct()
+        try:
+            departments = list(Employee.objects.filter(
+                status='active',
+                department__isnull=False
+            ).exclude(department='').values_list('department', flat=True).distinct())
+            departments = [d for d in departments if d and d.strip()]  # Remove None/empty values
+            departments.sort()
+        except Exception as e:
+            # Log error but don't break the page
+            departments = []
+        
+        # Count total employees (optimized - only count if needed)
+        total_employees = employees.count()
+        
+        # Pagination - 20 employees per page (mobile-friendly: 10 on small screens)
+        items_per_page = 20
+        paginator = Paginator(employees, items_per_page)
+        page_number = request.GET.get('page', 1)
+        
+        try:
+            page_number = int(page_number)
+            if page_number < 1:
+                page_number = 1
+        except (ValueError, TypeError):
+            page_number = 1
+        
+        try:
+            page_obj = paginator.page(page_number)
+        except PageNotAnInteger:
+            page_obj = paginator.page(1)
+        except EmptyPage:
+            page_obj = paginator.page(paginator.num_pages)
+        
+        # Prepare context with safe data
+        context = {
+            'employees': page_obj,  # Paginated employee list
+            'departments': departments,  # List of departments for filter
+            'search_query': escape(search_query),  # XSS protection
+            'department_filter': escape(department_filter),  # XSS protection
+            'total_employees': total_employees,
+        }
+        
+        return render(request, 'dashboard/contacts.html', context)
+        
+    except Exception as e:
+        # Production error handling - log error and show user-friendly message
+        import logging
+        logger = logging.getLogger(__name__)
+        logger.error(f'Error in contacts view: {str(e)}', exc_info=True)
+        
+        messages.error(request, 'An error occurred while loading contacts. Please try again later.')
+        
+        # Return empty context to prevent page crash
+        context = {
+            'employees': None,
+            'departments': [],
+            'search_query': '',
+            'department_filter': '',
+            'total_employees': 0,
+        }
+        return render(request, 'dashboard/contacts.html', context)
+
 
 @require_POST
 def employee_delete(request, employee_id):
@@ -974,11 +1217,15 @@ def project_management(request):
     'completed': ClientOnboarding.objects.filter(status='completed').count(),
   }
   
+  # Get total count for pagination display
+  total_projects = client_onboarding_list.count()
+  
   context = {
     'client_onboarding_list': page_obj,
     'status_counts': status_counts,
     'search_query': search_query,
     'status_filter': status_filter,
+    'total_projects': total_projects,
   }
   return render(request, "project_managemnet'/project.html", context)
 

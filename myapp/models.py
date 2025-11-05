@@ -401,6 +401,11 @@ class Employee(models.Model):
         ('Intern', 'Intern'),
     ]
     
+    ROLE_CHOICES = [
+        ('Employee', 'Employee'),
+        ('Admin', 'Admin'),
+    ]
+    
     PAY_CYCLE_CHOICES = [
         ('Monthly', 'Monthly'),
         ('Bi-weekly', 'Bi-weekly'),
@@ -421,6 +426,7 @@ class Employee(models.Model):
     designation = models.CharField(max_length=100, blank=True, null=True, verbose_name="Designation")
     department = models.CharField(max_length=100, blank=True, null=True, verbose_name="Department")
     manager = models.CharField(max_length=100, blank=True, null=True, verbose_name="Reporting Manager")
+    role = models.CharField(max_length=20, choices=ROLE_CHOICES, default='Employee', blank=True, null=True, verbose_name="Role")
     employment_type = models.CharField(max_length=20, choices=EMPLOYMENT_TYPE_CHOICES, blank=True, null=True)
     location = models.CharField(max_length=100, blank=True, null=True)
     joining_date = models.DateField(blank=True, null=True)

@@ -1,0 +1,611 @@
+{% extends "dashboard/dashboard_base.html" %}
+{% load static %}
+{% block title %}Quotes - Sujata Associates{% endblock %}
+
+{% block content %}
+<div class="quotes-container" style="width: 100%; max-width: 100%; overflow-x: hidden;">
+  <div class="dashboard-header">
+    <h1>Quotes</h1>
+    <p class="text-muted">View and manage all quotes from database</p>
+  </div>
+
+  <!-- Messages Display -->
+  {% if messages %}
+    <div class="messages-container mb-3">
+      {% for message in messages %}
+        <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+          {{ message }}
+          <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+      {% endfor %}
+    </div>
+  {% endif %}
+
+  <!-- Statistics Cards -->
+  <div class="row mb-4">
+    <div class="col-6 col-md-3 mb-3 mb-md-0">
+      <div class="card text-center">
+        <div class="card-body">
+          <h5 class="card-title text-primary">{{ status_counts.total|default:0 }}</h5>
+          <p class="card-text text-muted mb-0" style="font-size: 0.875rem;">Total Quotes</p>
+        </div>
+      </div>
+    </div>
+    <div class="col-6 col-md-3 mb-3 mb-md-0">
+      <div class="card text-center">
+        <div class="card-body">
+          <h5 class="card-title text-info">{{ status_counts.draft|default:0 }}</h5>
+          <p class="card-text text-muted mb-0" style="font-size: 0.875rem;">Draft</p>
+        </div>
+      </div>
+    </div>
+    <div class="col-6 col-md-3 mb-3 mb-md-0">
+      <div class="card text-center">
+        <div class="card-body">
+          <h5 class="card-title text-warning">{{ status_counts.sent|default:0 }}</h5>
+          <p class="card-text text-muted mb-0" style="font-size: 0.875rem;">Sent</p>
+        </div>
+      </div>
+    </div>
+    <div class="col-6 col-md-3 mb-3 mb-md-0">
+      <div class="card text-center">
+        <div class="card-body">
+          <h5 class="card-title text-success">{{ status_counts.accepted|default:0 }}</h5>
+          <p class="card-text text-muted mb-0" style="font-size: 0.875rem;">Accepted</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Search Section -->
+  <div class="card mb-4">
+    <div class="card-body">
+      <form method="GET" action="{% url 'quotes' %}" class="row g-3 align-items-end" id="quotesSearchForm">
+        <div class="col-12 col-md-10">
+          <label for="search" class="form-label">
+            <i class="bi bi-search me-1"></i>Search
+          </label>
+          <input 
+            type="text" 
+            class="form-control" 
+            id="search" 
+            name="search" 
+            placeholder="Search by quote number, client name, company, email, phone, or owner..."
+            value="{{ search_query|default:'' }}"
+            maxlength="200"
+            autocomplete="off"
+          >
+        </div>
+        <div class="col-12 col-md-2">
+          <label class="form-label d-none d-md-block">&nbsp;</label>
+          <button type="submit" class="btn btn-primary w-100">
+            <i class="bi bi-search me-1 d-none d-md-inline"></i>
+            <span class="d-md-none">Search</span>
+            <span class="d-none d-md-inline">Search</span>
+          </button>
+        </div>
+      </form>
+      {% if search_query %}
+        <div class="mt-3 d-flex flex-wrap align-items-center gap-2">
+          <span class="badge bg-secondary">
+            Search: "{{ search_query }}"
+            <a href="{% url 'quotes' %}" class="text-white ms-2" style="text-decoration: none;">×</a>
+          </span>
+          <a href="{% url 'quotes' %}" class="btn btn-sm btn-outline-secondary">Clear All</a>
+        </div>
+      {% endif %}
+    </div>
+  </div>
+
+  <!-- Tabs Section -->
+  <div class="card">
+    <div class="card-header">
+      <ul class="nav nav-tabs card-header-tabs" id="quotesTabs" role="tablist">
+        <li class="nav-item" role="presentation">
+          <button 
+            class="nav-link active" 
+            id="sent-tab" 
+            data-bs-toggle="tab" 
+            data-bs-target="#sent" 
+            type="button" 
+            role="tab"
+            aria-controls="sent"
+            aria-selected="true"
+          >
+            <i class="bi bi-send me-2"></i>Sent Quotes
+            {% if total_sent_quotes %}
+              <span class="badge bg-info ms-2">{{ total_sent_quotes }}</span>
+            {% endif %}
+          </button>
+        </li>
+        <li class="nav-item" role="presentation">
+          <button 
+            class="nav-link" 
+            id="accepted-tab" 
+            data-bs-toggle="tab" 
+            data-bs-target="#accepted" 
+            type="button" 
+            role="tab"
+            aria-controls="accepted"
+            aria-selected="false"
+          >
+            <i class="bi bi-check-circle me-2"></i>Accepted/Approved Quotes
+            {% if total_accepted_quotes %}
+              <span class="badge bg-success ms-2">{{ total_accepted_quotes }}</span>
+            {% endif %}
+          </button>
+        </li>
+      </ul>
+    </div>
+    <div class="card-body">
+      <div class="tab-content" id="quotesTabsContent">
+        <!-- Sent Quotes Tab -->
+        <div class="tab-pane fade show active" id="sent" role="tabpanel" aria-labelledby="sent-tab">
+          {% if sent_quotes %}
+            <div class="table-responsive">
+              <table class="table table-hover table-striped">
+                <thead>
+                  <tr>
+                    <th>Quote #</th>
+                    <th>Client Name</th>
+                    <th>Company</th>
+                    <th>Email</th>
+                    <th>Phone</th>
+                    <th>Owner</th>
+                    <th>Total Amount</th>
+                    <th>Valid Until</th>
+                    <th>Created At</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {% for quote in sent_quotes %}
+                    <tr>
+                      <td data-label="Quote #">
+                        <strong>{{ quote.quote_number|default:"-" }}</strong>
+                      </td>
+                      <td data-label="Client Name">{{ quote.client_name|default:"-" }}</td>
+                      <td data-label="Company">{{ quote.company|default:"-" }}</td>
+                      <td data-label="Email">
+                        {% if quote.email %}
+                          <a href="mailto:{{ quote.email }}">{{ quote.email }}</a>
+                        {% else %}
+                          -
+                        {% endif %}
+                      </td>
+                      <td data-label="Phone">
+                        {% if quote.phone %}
+                          <a href="tel:{{ quote.phone }}">{{ quote.phone }}</a>
+                        {% else %}
+                          -
+                        {% endif %}
+                      </td>
+                      <td data-label="Owner">{{ quote.owner|default:"-" }}</td>
+                      <td data-label="Total Amount">
+                        <strong>{{ quote.currency|default:"INR" }} {{ quote.total|default:"0.00" }}</strong>
+                      </td>
+                      <td data-label="Valid Until">
+                        {% if quote.valid_until %}
+                          {{ quote.valid_until|date:"M d, Y" }}
+                        {% else %}
+                          -
+                        {% endif %}
+                      </td>
+                      <td data-label="Created At">
+                        {% if quote.created_at %}
+                          {{ quote.created_at|date:"M d, Y H:i" }}
+                        {% else %}
+                          -
+                        {% endif %}
+                      </td>
+                    </tr>
+                  {% empty %}
+                    <tr>
+                      <td colspan="9" class="text-center text-muted py-4">
+                        <i class="bi bi-inbox" style="font-size: 2rem; display: block; margin-bottom: 0.5rem;"></i>
+                        No sent quotes found
+                      </td>
+                    </tr>
+                  {% endfor %}
+                </tbody>
+              </table>
+            </div>
+
+            <!-- Pagination for Sent Quotes -->
+            {% if sent_quotes.has_other_pages and total_sent_quotes > 10 %}
+              <nav aria-label="Sent quotes pagination" class="mt-4">
+                <ul class="pagination justify-content-center flex-wrap">
+                  {% if sent_quotes.has_previous %}
+                    <li class="page-item">
+                      <a class="page-link" href="?sent_page=1{% if search_query %}&search={{ search_query }}{% endif %}">
+                        <i class="bi bi-chevron-double-left"></i>
+                      </a>
+                    </li>
+                    <li class="page-item">
+                      <a class="page-link" href="?sent_page={{ sent_quotes.previous_page_number }}{% if search_query %}&search={{ search_query }}{% endif %}">
+                        <i class="bi bi-chevron-left"></i>
+                      </a>
+                    </li>
+                  {% else %}
+                    <li class="page-item disabled">
+                      <span class="page-link"><i class="bi bi-chevron-double-left"></i></span>
+                    </li>
+                    <li class="page-item disabled">
+                      <span class="page-link"><i class="bi bi-chevron-left"></i></span>
+                    </li>
+                  {% endif %}
+
+                  <li class="page-item active">
+                    <span class="page-link">
+                      Page {{ sent_quotes.number }} of {{ sent_quotes.paginator.num_pages }}
+                    </span>
+                  </li>
+
+                  {% if sent_quotes.has_next %}
+                    <li class="page-item">
+                      <a class="page-link" href="?sent_page={{ sent_quotes.next_page_number }}{% if search_query %}&search={{ search_query }}{% endif %}">
+                        <i class="bi bi-chevron-right"></i>
+                      </a>
+                    </li>
+                    <li class="page-item">
+                      <a class="page-link" href="?sent_page={{ sent_quotes.paginator.num_pages }}{% if search_query %}&search={{ search_query }}{% endif %}">
+                        <i class="bi bi-chevron-double-right"></i>
+                      </a>
+                    </li>
+                  {% else %}
+                    <li class="page-item disabled">
+                      <span class="page-link"><i class="bi bi-chevron-right"></i></span>
+                    </li>
+                    <li class="page-item disabled">
+                      <span class="page-link"><i class="bi bi-chevron-double-right"></i></span>
+                    </li>
+                  {% endif %}
+                </ul>
+              </nav>
+            {% endif %}
+          {% else %}
+            <div class="text-center text-muted py-5">
+              <i class="bi bi-inbox" style="font-size: 3rem; display: block; margin-bottom: 1rem;"></i>
+              <p>No sent quotes found.</p>
+            </div>
+          {% endif %}
+        </div>
+
+        <!-- Accepted/Approved Quotes Tab -->
+        <div class="tab-pane fade" id="accepted" role="tabpanel" aria-labelledby="accepted-tab">
+          {% if accepted_quotes %}
+            <div class="table-responsive">
+              <table class="table table-hover table-striped">
+                <thead>
+                  <tr>
+                    <th>Quote #</th>
+                    <th>Client Name</th>
+                    <th>Company</th>
+                    <th>Email</th>
+                    <th>Phone</th>
+                    <th>Owner</th>
+                    <th>Status</th>
+                    <th>Total Amount</th>
+                    <th>Valid Until</th>
+                    <th>Created At</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {% for quote in accepted_quotes %}
+                    <tr>
+                      <td data-label="Quote #">
+                        <strong>{{ quote.quote_number|default:"-" }}</strong>
+                      </td>
+                      <td data-label="Client Name">{{ quote.client_name|default:"-" }}</td>
+                      <td data-label="Company">{{ quote.company|default:"-" }}</td>
+                      <td data-label="Email">
+                        {% if quote.email %}
+                          <a href="mailto:{{ quote.email }}">{{ quote.email }}</a>
+                        {% else %}
+                          -
+                        {% endif %}
+                      </td>
+                      <td data-label="Phone">
+                        {% if quote.phone %}
+                          <a href="tel:{{ quote.phone }}">{{ quote.phone }}</a>
+                        {% else %}
+                          -
+                        {% endif %}
+                      </td>
+                      <td data-label="Owner">{{ quote.owner|default:"-" }}</td>
+                      <td data-label="Status">
+                        <span class="badge bg-success">
+                          {{ quote.status|default:"-" }}
+                        </span>
+                      </td>
+                      <td data-label="Total Amount">
+                        <strong>{{ quote.currency|default:"INR" }} {{ quote.total|default:"0.00" }}</strong>
+                      </td>
+                      <td data-label="Valid Until">
+                        {% if quote.valid_until %}
+                          {{ quote.valid_until|date:"M d, Y" }}
+                        {% else %}
+                          -
+                        {% endif %}
+                      </td>
+                      <td data-label="Created At">
+                        {% if quote.created_at %}
+                          {{ quote.created_at|date:"M d, Y H:i" }}
+                        {% else %}
+                          -
+                        {% endif %}
+                      </td>
+                    </tr>
+                  {% empty %}
+                    <tr>
+                      <td colspan="10" class="text-center text-muted py-4">
+                        <i class="bi bi-inbox" style="font-size: 2rem; display: block; margin-bottom: 0.5rem;"></i>
+                        No accepted quotes found
+                      </td>
+                    </tr>
+                  {% endfor %}
+                </tbody>
+              </table>
+            </div>
+
+            <!-- Pagination for Accepted Quotes -->
+            {% if accepted_quotes.has_other_pages and total_accepted_quotes > 10 %}
+              <nav aria-label="Accepted quotes pagination" class="mt-4">
+                <ul class="pagination justify-content-center flex-wrap">
+                  {% if accepted_quotes.has_previous %}
+                    <li class="page-item">
+                      <a class="page-link" href="?accepted_page=1{% if search_query %}&search={{ search_query }}{% endif %}">
+                        <i class="bi bi-chevron-double-left"></i>
+                      </a>
+                    </li>
+                    <li class="page-item">
+                      <a class="page-link" href="?accepted_page={{ accepted_quotes.previous_page_number }}{% if search_query %}&search={{ search_query }}{% endif %}">
+                        <i class="bi bi-chevron-left"></i>
+                      </a>
+                    </li>
+                  {% else %}
+                    <li class="page-item disabled">
+                      <span class="page-link"><i class="bi bi-chevron-double-left"></i></span>
+                    </li>
+                    <li class="page-item disabled">
+                      <span class="page-link"><i class="bi bi-chevron-left"></i></span>
+                    </li>
+                  {% endif %}
+
+                  <li class="page-item active">
+                    <span class="page-link">
+                      Page {{ accepted_quotes.number }} of {{ accepted_quotes.paginator.num_pages }}
+                    </span>
+                  </li>
+
+                  {% if accepted_quotes.has_next %}
+                    <li class="page-item">
+                      <a class="page-link" href="?accepted_page={{ accepted_quotes.next_page_number }}{% if search_query %}&search={{ search_query }}{% endif %}">
+                        <i class="bi bi-chevron-right"></i>
+                      </a>
+                    </li>
+                    <li class="page-item">
+                      <a class="page-link" href="?accepted_page={{ accepted_quotes.paginator.num_pages }}{% if search_query %}&search={{ search_query }}{% endif %}">
+                        <i class="bi bi-chevron-double-right"></i>
+                      </a>
+                    </li>
+                  {% else %}
+                    <li class="page-item disabled">
+                      <span class="page-link"><i class="bi bi-chevron-right"></i></span>
+                    </li>
+                    <li class="page-item disabled">
+                      <span class="page-link"><i class="bi bi-chevron-double-right"></i></span>
+                    </li>
+                  {% endif %}
+                </ul>
+              </nav>
+            {% endif %}
+          {% else %}
+            <div class="text-center text-muted py-5">
+              <i class="bi bi-inbox" style="font-size: 3rem; display: block; margin-bottom: 1rem;"></i>
+              <p>No accepted quotes found.</p>
+            </div>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<style>
+  /* Mobile Responsive Styles */
+  @media (max-width: 768px) {
+    .quotes-container {
+      padding: 0.5rem !important;
+      width: 100% !important;
+      max-width: 100% !important;
+      margin: 0 !important;
+    }
+    
+    .dashboard-header {
+      margin-bottom: 1rem !important;
+    }
+    
+    .dashboard-header h1 {
+      font-size: 1.5rem !important;
+    }
+    
+    .dashboard-header p {
+      font-size: 0.875rem !important;
+    }
+    
+    /* Statistics Cards - Stack on Mobile */
+    .row.mb-4 .col-6,
+    .row.mb-4 .col-md-3 {
+      width: 50% !important;
+      flex: 0 0 50% !important;
+      max-width: 50% !important;
+      margin-bottom: 0.75rem !important;
+    }
+    
+    /* Form Elements - Stack on Mobile */
+    .row.g-3 .col-12,
+    .row.g-3 .col-md-6,
+    .row.g-3 .col-md-4,
+    .row.g-3 .col-md-2,
+    .row.g-3 .col-lg-6,
+    .row.g-3 .col-lg-4 {
+      width: 100% !important;
+      flex: 0 0 100% !important;
+      max-width: 100% !important;
+      margin-bottom: 0.75rem !important;
+    }
+    
+    /* Table - Convert to Card Layout on Mobile */
+    .table-responsive {
+      overflow-x: visible !important;
+    }
+    
+    .table thead {
+      display: none !important;
+    }
+    
+    .table, .table tbody, .table tr, .table td {
+      display: block !important;
+      width: 100% !important;
+    }
+    
+    .table tr {
+      border: 1px solid #dee2e6 !important;
+      margin-bottom: 1rem !important;
+      border-radius: 0.5rem !important;
+      padding: 0.75rem !important;
+      background: #fff !important;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1) !important;
+    }
+    
+    .table td {
+      border: none !important;
+      padding: 0.5rem 0 !important;
+      position: relative !important;
+      padding-left: 45% !important;
+      text-align: right !important;
+      min-height: 2rem !important;
+      display: flex !important;
+      align-items: center !important;
+      justify-content: flex-end !important;
+      word-wrap: break-word !important;
+      overflow-wrap: break-word !important;
+    }
+    
+    .table td:before {
+      content: attr(data-label) !important;
+      position: absolute !important;
+      left: 0 !important;
+      width: 40% !important;
+      padding-right: 10px !important;
+      font-weight: 600 !important;
+      color: #495057 !important;
+      text-align: left !important;
+      display: flex !important;
+      align-items: center !important;
+    }
+    
+    .table td:last-child {
+      border-bottom: 0 !important;
+    }
+    
+    /* Pagination - Wrap on Mobile */
+    .pagination {
+      flex-wrap: wrap !important;
+    }
+    
+    .pagination .page-item {
+      margin-bottom: 0.25rem !important;
+    }
+    
+    /* Card Body Padding */
+    .card-body {
+      padding: 0.75rem !important;
+    }
+    
+    /* Badge Sizes */
+    .badge {
+      font-size: 0.75rem !important;
+      padding: 0.25rem 0.5rem !important;
+    }
+  }
+  
+  @media (max-width: 576px) {
+    .dashboard-header h1 {
+      font-size: 1.25rem !important;
+    }
+    
+    .card-body {
+      padding: 0.5rem !important;
+    }
+    
+    .table td {
+      padding-left: 40% !important;
+      font-size: 0.875rem !important;
+      padding-top: 0.5rem !important;
+      padding-bottom: 0.5rem !important;
+    }
+    
+    .table td:before {
+      width: 35% !important;
+      font-size: 0.8rem !important;
+      padding-right: 8px !important;
+    }
+    
+    .table tr {
+      padding: 0.5rem !important;
+    }
+    
+    .btn {
+      padding: 0.5rem 1rem !important;
+      font-size: 0.875rem !important;
+    }
+  }
+  
+  @media (max-width: 375px) {
+    .dashboard-header h1 {
+      font-size: 1.1rem !important;
+    }
+    
+    .card-body {
+      padding: 0.4rem !important;
+    }
+    
+    .table td {
+      padding-left: 35% !important;
+      font-size: 0.8rem !important;
+      padding-top: 0.4rem !important;
+      padding-bottom: 0.4rem !important;
+    }
+    
+    .table td:before {
+      width: 30% !important;
+      font-size: 0.75rem !important;
+      padding-right: 5px !important;
+    }
+    
+    .table tr {
+      padding: 0.4rem !important;
+    }
+  }
+</style>
+
+<style>
+  .nav-tabs .nav-link {
+    color: #495057;
+    font-weight: 500;
+  }
+  
+  .nav-tabs .nav-link:hover {
+    color: #007bff;
+    border-color: #dee2e6 #dee2e6 #fff;
+  }
+  
+  .nav-tabs .nav-link.active {
+    color: #007bff;
+    font-weight: 600;
+    border-color: #dee2e6 #dee2e6 #fff;
+  }
+</style>
+{% endblock %}
+
