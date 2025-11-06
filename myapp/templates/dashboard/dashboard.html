@@ -193,16 +193,16 @@
         </div>
         {% if present_employees %}
           {% for emp in present_employees %}
-            <div class="table-row">
+        <div class="table-row">
               <div class="table-cell">{{ emp.name }}</div>
               <div class="table-cell status-present">{{ emp.status }}</div>
               <div class="table-cell">{{ emp.check_in }}</div>
-            </div>
+        </div>
           {% endfor %}
         {% else %}
-          <div class="table-row">
+        <div class="table-row">
             <div class="table-cell no-data" colspan="3">No attendance records for today</div>
-          </div>
+        </div>
         {% endif %}
       </div>
     </div>
@@ -216,20 +216,20 @@
         </div>
         {% if renewals_list %}
           {% for renewal in renewals_list %}
-            <div class="table-row">
+        <div class="table-row">
               <div class="table-cell">{{ renewal.client }}</div>
               <div class="table-cell">{{ renewal.renewal_date }}</div>
-            </div>
+        </div>
           {% endfor %}
         {% else %}
-          <div class="table-row">
+        <div class="table-row">
             <div class="table-cell no-data" colspan="2">No upcoming renewals</div>
-          </div>
+        </div>
         {% endif %}
+        </div>
       </div>
     </div>
   </div>
-</div>
 
 <!-- Chart.js Library -->
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>

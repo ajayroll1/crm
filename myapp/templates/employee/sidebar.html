@@ -10,10 +10,10 @@
     <!-- Employee Info -->
     <div class="employee-info">
       <div class="employee-avatar">
-        JD
+        {{ employee_initials|default:"GU" }}
       </div>
-      <div class="employee-name">John Doe</div>
-      <div class="employee-role">Software Developer</div>
+      <div class="employee-name">{{ employee_name|default:"Guest User" }}</div>
+      <div class="employee-role">{{ employee_designation|default:"Employee" }}</div>
     </div>
   </div>
   

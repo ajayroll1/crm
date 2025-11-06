@@ -1704,6 +1704,7 @@ def project_onboard_update(request, onboard_id):
         return JsonResponse({'success': False, 'error': str(e)}, status=500)
 
 # Employee Portal Views
+@login_required
 def employee_dashboard(request):
     """Employee dashboard view - fetches data from employee tables"""
     from datetime import timedelta
@@ -1713,7 +1714,10 @@ def employee_dashboard(request):
     # Get logged-in user's information
     employee_obj = None
     employee_name = 'Guest User'
+    employee_first_name = 'Guest'
+    employee_initials = 'GU'
     employee_role = 'Employee'
+    employee_designation = 'Employee'
     employee_id = 'N/A'
     
     if request.user.is_authenticated:
@@ -1758,11 +1762,17 @@ def employee_dashboard(request):
         # Set employee info
         if employee_obj:
             employee_name = employee_obj.get_full_name()
+            employee_first_name = employee_obj.first_name or ''
+            employee_initials = employee_obj.get_initials() or 'GU'
             employee_role = employee_obj.designation or 'Employee'
+            employee_designation = employee_obj.designation or 'Employee'
             employee_id = employee_obj.emp_code or 'N/A'
         else:
             employee_name = user_full_name
+            employee_first_name = first_name or user_full_name.split()[0] if user_full_name else 'Guest'
+            employee_initials = (employee_first_name[0] + (last_name[0] if last_name else employee_first_name[0])).upper() if employee_first_name else 'GU'
             employee_role = 'Employee'
+            employee_designation = 'Employee'
     
     # Get current date and time
     now = timezone.now()
@@ -2055,9 +2065,27 @@ def employee_dashboard(request):
     # Convert weekly_performance to JSON for JavaScript
     weekly_performance_json = json.dumps(weekly_performance)
     
+    # Ensure employee details are set
+    if not employee_first_name or employee_first_name == 'Guest':
+        employee_first_name = employee_name.split()[0] if employee_name and employee_name != 'Guest User' else 'Guest'
+    if not employee_initials or employee_initials == 'GU':
+        if employee_name and employee_name != 'Guest User':
+            name_parts = employee_name.split()
+            if len(name_parts) > 0:
+                employee_initials = (name_parts[0][0] + (name_parts[1][0] if len(name_parts) > 1 else name_parts[0][0])).upper()
+            else:
+                employee_initials = 'GU'
+        else:
+            employee_initials = 'GU'
+    if not employee_designation or employee_designation == 'Employee':
+        employee_designation = employee_role
+    
     context = {
         'employee_name': employee_name,
+        'employee_first_name': employee_first_name,
+        'employee_initials': employee_initials,
         'employee_role': employee_role,
+        'employee_designation': employee_designation,
         'employee_id': employee_id,
         'current_date': current_date,
         'current_time': current_time,

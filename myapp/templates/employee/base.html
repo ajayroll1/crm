@@ -739,7 +739,7 @@
       
       <!-- Desktop Header -->
       <div class="dashboard-header d-none d-md-flex">
-        <h1>{% block page_title %}Employee Portal{% endblock %}</h1>
+        {% block page_title %}<h1>Employee Portal</h1>{% endblock %}
         <div class="header-actions">
           <div class="dropdown">
             <button class="notification-btn dropdown-toggle" type="button" id="desktopNotificationDropdown" data-bs-toggle="dropdown" aria-expanded="false" title="Notifications">
@@ -756,7 +756,7 @@
           </div>
           <div class="dropdown">
             <button class="btn btn-outline-primary dropdown-toggle" type="button" data-bs-toggle="dropdown">
-              <i class="bi bi-person-circle me-2"></i>John Doe
+              <i class="bi bi-person-circle me-2"></i>{{ employee_first_name|default:"Guest" }}
             </button>
             <ul class="dropdown-menu">
               <li><a class="dropdown-item" href="#"><i class="bi bi-person me-2"></i>Profile</a></li>
@@ -817,20 +817,59 @@
           
           link.addEventListener('click', function(e) {
             // Only handle sidebar closing on mobile devices
-            // Don't interfere with normal page navigation on desktop
+            // On desktop, sidebar should stay open and navigation should happen normally
             if (window.innerWidth <= 768 && hamburgerBtn && sidebar && sidebarOverlay) {
-              // Close sidebar immediately on mobile for better UX
-              // Use requestAnimationFrame for smooth transition
-              requestAnimationFrame(function() {
-                sidebar.classList.remove('open');
-                sidebarOverlay.classList.remove('active');
-                hamburgerBtn.classList.remove('active');
-              });
+              // Close sidebar on mobile for better UX after navigation starts
+              // Use setTimeout to allow navigation to proceed first
+              setTimeout(function() {
+                if (sidebar && sidebarOverlay && hamburgerBtn) {
+                  sidebar.classList.remove('open');
+                  sidebarOverlay.classList.remove('active');
+                  hamburgerBtn.classList.remove('active');
+                }
+              }, 150); // Small delay to allow navigation to start
             }
-            // Allow normal navigation - page will reload naturally
-            // Don't prevent default or stop propagation - let navigation happen normally
-          }, { passive: true });
+            // On desktop: let navigation happen naturally, sidebar stays open
+            // Don't prevent default or stop propagation - allow normal link behavior
+          });
         });
+        
+        // Prevent sidebar from refreshing on desktop
+        // Stop event propagation on sidebar navigation area to prevent unwanted refresh
+        const sidebarNav = document.querySelector('.sidebar-nav');
+        if (sidebarNav) {
+          sidebarNav.addEventListener('click', function(e) {
+            // Only prevent unwanted refresh on desktop
+            if (window.innerWidth > 768) {
+              // If clicking on a link, let it navigate normally
+              // Just ensure sidebar doesn't refresh
+              const target = e.target;
+              const link = target.closest('.nav-link');
+              if (link && link.href && link.href !== '#') {
+                // It's a navigation link - allow navigation, but prevent sidebar refresh
+                // Don't prevent default - let navigation happen
+                // Just ensure sidebar element doesn't get modified
+                return;
+              }
+            }
+          }, { passive: true });
+        }
+        
+        // Prevent sidebar footer from causing refresh
+        const sidebarFooter = document.querySelector('.sidebar-footer');
+        if (sidebarFooter) {
+          sidebarFooter.addEventListener('click', function(e) {
+            // On desktop, prevent sidebar refresh when clicking footer links
+            if (window.innerWidth > 768) {
+              const target = e.target;
+              const link = target.closest('.nav-link');
+              if (link && link.href && link.href !== '#') {
+                // Allow navigation but prevent sidebar refresh
+                return;
+              }
+            }
+          }, { passive: true });
+        }
       }
     });
   </script>

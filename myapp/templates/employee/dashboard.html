@@ -2,7 +2,7 @@
 {% load static %}
 
 {% block title %}Employee Dashboard - Sujata Associates{% endblock %}
-{% block page_title %}Employee Dashboard{% endblock %}
+{% block page_title %}<h1 style="display: none;"></h1>{% endblock %}
 {% block mobile_title %}Dashboard{% endblock %}
 {% block notification_count %}{{ notification_count|default:0 }}{% endblock %}
 {% block mobile_notification_count %}{{ notification_count|default:0 }}{% endblock %}
@@ -194,7 +194,7 @@
     <div class="card mb-4">
       <div class="card-header d-flex justify-content-between align-items-center">
         <h5 class="mb-0"><i class="bi bi-kanban me-2"></i>My Projects</h5>
-        <a href="{% url 'employee_projects' %}" class="btn btn-outline-primary btn-sm">View All</a>
+        <a href="{% url 'employee_projects' %}" class="btn btn-primary btn-sm">View All</a>
       </div>
       <div class="card-body">
         <div class="table-responsive">
@@ -297,7 +297,7 @@
     <div class="card">
       <div class="card-header d-flex justify-content-between align-items-center">
         <h5 class="mb-0"><i class="bi bi-list-task me-2"></i>Recent Tasks</h5>
-        <a href="{% url 'employee_projects' %}" class="btn btn-outline-primary btn-sm">View All</a>
+        <a href="{% url 'employee_projects' %}" class="btn btn-primary btn-sm">View All</a>
       </div>
       <div class="card-body">
         <div class="list-group list-group-flush">
@@ -392,6 +392,45 @@
 
 {% block extra_css %}
 <style>
+  /* Hide dashboard header when page_title is empty */
+  .dashboard-header h1:empty {
+    display: none;
+  }
+  
+  /* Hide entire header if h1 is empty */
+  .dashboard-header:has(h1:empty) {
+    display: none !important;
+  }
+  
+  .dashboard-header {
+    margin-bottom: 0;
+  }
+  
+  /* Fallback for browsers without :has() support */
+  @supports not selector(:has(*)) {
+    .dashboard-header:not(:has(h1:not(:empty))) {
+      display: none !important;
+    }
+  }
+  
+  /* View All button styling */
+  .btn-primary.btn-sm {
+    background-color: var(--secondary-color);
+    border-color: var(--secondary-color);
+    color: white;
+    font-weight: 600;
+    padding: 0.5rem 1rem;
+    border-radius: 6px;
+    transition: all 0.3s ease;
+  }
+  
+  .btn-primary.btn-sm:hover {
+    background-color: var(--primary-color);
+    border-color: var(--primary-color);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+  }
+  
   .timeline {
     position: relative;
     padding-left: 30px;
