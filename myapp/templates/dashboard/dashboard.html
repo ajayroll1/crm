@@ -4,97 +4,172 @@
 {% block content %}
 <div class="dashboard-container">
   <div class="dashboard-header">
-    <h1>Welcome, Superuser!</h1>
+    <h1>Welcome, {{ user_name }}!</h1>
   </div>
   
   <!-- Key Metrics Row -->
   <div class="metrics-row">
     <div class="metric-card">
       <div class="metric-title">Total Leads</div>
-      <div class="metric-value">350</div>
-      <div class="metric-subtitle">42 This Month</div>
+      <div class="metric-value">{{ total_leads }}</div>
+      <div class="metric-subtitle">{{ leads_this_month }} This Month</div>
     </div>
     
     <div class="metric-card">
       <div class="metric-title">Deals In Progress</div>
-      <div class="metric-value">80</div>
-      <div class="metric-subtitle">15 Closing Soon</div>
+      <div class="metric-value">{{ quotes_in_progress }}</div>
+      <div class="metric-subtitle">{{ quotes_closing_soon }} Closing Soon</div>
     </div>
     
     <div class="metric-card">
       <div class="metric-title">Projects In Progress</div>
-      <div class="metric-value">12</div>
-      <div class="metric-subtitle">3 Overdue</div>
+      <div class="metric-value">{{ projects_in_progress }}</div>
+      <div class="metric-subtitle">{{ projects_overdue }} Overdue</div>
     </div>
     
     <div class="metric-card">
-      <div class="metric-title">Open Tickets</div>
-      <div class="metric-value">18</div>
-      <div class="metric-subtitle">7 SLA Breaches</div>
+      <div class="metric-title">Pending Leaves</div>
+      <div class="metric-value">{{ pending_leaves }}</div>
+      <div class="metric-subtitle">{{ overdue_leaves }} Overdue</div>
+    </div>
+  </div>
+  
+  <!-- Page Overview Section -->
+  <div class="page-overview-section">
+    <h2 class="section-title">
+      <i class="bi bi-diagram-3"></i>
+      System Overview & Navigation
+    </h2>
+    <div class="overview-grid">
+      <div class="overview-card">
+        <div class="overview-icon">
+          <i class="bi bi-person-plus"></i>
+        </div>
+        <h3>Lead Management</h3>
+        <p>Manage and track all your leads</p>
+        <div class="overview-stats">
+          <span class="stat-badge">{{ total_leads }} Leads</span>
+        </div>
+        <a href="{% url 'leads' %}" class="overview-link">View Leads <i class="bi bi-arrow-right"></i></a>
+      </div>
+      
+      <div class="overview-card">
+        <div class="overview-icon">
+          <i class="bi bi-file-text"></i>
+        </div>
+        <h3>Quotes</h3>
+        <p>Create and manage quotations</p>
+        <div class="overview-stats">
+          <span class="stat-badge">{{ total_quotes }} Quotes</span>
+        </div>
+        <a href="{% url 'quotes' %}" class="overview-link">View Quotes <i class="bi bi-arrow-right"></i></a>
+      </div>
+      
+      <div class="overview-card">
+        <div class="overview-icon">
+          <i class="bi bi-kanban"></i>
+        </div>
+        <h3>Projects</h3>
+        <p>Track client onboarding and projects</p>
+        <div class="overview-stats">
+          <span class="stat-badge">{{ total_projects }} Projects</span>
+        </div>
+        <a href="{% url 'project_management' %}" class="overview-link">View Projects <i class="bi bi-arrow-right"></i></a>
+      </div>
+      
+      <div class="overview-card">
+        <div class="overview-icon">
+          <i class="bi bi-people"></i>
+        </div>
+        <h3>Employees</h3>
+        <p>Manage employee information</p>
+        <div class="overview-stats">
+          <span class="stat-badge">Active</span>
+        </div>
+        <a href="{% url 'employees' %}" class="overview-link">View Employees <i class="bi bi-arrow-right"></i></a>
+      </div>
+      
+      <div class="overview-card">
+        <div class="overview-icon">
+          <i class="bi bi-calendar-check"></i>
+        </div>
+        <h3>Attendance</h3>
+        <p>Track employee attendance</p>
+        <div class="overview-stats">
+          <span class="stat-badge">{{ present_employees|length }} Present Today</span>
+        </div>
+        <a href="{% url 'attendance' %}" class="overview-link">View Attendance <i class="bi bi-arrow-right"></i></a>
+      </div>
+      
+      <div class="overview-card">
+        <div class="overview-icon">
+          <i class="bi bi-calendar-x"></i>
+        </div>
+        <h3>Leave Requests</h3>
+        <p>Manage employee leave requests</p>
+        <div class="overview-stats">
+          <span class="stat-badge">{{ pending_leaves }} Pending</span>
+        </div>
+        <a href="{% url 'dashboard_leaves' %}" class="overview-link">View Leaves <i class="bi bi-arrow-right"></i></a>
+      </div>
+      
+      <div class="overview-card">
+        <div class="overview-icon">
+          <i class="bi bi-building"></i>
+        </div>
+        <h3>Accounts</h3>
+        <p>Manage client accounts</p>
+        <div class="overview-stats">
+          <span class="stat-badge">Active</span>
+        </div>
+        <a href="{% url 'accounts' %}" class="overview-link">View Accounts <i class="bi bi-arrow-right"></i></a>
+      </div>
+      
+      <div class="overview-card">
+        <div class="overview-icon">
+          <i class="bi bi-person-lines-fill"></i>
+        </div>
+        <h3>Contacts</h3>
+        <p>Manage contact information</p>
+        <div class="overview-stats">
+          <span class="stat-badge">Active</span>
+        </div>
+        <a href="{% url 'contacts' %}" class="overview-link">View Contacts <i class="bi bi-arrow-right"></i></a>
+      </div>
     </div>
   </div>
   
   <!-- Charts and Tasks Row -->
   <div class="charts-row">
     <div class="chart-card">
-      <h3>Lead Source Chart</h3>
-      <div class="donut-chart">
-        <div class="chart-container">
-          <div class="donut-segment web" data-percentage="45"></div>
-          <div class="donut-segment referral" data-percentage="25"></div>
-          <div class="donut-segment cold-call" data-percentage="20"></div>
-          <div class="donut-segment social" data-percentage="10"></div>
-          <div class="chart-center">
-            <span class="chart-total">100%</span>
-          </div>
-        </div>
-        <div class="chart-legend">
-          <div class="legend-item">
-            <span class="legend-color web"></span>
-            <span>Web</span>
-          </div>
-          <div class="legend-item">
-            <span class="legend-color referral"></span>
-            <span>Referral</span>
-          </div>
-          <div class="legend-item">
-            <span class="legend-color cold-call"></span>
-            <span>Cold Call</span>
-          </div>
-          <div class="legend-item">
-            <span class="legend-color social"></span>
-            <span>Social</span>
-          </div>
-        </div>
+      <h3>Lead Source Distribution</h3>
+      <div class="chart-wrapper">
+        <canvas id="leadSourceChart"></canvas>
       </div>
     </div>
     
     <div class="chart-card">
       <h3>Sales Funnel</h3>
-      <div class="funnel-chart">
-        <div class="funnel-stage prospect">
-          <div class="stage-label">Prospect</div>
-          <div class="stage-value">25</div>
-        </div>
-        <div class="funnel-stage proposal">
-          <div class="stage-label">Proposal Sent</div>
-          <div class="stage-value">17</div>
-        </div>
-        <div class="funnel-stage negotiation">
-          <div class="stage-label">Negotiation</div>
-          <div class="stage-value">8</div>
-        </div>
+      <div class="chart-wrapper">
+        <canvas id="salesFunnelChart"></canvas>
       </div>
     </div>
     
     <div class="chart-card">
       <h3>Pending Tasks (Top 5)</h3>
       <div class="tasks-list">
-        <div class="task-item">Client Proposal</div>
-        <div class="task-item">Invoice to Client B</div>
-        <div class="task-item">Review Lead Details</div>
-        <div class="task-item">Update Project Plan</div>
-        <div class="task-item">Meet with Client C</div>
+        {% if tasks_list %}
+          {% for task in tasks_list %}
+            <div class="task-item">
+              <div class="task-content">
+                <div class="task-name">{{ task.task }}</div>
+                <div class="task-date">Due: {{ task.due_date }}</div>
+              </div>
+            </div>
+          {% endfor %}
+        {% else %}
+          <div class="no-data">No pending tasks</div>
+        {% endif %}
       </div>
     </div>
   </div>
@@ -103,35 +178,8 @@
   <div class="bottom-row">
     <div class="chart-card">
       <h3>Employee Distribution by Department</h3>
-      <div class="bar-chart">
-        <div class="bar-item">
-          <span class="bar-label">Sales</span>
-          <div class="bar-container">
-            <div class="bar-fill" style="width: 80%"></div>
-            <span class="bar-value">32</span>
-          </div>
-        </div>
-        <div class="bar-item">
-          <span class="bar-label">Engineering</span>
-          <div class="bar-container">
-            <div class="bar-fill" style="width: 60%"></div>
-            <span class="bar-value">24</span>
-          </div>
-        </div>
-        <div class="bar-item">
-          <span class="bar-label">HR</span>
-          <div class="bar-container">
-            <div class="bar-fill" style="width: 37.5%"></div>
-            <span class="bar-value">15</span>
-          </div>
-        </div>
-        <div class="bar-item">
-          <span class="bar-label">Support</span>
-          <div class="bar-container">
-            <div class="bar-fill" style="width: 45%"></div>
-            <span class="bar-value">18</span>
-          </div>
-        </div>
+      <div class="chart-wrapper">
+        <canvas id="departmentChart"></canvas>
       </div>
     </div>
     
@@ -139,25 +187,23 @@
       <h3>Live Activity Feed</h3>
       <div class="activity-table">
         <div class="table-header">
-          <div class="header-cell">Employees</div>
+          <div class="header-cell">Employee</div>
           <div class="header-cell">Status</div>
-          <div class="header-cell">Last Bunch in</div>
+          <div class="header-cell">Check-in Time</div>
         </div>
-        <div class="table-row">
-          <div class="table-cell">N. Gupta</div>
-          <div class="table-cell status-present">Present</div>
-          <div class="table-cell">8:03 AM</div>
-        </div>
-        <div class="table-row">
-          <div class="table-cell">S. Mehta</div>
-          <div class="table-cell status-present">Present</div>
-          <div class="table-cell">8:42 AM</div>
-        </div>
-        <div class="table-row">
-          <div class="table-cell">R. Patel</div>
-          <div class="table-cell status-present">Present</div>
-          <div class="table-cell">8:02 AM</div>
-        </div>
+        {% if present_employees %}
+          {% for emp in present_employees %}
+            <div class="table-row">
+              <div class="table-cell">{{ emp.name }}</div>
+              <div class="table-cell status-present">{{ emp.status }}</div>
+              <div class="table-cell">{{ emp.check_in }}</div>
+            </div>
+          {% endfor %}
+        {% else %}
+          <div class="table-row">
+            <div class="table-cell no-data" colspan="3">No attendance records for today</div>
+          </div>
+        {% endif %}
       </div>
     </div>
     
@@ -166,22 +212,443 @@
       <div class="contracts-table">
         <div class="table-header">
           <div class="header-cell">Client</div>
-          <div class="header-cell">Next Renewal</div>
+          <div class="header-cell">Renewal Date</div>
         </div>
-        <div class="table-row">
-          <div class="table-cell">Client A</div>
-          <div class="table-cell">May 5, 2024</div>
-        </div>
-        <div class="table-row">
-          <div class="table-cell">Client B</div>
-          <div class="table-cell">Dec 1, 2024</div>
-        </div>
-        <div class="table-row">
-          <div class="table-cell">Client C</div>
-          <div class="table-cell">Jan 4, 2025</div>
-        </div>
+        {% if renewals_list %}
+          {% for renewal in renewals_list %}
+            <div class="table-row">
+              <div class="table-cell">{{ renewal.client }}</div>
+              <div class="table-cell">{{ renewal.renewal_date }}</div>
+            </div>
+          {% endfor %}
+        {% else %}
+          <div class="table-row">
+            <div class="table-cell no-data" colspan="2">No upcoming renewals</div>
+          </div>
+        {% endif %}
       </div>
     </div>
   </div>
 </div>
+
+<!-- Chart.js Library -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+
+<script>
+  // Chart colors
+  const chartColors = {
+    primary: '#3498db',
+    secondary: '#2c3e50',
+    success: '#27ae60',
+    warning: '#f39c12',
+    danger: '#e74c3c',
+    info: '#17a2b8',
+    purple: '#9b59b6',
+    gray: '#95a5a6'
+  };
+
+  // Lead Source Distribution Chart (Donut)
+  const leadSourceData = JSON.parse('{{ lead_source_data|escapejs }}');
+  const totalSourceLeads = {{ total_source_leads }};
+  
+  const sourceLabels = Object.keys(leadSourceData);
+  const sourceValues = Object.values(leadSourceData);
+  const sourceColors = [
+    chartColors.primary,
+    chartColors.secondary,
+    chartColors.gray,
+    chartColors.purple,
+    chartColors.success,
+    chartColors.warning
+  ];
+
+  const leadSourceCtx = document.getElementById('leadSourceChart');
+  if (leadSourceCtx && sourceLabels.length > 0) {
+    new Chart(leadSourceCtx, {
+      type: 'doughnut',
+      data: {
+        labels: sourceLabels,
+        datasets: [{
+          data: sourceValues,
+          backgroundColor: sourceColors.slice(0, sourceLabels.length),
+          borderWidth: 2,
+          borderColor: '#fff'
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: true,
+        plugins: {
+          legend: {
+            position: 'bottom',
+            labels: {
+              padding: 15,
+              usePointStyle: true
+            }
+          },
+          tooltip: {
+            callbacks: {
+              label: function(context) {
+                const label = context.label || '';
+                const value = context.parsed || 0;
+                const percentage = totalSourceLeads > 0 ? ((value / totalSourceLeads) * 100).toFixed(1) : 0;
+                return `${label}: ${value} (${percentage}%)`;
+              }
+            }
+          }
+        }
+      }
+    });
+  }
+
+  // Sales Funnel Chart (Bar)
+  const prospectCount = {{ prospect_count }};
+  const proposalSent = {{ proposal_sent }};
+  const negotiationCount = {{ negotiation_count }};
+
+  const salesFunnelCtx = document.getElementById('salesFunnelChart');
+  if (salesFunnelCtx) {
+    new Chart(salesFunnelCtx, {
+      type: 'bar',
+      data: {
+        labels: ['Prospects', 'Proposals Sent', 'In Negotiation'],
+        datasets: [{
+          label: 'Sales Pipeline',
+          data: [prospectCount, proposalSent, negotiationCount],
+          backgroundColor: [
+            chartColors.primary,
+            chartColors.warning,
+            chartColors.success
+          ],
+          borderColor: [
+            chartColors.primary,
+            chartColors.warning,
+            chartColors.success
+          ],
+          borderWidth: 2,
+          borderRadius: 8
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: true,
+        plugins: {
+          legend: {
+            display: false
+          },
+          tooltip: {
+            callbacks: {
+              label: function(context) {
+                return `${context.label}: ${context.parsed.y}`;
+              }
+            }
+          }
+        },
+        scales: {
+          y: {
+            beginAtZero: true,
+            ticks: {
+              stepSize: 1
+            }
+          }
+        }
+      }
+    });
+  }
+
+  // Employee Distribution by Department Chart (Bar Horizontal)
+  const deptData = JSON.parse('{{ dept_data|escapejs }}');
+  const deptLabels = Object.keys(deptData);
+  const deptValues = Object.values(deptData);
+  const maxDeptValue = Math.max(...deptValues, 1);
+
+  const departmentCtx = document.getElementById('departmentChart');
+  if (departmentCtx && deptLabels.length > 0) {
+    new Chart(departmentCtx, {
+      type: 'bar',
+      data: {
+        labels: deptLabels,
+        datasets: [{
+          label: 'Employees',
+          data: deptValues,
+          backgroundColor: chartColors.primary,
+          borderColor: chartColors.secondary,
+          borderWidth: 2,
+          borderRadius: 8
+        }]
+      },
+      options: {
+        indexAxis: 'y',
+        responsive: true,
+        maintainAspectRatio: true,
+        plugins: {
+          legend: {
+            display: false
+          },
+          tooltip: {
+            callbacks: {
+              label: function(context) {
+                return `${context.label}: ${context.parsed.x} employees`;
+              }
+            }
+          }
+        },
+        scales: {
+          x: {
+            beginAtZero: true,
+            ticks: {
+              stepSize: 1
+            }
+          }
+        }
+      }
+    });
+  } else if (departmentCtx) {
+    // Show empty state
+    departmentCtx.getContext('2d').fillText('No department data available', 10, 50);
+  }
+</script>
+
+<style>
+  .dashboard-container {
+    padding: 0;
+  }
+
+  .dashboard-header {
+    margin-bottom: 2rem;
+  }
+
+  .dashboard-header h1 {
+    font-size: 2.5rem;
+    font-weight: 700;
+    color: var(--primary-color);
+    margin-bottom: 0.5rem;
+  }
+
+  /* Metric Cards */
+  .metric-card {
+    background: var(--card-bg);
+    padding: 1.5rem;
+    border-radius: 10px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+    border-left: 4px solid var(--secondary-color);
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+  }
+
+  .metric-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.12);
+  }
+
+  .metric-title {
+    font-size: 0.9rem;
+    color: #666;
+    margin-bottom: 0.5rem;
+    font-weight: 500;
+  }
+
+  .metric-value {
+    font-size: 2.5rem;
+    font-weight: 700;
+    color: var(--primary-color);
+    margin-bottom: 0.25rem;
+  }
+
+  .metric-subtitle {
+    font-size: 0.85rem;
+    color: #888;
+  }
+
+  /* Page Overview Section */
+  .page-overview-section {
+    margin-bottom: 2rem;
+  }
+
+  .section-title {
+    font-size: 1.5rem;
+    font-weight: 600;
+    color: var(--primary-color);
+    margin-bottom: 1.5rem;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+  }
+
+  .section-title i {
+    color: var(--secondary-color);
+  }
+
+  .overview-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 1.5rem;
+  }
+
+  .overview-card {
+    background: var(--card-bg);
+    padding: 1.5rem;
+    border-radius: 12px;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+    border-top: 3px solid var(--secondary-color);
+  }
+
+  .overview-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.12);
+  }
+
+  .overview-icon {
+    font-size: 2.5rem;
+    color: var(--secondary-color);
+    margin-bottom: 1rem;
+  }
+
+  .overview-card h3 {
+    font-size: 1.2rem;
+    font-weight: 600;
+    color: var(--primary-color);
+    margin-bottom: 0.5rem;
+  }
+
+  .overview-card p {
+    color: #666;
+    font-size: 0.9rem;
+    margin-bottom: 1rem;
+  }
+
+  .overview-stats {
+    margin-bottom: 1rem;
+  }
+
+  .stat-badge {
+    display: inline-block;
+    padding: 0.5rem 1rem;
+    background: var(--secondary-color);
+    color: white;
+    border-radius: 20px;
+    font-size: 0.85rem;
+    font-weight: 600;
+  }
+
+  .overview-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    color: var(--secondary-color);
+    text-decoration: none;
+    font-weight: 600;
+    font-size: 0.9rem;
+    transition: gap 0.3s ease;
+  }
+
+  .overview-link:hover {
+    gap: 0.75rem;
+    color: var(--primary-color);
+  }
+
+  /* Chart Wrapper */
+  .chart-wrapper {
+    position: relative;
+    height: 300px;
+    margin-top: 1rem;
+  }
+
+  .chart-card h3 {
+    color: var(--primary-color);
+    font-size: 1.1rem;
+    font-weight: 600;
+    margin-bottom: 0;
+  }
+
+  /* Tasks List */
+  .tasks-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    margin-top: 1rem;
+  }
+
+  .task-item {
+    padding: 1rem;
+    background: #f8f9fa;
+    border-radius: 8px;
+    border-left: 3px solid var(--secondary-color);
+    transition: background 0.3s ease;
+  }
+
+  .task-item:hover {
+    background: #e9ecef;
+  }
+
+  .task-name {
+    font-size: 0.9rem;
+    font-weight: 500;
+    color: var(--primary-color);
+    margin-bottom: 0.25rem;
+  }
+
+  .task-date {
+    font-size: 0.8rem;
+    color: #888;
+  }
+
+  /* No Data */
+  .no-data {
+    padding: 2rem;
+    text-align: center;
+    color: #999;
+    font-style: italic;
+  }
+
+  /* Activity Table & Contracts Table */
+  .activity-table, .contracts-table {
+    margin-top: 1rem;
+  }
+
+  .table-header {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 1rem;
+    padding: 0.75rem;
+    background: #f8f9fa;
+    border-radius: 5px;
+    font-weight: 600;
+    font-size: 0.9rem;
+    color: var(--primary-color);
+  }
+
+  .contracts-table .table-header {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .table-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 1rem;
+    padding: 0.75rem;
+    border-bottom: 1px solid #eee;
+    font-size: 0.9rem;
+  }
+
+  .contracts-table .table-row {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .status-present {
+    color: var(--success-color);
+    font-weight: 500;
+  }
+
+  /* Responsive */
+  @media (max-width: 768px) {
+    .overview-grid {
+      grid-template-columns: 1fr;
+    }
+
+    .chart-wrapper {
+      height: 250px;
+    }
+  }
+</style>
 {% endblock %}

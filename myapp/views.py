@@ -5,7 +5,7 @@ from django.contrib.auth import logout as auth_logout, login as auth_login, auth
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.models import User
 from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
-from django.db.models import Q
+from django.db.models import Q, Count
 from django.utils import timezone
 from datetime import datetime, date
 from decimal import Decimal
@@ -181,7 +181,132 @@ def dashboard(request):
       messages.warning(request, 'You do not have permission to access this page.')
       return redirect('employee_dashboard')
   
-  return render(request, 'dashboard/dashboard.html')
+  # Get current date and timezone
+  now = timezone.now()
+  current_month_start = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+  current_date = now.date()
+  
+  # Calculate metrics
+  # Total Leads
+  total_leads = Lead.objects.filter(is_active=True).count()
+  leads_this_month = Lead.objects.filter(is_active=True, created_at__gte=current_month_start).count()
+  
+  # Quotes/Deals
+  total_quotes = Quote.objects.count()
+  quotes_in_progress = Quote.objects.filter(status__in=['Draft', 'Sent']).count()
+  quotes_closing_soon = Quote.objects.filter(status='Sent', valid_until__gte=current_date, valid_until__lte=current_date + timezone.timedelta(days=7)).count()
+  
+  # Projects
+  total_projects = ClientOnboarding.objects.count()
+  projects_in_progress = ClientOnboarding.objects.filter(status='active').count()
+  projects_overdue = ClientOnboarding.objects.filter(
+    status='active',
+    start_date__isnull=False
+  ).filter(
+    start_date__lt=current_date - timezone.timedelta(days=30)
+  ).count()
+  
+  # Leave Requests (as tickets)
+  pending_leaves = LeaveRequest.objects.filter(status='Pending').count()
+  overdue_leaves = LeaveRequest.objects.filter(
+    status='Pending',
+    start_date__lt=current_date
+  ).count()
+  
+  # Lead Source Distribution
+  lead_sources = Lead.objects.filter(is_active=True).values('source').annotate(count=Count('id'))
+  lead_source_data = {}
+  total_source_leads = 0
+  for source in lead_sources:
+    lead_source_data[source['source']] = source['count']
+    total_source_leads += source['count']
+  
+  # Sales Funnel Data
+  prospect_count = Lead.objects.filter(is_active=True).count()
+  proposal_sent = Quote.objects.filter(status='Sent').count()
+  negotiation_count = Quote.objects.filter(status='Sent', valid_until__gte=current_date).count()
+  
+  # Employee Distribution by Department
+  employee_departments = Employee.objects.filter(status='active').values('department').annotate(count=Count('id'))
+  dept_data = {}
+  for dept in employee_departments:
+    dept_name = dept['department'] or 'Unassigned'
+    dept_data[dept_name] = dept['count']
+  
+  # Today's Attendance
+  today_attendance = Attendance.objects.filter(date=current_date).select_related('user')
+  present_employees = []
+  for att in today_attendance:
+    if att.check_in_time:
+      employee_name = att.employee_name
+      check_in = att.check_in_time
+      present_employees.append({
+        'name': employee_name,
+        'check_in': check_in.strftime('%I:%M %p') if check_in else 'N/A',
+        'status': 'Present'
+      })
+  
+  # Recent Activity (last 5 attendance records)
+  recent_activity = Attendance.objects.filter(check_in_time__isnull=False).order_by('-check_in_time')[:5]
+  activity_list = []
+  for att in recent_activity:
+    activity_list.append({
+      'employee': att.employee_name,
+      'time': att.check_in_time.strftime('%I:%M %p') if att.check_in_time else 'N/A',
+      'date': att.date.strftime('%b %d, %Y')
+    })
+  
+  # Upcoming Contract Renewals (Quotes valid_until)
+  upcoming_renewals = Quote.objects.filter(
+    valid_until__gte=current_date
+  ).order_by('valid_until')[:5]
+  
+  renewals_list = []
+  for quote in upcoming_renewals:
+    renewals_list.append({
+      'client': quote.client_name,
+      'renewal_date': quote.valid_until.strftime('%b %d, %Y')
+    })
+  
+  # Pending Tasks (Leads with due dates)
+  pending_tasks = Lead.objects.filter(
+    due_date__isnull=False,
+    due_date__gte=current_date
+  ).order_by('due_date')[:5]
+  
+  tasks_list = []
+  for lead in pending_tasks:
+    tasks_list.append({
+      'task': f"{lead.next_action} - {lead.name}",
+      'due_date': lead.due_date.strftime('%b %d, %Y') if lead.due_date else 'N/A'
+    })
+  
+  # Prepare context with JSON serialized data for charts
+  context = {
+    'total_leads': total_leads,
+    'leads_this_month': leads_this_month,
+    'total_quotes': total_quotes,
+    'quotes_in_progress': quotes_in_progress,
+    'quotes_closing_soon': quotes_closing_soon,
+    'total_projects': total_projects,
+    'projects_in_progress': projects_in_progress,
+    'projects_overdue': projects_overdue,
+    'pending_leaves': pending_leaves,
+    'overdue_leaves': overdue_leaves,
+    'lead_source_data': json.dumps(lead_source_data),
+    'total_source_leads': total_source_leads,
+    'prospect_count': prospect_count,
+    'proposal_sent': proposal_sent,
+    'negotiation_count': negotiation_count,
+    'dept_data': json.dumps(dept_data),
+    'present_employees': present_employees,
+    'activity_list': activity_list,
+    'renewals_list': renewals_list,
+    'tasks_list': tasks_list,
+    'user_name': request.user.get_full_name() or request.user.username or 'Admin',
+  }
+  
+  return render(request, 'dashboard/dashboard.html', context)
 
 @login_required
 def dashboard_leaves(request):
@@ -1331,7 +1456,121 @@ def reports(request):
 
 @login_required
 def settings_view(request):
-  return render(request, 'setting.html')
+  """Settings view - fetches logged-in user's data"""
+  # Handle POST request for saving profile
+  if request.method == 'POST':
+    try:
+      user = request.user
+      user_email = getattr(user, 'email', '')
+      
+      # Try to get employee
+      employee = Employee.objects.filter(email__iexact=user_email).first()
+      
+      if not employee:
+        # Try by name
+        user_full_name = user.get_full_name() or user.username or ''
+        if user_full_name:
+          name_parts = user_full_name.strip().split(' ', 1)
+          first_name = name_parts[0] if name_parts else ''
+          last_name = name_parts[1] if len(name_parts) > 1 else ''
+          
+          if first_name and last_name:
+            employee = Employee.objects.filter(
+              first_name__iexact=first_name,
+              last_name__iexact=last_name
+            ).first()
+      
+      # Update employee data
+      if employee:
+        full_name = request.POST.get('full_name', '')
+        if full_name:
+          name_parts = full_name.strip().split(' ', 1)
+          employee.first_name = name_parts[0] if name_parts else ''
+          employee.last_name = name_parts[1] if len(name_parts) > 1 else ''
+        
+        employee.phone = request.POST.get('phone', '') or employee.phone
+        employee.designation = request.POST.get('designation', '') or employee.designation
+        employee.save()
+        
+        messages.success(request, 'Profile updated successfully!')
+      else:
+        # Update User model if employee not found
+        full_name = request.POST.get('full_name', '')
+        if full_name:
+          name_parts = full_name.strip().split(' ', 1)
+          user.first_name = name_parts[0] if name_parts else ''
+          user.last_name = name_parts[1] if len(name_parts) > 1 else ''
+          user.save()
+        
+        messages.success(request, 'Profile updated successfully!')
+        
+    except Exception as e:
+      messages.error(request, f'Error updating profile: {str(e)}')
+  
+  # Get logged-in user's information
+  user = request.user
+  employee = None
+  user_full_name = 'Guest User'
+  user_email = getattr(user, 'email', '')
+  user_phone = ''
+  user_designation = ''
+  user_role = 'Employee'
+  user_initials = 'GU'
+  
+  # Try to get employee data from Employee model
+  if user.is_authenticated:
+    try:
+      # Try to get employee by email
+      employee = Employee.objects.filter(email__iexact=user_email).first()
+      
+      # If not found by email, try by matching name
+      if not employee:
+        user_full_name = user.get_full_name() or user.username or ''
+        if user_full_name:
+          name_parts = user_full_name.strip().split(' ', 1)
+          first_name = name_parts[0] if name_parts else ''
+          last_name = name_parts[1] if len(name_parts) > 1 else ''
+          
+          if first_name and last_name:
+            employee = Employee.objects.filter(
+              first_name__iexact=first_name,
+              last_name__iexact=last_name
+            ).first()
+      
+      # If employee found, get data
+      if employee:
+        user_full_name = employee.get_full_name()
+        user_email = employee.email or user_email
+        user_phone = employee.phone or ''
+        user_designation = employee.designation or ''
+        user_role = employee.role or 'Employee'
+        # Get initials for avatar
+        user_initials = employee.get_initials() or (user_full_name[0:2].upper() if user_full_name else 'GU')
+      else:
+        # Use User model data
+        user_full_name = user.get_full_name() or user.username or 'Guest User'
+        user_email = getattr(user, 'email', '')
+        user_initials = (user_full_name[0:2].upper() if user_full_name else 'GU')
+        
+    except Exception as e:
+      print(f"Error fetching employee data: {str(e)}")
+      # Fallback to User model data
+      user_full_name = user.get_full_name() or user.username or 'Guest User'
+      user_email = getattr(user, 'email', '')
+      user_initials = (user_full_name[0:2].upper() if user_full_name else 'GU')
+  
+  # Prepare context
+  context = {
+    'user_full_name': user_full_name,
+    'user_email': user_email,
+    'user_phone': user_phone,
+    'user_designation': user_designation,
+    'user_role': user_role,
+    'user_initials': user_initials,
+    'employee': employee,
+  }
+  
+  return render(request, 'setting.html', context)
 
 def in_out(request):
   return render(request, 'human_resource/in_out.html')

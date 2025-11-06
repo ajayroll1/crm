@@ -46,10 +46,15 @@
       <div class="card mb-3">
         <div class="card-body">
           <div class="d-flex align-items-center gap-3">
-            <img class="avatar" src="https://api.dicebear.com/7.x/initials/svg?seed=SA" alt="avatar">
+            <img class="avatar" src="https://api.dicebear.com/7.x/initials/svg?seed={{ user_initials }}" alt="avatar">
             <div class="flex-grow-1">
-              <h5 class="mb-1">Super Admin</h5>
-              <div class="text-muted">superadmin@sujataassociates.com</div>
+              <h5 class="mb-1">{{ user_full_name }}</h5>
+              <div class="text-muted">{{ user_email }}</div>
+              {% if user_role %}
+                <div class="mt-1">
+                  <span class="badge bg-primary">{{ user_role }}</span>
+                </div>
+              {% endif %}
             </div>
             <button class="btn btn-outline-primary btn-sm">Change Avatar</button>
           </div>
@@ -58,32 +63,35 @@
       <div class="card">
         <div class="card-header bg-white"><span class="section-title">Basic Information</span></div>
         <div class="card-body">
-          <div class="row g-3">
-            <div class="col-md-6">
-              <label class="form-label">Full Name</label>
-              <input class="form-control" placeholder="Enter full name">
+          <form method="POST" action="{% url 'settings' %}">
+            {% csrf_token %}
+            <div class="row g-3">
+              <div class="col-md-6">
+                <label class="form-label">Full Name</label>
+                <input type="text" class="form-control" name="full_name" value="{{ user_full_name }}" placeholder="Enter full name">
+              </div>
+              <div class="col-md-6">
+                <label class="form-label">Phone</label>
+                <input type="text" class="form-control" name="phone" value="{{ user_phone }}" placeholder="+91 98765 43210">
+              </div>
+              <div class="col-md-6">
+                <label class="form-label">Designation</label>
+                <input type="text" class="form-control" name="designation" value="{{ user_designation }}" placeholder="e.g. HR Manager">
+              </div>
+              <div class="col-md-6">
+                <label class="form-label">Time Zone</label>
+                <select class="form-select" name="timezone">
+                  <option value="Asia/Kolkata" selected>Asia/Kolkata (IST)</option>
+                  <option value="UTC">UTC</option>
+                  <option value="Asia/Dubai">Asia/Dubai (GST)</option>
+                </select>
+              </div>
             </div>
-            <div class="col-md-6">
-              <label class="form-label">Phone</label>
-              <input class="form-control" placeholder="+91 98765 43210">
+            <div class="mt-3 d-flex gap-2">
+              <button type="submit" class="btn btn-primary">Save Changes</button>
+              <button type="button" class="btn btn-light">Cancel</button>
             </div>
-            <div class="col-md-6">
-              <label class="form-label">Designation</label>
-              <input class="form-control" placeholder="e.g. HR Manager">
-            </div>
-            <div class="col-md-6">
-              <label class="form-label">Time Zone</label>
-              <select class="form-select">
-                <option>Asia/Kolkata (IST)</option>
-                <option>UTC</option>
-                <option>Asia/Dubai (GST)</option>
-              </select>
-            </div>
-          </div>
-          <div class="mt-3 d-flex gap-2">
-            <button class="btn btn-primary">Save Changes</button>
-            <button class="btn btn-light">Cancel</button>
-          </div>
+          </form>
         </div>
       </div>
     </div>
