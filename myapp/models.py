@@ -340,6 +340,14 @@ class Attendance(models.Model):
         null=True,
         blank=True
     )
+    employee = models.ForeignKey(
+        'Employee',
+        on_delete=models.CASCADE,
+        related_name='attendance_records',
+        null=True,
+        blank=True,
+        verbose_name="Employee"
+    )
     employee_name = models.CharField(max_length=150)
     date = models.DateField()
     check_in_time = models.DateTimeField(null=True, blank=True)
@@ -354,7 +362,7 @@ class Attendance(models.Model):
         ordering = ['-date', '-check_in_time']
         verbose_name = "Attendance"
         verbose_name_plural = "Attendances"
-        unique_together = [['user', 'date']]  # One record per user per day
+        unique_together = [['user', 'date'], ['employee', 'date']]  # One record per user/employee per day
     
     def __str__(self):
         return f"{self.employee_name} - {self.date}"

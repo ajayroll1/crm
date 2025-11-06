@@ -441,7 +441,52 @@
             </div>
             <div class="col-md-4">
               <label class="form-label">Department<span class="text-danger">*</span></label>
-              <input type="text" class="form-control" name="department" required>
+              <div class="dropdown">
+                <button 
+                  class="btn btn-outline-secondary dropdown-toggle w-100 text-start d-flex justify-content-between align-items-center" 
+                  type="button" 
+                  id="departmentDropdown" 
+                  data-bs-toggle="dropdown" 
+                  aria-expanded="false"
+                  style="font-size: 16px;"
+                >
+                  <span id="departmentDisplay">
+                    {% if edit_employee and edit_employee.department %}
+                      {{ edit_employee.department }}
+                    {% else %}
+                      Select
+                    {% endif %}
+                  </span>
+                  <i class="bi bi-chevron-down"></i>
+                </button>
+                <ul class="dropdown-menu w-100" aria-labelledby="departmentDropdown" id="departmentMenu">
+                  <li>
+                    <a class="dropdown-item {% if not edit_employee or not edit_employee.department %}active{% endif %}" 
+                       href="#"
+                       data-value=""
+                       onclick="selectDepartment('', 'Select'); return false;">
+                      <i class="bi bi-list me-2"></i>Select
+                    </a>
+                  </li>
+                  <li>
+                    <a class="dropdown-item {% if edit_employee and edit_employee.department == 'Engineering' %}active{% endif %}" 
+                       href="#"
+                       data-value="Engineering"
+                       onclick="selectDepartment('Engineering', 'Engineering'); return false;">
+                      <i class="bi bi-gear me-2"></i>Engineering
+                    </a>
+                  </li>
+                  <li>
+                    <a class="dropdown-item {% if edit_employee and edit_employee.department == 'Sales' %}active{% endif %}" 
+                       href="#"
+                       data-value="Sales"
+                       onclick="selectDepartment('Sales', 'Sales'); return false;">
+                      <i class="bi bi-graph-up me-2"></i>Sales
+                    </a>
+                  </li>
+                </ul>
+                <input type="hidden" id="department" name="department" value="{% if edit_employee and edit_employee.department %}{{ edit_employee.department }}{% endif %}" required>
+              </div>
             </div>
             <div class="col-md-4">
               <label class="form-label">Reporting Manager</label>
@@ -1368,7 +1413,7 @@
       const email = form.querySelector('[name="email"]').value.trim();
       const phone = form.querySelector('[name="phone"]').value.trim();
       const designation = form.querySelector('[name="designation"]').value.trim();
-      const department = form.querySelector('[name="department"]').value.trim();
+      const department = document.getElementById('department')?.value.trim() || '';
       const messages = [];
       if (!first) messages.push('First name is required');
       if (!last) messages.push('Last name is required');
@@ -1563,7 +1608,11 @@
               if (emp.address_permanent) form.querySelector('[name="address_permanent"]').value = emp.address_permanent;
               
               if (emp.designation) form.querySelector('[name="designation"]').value = emp.designation;
-              if (emp.department) form.querySelector('[name="department"]').value = emp.department;
+              if (emp.department) {
+                const deptInput = document.getElementById('department');
+                if (deptInput) deptInput.value = emp.department;
+                selectDepartment(emp.department, emp.department);
+              }
               if (emp.manager) form.querySelector('[name="manager"]').value = emp.manager;
               if (emp.role) {
                 const roleInput = document.getElementById('role');
@@ -1748,6 +1797,13 @@
         if (!last) messages.push('Last name is required');
         if (!email) messages.push('Email is required');
         if (!phone) messages.push('Phone is required');
+      }
+      
+      if (sectionName === 'job') {
+        const designation = form.querySelector('[name="designation"]')?.value.trim() || '';
+        const department = document.getElementById('department')?.value.trim() || '';
+        if (!designation) messages.push('Designation is required');
+        if (!department) messages.push('Department is required');
       }
       
       if (messages.length > 0) {
@@ -2110,6 +2166,34 @@
     
     // Hide dropdown
     const dropdown = bootstrap.Dropdown.getInstance(document.getElementById('accessLevelDropdown'));
+    if (dropdown) {
+      dropdown.hide();
+    }
+  }
+  
+  // Department dropdown function
+  function selectDepartment(value, displayText) {
+    const hiddenInput = document.getElementById('department');
+    if (hiddenInput) {
+      hiddenInput.value = value;
+    }
+    const displayElement = document.getElementById('departmentDisplay');
+    if (displayElement) {
+      displayElement.textContent = displayText;
+    }
+    
+    // Update active state
+    const allItems = document.querySelectorAll('#departmentMenu .dropdown-item');
+    allItems.forEach(item => {
+      item.classList.remove('active');
+    });
+    const selectedItem = document.querySelector(`#departmentMenu .dropdown-item[data-value="${value}"]`);
+    if (selectedItem) {
+      selectedItem.classList.add('active');
+    }
+    
+    // Hide dropdown
+    const dropdown = bootstrap.Dropdown.getInstance(document.getElementById('departmentDropdown'));
     if (dropdown) {
       dropdown.hide();
     }

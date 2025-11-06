@@ -44,6 +44,7 @@ urlpatterns =[
   path('employee/projects/',views.employee_projects,name='employee_projects'),
   path('employee/projects/new/',views.employee_new_project,name='employee_new_project'),
   path('employee/projects/<int:project_id>/',views.employee_project_detail,name='employee_project_detail'),
+  path('employee/projects/<int:project_id>/update-status/',views.employee_update_project_status,name='employee_update_project_status'),
   path('employee/projects/<int:project_id>/start/',views.employee_start_project,name='employee_start_project'),
   path('employee/projects/<int:project_id>/continue/',views.employee_continue_project,name='employee_continue_project'),
   path('employee/projects/<int:project_id>/finish/',views.employee_finish_project,name='employee_finish_project'),

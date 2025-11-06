@@ -1786,10 +1786,26 @@ def employee_dashboard(request):
     is_checked_in = False
     
     if request.user.is_authenticated:
-        today_attendance = Attendance.objects.filter(
-            user=request.user,
-            date=today
-        ).first()
+        # Priority 1: If employee_obj exists, match by employee foreign key first
+        if employee_obj:
+            today_attendance = Attendance.objects.filter(
+                employee=employee_obj,
+                date=today
+            ).first()
+        
+        # Priority 2: If not found by employee, try by employee_name
+        if not today_attendance and employee_obj:
+            today_attendance = Attendance.objects.filter(
+                employee_name__iexact=employee_name,
+                date=today
+            ).first()
+        
+        # Priority 3: If not found, try by user
+        if not today_attendance:
+            today_attendance = Attendance.objects.filter(
+                user=request.user,
+                date=today
+            ).first()
         
         if today_attendance:
             if today_attendance.check_in_time and not today_attendance.check_out_time:
@@ -1912,11 +1928,31 @@ def employee_dashboard(request):
         start_of_week = today - timedelta(days=today.weekday())
         
         # Get all attendance records for this week
-        week_attendance = Attendance.objects.filter(
-            user=request.user,
-            date__gte=start_of_week,
-            date__lte=today
-        )
+        # Priority 1: If employee_obj exists, match by employee foreign key first
+        if employee_obj:
+            week_attendance = Attendance.objects.filter(
+                employee=employee_obj,
+                date__gte=start_of_week,
+                date__lte=today
+            )
+        else:
+            week_attendance = Attendance.objects.none()
+        
+        # Priority 2: If no records found by employee, try by employee_name
+        if not week_attendance.exists() and employee_obj:
+            week_attendance = Attendance.objects.filter(
+                employee_name__iexact=employee_name,
+                date__gte=start_of_week,
+                date__lte=today
+            )
+        
+        # Priority 3: If no records found, try by user
+        if not week_attendance.exists():
+            week_attendance = Attendance.objects.filter(
+                user=request.user,
+                date__gte=start_of_week,
+                date__lte=today
+            )
         
         for att in week_attendance:
             work_hours = att.calculate_work_hours()
@@ -1929,20 +1965,55 @@ def employee_dashboard(request):
         # Get start of month
         start_of_month = now.replace(day=1).date()
         
-        # Get total working days (excluding weekends - simplified)
-        total_days = (today - start_of_month).days + 1
-        working_days = sum(1 for i in range(total_days) if (start_of_month + timedelta(days=i)).weekday() < 5)
+        # Get present days - Priority 1: If employee_obj exists, match by employee foreign key first
+        if employee_obj:
+            attendance_records = Attendance.objects.filter(
+                employee=employee_obj,
+                date__gte=start_of_month,
+                date__lte=today,
+                check_in_time__isnull=False
+            ).order_by('date')
+        else:
+            attendance_records = Attendance.objects.none()
         
-        # Get present days
-        present_days = Attendance.objects.filter(
+        # Priority 2: If no records found by employee, try by employee_name
+        if not attendance_records.exists() and employee_obj:
+            attendance_records = Attendance.objects.filter(
+                employee_name__iexact=employee_name,
+                date__gte=start_of_month,
+                date__lte=today,
+                check_in_time__isnull=False
+            ).order_by('date')
+        
+        # Priority 3: If no records found, try by user
+        if not attendance_records.exists():
+            attendance_records = Attendance.objects.filter(
             user=request.user,
             date__gte=start_of_month,
             date__lte=today,
             check_in_time__isnull=False
-        ).count()
+            ).order_by('date')
+        
+        present_days = attendance_records.count()
+        
+        # If employee has attendance records, calculate from first attendance date
+        if present_days > 0:
+            # Get first attendance date
+            first_attendance_date = attendance_records.first().date
+            
+            # Calculate working days from first attendance date to today
+            total_days = (today - first_attendance_date).days + 1
+            working_days = sum(1 for i in range(total_days) if (first_attendance_date + timedelta(days=i)).weekday() < 5)
         
         if working_days > 0:
             attendance_percentage = round((present_days / working_days) * 100, 1)
+        else:
+            # If no attendance records, use month start for calculation
+            total_days = (today - start_of_month).days + 1
+            working_days = sum(1 for i in range(total_days) if (start_of_month + timedelta(days=i)).weekday() < 5)
+            
+            if working_days > 0:
+                attendance_percentage = 0
     
     # Get recent tasks from projects (derive from project status and tasks)
     recent_tasks = []
@@ -2036,10 +2107,28 @@ def employee_dashboard(request):
             day_name = day.strftime('%a')  # Mon, Tue, Wed, etc.
             weekly_performance['labels'].append(day_name)
             
-            day_attendance = Attendance.objects.filter(
-                user=request.user,
-                date=day
-            ).first()
+            # Priority 1: If employee_obj exists, match by employee foreign key first
+            if employee_obj:
+                day_attendance = Attendance.objects.filter(
+                    employee=employee_obj,
+                    date=day
+                ).first()
+            else:
+                day_attendance = None
+            
+            # Priority 2: If not found by employee, try by employee_name
+            if not day_attendance and employee_obj:
+                day_attendance = Attendance.objects.filter(
+                    employee_name__iexact=employee_name,
+                    date=day
+                ).first()
+            
+            # Priority 3: If not found, try by user
+            if not day_attendance:
+                day_attendance = Attendance.objects.filter(
+                    user=request.user,
+                    date=day
+                ).first()
             
             if day_attendance:
                 work_hours = day_attendance.calculate_work_hours()
@@ -2183,25 +2272,80 @@ def employee_projects(request):
     """Employee projects view - fetches data from myapp_clientonboarding table"""
     from datetime import timedelta
     
-    # Get logged-in user's name to match with assigned_engineer
-    user_name = None
+    # Get logged-in user's information and find employee
+    employee_obj = None
+    employee_name = None
     if request.user.is_authenticated:
-        user_name = request.user.get_full_name() or request.user.username or ''
+        user_full_name = request.user.get_full_name() or request.user.username or ''
+        
+        # Try to match employee by name
+        name_parts = user_full_name.strip().split(' ', 1)
+        first_name = name_parts[0] if name_parts else ''
+        last_name = name_parts[1] if len(name_parts) > 1 else ''
+        
+        if first_name and last_name:
+            employee_obj = Employee.objects.filter(
+                first_name__iexact=first_name,
+                last_name__iexact=last_name
+            ).first()
+        
+        # If not found by name, try by email
+        if not employee_obj:
+            user_email = getattr(request.user, 'email', None)
+            if user_email:
+                employee_obj = Employee.objects.filter(
+                    email__iexact=user_email
+                ).first()
+        
+        # Set employee name
+        if employee_obj:
+            employee_name = employee_obj.get_full_name()
+        else:
+            employee_name = user_full_name
     
-    # Fetch only required fields from ClientOnboarding for fast indexing
-    # Match with assigned_engineer field
-    client_onboardings = ClientOnboarding.objects.filter(
-        assigned_engineer__iexact=user_name
-    ).only(
-        'id',
-        'project_name',
-        'project_description',
-        'status',
-        'start_date',
-        'project_duration',
-        'duration_unit',
-        'assigned_engineer'
-    ).order_by('-created_at')
+    # Fetch projects from ClientOnboarding table
+    # Priority 1: Match by employee name if employee_obj exists
+    client_onboardings = ClientOnboarding.objects.none()
+    
+    if employee_obj and employee_name:
+        # Match by assigned_engineer with employee's full name
+        client_onboardings = ClientOnboarding.objects.filter(
+            assigned_engineer__iexact=employee_name
+        ).only(
+            'id',
+            'project_name',
+            'project_description',
+            'status',
+            'start_date',
+            'project_duration',
+            'duration_unit',
+            'assigned_engineer',
+            'client_name',
+            'project_cost',
+            'created_at',
+            'updated_at'
+        ).order_by('-created_at')
+    
+    # Priority 2: If no projects found and user is authenticated, try by user name
+    if not client_onboardings.exists() and request.user.is_authenticated:
+        user_name = request.user.get_full_name() or request.user.username or ''
+        if user_name:
+            client_onboardings = ClientOnboarding.objects.filter(
+                assigned_engineer__iexact=user_name
+            ).only(
+                'id',
+                'project_name',
+                'project_description',
+                'status',
+                'start_date',
+                'project_duration',
+                'duration_unit',
+                'assigned_engineer',
+                'client_name',
+                'project_cost',
+                'created_at',
+                'updated_at'
+            ).order_by('-created_at')
     
     # Convert to project data structure
     projects = []
@@ -2285,7 +2429,17 @@ def employee_projects(request):
             'tasks_completed': tasks['completed'],
             'tasks_pending': tasks['pending'],
             'priority': 'Medium',  # Default priority
-            'description': onboarding.project_description or 'No description available.'
+            'description': onboarding.project_description or 'No description available.',
+            # Additional fields from ClientOnboarding
+            'client_name': onboarding.client_name or '',
+            'project_cost': onboarding.project_cost or 0,
+            'project_duration': onboarding.project_duration or 0,
+            'duration_unit': onboarding.duration_unit or 'months',
+            'assigned_engineer': onboarding.assigned_engineer or '',
+            'start_date': onboarding.start_date.strftime('%Y-%m-%d') if onboarding.start_date else None,
+            'start_date_display': onboarding.start_date.strftime('%b %d, %Y') if onboarding.start_date else 'N/A',
+            'created_at': onboarding.created_at.strftime('%Y-%m-%d %H:%M:%S') if onboarding.created_at else '',
+            'created_at_display': onboarding.created_at.strftime('%b %d, %Y') if onboarding.created_at else 'N/A',
         }
         projects.append(project_data)
     
@@ -2317,16 +2471,47 @@ def employee_projects(request):
 @login_required
 def employee_in_out(request):
     """Employee check in/out view"""
-    # Get logged-in user's name
+    # Get logged-in user's name and find employee
+    employee_obj = None
     if request.user.is_authenticated:
         employee_name = request.user.get_full_name() or request.user.username
+        
+        # Try to find employee by matching name
+        name_parts = employee_name.strip().split(' ', 1)
+        first_name = name_parts[0] if name_parts else ''
+        last_name = name_parts[1] if len(name_parts) > 1 else ''
+        
+        if first_name and last_name:
+            employee_obj = Employee.objects.filter(
+                first_name__iexact=first_name,
+                last_name__iexact=last_name
+            ).first()
+        
+        # If not found by name, try by email
+        if not employee_obj:
+            user_email = getattr(request.user, 'email', None)
+            if user_email:
+                employee_obj = Employee.objects.filter(
+                    email__iexact=user_email
+                ).first()
     else:
         employee_name = 'Guest User'
     
     # Check today's attendance status
     today = timezone.now().date()
-    today_attendance = Attendance.objects.filter(
-        user=request.user if request.user.is_authenticated else None,
+    today_attendance = None
+    
+    # Priority 1: If employee_obj exists, match by employee foreign key first
+    if employee_obj:
+        today_attendance = Attendance.objects.filter(
+            employee=employee_obj,
+            date=today
+        ).first()
+    
+    # Priority 2: If not found by employee, try by user
+    if not today_attendance and request.user.is_authenticated:
+        today_attendance = Attendance.objects.filter(
+            user=request.user,
         date=today
     ).first()
     
@@ -2717,59 +2902,235 @@ def employee_new_project(request):
 
 @login_required
 def employee_project_detail(request, project_id):
-    """Employee project detail view"""
-    # Mock project data - in real app, fetch from database
-    projects = {
-        1: {
-            'id': 1,
-            'name': 'CRM System Development',
-            'type': 'Web Application',
-            'progress': 75,
-            'due_date': '2024-12-15',
-            'status': 'In Progress',
-            'tasks_total': 12,
-            'tasks_completed': 9,
-            'tasks_pending': 3,
-            'priority': 'High',
-            'description': 'A comprehensive Customer Relationship Management system for managing leads, accounts, and projects.',
-            'team_members': ['John Doe', 'Sarah Johnson', 'Mike Wilson'],
-            'client': 'ABC Corporation',
-            'budget': '$50,000',
-            'start_date': '2024-10-01'
-        },
-        2: {
-            'id': 2,
-            'name': 'Mobile App UI/UX',
-            'type': 'Mobile Application',
-            'progress': 45,
-            'due_date': '2025-01-20',
-            'status': 'Pending',
-            'tasks_total': 8,
-            'tasks_completed': 3,
-            'tasks_pending': 5,
-            'priority': 'Medium',
-            'description': 'Design and develop a modern mobile application with intuitive user interface and experience.',
-            'team_members': ['John Doe', 'Lisa Chen'],
-            'client': 'XYZ Tech',
-            'budget': '$30,000',
-            'start_date': '2024-11-15'
-        }
+    """Employee project detail view - fetches data from myapp_clientonboarding table"""
+    from datetime import timedelta
+    
+    # Get logged-in user's information and find employee
+    employee_obj = None
+    employee_name = None
+    if request.user.is_authenticated:
+        user_full_name = request.user.get_full_name() or request.user.username or ''
+        
+        # Try to match employee by name
+        name_parts = user_full_name.strip().split(' ', 1)
+        first_name = name_parts[0] if name_parts else ''
+        last_name = name_parts[1] if len(name_parts) > 1 else ''
+        
+        if first_name and last_name:
+            employee_obj = Employee.objects.filter(
+                first_name__iexact=first_name,
+                last_name__iexact=last_name
+            ).first()
+        
+        # If not found by name, try by email
+        if not employee_obj:
+            user_email = getattr(request.user, 'email', None)
+            if user_email:
+                employee_obj = Employee.objects.filter(
+                    email__iexact=user_email
+                ).first()
+        
+        # Set employee name
+        if employee_obj:
+            employee_name = employee_obj.get_full_name()
+        else:
+            employee_name = user_full_name
+    
+    # Fetch project from ClientOnboarding table
+    try:
+        onboarding = ClientOnboarding.objects.get(id=project_id)
+        
+        # Verify that this project is assigned to the logged-in user
+        if employee_name and onboarding.assigned_engineer:
+            if onboarding.assigned_engineer.lower() != employee_name.lower():
+                messages.error(request, 'You do not have permission to view this project.')
+                return redirect('employee_projects')
+        elif not onboarding.assigned_engineer:
+            messages.error(request, 'Project assignment not found.')
+            return redirect('employee_projects')
+    except ClientOnboarding.DoesNotExist:
+        messages.error(request, 'Project not found.')
+        return redirect('employee_projects')
+    
+    # Calculate due date from start_date and duration
+    due_date = None
+    if onboarding.start_date:
+        duration_days = 0
+        if onboarding.duration_unit == 'days':
+            duration_days = onboarding.project_duration
+        elif onboarding.duration_unit == 'weeks':
+            duration_days = onboarding.project_duration * 7
+        elif onboarding.duration_unit == 'months':
+            duration_days = onboarding.project_duration * 30
+        elif onboarding.duration_unit == 'years':
+            duration_days = onboarding.project_duration * 365
+        
+        due_date = onboarding.start_date + timedelta(days=duration_days)
+    
+    # Map status from ClientOnboarding to template status
+    status_map = {
+        'active': 'In Progress',
+        'pending': 'Pending',
+        'on_hold': 'On Hold',
+        'completed': 'Completed'
+    }
+    template_status = status_map.get(onboarding.status, 'Pending')
+    
+    # Calculate progress based on status
+    progress_map = {
+        'active': 50,
+        'pending': 0,
+        'on_hold': 30,
+        'completed': 100
+    }
+    progress = progress_map.get(onboarding.status, 0)
+    
+    # Calculate tasks (simplified - not in model, using status-based estimates)
+    tasks_map = {
+        'active': {'total': 10, 'completed': 5, 'pending': 5},
+        'pending': {'total': 8, 'completed': 0, 'pending': 8},
+        'on_hold': {'total': 12, 'completed': 4, 'pending': 8},
+        'completed': {'total': 10, 'completed': 10, 'pending': 0}
+    }
+    tasks = tasks_map.get(onboarding.status, {'total': 8, 'completed': 0, 'pending': 8})
+    
+    # Derive project type from description
+    project_type = 'Project'
+    if onboarding.project_description:
+        desc_lower = onboarding.project_description.lower()
+        if 'web' in desc_lower or 'website' in desc_lower:
+            project_type = 'Web Application'
+        elif 'mobile' in desc_lower or 'app' in desc_lower:
+            project_type = 'Mobile Application'
+        elif 'database' in desc_lower or 'backend' in desc_lower:
+            project_type = 'Backend Task'
+        elif 'security' in desc_lower:
+            project_type = 'Security Task'
+        elif 'dashboard' in desc_lower or 'analytics' in desc_lower:
+            project_type = 'Data Visualization'
+        elif 'cloud' in desc_lower or 'infrastructure' in desc_lower:
+            project_type = 'Infrastructure'
+    
+    # Format dates for display
+    due_date_display = None
+    if due_date:
+        due_date_display = due_date.strftime('%b %d, %Y')
+    
+    start_date_display = None
+    if onboarding.start_date:
+        start_date_display = onboarding.start_date.strftime('%b %d, %Y')
+    
+    # Build project data
+    project = {
+        'id': onboarding.id,
+        'name': onboarding.project_name,
+        'type': project_type,
+        'progress': progress,
+        'due_date': due_date_display,
+        'due_date_raw': due_date.strftime('%Y-%m-%d') if due_date else None,
+        'status': template_status,
+        'tasks_total': tasks['total'],
+        'tasks_completed': tasks['completed'],
+        'tasks_pending': tasks['pending'],
+        'priority': 'Medium',
+        'description': onboarding.project_description or 'No description available.',
+        'client_name': onboarding.client_name or '',
+        'company_name': onboarding.company_name or '',
+        'client_email': onboarding.client_email or '',
+        'client_phone': onboarding.client_phone or '',
+        'project_cost': onboarding.project_cost or 0,
+        'project_duration': onboarding.project_duration or 0,
+        'duration_unit': onboarding.duration_unit or 'months',
+        'assigned_engineer': onboarding.assigned_engineer or '',
+        'start_date': onboarding.start_date.strftime('%Y-%m-%d') if onboarding.start_date else None,
+        'start_date_display': start_date_display,
+        'created_at': onboarding.created_at.strftime('%Y-%m-%d %H:%M:%S') if onboarding.created_at else '',
+        'created_at_display': onboarding.created_at.strftime('%b %d, %Y') if onboarding.created_at else 'N/A',
+        'updated_at': onboarding.updated_at.strftime('%Y-%m-%d %H:%M:%S') if onboarding.updated_at else '',
+        'updated_at_display': onboarding.updated_at.strftime('%b %d, %Y') if onboarding.updated_at else 'N/A',
     }
     
-    project = projects.get(project_id)
-    if not project:
-        return redirect('employee_projects')
+    # Mock tasks for now (can be replaced with actual task model later)
+    tasks_list = [
+        {'id': 1, 'title': 'Project Setup', 'status': 'Completed', 'assignee': onboarding.assigned_engineer or 'N/A', 'due_date': start_date_display or 'N/A'},
+        {'id': 2, 'title': 'Requirements Gathering', 'status': 'Completed' if onboarding.status == 'active' or onboarding.status == 'completed' else 'Pending', 'assignee': onboarding.assigned_engineer or 'N/A', 'due_date': start_date_display or 'N/A'},
+        {'id': 3, 'title': 'Development', 'status': 'In Progress' if onboarding.status == 'active' else 'Pending', 'assignee': onboarding.assigned_engineer or 'N/A', 'due_date': due_date_display or 'N/A'},
+        {'id': 4, 'title': 'Testing & Deployment', 'status': 'Pending', 'assignee': onboarding.assigned_engineer or 'N/A', 'due_date': due_date_display or 'N/A'},
+    ]
     
     context = {
         'project': project,
-        'tasks': [
-            {'id': 1, 'title': 'Database Design', 'status': 'Completed', 'assignee': 'John Doe', 'due_date': '2024-10-15'},
-            {'id': 2, 'title': 'API Development', 'status': 'Completed', 'assignee': 'Sarah Johnson', 'due_date': '2024-10-20'},
-            {'id': 3, 'title': 'Frontend Development', 'status': 'In Progress', 'assignee': 'Mike Wilson', 'due_date': '2024-12-10'},
-            {'id': 4, 'title': 'Testing', 'status': 'Pending', 'assignee': 'John Doe', 'due_date': '2024-12-12'},
-        ]
+        'tasks': tasks_list
     }
     return render(request, 'employee/project_detail.html', context)
+
+@login_required
+@require_POST
+@csrf_exempt
+def employee_update_project_status(request, project_id):
+    """Update project status"""
+    import json
+    
+    try:
+        data = json.loads(request.body)
+        new_status = data.get('status', '').lower()
+        
+        # Validate status
+        valid_statuses = ['active', 'pending', 'on_hold', 'completed']
+        if new_status not in valid_statuses:
+            return JsonResponse({'success': False, 'error': 'Invalid status'}, status=400)
+        
+        # Get project from ClientOnboarding
+        onboarding = ClientOnboarding.objects.get(id=project_id)
+        
+        # Verify that this project is assigned to the logged-in user
+        employee_obj = None
+        employee_name = None
+        if request.user.is_authenticated:
+            user_full_name = request.user.get_full_name() or request.user.username or ''
+            
+            # Try to match employee by name
+            name_parts = user_full_name.strip().split(' ', 1)
+            first_name = name_parts[0] if name_parts else ''
+            last_name = name_parts[1] if len(name_parts) > 1 else ''
+            
+            if first_name and last_name:
+                employee_obj = Employee.objects.filter(
+                    first_name__iexact=first_name,
+                    last_name__iexact=last_name
+                ).first()
+            
+            # If not found by name, try by email
+            if not employee_obj:
+                user_email = getattr(request.user, 'email', None)
+                if user_email:
+                    employee_obj = Employee.objects.filter(
+                        email__iexact=user_email
+                    ).first()
+            
+            # Set employee name
+            if employee_obj:
+                employee_name = employee_obj.get_full_name()
+            else:
+                employee_name = user_full_name
+        
+        # Verify assignment
+        if employee_name and onboarding.assigned_engineer:
+            if onboarding.assigned_engineer.lower() != employee_name.lower():
+                return JsonResponse({'success': False, 'error': 'You do not have permission to update this project.'}, status=403)
+        elif not onboarding.assigned_engineer:
+            return JsonResponse({'success': False, 'error': 'Project assignment not found.'}, status=403)
+        
+        # Update status
+        onboarding.status = new_status
+        onboarding.save()
+        
+        return JsonResponse({'success': True, 'message': 'Project status updated successfully'})
+        
+    except ClientOnboarding.DoesNotExist:
+        return JsonResponse({'success': False, 'error': 'Project not found'}, status=404)
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': str(e)}, status=500)
 
 @login_required
 def employee_start_project(request, project_id):
@@ -4179,10 +4540,30 @@ def employee_attendance_check_in(request):
         if not photo_data:
             return JsonResponse({'success': False, 'error': 'Photo is required'}, status=400)
         
-        # Get logged-in user's name
+        # Get logged-in user's name and find employee
+        employee_obj = None
         if request.user.is_authenticated:
             employee_name = request.user.get_full_name() or request.user.username
             user = request.user
+            
+            # Try to find employee by matching name
+            name_parts = employee_name.strip().split(' ', 1)
+            first_name = name_parts[0] if name_parts else ''
+            last_name = name_parts[1] if len(name_parts) > 1 else ''
+            
+            if first_name and last_name:
+                employee_obj = Employee.objects.filter(
+                    first_name__iexact=first_name,
+                    last_name__iexact=last_name
+                ).first()
+            
+            # If not found by name, try by email
+            if not employee_obj:
+                user_email = getattr(request.user, 'email', None)
+                if user_email:
+                    employee_obj = Employee.objects.filter(
+                        email__iexact=user_email
+                    ).first()
         else:
             employee_name = request.POST.get('employee_name', 'Guest User')
             user = None
@@ -4190,15 +4571,33 @@ def employee_attendance_check_in(request):
         today = timezone.now().date()
         
         # Get or create today's attendance record
-        attendance, created = Attendance.objects.get_or_create(
-            user=user,
-            date=today,
-            defaults={
-                'employee_name': employee_name,
-                'check_in_time': timezone.now(),
-                'check_in_photo': photo_data,
-            }
-        )
+        # Try by employee first, then by user
+        attendance = None
+        created = False
+        
+        if employee_obj:
+            attendance, created = Attendance.objects.get_or_create(
+                employee=employee_obj,
+                date=today,
+                defaults={
+                    'user': user,
+                    'employee_name': employee_name,
+                    'check_in_time': timezone.now(),
+                    'check_in_photo': photo_data,
+                }
+            )
+        
+        if not attendance:
+            attendance, created = Attendance.objects.get_or_create(
+                user=user,
+                date=today,
+                defaults={
+                    'employee': employee_obj,
+                    'employee_name': employee_name,
+                    'check_in_time': timezone.now(),
+                    'check_in_photo': photo_data,
+                }
+            )
         
         if not created:
             # Update existing record if check-in not done yet
@@ -4206,6 +4605,8 @@ def employee_attendance_check_in(request):
                 attendance.check_in_time = timezone.now()
                 attendance.check_in_photo = photo_data
                 attendance.employee_name = employee_name
+                if employee_obj and not attendance.employee:
+                    attendance.employee = employee_obj
                 attendance.save()
             else:
                 return JsonResponse({'success': False, 'error': 'Already checked in today'}, status=400)
@@ -4229,21 +4630,49 @@ def employee_attendance_check_out(request):
         if not photo_data:
             return JsonResponse({'success': False, 'error': 'Photo is required'}, status=400)
         
-        # Get logged-in user's name
+        # Get logged-in user's name and find employee
+        employee_obj = None
         if request.user.is_authenticated:
             employee_name = request.user.get_full_name() or request.user.username
             user = request.user
+            
+            # Try to find employee by matching name
+            name_parts = employee_name.strip().split(' ', 1)
+            first_name = name_parts[0] if name_parts else ''
+            last_name = name_parts[1] if len(name_parts) > 1 else ''
+            
+            if first_name and last_name:
+                employee_obj = Employee.objects.filter(
+                    first_name__iexact=first_name,
+                    last_name__iexact=last_name
+                ).first()
+            
+            # If not found by name, try by email
+            if not employee_obj:
+                user_email = getattr(request.user, 'email', None)
+                if user_email:
+                    employee_obj = Employee.objects.filter(
+                        email__iexact=user_email
+                    ).first()
         else:
             employee_name = request.POST.get('employee_name', 'Guest User')
             user = None
         
         today = timezone.now().date()
         
-        # Get today's attendance record
-        try:
-            attendance = Attendance.objects.get(user=user, date=today)
-        except Attendance.DoesNotExist:
-            return JsonResponse({'success': False, 'error': 'No check-in found for today'}, status=400)
+        # Get today's attendance record - try by employee first, then by user
+        attendance = None
+        if employee_obj:
+            try:
+                attendance = Attendance.objects.get(employee=employee_obj, date=today)
+            except Attendance.DoesNotExist:
+                pass
+        
+        if not attendance:
+            try:
+                attendance = Attendance.objects.get(user=user, date=today)
+            except Attendance.DoesNotExist:
+                return JsonResponse({'success': False, 'error': 'No check-in found for today'}, status=400)
         
         if not attendance.check_in_time:
             return JsonResponse({'success': False, 'error': 'No check-in found for today'}, status=400)
@@ -4255,6 +4684,8 @@ def employee_attendance_check_out(request):
         attendance.check_out_time = timezone.now()
         attendance.check_out_photo = photo_data
         attendance.employee_name = employee_name
+        if employee_obj and not attendance.employee:
+            attendance.employee = employee_obj
         attendance.save()
         
         # Calculate work hours
@@ -4278,9 +4709,37 @@ def employee_attendance_records(request):
         page = int(request.GET.get('page', 1))
         per_page = int(request.GET.get('per_page', 10))
         
-        # Filter by user
+        # Filter by employee or user
         if request.user.is_authenticated:
-            qs = Attendance.objects.filter(user=request.user)
+            # Try to find employee first
+            employee_obj = None
+            employee_name = request.user.get_full_name() or request.user.username
+            
+            # Try to find employee by matching name
+            name_parts = employee_name.strip().split(' ', 1)
+            first_name = name_parts[0] if name_parts else ''
+            last_name = name_parts[1] if len(name_parts) > 1 else ''
+            
+            if first_name and last_name:
+                employee_obj = Employee.objects.filter(
+                    first_name__iexact=first_name,
+                    last_name__iexact=last_name
+                ).first()
+            
+            # If not found by name, try by email
+            if not employee_obj:
+                user_email = getattr(request.user, 'email', None)
+                if user_email:
+                    employee_obj = Employee.objects.filter(
+                        email__iexact=user_email
+                    ).first()
+            
+            # Priority 1: Filter by employee foreign key
+            if employee_obj:
+                qs = Attendance.objects.filter(employee=employee_obj)
+            else:
+                # Priority 2: Filter by user
+                qs = Attendance.objects.filter(user=request.user)
         else:
             # For guest users, filter by employee name if provided
             employee_name = request.GET.get('employee_name', '')
@@ -4505,6 +4964,43 @@ def employee_quotes(request):
     quotes_list = Quote.objects.all().order_by('-created_at')
     onboardings_list = ClientOnboarding.objects.all().order_by('-created_at')
     
+    # Get available client names from Quote table (excluding already onboarded ones)
+    onboarded_client_names = set(ClientOnboarding.objects.values_list('client_name', flat=True).distinct())
+    # Get unique clients from quotes (not yet onboarded)
+    # Use distinct() on client_name to get unique clients, then get their latest quote details
+    available_clients = []
+    unique_client_names = Quote.objects.exclude(client_name__in=onboarded_client_names).values_list('client_name', flat=True).distinct().order_by('client_name')
+    
+    for client_name in unique_client_names:
+        # Get the most recent quote for this client to get company, email, phone
+        latest_quote = Quote.objects.filter(client_name=client_name).order_by('-created_at').first()
+        if latest_quote:
+            available_clients.append((
+                latest_quote.client_name,
+                latest_quote.company or '',
+                latest_quote.email or '',
+                latest_quote.phone or ''
+            ))
+    
+    # Get engineers from Employee table where department = "Engineering"
+    # Include project count for each engineer
+    engineers = Employee.objects.filter(
+        department__iexact='Engineering',
+        status='active'
+    ).order_by('first_name', 'last_name')
+    
+    engineers_with_count = []
+    for engineer in engineers:
+        engineer_name = engineer.get_full_name()
+        # Count assigned projects for this engineer
+        project_count = ClientOnboarding.objects.filter(assigned_engineer__iexact=engineer_name).count()
+        engineers_with_count.append({
+            'id': engineer.id,
+            'name': engineer_name,
+            'designation': engineer.designation or '',
+            'project_count': project_count
+        })
+    
     # Paginate quotes (10 per page)
     quotes_paginator = Paginator(quotes_list, 10)
     quotes_page = request.GET.get('quote_page', 1)
@@ -4528,6 +5024,8 @@ def employee_quotes(request):
     context = {
         'quotes': quotes,
         'onboardings': onboardings,
+        'available_clients': available_clients,  # List of tuples: (client_name, company, email, phone)
+        'engineers': engineers_with_count,  # List of dicts with engineer info and project count
     }
     
     return render(request, 'employee/quotes.html', context)

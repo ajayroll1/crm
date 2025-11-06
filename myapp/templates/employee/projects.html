@@ -90,12 +90,17 @@
                 <label class="btn btn-outline-primary" for="listView">
                   <i class="bi bi-list"></i>
                 </label>
+                <input type="radio" class="btn-check" name="viewMode" id="tableView">
+                <label class="btn btn-outline-primary" for="tableView">
+                  <i class="bi bi-table"></i>
+                </label>
               </div>
-              <select class="form-select" style="width: auto;">
-                <option>All Projects</option>
-                <option>In Progress</option>
-                <option>Completed</option>
-                <option>On Hold</option>
+              <select class="form-select" style="width: auto;" id="statusFilter">
+                <option value="">All Projects</option>
+                <option value="In Progress">In Progress</option>
+                <option value="Completed">Completed</option>
+                <option value="On Hold">On Hold</option>
+                <option value="Pending">Pending</option>
               </select>
               <a href="{% url 'employee_new_project' %}" class="btn btn-primary">
                 <i class="bi bi-plus"></i> New Project
@@ -242,10 +247,6 @@
                 <a href="{% url 'employee_start_project' project_id=project.id %}" class="btn btn-sm btn-outline-warning">
                   <i class="bi bi-play me-1"></i>Resume
                 </a>
-              {% else %}
-                <a href="{% url 'employee_start_project' project_id=project.id %}" class="btn btn-sm btn-warning">
-                  <i class="bi bi-play me-1"></i>Start
-                </a>
               {% endif %}
             </div>
           </div>
@@ -360,8 +361,6 @@
                           <a href="{% url 'employee_continue_project' project_id=project.id %}" class="btn btn-primary">Continue</a>
                         {% elif project.status == "On Hold" %}
                           <a href="{% url 'employee_start_project' project_id=project.id %}" class="btn btn-warning">Resume</a>
-                        {% else %}
-                          <a href="{% url 'employee_start_project' project_id=project.id %}" class="btn btn-warning">Start</a>
                         {% endif %}
                       </div>
                     </td>
@@ -370,6 +369,120 @@
               {% else %}
                 <tr>
                   <td colspan="6" class="text-center">
+                    <div class="alert alert-info mb-0">
+                      <i class="bi bi-info-circle me-2"></i>No projects assigned to you yet.
+                    </div>
+                  </td>
+                </tr>
+              {% endif %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Projects Table View (Hidden by default) -->
+<div class="row d-none" id="projectsTable">
+  <div class="col-12">
+    <div class="card">
+      <div class="card-body">
+        <div class="table-responsive">
+          <table class="table table-hover table-striped">
+            <thead>
+              <tr>
+                <th>Project Name</th>
+                <th>Client Name</th>
+                <th>Type</th>
+                <th>Status</th>
+                <th>Progress</th>
+                <th>Start Date</th>
+                <th>Due Date</th>
+                <th>Duration</th>
+                <th>Cost</th>
+                <th>Tasks</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% if projects %}
+                {% for project in projects %}
+                  <tr>
+                    <td>
+                      <div class="fw-bold">{{ project.name }}</div>
+                      <small class="text-muted">{{ project.description|truncatewords:10 }}</small>
+                    </td>
+                    <td>{{ project.client_name|default:"N/A" }}</td>
+                    <td>
+                      <span class="badge bg-secondary">{{ project.type }}</span>
+                    </td>
+                    <td>
+                      {% if project.status == "In Progress" %}
+                        <span class="status-badge status-active">{{ project.status }}</span>
+                      {% elif project.status == "Pending" %}
+                        <span class="status-badge status-pending">{{ project.status }}</span>
+                      {% elif project.status == "On Hold" %}
+                        <span class="status-badge status-pending">{{ project.status }}</span>
+                      {% elif project.status == "Completed" %}
+                        <span class="status-badge status-completed">{{ project.status }}</span>
+                      {% else %}
+                        <span class="status-badge status-pending">{{ project.status }}</span>
+                      {% endif %}
+                    </td>
+                    <td>
+                      <div class="d-flex align-items-center">
+                        <div class="progress me-2" style="height: 8px; width: 80px;">
+                          {% if project.progress >= 80 %}
+                            <div class="progress-bar bg-success" style="width: {{ project.progress }}%"></div>
+                          {% elif project.progress >= 50 %}
+                            <div class="progress-bar bg-info" style="width: {{ project.progress }}%"></div>
+                          {% elif project.progress >= 30 %}
+                            <div class="progress-bar bg-warning" style="width: {{ project.progress }}%"></div>
+                          {% else %}
+                            <div class="progress-bar bg-danger" style="width: {{ project.progress }}%"></div>
+                          {% endif %}
+                        </div>
+                        <small class="text-muted">{{ project.progress }}%</small>
+                      </div>
+                    </td>
+                    <td>{{ project.start_date_display|default:"N/A" }}</td>
+                    <td>{{ project.due_date|default:"N/A" }}</td>
+                    <td>
+                      {{ project.project_duration }} {{ project.duration_unit }}
+                    </td>
+                    <td>
+                      <strong>₹{{ project.project_cost|floatformat:2 }}</strong>
+                    </td>
+                    <td>
+                      <span class="badge bg-primary">{{ project.tasks_total }}</span>
+                      <small class="text-muted ms-1">({{ project.tasks_completed }} completed)</small>
+                    </td>
+                    <td>
+                      <div class="btn-group btn-group-sm">
+                        <a href="{% url 'employee_project_detail' project_id=project.id %}" class="btn btn-outline-primary" title="View Details">
+                          <i class="bi bi-eye"></i>
+                        </a>
+                        {% if project.status == "Completed" %}
+                          <a href="{% url 'employee_project_detail' project_id=project.id %}" class="btn btn-outline-success" title="Report">
+                            <i class="bi bi-download"></i>
+                          </a>
+                        {% elif project.status == "In Progress" %}
+                          <a href="{% url 'employee_continue_project' project_id=project.id %}" class="btn btn-outline-primary" title="Continue">
+                            <i class="bi bi-play"></i>
+                          </a>
+                        {% elif project.status == "On Hold" %}
+                          <a href="{% url 'employee_start_project' project_id=project.id %}" class="btn btn-outline-warning" title="Resume">
+                            <i class="bi bi-play"></i>
+                          </a>
+                        {% endif %}
+                      </div>
+                    </td>
+                  </tr>
+                {% endfor %}
+              {% else %}
+                <tr>
+                  <td colspan="11" class="text-center">
                     <div class="alert alert-info mb-0">
                       <i class="bi bi-info-circle me-2"></i>No projects assigned to you yet.
                     </div>
@@ -425,22 +538,75 @@
     // View mode toggle
     const gridView = document.getElementById('gridView');
     const listView = document.getElementById('listView');
+    const tableView = document.getElementById('tableView');
     const projectsGrid = document.getElementById('projectsGrid');
     const projectsList = document.getElementById('projectsList');
+    const projectsTable = document.getElementById('projectsTable');
+    const statusFilter = document.getElementById('statusFilter');
     
+    // Grid view
     gridView.addEventListener('change', function() {
       if (this.checked) {
         projectsGrid.classList.remove('d-none');
         projectsList.classList.add('d-none');
+        projectsTable.classList.add('d-none');
       }
     });
     
+    // List view
     listView.addEventListener('change', function() {
       if (this.checked) {
         projectsGrid.classList.add('d-none');
         projectsList.classList.remove('d-none');
+        projectsTable.classList.add('d-none');
       }
     });
+    
+    // Table view
+    tableView.addEventListener('change', function() {
+      if (this.checked) {
+        projectsGrid.classList.add('d-none');
+        projectsList.classList.add('d-none');
+        projectsTable.classList.remove('d-none');
+      }
+    });
+    
+    // Status filter
+    if (statusFilter) {
+      statusFilter.addEventListener('change', function() {
+        const selectedStatus = this.value;
+        const allRows = document.querySelectorAll('#projectsTable tbody tr, #projectsList tbody tr, #projectsGrid .project-card');
+        
+        allRows.forEach(row => {
+          if (!selectedStatus) {
+            // Show all if no filter selected
+            row.style.display = '';
+          } else {
+            // Check if row matches the selected status
+            const statusElement = row.querySelector('.status-badge');
+            if (statusElement) {
+              const rowStatus = statusElement.textContent.trim();
+              if (rowStatus === selectedStatus) {
+                row.style.display = '';
+              } else {
+                row.style.display = 'none';
+              }
+            } else {
+              // For grid view, check the status badge
+              const statusBadge = row.querySelector('.status-badge');
+              if (statusBadge) {
+                const rowStatus = statusBadge.textContent.trim();
+                if (rowStatus === selectedStatus) {
+                  row.closest('.col-xl-4, .col-lg-6, .col-md-6, .col-sm-12').style.display = '';
+                } else {
+                  row.closest('.col-xl-4, .col-lg-6, .col-md-6, .col-sm-12').style.display = 'none';
+                }
+              }
+            }
+          }
+        });
+      });
+    }
   });
 </script>
 {% endblock %}

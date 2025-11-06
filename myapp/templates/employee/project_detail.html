@@ -2,7 +2,7 @@
 {% load static %}
 
 {% block title %}{{ project.name }} - Sujata Associates{% endblock %}
-{% block page_title %}{{ project.name }}{% endblock %}
+{% block page_title %}{% endblock %}
 {% block mobile_title %}{{ project.name }}{% endblock %}
 
 {% block content %}
@@ -16,7 +16,15 @@
             <h5 class="mb-0">{{ project.name }}</h5>
             <small class="text-muted">{{ project.type }}</small>
           </div>
-          <span class="status-badge status-{{ project.status|lower|slugify }}">{{ project.status }}</span>
+          <div class="d-flex align-items-center gap-2">
+            <strong>Status:</strong>
+            <select class="form-select form-select-sm" id="projectStatus" style="width: auto;" onchange="updateProjectStatus({{ project.id }}, this.value)">
+              <option value="Pending" {% if project.status == "Pending" %}selected{% endif %}>Pending</option>
+              <option value="In Progress" {% if project.status == "In Progress" %}selected{% endif %}>In Progress</option>
+              <option value="On Hold" {% if project.status == "On Hold" %}selected{% endif %}>On Hold</option>
+              <option value="Completed" {% if project.status == "Completed" %}selected{% endif %}>Completed</option>
+            </select>
+          </div>
         </div>
       </div>
       <div class="card-body">
@@ -73,10 +81,19 @@
           </div>
           <div class="col-md-6">
             <div class="mb-2">
-              <strong>Client:</strong> {{ project.client }}
+              <strong>Client:</strong> {{ project.client_name|default:"N/A" }}
             </div>
             <div class="mb-2">
-              <strong>Budget:</strong> {{ project.budget }}
+              <strong>Company:</strong> {{ project.company_name|default:"N/A" }}
+            </div>
+            <div class="mb-2">
+              <strong>Start Date:</strong> {{ project.start_date_display|default:"N/A" }}
+            </div>
+            <div class="mb-2">
+              <strong>Duration:</strong> {{ project.project_duration }} {{ project.duration_unit }}
+            </div>
+            <div class="mb-2">
+              <strong>Assigned Engineer:</strong> {{ project.assigned_engineer|default:"N/A" }}
             </div>
           </div>
         </div>
@@ -110,6 +127,10 @@
                     {{ task.status }}
                   </span>
                 </td>
+              </tr>
+              {% empty %}
+              <tr>
+                <td colspan="4" class="text-center">No tasks assigned yet.</td>
               </tr>
               {% endfor %}
             </tbody>
@@ -150,11 +171,7 @@
       </div>
       <div class="card-body">
         <div class="d-grid gap-2">
-          {% if project.status == 'Pending' %}
-            <a href="{% url 'employee_start_project' project_id=project.id %}" class="btn btn-warning">
-              <i class="bi bi-play me-1"></i>Start Project
-            </a>
-          {% elif project.status == 'In Progress' %}
+          {% if project.status == 'In Progress' %}
             <a href="{% url 'employee_continue_project' project_id=project.id %}" class="btn btn-primary">
               <i class="bi bi-play me-1"></i>Continue Work
             </a>
@@ -172,4 +189,87 @@
     </div>
   </div>
 </div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function getCookie(name) {
+  let cookieValue = null;
+  if (document.cookie && document.cookie !== '') {
+    const cookies = document.cookie.split(';');
+    for (let i = 0; i < cookies.length; i++) {
+      const cookie = cookies[i].trim();
+      if (cookie.substring(0, name.length + 1) === (name + '=')) {
+        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+        break;
+      }
+    }
+  }
+  return cookieValue;
+}
+
+function updateProjectStatus(projectId, newStatus) {
+  // Map template status to database status
+  const statusMap = {
+    'Pending': 'pending',
+    'In Progress': 'active',
+    'On Hold': 'on_hold',
+    'Completed': 'completed'
+  };
+  
+  const dbStatus = statusMap[newStatus] || 'pending';
+  
+  // Get CSRF token
+  const csrftoken = getCookie('csrftoken');
+  
+  if (!csrftoken) {
+    alert('CSRF token not found. Please refresh the page and try again.');
+    return;
+  }
+  
+  // Send AJAX request to update status
+  fetch(`/employee/projects/${projectId}/update-status/`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'X-CSRFToken': csrftoken
+    },
+    body: JSON.stringify({
+      'status': dbStatus
+    })
+  })
+  .then(response => response.json())
+  .then(data => {
+    if (data.success) {
+      // Show success message
+      const alertDiv = document.createElement('div');
+      alertDiv.className = 'alert alert-success alert-dismissible fade show';
+      alertDiv.innerHTML = `
+        <strong>Success!</strong> Project status updated to ${newStatus}.
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+      `;
+      const cardHeader = document.querySelector('.card-header');
+      if (cardHeader) {
+        cardHeader.insertAdjacentElement('afterbegin', alertDiv);
+      }
+      
+      // Auto-hide alert after 3 seconds
+      setTimeout(() => {
+        if (alertDiv.parentNode) {
+          alertDiv.remove();
+        }
+      }, 3000);
+    } else {
+      alert('Error updating status: ' + (data.error || 'Unknown error'));
+      // Revert dropdown to previous value
+      location.reload();
+    }
+  })
+  .catch(error => {
+    console.error('Error:', error);
+    alert('Error updating project status. Please try again.');
+    location.reload();
+  });
+}
+</script>
 {% endblock %}
