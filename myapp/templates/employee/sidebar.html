@@ -42,10 +42,12 @@
       <h3 class="nav-section-title">WORK MANAGEMENT</h3>
       <ul class="nav-list">
         <li class="nav-item">
-          <a href="{% url 'employee_projects' %}" class="nav-link">
+          <a href="{% url 'employee_projects' %}" class="nav-link" data-badge-type="projects">
             <i class="bi bi-kanban"></i>
             <span>My Projects</span>
-            <span class="nav-badge">3</span>
+            {% if new_projects_count > 0 %}
+              <span class="nav-badge" data-count="{{ new_projects_count }}" id="badge-projects">{{ new_projects_count }}</span>
+            {% endif %}
           </a>
         </li>
       </ul>
@@ -81,10 +83,12 @@
           </a>
         </li>
         <li class="nav-item">
-          <a href="{% url 'employee_leave' %}" class="nav-link">
+          <a href="{% url 'employee_leave' %}" class="nav-link" data-badge-type="leaves">
             <i class="bi bi-calendar-event"></i>
             <span>Leave Requests</span>
-            <span class="nav-badge">2</span>
+            {% if pending_leaves_count > 0 %}
+              <span class="nav-badge" data-count="{{ pending_leaves_count }}" id="badge-leaves">{{ pending_leaves_count }}</span>
+            {% endif %}
           </a>
         </li>
       </ul>
@@ -95,10 +99,12 @@
       <h3 class="nav-section-title">COMMUNICATION</h3>
       <ul class="nav-list">
         <li class="nav-item">
-          <a href="{% url 'employee_messages' %}" class="nav-link">
+          <a href="{% url 'employee_messages' %}" class="nav-link" data-badge-type="messages">
             <i class="bi bi-chat-dots"></i>
             <span>Messages</span>
-            <span class="nav-badge">5</span>
+            {% if unread_messages_count > 0 %}
+              <span class="nav-badge" data-count="{{ unread_messages_count }}" id="badge-messages">{{ unread_messages_count }}</span>
+            {% endif %}
           </a>
         </li>
       </ul>

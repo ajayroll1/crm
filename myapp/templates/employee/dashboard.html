@@ -163,28 +163,28 @@
       <div class="card-body">
         <div class="row g-3">
           <div class="col-md-3 col-sm-6">
-            <button class="btn btn-primary w-100 h-100 d-flex flex-column align-items-center justify-content-center py-3">
+            <a href="{% url 'employee_in_out' %}" class="btn btn-primary w-100 h-100 d-flex flex-column align-items-center justify-content-center py-3 text-decoration-none">
               <i class="bi bi-geo-alt fs-2 mb-2"></i>
               <span>Check In/Out</span>
-            </button>
+            </a>
           </div>
           <div class="col-md-3 col-sm-6">
-            <button class="btn btn-success w-100 h-100 d-flex flex-column align-items-center justify-content-center py-3">
+            <a href="{% url 'employee_projects' %}" class="btn btn-success w-100 h-100 d-flex flex-column align-items-center justify-content-center py-3 text-decoration-none">
               <i class="bi bi-plus-circle fs-2 mb-2"></i>
               <span>New Task</span>
-            </button>
+            </a>
           </div>
           <div class="col-md-3 col-sm-6">
-            <button class="btn btn-warning w-100 h-100 d-flex flex-column align-items-center justify-content-center py-3">
+            <a href="{% url 'employee_leave' %}" class="btn btn-warning w-100 h-100 d-flex flex-column align-items-center justify-content-center py-3 text-decoration-none">
               <i class="bi bi-calendar-event fs-2 mb-2"></i>
               <span>Request Leave</span>
-            </button>
+            </a>
           </div>
           <div class="col-md-3 col-sm-6">
-            <button class="btn btn-info w-100 h-100 d-flex flex-column align-items-center justify-content-center py-3">
+            <a href="{% url 'employee_messages' %}" class="btn btn-info w-100 h-100 d-flex flex-column align-items-center justify-content-center py-3 text-decoration-none">
               <i class="bi bi-chat-dots fs-2 mb-2"></i>
               <span>Send Message</span>
-            </button>
+            </a>
           </div>
         </div>
       </div>

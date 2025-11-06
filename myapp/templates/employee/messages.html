@@ -23,7 +23,7 @@
 <!-- Display messages -->
 {% if messages %}
   {% for message in messages %}
-    <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+    <div class="alert alert-{{ message.tags }} alert-dismissible fade show welcome-alert" role="alert" data-auto-hide="true">
       {{ message }}
       <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
     </div>
@@ -51,7 +51,8 @@
           {% if contacts and contacts|length > 0 %}
             {% for contact in contacts %}
               <div class="contact-item p-3 border-bottom cursor-pointer {% if selected_contact_id == contact.id %}active{% endif %}" 
-                   onclick="selectContact('{{ contact.id }}', '{{ contact.name|escapejs }}', '{{ contact.role|escapejs }}')">
+                   onclick="selectContact('{{ contact.id }}', '{{ contact.name|escapejs }}', '{{ contact.role|escapejs }}')"
+                   data-contact-id="{{ contact.id }}">
                 <div class="d-flex align-items-center">
                   <div class="contact-avatar me-3">
                     {% if contact.first_name %}{{ contact.first_name|first|upper }}{% else %}{{ contact.name|first|upper }}{% endif %}
@@ -65,7 +66,9 @@
                     </div>
                   </div>
                   {% if contact.unread_count > 0 %}
-                    <span class="badge bg-primary rounded-pill">{{ contact.unread_count }}</span>
+                    <span class="badge bg-primary rounded-pill unread-badge" 
+                          id="badge-{{ contact.id }}" 
+                          data-count="{{ contact.unread_count }}">{{ contact.unread_count }}</span>
                   {% endif %}
                 </div>
               </div>
@@ -424,6 +427,17 @@
     selectedContactName = contactName;
     selectedContactRole = contactRole;
     
+    // Hide unread badge for this contact
+    const badge = document.getElementById(`badge-${contactId}`);
+    if (badge) {
+      badge.style.display = 'none';
+      // Store in localStorage that this contact was clicked
+      localStorage.setItem(`contact_clicked_${contactId}`, Date.now().toString());
+      // Store current count
+      const currentCount = parseInt(badge.getAttribute('data-count') || '0');
+      localStorage.setItem(`contact_count_${contactId}`, currentCount.toString());
+    }
+    
     // Update UI
     document.getElementById('selectedContactName').textContent = contactName;
     document.getElementById('selectedContactRole').textContent = contactRole;
@@ -436,7 +450,10 @@
     document.querySelectorAll('.contact-item').forEach(item => {
       item.classList.remove('active');
     });
-    event.currentTarget.classList.add('active');
+    const clickedItem = event.currentTarget || document.querySelector(`[data-contact-id="${contactId}"]`);
+    if (clickedItem) {
+      clickedItem.classList.add('active');
+    }
     
     // Load messages
     loadMessages(contactId);
@@ -1222,6 +1239,42 @@
       }, 200); // Throttle to 200ms
     });
   }
+  
+  // Hide badges for contacts that were already clicked
+  document.addEventListener('DOMContentLoaded', function() {
+    document.querySelectorAll('.unread-badge').forEach(badge => {
+      const contactId = badge.id.replace('badge-', '');
+      const clickedTime = localStorage.getItem(`contact_clicked_${contactId}`);
+      
+      // If contact was clicked and badge count hasn't increased, hide it
+      if (clickedTime) {
+        const lastCount = parseInt(localStorage.getItem(`contact_count_${contactId}`) || '0');
+        const currentCount = parseInt(badge.getAttribute('data-count') || '0');
+        
+        // Only show badge if new messages arrived (count increased)
+        if (currentCount <= lastCount) {
+          badge.style.display = 'none';
+        } else {
+          // New messages arrived - show badge and update count
+          badge.style.display = 'inline-block';
+          localStorage.setItem(`contact_count_${contactId}`, currentCount.toString());
+        }
+      } else {
+        // First time - store the count
+        localStorage.setItem(`contact_count_${contactId}`, badge.getAttribute('data-count') || '0');
+      }
+    });
+    
+    // Auto-hide welcome alert after 3 seconds
+    const welcomeAlerts = document.querySelectorAll('.welcome-alert[data-auto-hide="true"]');
+    welcomeAlerts.forEach(alert => {
+      setTimeout(() => {
+        // Use Bootstrap's alert dismiss functionality
+        const bsAlert = new bootstrap.Alert(alert);
+        bsAlert.close();
+      }, 3000); // 3 seconds
+    });
+  });
   
   // CSS for loading spinner animation
   const style = document.createElement('style');

@@ -213,12 +213,14 @@
       font-size: 2rem;
       font-weight: 600;
       margin: 0;
+      flex: 1;
     }
     
     .header-actions {
       display: flex;
-      gap: 1rem;
       align-items: center;
+      gap: 0.75rem;
+      margin-left: auto;
     }
     
     .notification-btn {
@@ -871,6 +873,55 @@
           }, { passive: true });
         }
       }
+      
+      // Sidebar badge click tracking - hide badges after click
+      const sidebarBadges = document.querySelectorAll('.sidebar .nav-link[data-badge-type]');
+      sidebarBadges.forEach(link => {
+        const badgeType = link.getAttribute('data-badge-type');
+        const badge = link.querySelector('.nav-badge');
+        
+        if (badge) {
+          // Check localStorage if badge was already clicked
+          const clickedKey = `sidebar_badge_clicked_${badgeType}`;
+          const lastClicked = localStorage.getItem(clickedKey);
+          const badgeCount = parseInt(badge.getAttribute('data-count') || '0');
+          
+          // Get current count from server
+          const currentCount = badgeCount;
+          
+          // If clicked before, check if new items arrived
+          if (lastClicked && currentCount > 0) {
+            const lastCount = parseInt(localStorage.getItem(`sidebar_badge_count_${badgeType}`) || '0');
+            // If new items arrived (current count > last count), show badge
+            if (currentCount > lastCount) {
+              badge.style.display = 'inline-flex';
+              badge.textContent = currentCount;
+            } else {
+              // Hide badge if no new items
+              badge.style.display = 'none';
+            }
+          } else if (!lastClicked && currentCount > 0) {
+            // First time - show badge if count > 0
+            badge.style.display = 'inline-flex';
+            badge.textContent = currentCount;
+          } else if (currentCount === 0) {
+            // Hide badge if count is 0
+            badge.style.display = 'none';
+          }
+          
+          // Track click on link
+          link.addEventListener('click', function(e) {
+            // Store click timestamp and count
+            localStorage.setItem(clickedKey, Date.now().toString());
+            localStorage.setItem(`sidebar_badge_count_${badgeType}`, currentCount.toString());
+            
+            // Hide badge immediately on click
+            if (badge) {
+              badge.style.display = 'none';
+            }
+          });
+        }
+      });
     });
   </script>
   

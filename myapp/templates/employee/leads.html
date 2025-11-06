@@ -1,5 +1,6 @@
 {% extends "employee/base.html" %}
 {% block title %}Leads -Sujata Associates {% endblock %}
+{% block page_title %}<h1 style="display: none;"></h1>{% endblock %}
 
 {% block content %}
 <!-- Display messages -->
@@ -27,6 +28,47 @@
   .nav-tabs .nav-link { color: #000 !important; }
   .nav-tabs .nav-link.active { color: #000 !important; }
   .nav-tabs .nav-link:hover { color: #fff !important; background-color: var(--primary-color) !important; }
+  
+  /* Better visibility for search, filter, and export buttons */
+  .card-header .btn-primary {
+    background-color: var(--primary-color);
+    border-color: var(--primary-color);
+    color: white;
+    font-weight: 600;
+  }
+  
+  .card-header .btn-primary:hover {
+    background-color: var(--secondary-color);
+    border-color: var(--secondary-color);
+    opacity: 0.9;
+  }
+  
+  .card-header .btn-primary i {
+    color: white;
+    font-weight: bold;
+  }
+  
+  /* Pagination visibility */
+  .pagination {
+    margin: 0;
+  }
+  
+  .pagination .page-link {
+    color: var(--primary-color);
+    border-color: #dee2e6;
+  }
+  
+  .pagination .page-item.active .page-link {
+    background-color: var(--primary-color);
+    border-color: var(--primary-color);
+    color: white;
+  }
+  
+  .pagination .page-link:hover {
+    background-color: var(--secondary-color);
+    border-color: var(--secondary-color);
+    color: white;
+  }
 
   /* Mobile responsive table - convert to card layout */
   @media (max-width: 768px) {
@@ -67,10 +109,10 @@
         <div class="d-flex gap-2">
           <form method="GET" class="d-flex">
             <input class="form-control form-control-sm" style="max-width: 220px;" type="search" name="search" placeholder="Search leads..." value="{{ search_query }}">
-            <button class="btn btn-sm btn-outline-primary" type="submit"><i class="bi bi-search"></i></button>
+            <button class="btn btn-sm btn-primary" type="submit" style="min-width: 40px;"><i class="bi bi-search"></i></button>
           </form>
-          <button class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" data-bs-target="#filterModal"><i class="bi bi-funnel"></i> Filter</button>
-          <a href="{% url 'lead_export' %}" class="btn btn-sm btn-outline-primary"><i class="bi bi-download"></i> Export</a>
+          <button class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#filterModal"><i class="bi bi-funnel"></i> Filter</button>
+          <a href="{% url 'lead_export' %}" class="btn btn-sm btn-primary"><i class="bi bi-download"></i> Export</a>
         </div>
       </div>
       <div class="card-body p-0">

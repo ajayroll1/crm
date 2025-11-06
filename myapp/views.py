@@ -2065,6 +2065,77 @@ def employee_dashboard(request):
     # Convert weekly_performance to JSON for JavaScript
     weekly_performance_json = json.dumps(weekly_performance)
     
+    # Get sidebar counts for badges
+    # Unread Messages Count
+    unread_messages_count = 0
+    if request.user.is_authenticated:
+        try:
+            # Get user's employee ID or name for message filtering
+            user_email = getattr(request.user, 'email', None)
+            receiver_id = None
+            
+            # Try to get employee to get receiver_id
+            if employee_obj:
+                receiver_id = employee_obj.emp_code or str(employee_obj.id)
+            elif user_email:
+                # Try to find employee by email
+                emp = Employee.objects.filter(email__iexact=user_email).first()
+                if emp:
+                    receiver_id = emp.emp_code or str(emp.id)
+            
+            if receiver_id:
+                # Count unread messages for this employee
+                unread_messages_count = EmployeeMessage.objects.filter(
+                    receiver_id=receiver_id,
+                    is_read=False
+                ).count()
+        except Exception as e:
+            print(f"Error counting unread messages: {str(e)}")
+            unread_messages_count = 0
+    
+    # New Projects Count (assigned after last visit)
+    new_projects_count = 0
+    if request.user.is_authenticated and user_name:
+        try:
+            # Get last visit timestamp from session
+            last_visit_timestamp = request.session.get('last_visit_timestamp', None)
+            
+            if last_visit_timestamp:
+                from datetime import datetime
+                last_visit = datetime.fromtimestamp(last_visit_timestamp)
+                # Count projects assigned after last visit
+                new_projects_count = ClientOnboarding.objects.filter(
+                    assigned_engineer__iexact=user_name,
+                    created_at__gt=last_visit
+                ).count()
+            else:
+                # First visit - show all active projects
+                new_projects_count = ClientOnboarding.objects.filter(
+                    assigned_engineer__iexact=user_name,
+                    status='active'
+                ).count()
+        except Exception as e:
+            print(f"Error counting new projects: {str(e)}")
+            new_projects_count = 0
+    
+    # Pending Leave Requests Count
+    pending_leaves_count = 0
+    if request.user.is_authenticated:
+        try:
+            # Count pending leave requests for this user
+            pending_leaves_count = LeaveRequest.objects.filter(
+                user=request.user,
+                status='Pending'
+            ).count()
+        except Exception as e:
+            print(f"Error counting pending leaves: {str(e)}")
+            pending_leaves_count = 0
+    
+    # Update last visit timestamp in session
+    if request.user.is_authenticated:
+        import time
+        request.session['last_visit_timestamp'] = time.time()
+    
     # Ensure employee details are set
     if not employee_first_name or employee_first_name == 'Guest':
         employee_first_name = employee_name.split()[0] if employee_name and employee_name != 'Guest User' else 'Guest'
@@ -2100,6 +2171,10 @@ def employee_dashboard(request):
         'notifications': notifications[:3],  # Top 3 notifications
         'notification_count': notification_count,
         'weekly_performance': weekly_performance_json,  # JSON string for JavaScript
+        # Sidebar counts
+        'unread_messages_count': unread_messages_count,
+        'new_projects_count': new_projects_count,
+        'pending_leaves_count': pending_leaves_count,
     }
     return render(request, 'employee/dashboard.html', context)
 
@@ -3269,17 +3344,61 @@ def employee_messages(request):
         
         # STEP 4: Add all employees to contacts list
         print(f"DEBUG: STEP 4 - Adding employees to contacts list...")
+        
+        # Get current user's receiver_id (for counting unread messages)
+        current_user_receiver_id = None
+        if current_user_employee:
+            current_user_receiver_id = current_user_employee.emp_code or str(current_user_employee.id)
+        else:
+            # Fallback - use user ID
+            current_user_receiver_id = str(current_user.id)
+        
         for emp in employees_to_show:
-            # Count unread messages
+            # Count unread messages FROM this contact TO current user
+            # Get sender User object for this employee
+            sender_user = None
+            if emp.email:
+                try:
+                    sender_user = User.objects.get(email=emp.email)
+                except User.DoesNotExist:
+                    pass
+            
+            sender_id = emp.emp_code or str(emp.id)  # Keep for receiver_id matching
+            
+            # Count unread messages - use receiver_id (CharField) for matching
             unread_count = EmployeeMessage.objects.filter(
-                receiver_id=str(emp.id),
-                sender=current_user,
+                receiver_id=current_user_receiver_id,
+                receiver_name__icontains=emp.get_full_name(),
                 is_read=False
             ).count()
             
+            # If we have sender_user, also filter by sender FK
+            if sender_user:
+                unread_count = EmployeeMessage.objects.filter(
+                    receiver_id=current_user_receiver_id,
+                    sender=sender_user,
+                    is_read=False
+                ).count()
+            
+            # Get latest message time for sorting
+            if sender_user:
+                latest_message = EmployeeMessage.objects.filter(
+                    Q(receiver_id=current_user_receiver_id, sender=sender_user) |
+                    Q(receiver_id=sender_id, sender=current_user)
+                ).order_by('-created_at').first()
+            else:
+                # Fallback: use receiver_id matching only
+                latest_message = EmployeeMessage.objects.filter(
+                    Q(receiver_id=current_user_receiver_id) |
+                    Q(receiver_id=sender_id)
+                ).order_by('-created_at').first()
+            
+            latest_message_time = latest_message.created_at if latest_message else None
+            
             # Create contact with first name, last name, designation, and department
+            # Use emp_code as ID for consistency with EmployeeMessage receiver_id
             contact_data = {
-                'id': emp.id,
+                'id': emp.emp_code or str(emp.id),  # Use emp_code if available, otherwise use ID as string
                 'name': emp.get_full_name(),  # Full name (first_name + last_name)
                 'first_name': emp.first_name or '',
                 'last_name': emp.last_name or '',
@@ -3287,7 +3406,8 @@ def employee_messages(request):
                 'designation': emp.designation or '',
                 'department': emp.department or '',
                 'email': emp.email or '',
-                'unread_count': unread_count
+                'unread_count': unread_count,
+                'latest_message_time': latest_message_time
             }
             contacts.append(contact_data)
             print(f"DEBUG: Added contact - ID: {contact_data['id']}, Name: {contact_data['name']}, First: {contact_data['first_name']}, Last: {contact_data['last_name']}, Designation: {contact_data['designation']}, Department: {contact_data['department']}")
@@ -3304,12 +3424,21 @@ def employee_messages(request):
             admin_name = admin.get_full_name() or admin.username
             admin_id = f'admin_{admin.id}'
             
-            # Count unread messages
+            # Count unread messages FROM this admin TO current user
+            # Admin sender is a User (ForeignKey), so use sender FK
             unread_count = EmployeeMessage.objects.filter(
-                receiver_id=admin_id,
-                sender=current_user,
+                receiver_id=current_user_receiver_id,
+                sender=admin,
                 is_read=False
             ).count()
+            
+            # Get latest message time for sorting
+            latest_message = EmployeeMessage.objects.filter(
+                Q(receiver_id=current_user_receiver_id, sender=admin) |
+                Q(receiver_id=admin_id, sender=current_user)
+            ).order_by('-created_at').first()
+            
+            latest_message_time = latest_message.created_at if latest_message else None
             
             contacts.append({
                 'id': admin_id,
@@ -3320,7 +3449,8 @@ def employee_messages(request):
                 'designation': 'Admin',
                 'department': '',
                 'email': admin.email if hasattr(admin, 'email') else '',
-                'unread_count': unread_count
+                'unread_count': unread_count,
+                'latest_message_time': latest_message_time
             })
     else:
         print("DEBUG: User not authenticated!")
@@ -3348,7 +3478,7 @@ def employee_messages(request):
             print("DEBUG: Emergency fallback - Adding all employees without exclusion")
             for emp in all_emps_emergency:
                 contact_data = {
-                    'id': emp.id,
+                    'id': emp.emp_code or str(emp.id),  # Use emp_code if available, otherwise use ID as string
                     'name': emp.get_full_name(),
                     'first_name': emp.first_name or '',
                     'last_name': emp.last_name or '',
@@ -3356,18 +3486,37 @@ def employee_messages(request):
                     'designation': emp.designation or '',
                     'department': emp.department or '',
                     'email': emp.email or '',
-                    'unread_count': 0
+                    'unread_count': 0,
+                    'latest_message_time': None
                 }
                 contacts.append(contact_data)
             print(f"DEBUG: Emergency - Added {len(contacts)} contacts")
     
     print("=" * 50)
     
+    # Sort contacts: unread messages first, then by latest message time
+    from django.utils import timezone
+    contacts.sort(key=lambda x: (
+        -(x.get('unread_count', 0) > 0),  # Unread first (True = 1, False = 0)
+        -(x.get('latest_message_time') or timezone.now() - timezone.timedelta(days=365)).timestamp() if x.get('latest_message_time') else 0  # Latest first
+    ), reverse=True)
+    
+    # Show welcome message only on first visit after login
+    show_welcome = False
+    if current_user.is_authenticated:
+        welcome_key = f'welcome_shown_{current_user.id}'
+        if not request.session.get(welcome_key, False):
+            # First visit - show welcome message
+            show_welcome = True
+            request.session[welcome_key] = True
+            messages.success(request, f'Welcome back, {current_user.get_full_name() or current_user.username}! 👋')
+    
     context = {
         'contacts': contacts,
         'selected_contact_id': selected_contact_id,
         'employee_name': current_user.get_full_name() if current_user.is_authenticated else 'Guest',
         'current_user_employee': current_user_employee,
+        'show_welcome': show_welcome,
     }
     
     print(f"DEBUG: Context passed with {len(context.get('contacts', []))} contacts")
@@ -3459,12 +3608,20 @@ def employee_send_message(request):
             except User.DoesNotExist:
                 return JsonResponse({'success': False, 'error': 'Admin user not found'}, status=404)
         else:
-            # Employee
+            # Employee - handle both ID and emp_code
             try:
-                receiver_employee = Employee.objects.get(id=receiver_id, status='active')
+                # Try to get by ID if receiver_id is numeric
+                if receiver_id.isdigit():
+                    receiver_employee = Employee.objects.get(id=int(receiver_id), status='active')
+                else:
+                    # Try to get by emp_code
+                    receiver_employee = Employee.objects.get(emp_code=receiver_id, status='active')
                 receiver_name = receiver_employee.get_full_name()
             except Employee.DoesNotExist:
                 return JsonResponse({'success': False, 'error': 'Employee not found'}, status=404)
+            except ValueError:
+                # If receiver_id is not a valid ID or emp_code format
+                return JsonResponse({'success': False, 'error': 'Invalid receiver ID format'}, status=400)
         
         # Create message (allow null sender for unauthenticated users)
         message = EmployeeMessage.objects.create(
@@ -3560,7 +3717,8 @@ def employee_get_messages(request):
             ).first()
             
             if current_user_employee:
-                current_user_id = str(current_user_employee.id)
+                # Use emp_code if available, otherwise use ID as string
+                current_user_id = current_user_employee.emp_code or str(current_user_employee.id)
             else:
                 # If user is admin
                 current_user_id = f'admin_{user.id}'
@@ -3600,8 +3758,10 @@ def employee_get_messages(request):
                             Q(first_name__iexact=msg.sender.first_name) |
                             Q(last_name__iexact=msg.sender.last_name)
                         ).first()
-                        if sender_employee and str(sender_employee.id) == receiver_id:
-                            include = True
+                        if sender_employee:
+                            # Check if receiver_id matches employee ID or emp_code
+                            if str(sender_employee.id) == receiver_id or sender_employee.emp_code == receiver_id:
+                                include = True
                 # Case 3: Message sent to receiver_id, check if sender is current user
                 elif msg.receiver_id == receiver_id and msg.sender == user:
                     include = True
@@ -3614,6 +3774,49 @@ def employee_get_messages(request):
                 messages = EmployeeMessage.objects.filter(id__in=filtered_messages)
             else:
                 messages = EmployeeMessage.objects.none()
+            
+            # Mark unread messages as read when chat is opened
+            if receiver_id and current_user_id:
+                # Get sender User object from receiver_id
+                # receiver_id can be emp_code or admin_{id} or integer ID
+                sender_user = None
+                if receiver_id.startswith('admin_'):
+                    admin_user_id = int(receiver_id.replace('admin_', ''))
+                    try:
+                        sender_user = User.objects.get(id=admin_user_id, is_staff=True)
+                    except (User.DoesNotExist, ValueError):
+                        pass
+                elif receiver_id.isdigit():
+                    # Try to find employee and get their User
+                    try:
+                        emp = Employee.objects.get(id=int(receiver_id))
+                        if emp.email:
+                            sender_user = User.objects.filter(email=emp.email).first()
+                    except (Employee.DoesNotExist, ValueError):
+                        pass
+                else:
+                    # Try emp_code
+                    try:
+                        emp = Employee.objects.get(emp_code=receiver_id)
+                        if emp.email:
+                            sender_user = User.objects.filter(email=emp.email).first()
+                    except Employee.DoesNotExist:
+                        pass
+                
+                # Mark all unread messages FROM sender TO current_user as read
+                if sender_user:
+                    EmployeeMessage.objects.filter(
+                        receiver_id=current_user_id,
+                        sender=sender_user,
+                        is_read=False
+                    ).update(is_read=True)
+                else:
+                    # Fallback: use receiver_id matching
+                    EmployeeMessage.objects.filter(
+                        receiver_id=current_user_id,
+                        receiver_name__icontains=receiver_id,
+                        is_read=False
+                    ).update(is_read=True)
         else:
             # If no user authenticated, get all messages for this receiver_id
             messages = EmployeeMessage.objects.filter(
