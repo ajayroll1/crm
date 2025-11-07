@@ -27,6 +27,7 @@ urlpatterns =[
   path('employees/<int:employee_id>/view/',views.employee_view,name='employee_view'),
   path('employees/<int:employee_id>/delete/',views.employee_delete,name='employee_delete'),
   path('attendance/',views.attendance,name='attendance'),
+  path('attendance/data/',views.attendance_data_api,name='attendance_data_api'),
   path('in-out/',views.in_out,name='in_out'),
   path('leave/',views.leave,name='leave'),
   path('dashboard/leaves/',views.dashboard_leaves,name='dashboard_leaves'),

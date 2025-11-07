@@ -1446,6 +1446,86 @@ def employee_delete(request, employee_id):
 def attendance(request):
   return render(request,'human_resource/attendance.html')
 
+def attendance_data_api(request):
+  """API endpoint to fetch attendance data for a given month"""
+  from datetime import datetime, timedelta
+  
+  month_str = request.GET.get('month', '')
+  if not month_str:
+    return JsonResponse({'error': 'Month parameter required'}, status=400)
+  
+  try:
+    year, month = map(int, month_str.split('-'))
+  except:
+    return JsonResponse({'error': 'Invalid month format. Use YYYY-MM'}, status=400)
+  
+  # Get start and end dates for the month
+  start_date = date(year, month, 1)
+  if month == 12:
+    end_date = date(year + 1, 1, 1) - timedelta(days=1)
+  else:
+    end_date = date(year, month + 1, 1) - timedelta(days=1)
+  
+  # Get all active employees
+  employees = Employee.objects.filter(status='active').order_by('first_name', 'last_name')
+  
+  # Get all attendance records for this month
+  attendance_records = Attendance.objects.filter(
+    date__gte=start_date,
+    date__lte=end_date
+  ).select_related('employee')
+  
+  # Create a map: (employee_id, date_str) -> attendance record
+  attendance_map = {}
+  for att in attendance_records:
+    emp_id = att.employee.id if att.employee else None
+    if emp_id:
+      date_str = att.date.strftime('%Y-%m-%d')
+      attendance_map[(emp_id, date_str)] = att
+  
+  # Prepare response data
+  employees_data = []
+  for emp in employees:
+    emp_data = {
+      'id': emp.id,
+      'name': emp.get_full_name(),
+      'department': emp.department or 'N/A'
+    }
+    employees_data.append(emp_data)
+  
+  # Prepare attendance data: key format: "empId_dateStr" -> status
+  attendance_data = {}
+  for (emp_id, date_str), att in attendance_map.items():
+    status = 'A'  # Default to Absent
+    
+    if att.check_in_time and att.check_out_time:
+      # Calculate work hours
+      delta = att.check_out_time - att.check_in_time
+      total_seconds = int(delta.total_seconds())
+      total_hours = total_seconds / 3600.0  # Convert to hours (decimal)
+      
+      # Required hours: 8 hours 30 minutes = 8.5 hours
+      required_hours = 8.5
+      half_day_hours = required_hours / 2.0  # 4 hours 15 minutes = 4.25 hours
+      
+      if total_hours >= required_hours:
+        status = 'P'  # Present
+      elif total_hours >= half_day_hours:
+        status = 'H'  # Half day
+      else:
+        status = 'A'  # Absent (less than half day)
+    elif att.check_in_time and not att.check_out_time:
+      # Only check-in, no check-out - cannot calculate hours, mark as Absent
+      status = 'A'  # Absent (no check-out, cannot calculate hours)
+    
+    key = f"{emp_id}_{date_str}"
+    attendance_data[key] = status
+  
+  return JsonResponse({
+    'employees': employees_data,
+    'attendance': attendance_data
+  })
+
 def leave(request):
     return render(request,'human_resource/leave.html')
 

@@ -76,22 +76,10 @@
 
 <script>
   document.addEventListener('DOMContentLoaded', () => {
-    // Demo employee data; replace with backend data later
-    const employees = [
-      { id: 1, name: 'John Doe', department: 'IT' },
-      { id: 2, name: 'Jane Smith', department: 'Operations' },
-      { id: 3, name: 'Mike Johnson', department: 'HR' },
-      { id: 4, name: 'Priya Sharma', department: 'Finance' },
-      { id: 5, name: 'Arun Kumar', department: 'Sales' }
-    ];
-
     const monthPicker = document.getElementById('monthPicker');
-    // Determine latest month from storage, else default to current month
-    const lsKeys = Object.keys(localStorage).filter(k => k.startsWith('attendance_month_'));
-    const latestKey = lsKeys.sort().pop();
     const today = new Date();
     const defaultMonth = `${today.getFullYear()}-${String(today.getMonth()+1).padStart(2,'0')}`;
-    monthPicker.value = latestKey ? latestKey.replace('attendance_month_','') : defaultMonth;
+    monthPicker.value = defaultMonth;
 
     const employeeListEl = document.getElementById('employeeList');
     const empSearch = document.getElementById('empSearch');
@@ -100,22 +88,30 @@
     const importCsvInput = document.getElementById('importCsvInput');
     const exportBtn = document.getElementById('btnExportCsv');
 
+    // Employee data and attendance data from backend
+    let employees = [];
     // In-memory attendance map: key `${empId}_${YYYY-MM-DD}` -> value 'P'|'A'|'L'|'H'
     let attendance = {};
 
-    function storageKeyForMonth(){
-      return `attendance_month_${monthPicker.value}`;
-    }
-
-    function loadMonthFromStorage(){
+    // Fetch attendance data from backend API
+    async function fetchAttendanceData(month) {
       try {
-        const raw = localStorage.getItem(storageKeyForMonth());
-        attendance = raw ? JSON.parse(raw) : {};
-      } catch { attendance = {}; }
-    }
-
-    function saveMonthToStorage(){
-      try { localStorage.setItem(storageKeyForMonth(), JSON.stringify(attendance)); } catch {}
+        const response = await fetch(`{% url 'attendance_data_api' %}?month=${month}`);
+        if (!response.ok) {
+          throw new Error('Failed to fetch attendance data');
+        }
+        const data = await response.json();
+        employees = data.employees || [];
+        attendance = data.attendance || {};
+        renderEmployees();
+        renderSheet();
+      } catch (error) {
+        console.error('Error fetching attendance data:', error);
+        employees = [];
+        attendance = {};
+        renderEmployees();
+        renderSheet();
+      }
     }
 
     function getDays(year, month){
@@ -193,7 +189,8 @@
           td.tabIndex = 0;
           td.dataset.date = d.dateStr;
           td.dataset.empId = e.id;
-          td.textContent = attendance[key] || '';
+          // If no attendance data for this day, show 'A' (Absent) by default
+          td.textContent = attendance[key] || 'A';
           applyCellStyle(td);
           td.addEventListener('click', () => cycle(td));
           td.addEventListener('keydown', (ev) => { if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); cycle(td); } });
@@ -211,7 +208,8 @@
       const key = `${td.dataset.empId}_${td.dataset.date}`;
       if (next) attendance[key] = next; else delete attendance[key];
       applyCellStyle(td);
-      saveMonthToStorage();
+      // Note: Manual changes are stored in memory but not saved to backend
+      // You may want to add an API endpoint to save manual overrides
     }
 
     function applyCellStyle(td){
@@ -257,22 +255,17 @@
         const [emp_id, date, status] = cols;
         if (emp_id && date) attendance[`${emp_id}_${date}`] = status || '';
       });
-      loadMonthFromStorage();
       renderSheet();
-      saveMonthToStorage();
       e.target.value = '';
     });
 
     // Re-render on changes
-    monthPicker.addEventListener('change', () => { loadMonthFromStorage(); renderSheet(); });
+    monthPicker.addEventListener('change', () => { fetchAttendanceData(monthPicker.value); });
     showWeekends.addEventListener('change', renderSheet);
     empSearch.addEventListener('input', () => renderEmployees(empSearch.value));
 
-    // Initial render
-    renderEmployees();
-    loadMonthFromStorage();
-    renderSheet();
-    saveMonthToStorage();
+    // Initial render - fetch data from backend
+    fetchAttendanceData(monthPicker.value);
   });
 </script>
 {% endblock %}
