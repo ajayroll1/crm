@@ -125,6 +125,9 @@
                 <button type="button" class="btn btn-outline-primary" onclick="startCamera('checkIn')">
                   <i class="bi bi-camera me-2"></i>Open Camera
                 </button>
+                <button type="button" class="btn btn-outline-info" onclick="showFileInputFallback('checkIn')">
+                  <i class="bi bi-upload me-2"></i>Upload Photo
+                </button>
                 <button type="button" class="btn btn-outline-success" onclick="capturePhoto('checkIn')" id="checkInCaptureBtn" disabled>
                   <i class="bi bi-camera-fill me-2"></i>Capture Photo
                 </button>
@@ -190,6 +193,9 @@
               <div class="camera-controls mt-3">
                 <button type="button" class="btn btn-outline-primary" onclick="startCamera('checkOut')">
                   <i class="bi bi-camera me-2"></i>Open Camera
+                </button>
+                <button type="button" class="btn btn-outline-info" onclick="showFileInputFallback('checkOut')">
+                  <i class="bi bi-upload me-2"></i>Upload Photo
                 </button>
                 <button type="button" class="btn btn-outline-success" onclick="capturePhoto('checkOut')" id="checkOutCaptureBtn" disabled>
                   <i class="bi bi-camera-fill me-2"></i>Capture Photo
@@ -1156,6 +1162,21 @@
     const preview = document.getElementById(type + 'CameraPreview');
     const captureBtn = document.getElementById(type + 'CaptureBtn');
     
+    // Check if getUserMedia is available (requires HTTPS or localhost)
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+      const isSecure = window.location.protocol === 'https:' || 
+                      window.location.hostname === 'localhost' || 
+                      window.location.hostname === '127.0.0.1';
+      
+      if (!isSecure) {
+        alert('Camera access requires HTTPS connection.\n\nPlease access this page using HTTPS (https://) instead of HTTP (http://).\n\nYou can upload a photo using the "Upload Photo" button instead.');
+        return;
+      } else {
+        alert('Camera access is not available in your browser. Please use the "Upload Photo" button to upload a photo.');
+        return;
+      }
+    }
+    
     navigator.mediaDevices.getUserMedia({ 
       video: { 
         facingMode: 'user',
@@ -1178,8 +1199,75 @@
     })
     .catch(err => {
       console.error('Error accessing camera:', err);
-      alert('Camera access denied or not available');
+      let errorMessage = 'Camera access denied or not available.';
+      
+      if (err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError') {
+        errorMessage = 'Camera permission denied. Please allow camera access in your browser settings.';
+      } else if (err.name === 'NotFoundError' || err.name === 'DevicesNotFoundError') {
+        errorMessage = 'No camera found. Please connect a camera or use the "Upload Photo" button.';
+      } else if (err.name === 'NotReadableError' || err.name === 'TrackStartError') {
+        errorMessage = 'Camera is already in use by another application.';
+      }
+      
+      alert(errorMessage + '\n\nYou can use the "Upload Photo" button to upload a photo instead.');
     });
+  }
+  
+  // Show file input for photo upload
+  function showFileInputFallback(type) {
+    const preview = document.getElementById(type + 'CameraPreview');
+    const photoData = document.getElementById(type + 'PhotoData');
+    const captureBtn = document.getElementById(type + 'CaptureBtn');
+    const retakeBtn = document.getElementById(type + 'RetakeBtn');
+    
+    preview.innerHTML = `
+      <div class="camera-placeholder">
+        <i class="bi bi-upload display-1 text-muted"></i>
+        <p class="text-muted mb-3">Upload a photo:</p>
+        <input type="file" accept="image/*" capture="environment" class="form-control" id="${type}FileInput" onchange="handleFileUpload('${type}', this.files[0])">
+      </div>
+    `;
+  }
+  
+  // Handle file upload
+  function handleFileUpload(type, file) {
+    if (!file) return;
+    
+    const preview = document.getElementById(type + 'CameraPreview');
+    const photoData = document.getElementById(type + 'PhotoData');
+    const captureBtn = document.getElementById(type + 'CaptureBtn');
+    const retakeBtn = document.getElementById(type + 'RetakeBtn');
+    
+    // Validate file type
+    if (!file.type.startsWith('image/')) {
+      alert('Please select an image file.');
+      return;
+    }
+    
+    // Validate file size (max 5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      alert('Image size should be less than 5MB.');
+      return;
+    }
+    
+    const reader = new FileReader();
+    reader.onload = function(e) {
+      const imageData = e.target.result;
+      photoData.value = imageData;
+      
+      // Display preview
+      const img = document.createElement('img');
+      img.src = imageData;
+      preview.innerHTML = '';
+      preview.appendChild(img);
+      
+      captureBtn.disabled = true;
+      retakeBtn.disabled = false;
+    };
+    reader.onerror = function() {
+      alert('Error reading file. Please try again.');
+    };
+    reader.readAsDataURL(file);
   }
   
   // Capture photo
@@ -1226,6 +1314,12 @@
     const retakeBtn = document.getElementById(type + 'RetakeBtn');
     const photoData = document.getElementById(type + 'PhotoData');
     
+    // Stop any active camera stream
+    if (currentStream) {
+      currentStream.getTracks().forEach(track => track.stop());
+      currentStream = null;
+    }
+    
     preview.innerHTML = `
       <div class="camera-placeholder">
         <i class="bi bi-camera display-1 text-muted"></i>
@@ -1237,6 +1331,7 @@
     captureBtn.disabled = true;
     retakeBtn.disabled = true;
     
+    // Try to start camera, but if not available, user can use Upload Photo button
     startCamera(type);
   }
   

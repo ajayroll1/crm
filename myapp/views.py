@@ -97,6 +97,37 @@ def login_view(request):
         # Login the user
         auth_login(request, authenticated_user)
         
+        # Check today's attendance status
+        today = timezone.now().date()
+        today_attendance = None
+        
+        # Try to get today's attendance record
+        try:
+          if employee:
+            today_attendance = Attendance.objects.filter(
+              employee=employee,
+              date=today
+            ).first()
+          if not today_attendance and authenticated_user:
+            today_attendance = Attendance.objects.filter(
+              user=authenticated_user,
+              date=today
+            ).first()
+        except:
+          pass
+        
+        # Check attendance status and show message
+        if today_attendance:
+          if today_attendance.check_in_time and today_attendance.check_out_time:
+            messages.info(request, f'Welcome back! You have already completed check-in and check-out today.')
+          elif today_attendance.check_in_time:
+            check_in_time = today_attendance.check_in_time.strftime('%I:%M %p')
+            messages.info(request, f'Welcome back! You checked in at {check_in_time}. Don\'t forget to check out!')
+          else:
+            messages.info(request, f'Welcome back! Please complete your check-in.')
+        else:
+          messages.info(request, f'Welcome back! Please complete your check-in for today.')
+        
         # Get role from Employee model
         role = employee.role or 'Employee'
         
@@ -118,6 +149,38 @@ def login_view(request):
         authenticated_user = authenticate(request, username=user.username, password=phone_number)
         if authenticated_user:
           auth_login(request, authenticated_user)
+          
+          # Check today's attendance status
+          today = timezone.now().date()
+          today_attendance = None
+          
+          # Try to get today's attendance record
+          try:
+            if employee:
+              today_attendance = Attendance.objects.filter(
+                employee=employee,
+                date=today
+              ).first()
+            if not today_attendance and authenticated_user:
+              today_attendance = Attendance.objects.filter(
+                user=authenticated_user,
+                date=today
+              ).first()
+          except:
+            pass
+          
+          # Check attendance status and show message
+          if today_attendance:
+            if today_attendance.check_in_time and today_attendance.check_out_time:
+              messages.info(request, f'Welcome back! You have already completed check-in and check-out today.')
+            elif today_attendance.check_in_time:
+              check_in_time = today_attendance.check_in_time.strftime('%I:%M %p')
+              messages.info(request, f'Welcome back! You checked in at {check_in_time}. Don\'t forget to check out!')
+            else:
+              messages.info(request, f'Welcome back! Please complete your check-in.')
+          else:
+            messages.info(request, f'Welcome back! Please complete your check-in for today.')
+          
           role = employee.role or 'Employee'
           if role == 'Admin':
             messages.success(request, f'Welcome back, {employee.get_full_name()}!')
