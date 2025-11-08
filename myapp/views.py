@@ -2139,6 +2139,9 @@ def employee_dashboard(request):
         
         present_days = attendance_records.count()
         
+        # Initialize working_days to avoid UnboundLocalError
+        working_days = 0
+        
         # If employee has attendance records, calculate from first attendance date
         if present_days > 0:
             # Get first attendance date
