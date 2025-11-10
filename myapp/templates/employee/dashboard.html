@@ -56,37 +56,7 @@
 {% endblock %}
 
 {% block content %}
-<!-- Welcome Section -->
-<div class="row mb-4">
-  <div class="col-12">
-    <div class="card welcome-card">
-      <div class="card-body">
-        <div class="row align-items-center">
-          <div class="col-md-8">
-            <h2 class="mb-2">Welcome back, {{ employee_name }}! 👋</h2>
-            <p class="text-muted mb-0">Here's what's happening with your work today.</p>
-          </div>
-          <div class="col-md-4 text-md-end">
-            <div class="d-flex align-items-center justify-content-md-end gap-3">
-              <div class="text-center">
-                <div class="fw-bold text-primary">Today</div>
-                <div class="text-muted small">{{ current_date }}</div>
-              </div>
-              <div class="text-center">
-                <div class="fw-bold text-success">Status</div>
-                {% if attendance_status == "Present" %}
-                  <div class="status-badge status-active">{{ attendance_status }}</div>
-                {% else %}
-                  <div class="status-badge status-pending">{{ attendance_status }}</div>
-                {% endif %}
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
-</div>
+<!-- Welcome Section removed as requested -->
 
 <!-- Quick Stats Row -->
 <div class="row mb-4">

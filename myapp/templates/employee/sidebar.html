@@ -10,10 +10,20 @@
     <!-- Employee Info -->
     <div class="employee-info">
       <div class="employee-avatar">
-        {{ employee_initials|default:"GU" }}
+        {% if employee_photo_url %}
+          <img src="{{ employee_photo_url }}" alt="{{ employee_name }}" class="avatar-img" style="width:40px;height:40px;border-radius:50%;object-fit:cover;">
+        {% else %}
+          {{ employee_initials|default:"GU" }}
+        {% endif %}
       </div>
       <div class="employee-name">{{ employee_name|default:"Guest User" }}</div>
       <div class="employee-role">{{ employee_designation|default:"Employee" }}</div>
+      {% if employee_department %}
+        <div class="employee-dept" style="font-size:12px;color:#6c757d;">{{ employee_department }}</div>
+      {% endif %}
+      {% if employee_email %}
+        <div class="employee-email" style="font-size:12px;color:#6c757d;">{{ employee_email }}</div>
+      {% endif %}
     </div>
   </div>
   

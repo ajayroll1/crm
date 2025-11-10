@@ -275,22 +275,34 @@
           <div class="row mb-3">
             <div class="col-12 col-md-6 mb-2 mb-md-0">
               <label class="form-label">Client Name <span class="text-danger">*</span></label>
-              <input type="text" class="form-control" name="client_name" required>
+              <select class="form-select" name="client_name" id="create_client_name" required onchange="fillCreateClientDetails(this)">
+                <option value="">Select Client (from Leads)</option>
+                {% for lead in leads_for_quote %}
+                  <option value="{{ lead.name }}"
+                          data-company="{{ lead.company|default:'' }}"
+                          data-email="{{ lead.email|default:'' }}"
+                          data-phone="{{ lead.phone|default:'' }}"
+                          {% if lead.has_sent %}disabled title="Already sent"{% endif %}>
+                    {{ lead.name }}{% if lead.company %} - {{ lead.company }}{% endif %}{% if lead.has_sent %} (Already Sent){% endif %}
+                  </option>
+                {% endfor %}
+              </select>
+              <small class="text-muted">List pulled from Leads. If a quote was sent earlier, it is marked as “Already Sent”.</small>
             </div>
             <div class="col-12 col-md-6">
               <label class="form-label">Company</label>
-              <input type="text" class="form-control" name="company">
+              <input type="text" class="form-control" name="company" id="create_company">
             </div>
             </div>
 
           <div class="row mb-3">
             <div class="col-12 col-md-6">
               <label class="form-label">Email</label>
-              <input type="email" class="form-control" name="email">
+              <input type="email" class="form-control" name="email" id="create_email">
             </div>
             <div class="col-12 col-md-6">
               <label class="form-label">Phone</label>
-              <input type="tel" class="form-control" name="phone">
+              <input type="tel" class="form-control" name="phone" id="create_phone">
             </div>
             </div>
 
@@ -923,6 +935,20 @@ function fillClientDetails(selectElement) {
     if (emailField) emailField.value = '';
     if (phoneField) phoneField.value = '';
   }
+}
+
+// Auto-fill create quote client details from Leads dropdown
+function fillCreateClientDetails(selectElement) {
+  const option = selectElement.options[selectElement.selectedIndex];
+  if (!option || !option.value) {
+    document.getElementById('create_company').value = '';
+    document.getElementById('create_email').value = '';
+    document.getElementById('create_phone').value = '';
+    return;
+  }
+  document.getElementById('create_company').value = option.getAttribute('data-company') || '';
+  document.getElementById('create_email').value = option.getAttribute('data-email') || '';
+  document.getElementById('create_phone').value = option.getAttribute('data-phone') || '';
 }
 </script>
 {% endblock %}

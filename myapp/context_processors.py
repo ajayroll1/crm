@@ -17,6 +17,9 @@ def employee_sidebar_counts(request):
         'employee_initials': 'GU',
         'employee_role': 'Employee',
         'employee_designation': 'Employee',
+        'employee_department': '',
+        'employee_email': '',
+        'employee_photo_url': '',
         'employee_id': 'N/A',
     }
     
@@ -69,12 +72,20 @@ def employee_sidebar_counts(request):
                 employee_info['employee_initials'] = employee_obj.get_initials() or 'GU'
                 employee_info['employee_role'] = employee_obj.designation or 'Employee'
                 employee_info['employee_designation'] = employee_obj.designation or 'Employee'
+                employee_info['employee_department'] = employee_obj.department or ''
+                employee_info['employee_email'] = employee_obj.email or getattr(request.user, 'email', '') or ''
+                try:
+                    employee_info['employee_photo_url'] = employee_obj.photo.url if getattr(employee_obj, 'photo', None) else ''
+                except Exception:
+                    employee_info['employee_photo_url'] = ''
                 employee_info['employee_id'] = employee_obj.emp_code or 'N/A'
                 user_name = employee_obj.get_full_name()
             else:
                 employee_info['employee_name'] = user_full_name
                 employee_info['employee_first_name'] = first_name or user_full_name.split()[0] if user_full_name else 'Guest'
                 employee_info['employee_initials'] = (employee_info['employee_first_name'][0] + (last_name[0] if last_name else employee_info['employee_first_name'][0])).upper() if employee_info['employee_first_name'] else 'GU'
+                employee_info['employee_department'] = ''
+                employee_info['employee_email'] = getattr(request.user, 'email', '') or ''
                 user_name = user_full_name
             
             # Unread Messages Count

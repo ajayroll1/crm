@@ -429,6 +429,7 @@ class Employee(models.Model):
     phone = models.CharField(max_length=20, verbose_name="Phone")
     address_current = models.TextField(blank=True, null=True, verbose_name="Current Address")
     address_permanent = models.TextField(blank=True, null=True, verbose_name="Permanent Address")
+    photo = models.ImageField(upload_to='uploads/employees/photos/', blank=True, null=True, verbose_name="Profile Photo")
     
     # Job Information
     designation = models.CharField(max_length=100, blank=True, null=True, verbose_name="Designation")

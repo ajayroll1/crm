@@ -16,6 +16,29 @@
   /* right align the Actions column contents */
   table .btn { padding: .25rem .5rem; }
   td:last-child { width: 120px; }
+  /* Ensure desktop tables scroll horizontally if overflow */
+  .table-responsive { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  .accounts-table { width: 100%; }
+  /* Desktop tuning: keep dense layout so less horizontal scroll is needed */
+  @media (min-width: 992px) and (max-width: 1399px) {
+    .accounts-table { font-size: .9rem; }
+    .accounts-table th,
+    .accounts-table td { white-space: normal; padding: .5rem .65rem; }
+    /* Tighter min-width so most columns fit without large horizontal scroll */
+    .accounts-table.clients-table,
+    .accounts-table.employees-table { min-width: 980px; }
+    .accounts-table.pay-table,
+    .accounts-table.transactions-table { min-width: 720px; }
+  }
+  /* Extra‑wide screens: keep single-line cells and wider tables */
+  @media (min-width: 1400px) {
+    .accounts-table th,
+    .accounts-table td { white-space: nowrap; }
+    .accounts-table.clients-table,
+    .accounts-table.employees-table { min-width: 1100px; }
+    .accounts-table.pay-table,
+    .accounts-table.transactions-table { min-width: 880px; }
+  }
 
   /* Mobile card layout for tables */
   @media (max-width: 768px) {
@@ -401,9 +424,15 @@
                 </td>
                 <td data-label="Actions">
                   <div class="d-flex justify-content-end gap-2">
-                    <button class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#payEmployeeModal{{ employee.id }}">
-                      <i class="bi bi-currency-rupee"></i> Pay Now
-                    </button>
+                    {% if employee.id in paid_this_month_ids %}
+                      <button class="btn btn-sm btn-secondary" disabled title="Already paid this month">
+                        <i class="bi bi-check2-circle"></i> Paid
+                      </button>
+                    {% else %}
+                      <button class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#payEmployeeModal{{ employee.id }}">
+                        <i class="bi bi-currency-rupee"></i> Pay Now
+                      </button>
+                    {% endif %}
                   </div>
                 </td>
               </tr>

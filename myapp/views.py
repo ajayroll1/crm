@@ -1051,6 +1051,15 @@ def accounts(request):
     # Get payment transactions for display
     payment_transactions = PaymentTransaction.objects.all().select_related('employee', 'processed_by').order_by('-payment_date', '-created_at')
     
+    # Determine employees already paid for current month/year
+    today = timezone.now().date()
+    paid_this_month_ids = set(
+        PaymentTransaction.objects.filter(
+            payment_month=today.month,
+            payment_year=today.year
+        ).exclude(status__in=['failed', 'cancelled']).values_list('employee_id', flat=True)
+    )
+    
     # Pagination for payment transactions
     transactions_page_num = request.GET.get('trans_page', 1)
     transactions_paginator = Paginator(payment_transactions, 10)  # Show 10 transactions per page
@@ -1065,6 +1074,7 @@ def accounts(request):
         'employees': employees_page,
         'clients': clients_page,
         'transactions': transactions_page,
+        'paid_this_month_ids': paid_this_month_ids,
     }
     return render(request, 'accounnts/accounts.html', context)
 ## Kanban removed
@@ -1100,6 +1110,18 @@ def pay_employee(request, employee_id):
         # Get payment month and year
         payment_month = payment_date.month
         payment_year = payment_date.year
+        
+        # Prevent duplicate payment in the same month/year (except failed/cancelled)
+        already_paid = PaymentTransaction.objects.filter(
+            employee=employee,
+            payment_month=payment_month,
+            payment_year=payment_year
+        ).exclude(status__in=['failed', 'cancelled']).exists()
+        if already_paid:
+            return JsonResponse({
+                'success': False,
+                'error': 'Payment already processed for this employee for this month.'
+            }, status=400)
         
         # Get payment method from request
         payment_method = request.POST.get('payment_method', 'bank_transfer')
@@ -1340,6 +1362,11 @@ def employees(request):
                     setattr(employee, field_name, request.FILES[field_name])
                     print(f"✅ Document saved - {field_name}: {request.FILES[field_name].name}")
                 # If no new file is uploaded, keep existing file (don't overwrite with None)
+            
+            # Profile Photo
+            if 'photo' in request.FILES:
+                employee.photo = request.FILES['photo']
+                print(f"✅ Profile photo saved - {request.FILES['photo'].name}")
             
             # Leave Balances
             for field in ['annual_leave', 'sick_leave', 'personal_leave', 'maternity_leave', 'paternity_leave', 'emergency_leave']:
@@ -4046,7 +4073,7 @@ def employee_payroll(request):
         'exemptions': 'N/A',
         'pay_history': pay_history,
         'has_transactions': has_transactions,
-    }
+        }
     
     return render(request, 'employee/payroll.html', context)
 
@@ -5236,6 +5263,11 @@ def employee_quotes(request):
                     messages.error(request, 'Valid Until date is required!')
                 return redirect('employee_quotes')
             
+            # Block duplicate send: if a Sent quote already exists for this client
+            if Quote.objects.filter(client_name__iexact=client_name, status__iexact='Sent').exists():
+                messages.error(request, f'Quote already sent to "{client_name}". You cannot send again.')
+                return redirect('employee_quotes')
+            
             # Parse valid_until date
             try:
                 valid_until = datetime.strptime(valid_until_str, '%Y-%m-%d').date()
@@ -5413,11 +5445,25 @@ def employee_quotes(request):
     except EmptyPage:
         onboardings = onboardings_paginator.page(onboardings_paginator.num_pages)
     
+    # Build Leads for Create Quote dropdown (from myapp_lead)
+    leads_qs = Lead.objects.filter(is_active=True).order_by('name')
+    leads_for_quote = []
+    for lead in leads_qs:
+        has_sent = Quote.objects.filter(client_name__iexact=lead.name, status__iexact='Sent').exists()
+        leads_for_quote.append({
+            'name': lead.name,
+            'company': lead.company or '',
+            'email': lead.email or '',
+            'phone': lead.phone or '',
+            'has_sent': has_sent,
+        })
+    
     context = {
         'quotes': quotes,
         'onboardings': onboardings,
         'available_clients': available_clients,  # List of tuples: (client_name, company, email, phone)
         'engineers': engineers_with_count,  # List of dicts with engineer info and project count
+        'leads_for_quote': leads_for_quote,  # Leads dropdown data
     }
     
     return render(request, 'employee/quotes.html', context)

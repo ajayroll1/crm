@@ -342,6 +342,12 @@
             </div>
 
             <div class="col-md-3">
+              <label class="form-label">Profile Photo</label>
+              <input type="file" class="form-control" name="photo" accept="image/*">
+              <small class="text-muted">JPEG/PNG up to 5MB</small>
+            </div>
+
+            <div class="col-md-3">
               <label class="form-label">Gender</label>
               <div class="dropdown">
                 <button 
@@ -1219,9 +1225,13 @@
             <tr>
               <td data-label="Employee">
                 <div class="d-flex align-items-center">
-                  <div class="avatar-sm bg-primary text-white rounded-circle d-flex align-items-center justify-content-center me-2" style="width: 35px; height: 35px;">
+                  {% if employee.photo %}
+                    <img src="{{ employee.photo.url }}" alt="{{ employee.get_full_name }}" class="rounded-circle me-2" style="width:35px;height:35px;object-fit:cover;">
+                  {% else %}
+                    <div class="avatar-sm bg-primary text-white rounded-circle d-flex align-items-center justify-content-center me-2" style="width: 35px; height: 35px;">
                       <span class="fw-bold">{{ employee.get_initials }}</span>
-                  </div>
+                    </div>
+                  {% endif %}
                   <div>
                       <div class="fw-semibold">{{ employee.get_full_name }}</div>
                       <small class="text-muted">{{ employee.emp_code|default:"No Code" }}</small>
