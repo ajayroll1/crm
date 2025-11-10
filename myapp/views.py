@@ -1456,6 +1456,7 @@ def employee_view(request, employee_id):
             'last_name': employee.last_name,
             'emp_code': employee.emp_code,
             'initials': employee.get_initials(),
+            'photo_url': (employee.photo.url if getattr(employee, 'photo', None) else None),
             'email': employee.email,
             'phone': employee.phone,
             'designation': employee.designation,

@@ -1,4 +1,5 @@
 {% extends "dashboard/dashboard_base.html"%}
+{% load static %}
 {% block title %}Employees -Sujata Associates{% endblock%}
 
 {% block content %}
@@ -6,6 +7,99 @@
   <h1>Employee Master</h1>
   <p class="text-muted">Add and manage complete employee records</p>
 </div>
+
+<!-- Employee ID Card Modal -->
+<div class="modal fade" id="idCardModal" tabindex="-1" aria-labelledby="idCardModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="idCardModalLabel">Employee ID Card</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <div class="d-flex justify-content-center">
+          <div id="idCardPreview" class="p-3" style="background: transparent;">
+            <div class="idcard-toolbar text-center mb-2">
+              <button type="button" class="btn btn-sm btn-outline-primary rounded-circle" id="btnFlipCard" title="Flip">
+                <i class="bi bi-arrow-repeat"></i>
+              </button>
+            </div>
+            <div class="idcard-3d d-flex justify-content-center">
+              <div id="idCardInner" class="idcard-inner">
+                <!-- FRONT -->
+                <div id="idCardCanvasFront" class="idcard-canvas idcard-face idcard-front">
+                  <div style="position:absolute; right:-40px; top:-60px; width:220px; height:220px; border-radius:50%; background: radial-gradient(circle at 30% 30%, rgba(255,255,255,.15), rgba(255,255,255,0));"></div>
+                  <div style="display:flex; align-items:center; gap:10px; padding:12px 14px;">
+                    <img src="{% static 'images/Logo-new-final.png' %}" alt="Logo" style="height:28px;">
+                    <div style="font-weight:700; letter-spacing:.3px;">Sujata Associates</div>
+                  </div>
+                  <div style="display:flex; gap:12px; padding:8px 14px 14px 14px; align-items:center;">
+                    <div id="idAvatar" style="width:64px; height:64px; border-radius:50%; background:#2a3350; display:flex; align-items:center; justify-content:center; font-weight:700; font-size:22px; text-transform:uppercase; overflow:hidden;">
+                      <span id="idInitials">EM</span>
+                      <img id="idPhoto" src="" alt="" style="display:none; width:100%; height:100%; object-fit:cover;">
+                    </div>
+                    <div style="flex:1;">
+                      <div id="idName" style="font-size:18px; font-weight:700;">Employee Name</div>
+                      <div id="idDesignation" style="font-size:13px; color:#b6c3ff;">Designation</div>
+                      <div id="idDepartment" style="font-size:12px; color:#8f9bb3;">Department</div>
+                    </div>
+                    <div style="text-align:right;">
+                      <div style="font-size:10px; color:#8f9bb3; text-transform:uppercase;">Employee Code</div>
+                      <div id="idCode" style="font-size:14px; font-weight:600;">EMP-0000</div>
+                    </div>
+                  </div>
+                  <div style="display:flex; gap:12px; padding:0 14px;">
+                    <div style="flex:1; background:#141a2b; border-radius:8px; padding:8px 10px; display:flex; align-items:center; gap:8px;">
+                      <i class="bi bi-envelope" style="color:#5c73e6;"></i>
+                      <div style="font-size:12px; color:#c9d1e6; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;" id="idEmail">email@example.com</div>
+                    </div>
+                    <div style="flex:1; background:#141a2b; border-radius:8px; padding:8px 10px; display:flex; align-items:center; gap:8px;">
+                      <i class="bi bi-telephone" style="color:#5c73e6;"></i>
+                      <div style="font-size:12px; color:#c9d1e6; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;" id="idPhone">+91 00000 00000</div>
+                    </div>
+                  </div>
+                  <div style="position:absolute; bottom:8px; left:14px; font-size:10px; color:#6f7aa3;">www.sujataassociates.com&nbsp;&nbsp;&nbsp;+91 90380 01356</div>
+                  <div style="position:absolute; bottom:8px; right:14px; font-size:10px; color:#6f7aa3;" id="idValidity">Valid</div>
+                </div>
+                <!-- BACK -->
+                <div id="idCardCanvasBack" class="idcard-canvas idcard-face idcard-back">
+                  <div style="position:absolute; left:-60px; top:-80px; width:260px; height:260px; border-radius:50%; background: radial-gradient(circle at 60% 40%, rgba(255,255,255,.08), rgba(255,255,255,0));"></div>
+                  <div style="display:flex; align-items:center; gap:10px; padding:12px 14px;">
+                    <img src="{% static 'images/Logo-new-final.png' %}" alt="Logo" style="height:24px;">
+                    <div style="font-weight:700; letter-spacing:.3px;">Sujata Associates</div>
+                  </div>
+                  <div style="padding:10px 14px 0 14px; font-size:12px; line-height:1.35;">
+                    <div style="font-weight:700; margin-bottom:6px;">If this card is lost or found</div>
+                    <div>Please contact the following to return this ID card:</div>
+                    <ul style="margin:8px 0 0 18px; padding:0;">
+                      <li>Employee: <span id="backEmpName">Employee Name</span> — <span id="backEmpPhone">+91 00000 00000</span></li>
+                      <li>Company: Sujata Associates — +91 90380 01356</li>
+                      <li>Email: <span id="backEmpEmail">email@example.com</span></li>
+                    </ul>
+                  </div>
+                  <div style="position:absolute; bottom:10px; left:14px; font-size:10px; color:#9aa6d4;">This card is company property. Misuse is punishable.</div>
+                  <div style="position:absolute; bottom:10px; right:14px; font-size:10px; color:#9aa6d4;" id="backEmpCode">EMP-0000</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Close</button>
+        <button type="button" class="btn btn-outline-primary" id="btnShareIdCard">
+          <i class="bi bi-share"></i> Share
+        </button>
+        <button type="button" class="btn btn-primary" id="btnDownloadIdCard">
+          <i class="bi bi-download"></i> Download
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- html2canvas for image export -->
+<script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
 
 <style>
   .nav-tabs .nav-link { color: #000 !important; }
@@ -41,6 +135,36 @@
   @media (max-width: 576px){
     #empTabs .nav-link { font-size: .9rem; }
     .form-section-title { font-size: .95rem; }
+  }
+
+  /* ID Card Flip 3D */
+  .idcard-3d { perspective: 1000px; }
+  .idcard-inner {
+    position: relative;
+    width: 360px;
+    height: 220px;
+    transform-style: preserve-3d;
+    transition: transform 0.7s cubic-bezier(.2,.8,.2,1);
+  }
+  .idcard-inner.flipped { transform: rotateY(180deg); }
+  .idcard-face {
+    position: absolute;
+    top: 0; left: 0;
+    width: 360px; height: 220px;
+    border-radius: 14px;
+    backface-visibility: hidden;
+    overflow: hidden;
+    box-shadow: 0 8px 20px rgba(0,0,0,.25);
+  }
+  .idcard-front {
+    background: linear-gradient(135deg, #101522 0%, #1b2236 100%);
+    color: #fff;
+    z-index: 2;
+  }
+  .idcard-back {
+    background: linear-gradient(135deg, #0f1320 0%, #0a0d17 100%);
+    color: #e6ebff;
+    transform: rotateY(180deg);
   }
 
   /* Leave Balance Cards Styling */
@@ -1215,6 +1339,7 @@
               <th>Designation</th>
               <th>Department</th>
               <th>Contact</th>
+              <th>ID Card</th>
               <th>Status</th>
               <th width="120">Actions</th>
             </tr>
@@ -1251,6 +1376,11 @@
                     <div class="small">{{ employee.email }}</div>
                     <div class="small text-muted">{{ employee.phone|default:"-" }}</div>
                 </div>
+              </td>
+              <td data-label="ID Card">
+                <button type="button" class="btn btn-sm btn-outline-dark" title="Generate ID Card" onclick="generateIdCard({{ employee.id }})">
+                  <i class="bi bi-credit-card-2-front"></i>
+                </button>
               </td>
               <td data-label="Status">
                   {% if employee.status == 'active' %}
@@ -1740,6 +1870,116 @@
           alert('Error loading employee data');
         });
     };
+    
+    // Generate ID Card
+    window.generateIdCard = function(id) {
+      fetch(`/employees/${id}/view/`)
+        .then(response => response.json())
+        .then(data => {
+          if (!data.success || !data.employee) {
+            throw new Error(data.error || 'Unable to load employee data');
+          }
+          const emp = data.employee;
+          
+          const fullName = `${emp.first_name || ''} ${emp.last_name || ''}`.trim() || 'Employee';
+          const initials = ((emp.first_name?.[0] || '') + (emp.last_name?.[0] || (emp.first_name?.[0] || ''))).toUpperCase().slice(0,2) || 'EM';
+          document.getElementById('idName').textContent = fullName;
+          document.getElementById('idDesignation').textContent = emp.designation || 'Employee';
+          document.getElementById('idDepartment').textContent = emp.department || '';
+          document.getElementById('idCode').textContent = emp.emp_code || 'No Code';
+          document.getElementById('idEmail').textContent = emp.email || '-';
+          document.getElementById('idPhone').textContent = emp.phone || '-';
+          document.getElementById('idInitials').textContent = initials;
+          
+          // Photo if provided
+          const img = document.getElementById('idPhoto');
+          const initialsSpan = document.getElementById('idInitials');
+          if (emp.photo && typeof emp.photo === 'string') {
+            try { img.src = emp.photo; img.style.display = 'block'; initialsSpan.style.display = 'none'; }
+            catch(e){ img.style.display = 'none'; initialsSpan.style.display = 'block'; }
+          } else if (emp.photo_url) {
+            try { img.src = emp.photo_url; img.style.display = 'block'; initialsSpan.style.display = 'none'; }
+            catch(e){ img.style.display = 'none'; initialsSpan.style.display = 'block'; }
+          } else {
+            img.style.display = 'none';
+            initialsSpan.style.display = 'block';
+          }
+          
+          // Back side fields
+          document.getElementById('backEmpName').textContent = fullName;
+          document.getElementById('backEmpPhone').textContent = emp.phone || '-';
+          document.getElementById('backEmpEmail').textContent = emp.email || '-';
+          document.getElementById('backEmpCode').textContent = emp.emp_code || 'EMP-0000';
+          
+          // Default to FRONT
+          const inner = document.getElementById('idCardInner');
+          if (inner) inner.classList.remove('flipped');
+          
+          const modalElem = document.getElementById('idCardModal');
+          const bsModal = new bootstrap.Modal(modalElem);
+          bsModal.show();
+          
+          // Download handler
+          document.getElementById('btnDownloadIdCard').onclick = function() {
+            const node = getActiveCanvas();
+            html2canvas(node, {backgroundColor: null, scale: 2}).then(canvas => {
+              canvas.toBlob(function(blob) {
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `${(emp.emp_code || fullName || 'id-card').replace(/\\s+/g,'_')}_${node.id.includes('Back') ? 'back' : 'front'}.png`;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+              });
+            });
+          };
+          
+          // Share handler
+          document.getElementById('btnShareIdCard').onclick = function() {
+            const node = getActiveCanvas();
+            html2canvas(node, {backgroundColor: null, scale: 2}).then(canvas => {
+              canvas.toBlob(async function(blob) {
+                const file = new File([blob], `${(emp.emp_code || fullName || 'id-card').replace(/\\s+/g,'_')}_${node.id.includes('Back') ? 'back' : 'front'}.png`, { type: 'image/png' });
+                if (navigator.canShare && navigator.canShare({ files: [file] })) {
+                  try {
+                    await navigator.share({ files: [file], title: 'Employee ID Card', text: fullName });
+                  } catch (e) {
+                    console.warn('Share cancelled or failed', e);
+                  }
+                } else {
+                  const url = URL.createObjectURL(blob);
+                  const a = document.createElement('a');
+                  a.href = url;
+                  a.download = `${(emp.emp_code || fullName || 'id-card').replace(/\\s+/g,'_')}_${node.id.includes('Back') ? 'back' : 'front'}.png`;
+                  document.body.appendChild(a);
+                  a.click();
+                  document.body.removeChild(a);
+                  URL.revokeObjectURL(url);
+                }
+              });
+            });
+          };
+        })
+        .catch(err => {
+          console.error(err);
+          alert('Failed to generate ID card. Please try again.');
+        });
+    };
+    
+    // Toggle helpers
+    function getActiveCanvas(){
+      const inner = document.getElementById('idCardInner');
+      const isBack = inner && inner.classList.contains('flipped');
+      return isBack ? document.getElementById('idCardCanvasBack') : document.getElementById('idCardCanvasFront');
+    }
+    document.addEventListener('click', function(e){
+      if (e.target && (e.target.id === 'btnFlipCard' || e.target.closest('#btnFlipCard'))) {
+        const inner = document.getElementById('idCardInner');
+        if (inner) inner.classList.toggle('flipped');
+      }
+    });
     
     // Delete employee
     window.deleteEmployee = function(id) {
