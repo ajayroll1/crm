@@ -5,12 +5,12 @@ from django.contrib.auth import logout as auth_logout, login as auth_login, auth
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.models import User
 from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
-from django.db.models import Q, Count
+from django.db.models import Q, Count, Sum
 from django.utils import timezone
 from datetime import datetime, date
 from decimal import Decimal
 import json
-from .models import Lead, LeaveRequest, Document, Attendance, Quote, ClientOnboarding, Employee, EmployeeMessage
+from .models import Lead, LeaveRequest, Document, Attendance, Quote, ClientOnboarding, Employee, EmployeeMessage, PaymentTransaction
 from .forms import LeadForm, LeadFilterForm
 from django.views.decorators.http import require_POST
 from django.views.decorators.csrf import csrf_exempt, ensure_csrf_cookie
@@ -36,18 +36,36 @@ def home(request):
 def login_view(request):
   """Login view - authenticate user with email (from Employee) and phone number (as password) and redirect based on role"""
   if request.method == 'POST':
-    email = request.POST.get('email', '').strip()
+    email = request.POST.get('email', '').strip().lower()  # Convert to lowercase for case-insensitive matching
     phone_number = request.POST.get('password', '').strip()  # Password field contains phone number
     
-    if not email or not phone_number:
-      messages.error(request, 'Please provide both email and phone number.')
+    # Validate input
+    if not email:
+      messages.error(request, 'Please enter your email address.')
       return redirect('home')
     
-    # Find Employee by email
+    if not phone_number:
+      messages.error(request, 'Please enter your phone number.')
+      return redirect('home')
+    
+    # Basic email format validation
+    if '@' not in email or '.' not in email:
+      messages.error(request, 'Please enter a valid email address.')
+      return redirect('home')
+    
+    # Find Employee by email (case-insensitive)
     try:
-      employee = Employee.objects.get(email=email)
+      employee = Employee.objects.get(email__iexact=email)
     except Employee.DoesNotExist:
       messages.error(request, 'Invalid email address. Please check your email and try again.')
+      return redirect('home')
+    except Employee.MultipleObjectsReturned:
+      # If multiple employees found (shouldn't happen), get the first one
+      employee = Employee.objects.filter(email__iexact=email).first()
+    
+    # Check if employee phone number exists
+    if not employee.phone:
+      messages.error(request, 'Your account does not have a phone number registered. Please contact administrator.')
       return redirect('home')
     
     # Verify phone number matches
@@ -55,8 +73,12 @@ def login_view(request):
     employee_phone = ''.join(filter(str.isdigit, employee.phone or ''))
     input_phone = ''.join(filter(str.isdigit, phone_number))
     
+    if not input_phone:
+      messages.error(request, 'Please enter a valid phone number.')
+      return redirect('home')
+    
     if employee_phone != input_phone:
-      messages.error(request, 'Invalid phone number. Please check and try again.')
+      messages.error(request, 'Invalid phone number. Please check your phone number and try again.')
       return redirect('home')
     
     # Check if employee is active
@@ -67,8 +89,8 @@ def login_view(request):
     # Get or create User account for this employee
     user = None
     try:
-      # Try to find existing user by email
-      user = User.objects.get(email=email)
+      # Try to find existing user by email (case-insensitive)
+      user = User.objects.get(email__iexact=email)
     except User.DoesNotExist:
       # Create User account for Employee if it doesn't exist
       username = email.split('@')[0]  # Use email prefix as username
@@ -79,15 +101,25 @@ def login_view(request):
         username = f"{base_username}{counter}"
         counter += 1
       
-      # Create user with phone number as password
-      user = User.objects.create_user(
-        username=username,
-        email=email,
-        password=phone_number,  # Use phone number as password
-        first_name=employee.first_name,
-        last_name=employee.last_name,
-        is_staff=(employee.role == 'Admin')
-      )
+      try:
+        # Create user with phone number as password
+        user = User.objects.create_user(
+          username=username,
+          email=employee.email,  # Use employee's email from database (original case)
+          password=phone_number,  # Use phone number as password
+          first_name=employee.first_name,
+          last_name=employee.last_name,
+          is_staff=(employee.role == 'Admin')
+        )
+      except Exception as e:
+        messages.error(request, f'Error creating user account: {str(e)}. Please contact administrator.')
+        return redirect('home')
+    except User.MultipleObjectsReturned:
+      # If multiple users found (shouldn't happen), get the first one
+      user = User.objects.filter(email__iexact=email).first()
+    except Exception as e:
+      messages.error(request, 'An error occurred during login. Please try again or contact administrator.')
+      return redirect('home')
     
     # Authenticate user
     authenticated_user = authenticate(request, username=user.username, password=phone_number)
@@ -918,8 +950,211 @@ def assign_engineer(request, lead_id):
 
 @login_required
 def accounts(request):
-  return render(request, 'accounnts/accounts.html')
+    """Accounts page - displays client receivables and employee account details with payroll"""
+    from django.core.paginator import Paginator
+    from django.db.models import Sum, Q
+    from decimal import Decimal
+    
+    # Get all employees with their payroll information
+    employees = Employee.objects.all().order_by('-created_at')
+    
+    # Pagination for employees
+    employees_page_num = request.GET.get('emp_page', 1)
+    employees_paginator = Paginator(employees, 10)  # Show 10 employees per page
+    try:
+        employees_page = employees_paginator.page(employees_page_num)
+    except PageNotAnInteger:
+        employees_page = employees_paginator.page(1)
+    except EmptyPage:
+        employees_page = employees_paginator.page(employees_paginator.num_pages)
+    
+    # Get all clients from ClientOnboarding
+    clients_onboarding = ClientOnboarding.objects.all().order_by('-created_at')
+    
+    # Prepare client accounts data
+    client_accounts = []
+    for client in clients_onboarding:
+        # Get all quotes for this client (match by client_name)
+        client_quotes = Quote.objects.filter(client_name__iexact=client.client_name)
+        
+        # Calculate financial metrics
+        total_quoted = client_quotes.aggregate(total=Sum('total'))['total'] or Decimal('0')
+        
+        # Amount invoiced = sum of accepted quotes
+        amount_invoiced = client_quotes.filter(status='Accepted').aggregate(
+            total=Sum('total')
+        )['total'] or Decimal('0')
+        
+        # If no quotes, use project_cost from ClientOnboarding
+        if total_quoted == 0 and client.project_cost:
+            total_quoted = client.project_cost
+            # If status is active or completed, consider it as invoiced
+            if client.status in ['active', 'completed']:
+                amount_invoiced = client.project_cost
+        
+        # Amount received - for now, use project_cost if status is completed
+        # In a real system, this would come from a Payment model
+        amount_received = Decimal('0')
+        if client.status == 'completed':
+            amount_received = amount_invoiced  # Assume full payment for completed projects
+        
+        # Outstanding = Invoiced - Received
+        outstanding = amount_invoiced - amount_received
+        
+        # Get last payment date (for now, use updated_at if status is completed)
+        last_payment = None
+        if client.status == 'completed' and client.updated_at:
+            last_payment = client.updated_at.date()
+        
+        # Get status for display
+        if outstanding == 0 and amount_invoiced > 0:
+            payment_status = 'Paid'
+            status_badge = 'bg-success'
+        elif amount_received > 0 and outstanding > 0:
+            payment_status = 'Partially Paid'
+            status_badge = 'bg-warning text-dark'
+        elif amount_invoiced > 0:
+            payment_status = 'Unpaid'
+            status_badge = 'bg-danger'
+        else:
+            payment_status = 'Pending'
+            status_badge = 'bg-secondary'
+        
+        client_accounts.append({
+            'id': client.id,
+            'client_name': client.client_name,
+            'company_name': client.company_name,
+            'email': client.client_email,
+            'phone': client.client_phone,
+            'total_quoted': total_quoted,
+            'amount_invoiced': amount_invoiced,
+            'amount_received': amount_received,
+            'outstanding': outstanding,
+            'last_payment': last_payment,
+            'status': payment_status,
+            'status_badge': status_badge,
+            'project_name': client.project_name,
+            'project_cost': client.project_cost,
+            'quotes': client_quotes,
+        })
+    
+    # Pagination for clients
+    clients_page_num = request.GET.get('client_page', 1)
+    clients_paginator = Paginator(client_accounts, 10)  # Show 10 clients per page
+    try:
+        clients_page = clients_paginator.page(clients_page_num)
+    except PageNotAnInteger:
+        clients_page = clients_paginator.page(1)
+    except EmptyPage:
+        clients_page = clients_paginator.page(clients_paginator.num_pages)
+    
+    # Get payment transactions for display
+    payment_transactions = PaymentTransaction.objects.all().select_related('employee', 'processed_by').order_by('-payment_date', '-created_at')
+    
+    # Pagination for payment transactions
+    transactions_page_num = request.GET.get('trans_page', 1)
+    transactions_paginator = Paginator(payment_transactions, 10)  # Show 10 transactions per page
+    try:
+        transactions_page = transactions_paginator.page(transactions_page_num)
+    except PageNotAnInteger:
+        transactions_page = transactions_paginator.page(1)
+    except EmptyPage:
+        transactions_page = transactions_paginator.page(transactions_paginator.num_pages)
+    
+    context = {
+        'employees': employees_page,
+        'clients': clients_page,
+        'transactions': transactions_page,
+    }
+    return render(request, 'accounnts/accounts.html', context)
 ## Kanban removed
+
+
+@login_required
+@require_POST
+@csrf_exempt
+def pay_employee(request, employee_id):
+    """Process payment for an employee"""
+    try:
+        employee = Employee.objects.get(id=employee_id)
+        
+        # Calculate net salary
+        basic = employee.basic or Decimal('0')
+        hra = employee.hra or Decimal('0')
+        allowances = employee.allowances or Decimal('0')
+        variable = employee.variable or Decimal('0')
+        deductions = employee.deductions or Decimal('0')
+        
+        net_salary = basic + hra + allowances + variable - deductions
+        
+        # Get payment date from request or use today's date
+        payment_date_str = request.POST.get('payment_date', '')
+        if payment_date_str:
+            try:
+                payment_date = datetime.strptime(payment_date_str, '%Y-%m-%d').date()
+            except:
+                payment_date = date.today()
+        else:
+            payment_date = date.today()
+        
+        # Get payment month and year
+        payment_month = payment_date.month
+        payment_year = payment_date.year
+        
+        # Get payment method from request
+        payment_method = request.POST.get('payment_method', 'bank_transfer')
+        
+        # Get transaction ID and reference number if provided
+        transaction_id = request.POST.get('transaction_id', '').strip() or None
+        reference_number = request.POST.get('reference_number', '').strip() or None
+        notes = request.POST.get('notes', '').strip() or None
+        
+        # Create payment transaction record
+        payment_transaction = PaymentTransaction.objects.create(
+            employee=employee,
+            employee_name=employee.get_full_name(),
+            employee_department=employee.department,
+            amount=net_salary,
+            basic=employee.basic,
+            hra=employee.hra,
+            allowances=employee.allowances,
+            deductions=employee.deductions,
+            variable=employee.variable,
+            ctc=employee.ctc,
+            payment_method=payment_method,
+            transaction_id=transaction_id,
+            reference_number=reference_number,
+            payment_month=payment_month,
+            payment_year=payment_year,
+            payment_date=payment_date,
+            notes=notes,
+            processed_by=request.user,
+            status='completed'
+        )
+        
+        # Here you would typically:
+        # 1. Generate a payslip
+        # 2. Send payment to bank/UPI
+        # 3. Send notification to employee
+        
+        return JsonResponse({
+            'success': True,
+            'message': f'Payment of ₹ {net_salary:,.2f} processed successfully for {employee.get_full_name()}',
+            'net_salary': str(net_salary),
+            'employee_name': employee.get_full_name(),
+            'transaction_id': payment_transaction.id,
+            'payment_date': payment_date.strftime('%d %B %Y')
+        })
+    except Employee.DoesNotExist:
+        return JsonResponse({
+            'success': False,
+            'error': 'Employee not found'
+        }, status=404)
+    except Exception as e:
+        return JsonResponse({
+            'success': False,
+            'error': str(e)
+        }, status=500)
 
 
 def leads_import_export(request):
@@ -3652,16 +3887,29 @@ def employee_payroll(request):
             employees = Employee.objects.filter(query)
             employee_obj = employees.first()
     
-    # Format currency helper
-    def format_currency(value):
-        if value is None:
-            return '0.00'
+    # Decimal helper
+    def to_decimal(value):
+        if value is None or value == '':
+            return Decimal('0')
         if isinstance(value, Decimal):
-            return f"{value:,.2f}"
+            return value
         try:
-            return f"{float(value):,.2f}"
-        except:
-            return str(value) if value else '0.00'
+            return Decimal(str(value))
+        except Exception:
+            return Decimal('0')
+    
+    def build_snapshot_filter(name, department):
+        filters = []
+        if name:
+            filters.append(Q(employee_name__iexact=name.strip()))
+        if department:
+            filters.append(Q(employee_department__iexact=department.strip()))
+        if not filters:
+            return None
+        query = filters[0]
+        for condition in filters[1:]:
+            query &= condition
+        return query
     
     # Get account last 4 digits helper
     def get_account_last4(account_number):
@@ -3669,138 +3917,136 @@ def employee_payroll(request):
             return str(account_number)[-4:]
         return 'N/A'
     
-    # Build payroll data from matched employee or use defaults
+    def get_next_payment_date(payment_date):
+        if not payment_date:
+            return None
+        year = payment_date.year + (1 if payment_date.month == 12 else 0)
+        month = 1 if payment_date.month == 12 else payment_date.month + 1
+        from calendar import monthrange
+        day = min(payment_date.day, monthrange(year, month)[1])
+        try:
+            return date(year, month, day)
+        except ValueError:
+            return None
+    
+    snapshot_name = ''
+    snapshot_department = ''
     if employee_obj:
-        # Calculate monthly salary from CTC or basic
-        monthly_salary = None
-        if employee_obj.ctc:
-            monthly_salary = employee_obj.ctc / Decimal('12')
-        elif employee_obj.basic:
-            monthly_salary = employee_obj.basic
-        
-        # Payroll Information Section
-        payroll_info = {
-            'employee_id': employee_obj.emp_code or 'N/A',
-            'pay_frequency': employee_obj.pay_cycle or 'Monthly',
-            'pay_method': 'Direct Deposit' if employee_obj.bank_name and employee_obj.account_number else 'N/A',
-            'bank_account_last4': get_account_last4(employee_obj.account_number) if employee_obj.account_number else 'N/A',
-            'tax_filing_status': 'Single',  # Default, can be enhanced later
-            'exemptions': 1,  # Default, can be enhanced later
-        }
-        
-        # Calculate current salary (monthly basic + HRA + allowances)
-        current_salary = Decimal('0')
-        if employee_obj.basic:
-            current_salary += employee_obj.basic
-        if employee_obj.hra:
-            current_salary += employee_obj.hra
-        if employee_obj.allowances:
-            current_salary += employee_obj.allowances
-        
-        # Use CTC if available, otherwise calculated salary
-        if employee_obj.ctc:
-            current_salary = employee_obj.ctc / Decimal('12')
-        
-        # For demo purposes, set some calculated values
-        # In real scenario, these would come from a payroll transactions table
-        context = {
-            'current_salary': format_currency(current_salary),
-            'last_payment': format_currency(current_salary * Decimal('0.96')),  # Approximate after deductions
-            'last_payment_date': 'Dec 01, 2024',  # Would come from last payroll record
-            'ytd_earnings': format_currency(current_salary * Decimal('12') * Decimal('0.9')),  # Approximate YTD
-            'next_payment_date': 'Dec 15, 2024',  # Would be calculated from pay_cycle
-            'current_period': 'Dec 01 - Dec 15, 2024',
-            'regular_hours': 80,
-            'regular_pay': format_currency(current_salary * Decimal('0.8')) if current_salary else '0.00',
-            'overtime_hours': 8,
-            'overtime_pay': format_currency(current_salary * Decimal('0.1')) if current_salary else '0.00',
-            'bonus': format_currency(employee_obj.variable) if employee_obj.variable else '0.00',
-            'commission': '0.00',
-            'total_earnings': format_currency(current_salary),
-            'federal_tax': format_currency(current_salary * Decimal('0.15')) if current_salary else '0.00',
-            'state_tax': format_currency(current_salary * Decimal('0.05')) if current_salary else '0.00',
-            'social_security': format_currency(current_salary * Decimal('0.062')) if current_salary else '0.00',
-            'medicare': format_currency(current_salary * Decimal('0.0145')) if current_salary else '0.00',
-            'health_insurance': '200.00',
-            'retirement_contribution': format_currency(current_salary * Decimal('0.05')) if current_salary else '0.00',
-            'total_deductions': format_currency(employee_obj.deductions) if employee_obj.deductions else format_currency(current_salary * Decimal('0.35')) if current_salary else '0.00',
-            'net_pay': format_currency(current_salary - (employee_obj.deductions if employee_obj.deductions else current_salary * Decimal('0.35'))) if current_salary else '0.00',
-            # Payroll Information Section - from Employee table
-            'employee_id': payroll_info['employee_id'],
-            'pay_frequency': payroll_info['pay_frequency'],
-            'pay_method': payroll_info['pay_method'],
-            'bank_account_last4': payroll_info['bank_account_last4'],
-            'tax_filing_status': payroll_info['tax_filing_status'],
-            'exemptions': payroll_info['exemptions'],
-            'pay_history': [
-                {
-                    'id': 1,
-                    'period': 'Nov 15 - Nov 30, 2024',
-                    'gross_pay': format_currency(current_salary * Decimal('0.96')),
-                    'deductions': format_currency(current_salary * Decimal('0.35')),
-                    'net_pay': format_currency(current_salary * Decimal('0.61')),
-                    'status': 'Paid',
-                    'regular_pay': format_currency(current_salary * Decimal('0.8')),
-                    'overtime_pay': format_currency(current_salary * Decimal('0.1')),
-                    'bonus': format_currency(employee_obj.variable) if employee_obj.variable else '0.00',
-                    'federal_tax': format_currency(current_salary * Decimal('0.15')),
-                    'state_tax': format_currency(current_salary * Decimal('0.05')),
-                    'social_security': format_currency(current_salary * Decimal('0.062')),
-                    'medicare': format_currency(current_salary * Decimal('0.0145')),
-                    'health_insurance': '200.00',
-                    'retirement_contribution': format_currency(current_salary * Decimal('0.05'))
-                },
-                {
-                    'id': 2,
-                    'period': 'Nov 01 - Nov 15, 2024',
-                    'gross_pay': format_currency(current_salary * Decimal('0.96')),
-                    'deductions': format_currency(current_salary * Decimal('0.35')),
-                    'net_pay': format_currency(current_salary * Decimal('0.61')),
-                    'status': 'Paid',
-                    'regular_pay': format_currency(current_salary * Decimal('0.8')),
-                    'overtime_pay': format_currency(current_salary * Decimal('0.1')),
-                    'bonus': '0.00',
-                    'federal_tax': format_currency(current_salary * Decimal('0.15')),
-                    'state_tax': format_currency(current_salary * Decimal('0.05')),
-                    'social_security': format_currency(current_salary * Decimal('0.062')),
-                    'medicare': format_currency(current_salary * Decimal('0.0145')),
-                    'health_insurance': '200.00',
-                    'retirement_contribution': format_currency(current_salary * Decimal('0.05'))
-                }
-            ] if current_salary else []
-        }
+        snapshot_name = (employee_obj.get_full_name() or '').strip()
+        snapshot_department = (employee_obj.department or '').strip()
     else:
-        # No match found - use defaults with N/A
-        context = {
-            'current_salary': 'N/A',
-            'last_payment': 'N/A',
-            'last_payment_date': 'N/A',
-            'ytd_earnings': 'N/A',
-            'next_payment_date': 'N/A',
-            'current_period': 'N/A',
-            'regular_hours': 'N/A',
-            'regular_pay': 'N/A',
-            'overtime_hours': 'N/A',
-            'overtime_pay': 'N/A',
-            'bonus': 'N/A',
-            'commission': 'N/A',
-            'total_earnings': 'N/A',
-            'federal_tax': 'N/A',
-            'state_tax': 'N/A',
-            'social_security': 'N/A',
-            'medicare': 'N/A',
-            'health_insurance': 'N/A',
-            'retirement_contribution': 'N/A',
-            'total_deductions': 'N/A',
-            'net_pay': 'N/A',
-            'employee_id': 'N/A',
-            'pay_frequency': 'N/A',
-            'pay_method': 'N/A',
-            'bank_account_last4': 'N/A',
-            'tax_filing_status': 'N/A',
-            'exemptions': 'N/A',
-            'pay_history': []
-        }
+        snapshot_name = (request.user.get_full_name() or request.user.username or '').strip()
+        if hasattr(request.user, 'department') and request.user.department:
+            snapshot_department = request.user.department.strip()
+        elif hasattr(request.user, 'profile') and hasattr(request.user.profile, 'department') and request.user.profile.department:
+            snapshot_department = request.user.profile.department.strip()
+    
+    transactions_qs = PaymentTransaction.objects.none()
+    if employee_obj:
+        base_filter = Q(employee=employee_obj)
+        snapshot_filter = build_snapshot_filter(snapshot_name, snapshot_department)
+        if snapshot_filter:
+            base_filter |= snapshot_filter
+        transactions_qs = PaymentTransaction.objects.filter(base_filter)
+    else:
+        snapshot_filter = build_snapshot_filter(snapshot_name, snapshot_department)
+        if snapshot_filter:
+            transactions_qs = PaymentTransaction.objects.filter(snapshot_filter)
+    
+    transactions_qs = transactions_qs.select_related('employee').order_by('-payment_date', '-created_at')
+    
+    latest_transaction = transactions_qs.first()
+    ytd_earnings = transactions_qs.filter(payment_year=timezone.now().year).aggregate(total=Sum('amount')).get('total') or Decimal('0')
+    
+    current_basic = to_decimal(latest_transaction.basic) if latest_transaction else Decimal('0')
+    current_hra = to_decimal(latest_transaction.hra) if latest_transaction else Decimal('0')
+    current_allowances = to_decimal(latest_transaction.allowances) if latest_transaction else Decimal('0')
+    current_variable = to_decimal(latest_transaction.variable) if latest_transaction else Decimal('0')
+    current_deductions = to_decimal(latest_transaction.deductions) if latest_transaction else Decimal('0')
+    net_pay = to_decimal(latest_transaction.amount) if latest_transaction else Decimal('0')
+    
+    gross_pay = current_basic + current_hra + current_allowances + current_variable
+    if latest_transaction and gross_pay == Decimal('0'):
+        gross_pay = net_pay + current_deductions
+    
+    last_payment_date_display = latest_transaction.payment_date.strftime('%d %b %Y') if latest_transaction and latest_transaction.payment_date else None
+    next_payment_date_obj = get_next_payment_date(latest_transaction.payment_date) if latest_transaction else None
+    next_payment_date_display = next_payment_date_obj.strftime('%d %b %Y') if next_payment_date_obj else None
+    current_period = latest_transaction.get_payment_period() if latest_transaction else None
+    current_payment_method = latest_transaction.get_payment_method_display() if latest_transaction else None
+    current_payment_date_display = latest_transaction.payment_date.strftime('%d %b %Y') if latest_transaction and latest_transaction.payment_date else None
+    current_employee_department = latest_transaction.get_employee_department() if latest_transaction else (employee_obj.department if employee_obj else snapshot_department)
+    current_employee_name = latest_transaction.get_employee_name() if latest_transaction else snapshot_name
+    
+    status_class_map = {
+        'completed': 'bg-success',
+        'pending': 'bg-warning text-dark',
+        'failed': 'bg-danger',
+        'cancelled': 'bg-secondary',
+    }
+    
+    pay_history = []
+    for transaction in transactions_qs:
+        ph_basic = to_decimal(transaction.basic)
+        ph_hra = to_decimal(transaction.hra)
+        ph_allowances = to_decimal(transaction.allowances)
+        ph_variable = to_decimal(transaction.variable)
+        ph_deductions = to_decimal(transaction.deductions)
+        ph_net = to_decimal(transaction.amount)
+        ph_gross = ph_basic + ph_hra + ph_allowances + ph_variable
+        if ph_gross == Decimal('0'):
+            ph_gross = ph_net + ph_deductions
+        
+        pay_history.append({
+            'id': transaction.id,
+            'period': transaction.get_payment_period(),
+            'gross_pay': ph_gross,
+            'deductions': ph_deductions,
+            'net_pay': ph_net,
+            'status': transaction.get_status_display(),
+            'status_class': status_class_map.get(transaction.status, 'secondary'),
+            'payment_method': transaction.get_payment_method_display(),
+            'payment_date_display': transaction.payment_date.strftime('%d %b %Y') if transaction.payment_date else None,
+            'basic': ph_basic,
+            'hra': ph_hra,
+            'allowances': ph_allowances,
+            'variable': ph_variable,
+            'department': transaction.get_employee_department(),
+            'employee_name': transaction.get_employee_name(),
+            'transaction_id': transaction.transaction_id,
+            'reference_number': transaction.reference_number,
+            'notes': transaction.notes,
+        })
+    
+    has_transactions = len(pay_history) > 0
+    
+    context = {
+        'current_salary': net_pay if has_transactions else None,
+        'current_gross_pay': gross_pay if has_transactions else None,
+        'last_payment': net_pay if has_transactions else None,
+        'last_payment_date': last_payment_date_display,
+        'ytd_earnings': ytd_earnings if has_transactions else None,
+        'next_payment_date': next_payment_date_display,
+        'current_period': current_period,
+        'current_basic': current_basic if has_transactions else None,
+        'current_hra': current_hra if has_transactions else None,
+        'current_allowances': current_allowances if has_transactions else None,
+        'current_variable': current_variable if has_transactions else None,
+        'current_deductions': current_deductions if has_transactions else None,
+        'net_pay': net_pay if has_transactions else None,
+        'current_payment_method': current_payment_method,
+        'current_payment_date_display': current_payment_date_display,
+        'current_employee_department': current_employee_department,
+        'current_employee_name': current_employee_name,
+        'employee_id': employee_obj.emp_code if employee_obj and employee_obj.emp_code else 'N/A',
+        'pay_frequency': employee_obj.pay_cycle if employee_obj and employee_obj.pay_cycle else 'Monthly',
+        'pay_method': current_payment_method or ('Direct Deposit' if employee_obj and employee_obj.bank_name and employee_obj.account_number else 'N/A'),
+        'bank_account_last4': get_account_last4(employee_obj.account_number) if employee_obj and employee_obj.account_number else 'N/A',
+        'tax_filing_status': 'N/A',
+        'exemptions': 'N/A',
+        'pay_history': pay_history,
+        'has_transactions': has_transactions,
+    }
     
     return render(request, 'employee/payroll.html', context)
 

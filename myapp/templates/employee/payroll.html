@@ -1,5 +1,6 @@
 {% extends "employee/base.html" %}
 {% load static %}
+{% load humanize %}
 
 {% block title %}Payroll - Sujata Associates{% endblock %}
 {% block page_title %}My Payroll{% endblock %}
@@ -12,11 +13,17 @@
     <div class="metric-card">
       <div class="d-flex align-items-center">
         <div class="metric-icon success">
-          <i class="bi bi-currency-dollar"></i>
+          <i class="bi bi-currency-rupee"></i>
         </div>
         <div>
-          <div class="metric-title">Current Salary</div>
-          <div class="metric-value">₹{{ current_salary }}</div>
+          <div class="metric-title">Net Salary</div>
+          <div class="metric-value">
+            {% if current_salary is not None %}
+              ₹{{ current_salary|floatformat:2|intcomma }}
+            {% else %}
+              N/A
+            {% endif %}
+          </div>
           <div class="metric-subtitle">Monthly</div>
         </div>
       </div>
@@ -31,8 +38,14 @@
         </div>
         <div>
           <div class="metric-title">Last Payment</div>
-          <div class="metric-value">₹{{ last_payment }}</div>
-          <div class="metric-subtitle">{{ last_payment_date }}</div>
+          <div class="metric-value">
+            {% if last_payment is not None %}
+              ₹{{ last_payment|floatformat:2|intcomma }}
+            {% else %}
+              N/A
+            {% endif %}
+          </div>
+          <div class="metric-subtitle">{{ last_payment_date|default:"N/A" }}</div>
         </div>
       </div>
     </div>
@@ -46,7 +59,13 @@
         </div>
         <div>
           <div class="metric-title">YTD Earnings</div>
-          <div class="metric-value">₹{{ ytd_earnings }}</div>
+          <div class="metric-value">
+            {% if ytd_earnings is not None %}
+              ₹{{ ytd_earnings|floatformat:2|intcomma }}
+            {% else %}
+              N/A
+            {% endif %}
+          </div>
           <div class="metric-subtitle">This year</div>
         </div>
       </div>
@@ -61,7 +80,7 @@
         </div>
         <div>
           <div class="metric-title">Next Payment</div>
-          <div class="metric-value">{{ next_payment_date }}</div>
+          <div class="metric-value">{{ next_payment_date|default:"N/A" }}</div>
           <div class="metric-subtitle">Due date</div>
         </div>
       </div>
@@ -74,65 +93,69 @@
   <div class="col-lg-8 mb-4">
     <div class="card">
       <div class="card-header">
-        <h6 class="mb-0">Current Pay Period ({{ current_period }})</h6>
+        <h6 class="mb-0">Current Pay Period ({{ current_period|default:"N/A" }})</h6>
       </div>
       <div class="card-body">
+        {% if has_transactions %}
         <div class="row">
           <div class="col-md-6">
             <h6 class="text-success mb-3">Earnings</h6>
             <div class="d-flex justify-content-between mb-2">
-              <span>Regular Hours ({{ regular_hours }} hrs)</span>
-              <span class="fw-bold">₹{{ regular_pay }}</span>
+              <span>Basic Salary</span>
+              <span class="fw-bold">
+                ₹{{ current_basic|floatformat:2|intcomma }}
+              </span>
             </div>
             <div class="d-flex justify-content-between mb-2">
-              <span>Overtime Hours ({{ overtime_hours }} hrs)</span>
-              <span class="fw-bold">₹{{ overtime_pay }}</span>
+              <span>HRA</span>
+              <span class="fw-bold">
+                ₹{{ current_hra|floatformat:2|intcomma }}
+              </span>
             </div>
             <div class="d-flex justify-content-between mb-2">
-              <span>Bonus</span>
-              <span class="fw-bold">₹{{ bonus }}</span>
+              <span>Allowances</span>
+              <span class="fw-bold">
+                ₹{{ current_allowances|floatformat:2|intcomma }}
+              </span>
             </div>
             <div class="d-flex justify-content-between mb-2">
-              <span>Commission</span>
-              <span class="fw-bold">₹{{ commission }}</span>
+              <span>Variable / Bonus</span>
+              <span class="fw-bold">
+                ₹{{ current_variable|floatformat:2|intcomma }}
+              </span>
             </div>
             <hr>
             <div class="d-flex justify-content-between mb-3">
               <span class="fw-bold">Total Earnings</span>
-              <span class="fw-bold text-success">₹{{ total_earnings }}</span>
+              <span class="fw-bold text-success">
+                {% if current_gross_pay is not None %}
+                  ₹{{ current_gross_pay|floatformat:2|intcomma }}
+                {% else %}
+                  N/A
+                {% endif %}
+              </span>
             </div>
           </div>
           
           <div class="col-md-6">
-            <h6 class="text-danger mb-3">Deductions</h6>
+            <h6 class="text-danger mb-3">Deductions & Info</h6>
             <div class="d-flex justify-content-between mb-2">
-              <span>Federal Tax</span>
-              <span class="fw-bold">₹{{ federal_tax }}</span>
+              <span>Total Deductions</span>
+              <span class="fw-bold">
+                ₹{{ current_deductions|floatformat:2|intcomma }}
+              </span>
             </div>
             <div class="d-flex justify-content-between mb-2">
-              <span>State Tax</span>
-              <span class="fw-bold">${{ state_tax }}</span>
+              <span>Payment Method</span>
+              <span>{{ current_payment_method|default:"N/A" }}</span>
             </div>
             <div class="d-flex justify-content-between mb-2">
-              <span>Social Security</span>
-              <span class="fw-bold">${{ social_security }}</span>
+              <span>Department</span>
+              <span>{{ current_employee_department|default:"-" }}</span>
             </div>
             <div class="d-flex justify-content-between mb-2">
-              <span>Medicare</span>
-              <span class="fw-bold">${{ medicare }}</span>
-            </div>
-            <div class="d-flex justify-content-between mb-2">
-              <span>Health Insurance</span>
-              <span class="fw-bold">${{ health_insurance }}</span>
-            </div>
-            <div class="d-flex justify-content-between mb-2">
-              <span>401(k) Contribution</span>
-              <span class="fw-bold">${{ retirement_contribution }}</span>
-            </div>
-            <hr>
-            <div class="d-flex justify-content-between mb-3">
-              <span class="fw-bold">Total Deductions</span>
-              <span class="fw-bold text-danger">${{ total_deductions }}</span>
+              <span>Processed On</span>
+              <span>{{ current_payment_date_display|default:"-" }}</span>
             </div>
           </div>
         </div>
@@ -140,11 +163,20 @@
         <div class="row">
           <div class="col-12">
             <div class="alert alert-success text-center">
-              <h5 class="mb-0">Net Pay: ${{ net_pay }}</h5>
-              <small>Amount deposited to your account</small>
+              <h5 class="mb-0">Net Pay: ₹{{ net_pay|floatformat:2|intcomma }}</h5>
+              {% if current_payment_date_display %}
+                <small>Amount deposited on {{ current_payment_date_display }}{% if current_payment_method %} via {{ current_payment_method }}{% endif %}</small>
+              {% else %}
+                <small>Amount deposited to your account</small>
+              {% endif %}
             </div>
           </div>
         </div>
+        {% else %}
+        <div class="text-center text-muted py-4">
+          No payroll records found yet.
+        </div>
+        {% endif %}
       </div>
     </div>
     
@@ -159,6 +191,7 @@
             <thead>
               <tr>
                 <th>Pay Period</th>
+                <th>Payment Date</th>
                 <th>Gross Pay</th>
                 <th>Deductions</th>
                 <th>Net Pay</th>
@@ -167,24 +200,31 @@
               </tr>
             </thead>
             <tbody>
-              {% for pay in pay_history %}
-              <tr>
-                <td>{{ pay.period }}</td>
-                <td class="fw-bold">${{ pay.gross_pay }}</td>
-                <td>${{ pay.deductions }}</td>
-                <td class="fw-bold text-success">${{ pay.net_pay }}</td>
-                <td>
-                  <span class="badge bg-{% if pay.status == 'Paid' %}success{% elif pay.status == 'Pending' %}warning{% else %}secondary{% endif %}">
-                    {{ pay.status }}
-                  </span>
-                </td>
-                <td>
-                  <button class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" data-bs-target="#payslipModal{{ pay.id }}">
-                    <i class="bi bi-file-earmark-text me-1"></i>View Payslip
-                  </button>
-                </td>
-              </tr>
-              {% endfor %}
+              {% if pay_history %}
+                {% for pay in pay_history %}
+                <tr>
+                  <td>{{ pay.period }}</td>
+                  <td>{{ pay.payment_date_display|default:"-" }}</td>
+                  <td class="fw-bold">₹{{ pay.gross_pay|floatformat:2|intcomma }}</td>
+                  <td>₹{{ pay.deductions|floatformat:2|intcomma }}</td>
+                  <td class="fw-bold text-success">₹{{ pay.net_pay|floatformat:2|intcomma }}</td>
+                  <td>
+                    <span class="badge {{ pay.status_class }}">
+                      {{ pay.status }}
+                    </span>
+                  </td>
+                  <td>
+                    <button class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" data-bs-target="#payslipModal{{ pay.id }}">
+                      <i class="bi bi-file-earmark-text me-1"></i>View Payslip
+                    </button>
+                  </td>
+                </tr>
+                {% endfor %}
+              {% else %}
+                <tr>
+                  <td colspan="7" class="text-center text-muted py-4">No payment history available.</td>
+                </tr>
+              {% endif %}
             </tbody>
           </table>
         </div>
@@ -265,58 +305,70 @@
           <div class="col-md-6">
             <h6 class="text-success">Earnings</h6>
             <div class="d-flex justify-content-between mb-1">
-              <span>Regular Pay</span>
-              <span>${{ pay.regular_pay }}</span>
+              <span>Basic Salary</span>
+              <span>₹{{ pay.basic|floatformat:2|intcomma }}</span>
             </div>
             <div class="d-flex justify-content-between mb-1">
-              <span>Overtime</span>
-              <span>${{ pay.overtime_pay }}</span>
+              <span>HRA</span>
+              <span>₹{{ pay.hra|floatformat:2|intcomma }}</span>
             </div>
             <div class="d-flex justify-content-between mb-1">
-              <span>Bonus</span>
-              <span>${{ pay.bonus }}</span>
+              <span>Allowances</span>
+              <span>₹{{ pay.allowances|floatformat:2|intcomma }}</span>
+            </div>
+            <div class="d-flex justify-content-between mb-1">
+              <span>Variable / Bonus</span>
+              <span>₹{{ pay.variable|floatformat:2|intcomma }}</span>
             </div>
             <hr>
             <div class="d-flex justify-content-between">
               <strong>Total Earnings</strong>
-              <strong>${{ pay.gross_pay }}</strong>
+              <strong>₹{{ pay.gross_pay|floatformat:2|intcomma }}</strong>
             </div>
           </div>
           <div class="col-md-6">
             <h6 class="text-danger">Deductions</h6>
             <div class="d-flex justify-content-between mb-1">
-              <span>Federal Tax</span>
-              <span>${{ pay.federal_tax }}</span>
-            </div>
-            <div class="d-flex justify-content-between mb-1">
-              <span>State Tax</span>
-              <span>${{ pay.state_tax }}</span>
-            </div>
-            <div class="d-flex justify-content-between mb-1">
-              <span>Social Security</span>
-              <span>${{ pay.social_security }}</span>
-            </div>
-            <div class="d-flex justify-content-between mb-1">
-              <span>Medicare</span>
-              <span>${{ pay.medicare }}</span>
-            </div>
-            <div class="d-flex justify-content-between mb-1">
-              <span>Health Insurance</span>
-              <span>${{ pay.health_insurance }}</span>
+              <span>Total Deductions</span>
+              <span>₹{{ pay.deductions|floatformat:2|intcomma }}</span>
             </div>
             <hr>
             <div class="d-flex justify-content-between">
               <strong>Total Deductions</strong>
-              <strong>${{ pay.deductions }}</strong>
+              <strong>₹{{ pay.deductions|floatformat:2|intcomma }}</strong>
             </div>
           </div>
         </div>
         <div class="row mt-3">
           <div class="col-12">
             <div class="alert alert-success text-center">
-              <h5 class="mb-0">Net Pay: ${{ pay.net_pay }}</h5>
+              <h5 class="mb-0">Net Pay: ₹{{ pay.net_pay|floatformat:2|intcomma }}</h5>
+              <small>
+                {% if pay.payment_date_display %}Processed on {{ pay.payment_date_display }}{% endif %}
+                {% if pay.payment_method %} via {{ pay.payment_method }}{% endif %}
+              </small>
             </div>
           </div>
+        </div>
+        <div class="row mt-3">
+          <div class="col-md-6">
+            <strong>Transaction ID:</strong> {{ pay.transaction_id|default:"-" }}
+          </div>
+          <div class="col-md-6">
+            <strong>Reference:</strong> {{ pay.reference_number|default:"-" }}
+          </div>
+          <div class="col-md-6 mt-2">
+            <strong>Department:</strong> {{ pay.department|default:"-" }}
+          </div>
+          <div class="col-md-6 mt-2">
+            <strong>Paid To:</strong> {{ pay.employee_name|default:"-" }}
+          </div>
+          {% if pay.notes %}
+          <div class="col-12 mt-3">
+            <strong>Notes:</strong>
+            <p class="mb-0">{{ pay.notes }}</p>
+          </div>
+          {% endif %}
         </div>
       </div>
       <div class="modal-footer">
@@ -539,3 +591,4 @@
   }
 </style>
 {% endblock %}
+

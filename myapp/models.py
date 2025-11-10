@@ -526,6 +526,16 @@ class Employee(models.Model):
         first = self.first_name[0].upper() if self.first_name else ''
         last = self.last_name[0].upper() if self.last_name else ''
         return (first + last)[:2]
+    
+    def get_net_salary(self):
+        """Calculate net salary (Basic + HRA + Allowances + Variable - Deductions)"""
+        from decimal import Decimal
+        basic = self.basic or Decimal('0')
+        hra = self.hra or Decimal('0')
+        allowances = self.allowances or Decimal('0')
+        variable = self.variable or Decimal('0')
+        deductions = self.deductions or Decimal('0')
+        return basic + hra + allowances + variable - deductions
 
 
 class EmployeeMessage(models.Model):
@@ -574,3 +584,124 @@ class EmployeeMessage(models.Model):
         if self.receiver_id.startswith('admin_'):
             return 'admin'
         return 'employee'
+
+
+class PaymentTransaction(models.Model):
+    """Payment transaction records for employee payments"""
+    STATUS_CHOICES = [
+        ('pending', 'Pending'),
+        ('completed', 'Completed'),
+        ('failed', 'Failed'),
+        ('cancelled', 'Cancelled'),
+    ]
+    
+    PAYMENT_METHOD_CHOICES = [
+        ('bank_transfer', 'Bank Transfer'),
+        ('upi', 'UPI'),
+        ('cash', 'Cash'),
+        ('cheque', 'Cheque'),
+        ('other', 'Other'),
+    ]
+    
+    # Employee Information
+    employee = models.ForeignKey(
+        Employee,
+        on_delete=models.CASCADE,
+        related_name='payment_transactions',
+        verbose_name="Employee"
+    )
+    employee_name = models.CharField(
+        max_length=255,
+        blank=True,
+        null=True,
+        verbose_name="Employee Name Snapshot"
+    )
+    employee_department = models.CharField(
+        max_length=255,
+        blank=True,
+        null=True,
+        verbose_name="Department Snapshot"
+    )
+    
+    # Payment Details
+    amount = models.DecimalField(max_digits=12, decimal_places=2, verbose_name="Payment Amount")
+    basic = models.DecimalField(max_digits=12, decimal_places=2, blank=True, null=True, verbose_name="Basic Salary")
+    hra = models.DecimalField(max_digits=12, decimal_places=2, blank=True, null=True, verbose_name="HRA")
+    allowances = models.DecimalField(max_digits=12, decimal_places=2, blank=True, null=True, verbose_name="Allowances")
+    deductions = models.DecimalField(max_digits=12, decimal_places=2, blank=True, null=True, verbose_name="Deductions")
+    variable = models.DecimalField(max_digits=12, decimal_places=2, blank=True, null=True, verbose_name="Variable/Bonus")
+    ctc = models.DecimalField(max_digits=12, decimal_places=2, blank=True, null=True, verbose_name="CTC")
+    
+    # Payment Information
+    payment_method = models.CharField(max_length=20, choices=PAYMENT_METHOD_CHOICES, default='bank_transfer', verbose_name="Payment Method")
+    transaction_id = models.CharField(max_length=100, blank=True, null=True, verbose_name="Transaction ID")
+    reference_number = models.CharField(max_length=100, blank=True, null=True, verbose_name="Reference Number")
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='completed', verbose_name="Status")
+    
+    # Payment Period
+    payment_month = models.IntegerField(verbose_name="Payment Month (1-12)")
+    payment_year = models.IntegerField(verbose_name="Payment Year")
+    payment_date = models.DateField(verbose_name="Payment Date")
+    
+    # Notes
+    notes = models.TextField(blank=True, null=True, verbose_name="Notes")
+    
+    # Processed by
+    processed_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='processed_payments',
+        verbose_name="Processed By"
+    )
+    
+    # Timestamps
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    
+    class Meta:
+        ordering = ['-payment_date', '-created_at']
+        verbose_name = "Payment Transaction"
+        verbose_name_plural = "Payment Transactions"
+        indexes = [
+            models.Index(fields=['employee', '-payment_date']),
+            models.Index(fields=['payment_year', 'payment_month']),
+        ]
+    
+    def __str__(self):
+        return f"{self.get_employee_name()} - ₹{self.amount} - {self.payment_date}"
+    
+    def get_month_name(self):
+        """Get month name from month number"""
+        from datetime import datetime
+        try:
+            return datetime(2000, self.payment_month, 1).strftime('%B')
+        except:
+            return f"Month {self.payment_month}"
+    
+    def get_payment_period(self):
+        """Get formatted payment period"""
+        return f"{self.get_month_name()} {self.payment_year}"
+
+    def get_employee_name(self):
+        """Snapshot-friendly accessor for employee name"""
+        if self.employee_name:
+            return self.employee_name
+        if self.employee_id:
+            try:
+                return self.employee.get_full_name()
+            except Employee.DoesNotExist:
+                return ""
+        return ""
+
+    def get_employee_department(self):
+        """Snapshot-friendly accessor for employee department"""
+        if self.employee_department:
+            return self.employee_department
+        if self.employee_id:
+            try:
+                return self.employee.department or ""
+            except Employee.DoesNotExist:
+                return ""
+        return ""

@@ -21,6 +21,7 @@ urlpatterns =[
   path('leads/import/',views.lead_import,name='lead_import'),
   path('leads/import-export/',views.leads_import_export,name='leads_import_export'),
   path('accounts/',views.accounts,name='accounts'),
+  path('accounts/pay-employee/<int:employee_id>/',views.pay_employee,name='pay_employee'),
   path('contacts/',views.contacts,name='contacts'),
   path('quotes/',views.quotes,name='quotes'),
   path('employees/',views.employees,name='employees'),
