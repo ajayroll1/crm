@@ -189,8 +189,33 @@
           td.tabIndex = 0;
           td.dataset.date = d.dateStr;
           td.dataset.empId = e.id;
-          // If no attendance data for this day, show 'A' (Absent) by default
-          td.textContent = attendance[key] || 'A';
+          
+          // Check if date is in past, future, or today
+          const today = new Date();
+          today.setHours(0, 0, 0, 0);
+          const cellDate = new Date(d.dateStr);
+          cellDate.setHours(0, 0, 0, 0);
+          const isPastDate = cellDate < today;
+          const isFutureDate = cellDate > today;
+          const isToday = cellDate.getTime() === today.getTime();
+          
+          // If attendance data exists in DB, use it (API already checks for both check-in and check-out)
+          if (attendance[key]) {
+            // DB has data - show it (this means both check-in and check-out exist)
+            td.textContent = attendance[key];
+          } else if (isPastDate) {
+            // Past dates without login: show 'A' (Absent)
+            td.textContent = 'A';
+          } else if (isFutureDate) {
+            // Future dates: leave blank
+            td.textContent = '';
+          } else if (isToday) {
+            // Today: leave blank initially (will be filled when both check-in and check-out are done)
+            // If only check-in exists (no check-out), API won't return data, so it stays blank
+            // User can manually mark it, or it will be updated when check-out happens
+            td.textContent = '';
+          }
+          
           applyCellStyle(td);
           td.addEventListener('click', () => cycle(td));
           td.addEventListener('keydown', (ev) => { if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); cycle(td); } });
@@ -213,9 +238,17 @@
     }
 
     function applyCellStyle(td){
-      td.classList.remove('table-danger','table-warning');
+      td.classList.remove('table-danger','table-warning', 'table-secondary');
       td.style.backgroundColor = '';
       const val = (td.textContent || '').toUpperCase();
+      
+      // Check if it's a future date
+      const cellDate = new Date(td.dataset.date);
+      cellDate.setHours(0, 0, 0, 0);
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      const isFutureDate = cellDate > today;
+      
       if (val === 'A') {
         // Absent -> red
         td.classList.add('table-danger');
@@ -224,22 +257,81 @@
         // Leave -> yellow
         td.classList.add('table-warning');
         if (!('CSS' in window)) td.style.backgroundColor = '#fff3cd';
+      } else if (val === '' && isFutureDate) {
+        // Future dates (empty) -> light gray background
+        td.style.backgroundColor = '#f8f9fa';
+        td.style.color = '#6c757d';
+      } else if (val === 'P') {
+        // Present -> green (if you want to add this)
+        td.style.backgroundColor = '#d4edda';
+      } else if (val === 'H') {
+        // Half day -> orange
+        td.style.backgroundColor = '#ffeaa7';
       }
     }
 
-    // CSV export/import
+    // CSV export/import - Export as attendance sheet format
     exportBtn.addEventListener('click', () => {
-      const [y,m] = monthPicker.value.split('-');
-      const rows = [['emp_id','date','status']];
-      Object.entries(attendance).forEach(([k,v]) => {
-        const [empId, date] = k.split('_');
-        if (date.startsWith(`${y}-${m}`)) rows.push([empId,date,v]);
+      const [y,m] = monthPicker.value.split('-').map(Number);
+      const monthNames = ['January', 'February', 'March', 'April', 'May', 'June', 
+                          'July', 'August', 'September', 'October', 'November', 'December'];
+      const monthName = monthNames[m - 1];
+      
+      // Get days for the month
+      const days = getDays(y, m);
+      const filteredDays = days.filter(d => showWeekends.checked || (d.dow !== 0 && d.dow !== 6));
+      
+      // Build header row: Employee Name, Department, then dates
+      const headerRow = ['Employee Name', 'Department', 'Employee ID'];
+      filteredDays.forEach(d => {
+        headerRow.push(`${String(d.day).padStart(2,'0')} ${['Sun','Mon','Tue','Wed','Thu','Fri','Sat'][d.dow]}`);
       });
-      const csv = rows.map(r => r.map(x=>`"${String(x).replaceAll('"','""')}"`).join(',')).join('\n');
+      
+      // Build data rows
+      const rows = [headerRow];
+      
+      employees.forEach(emp => {
+        const row = [emp.name, emp.department, emp.id];
+        
+        filteredDays.forEach(d => {
+          const key = `${emp.id}_${d.dateStr}`;
+          const status = attendance[key] || '';
+          
+          // For past dates without data, show 'A'
+          const today = new Date();
+          today.setHours(0, 0, 0, 0);
+          const cellDate = new Date(d.dateStr);
+          cellDate.setHours(0, 0, 0, 0);
+          const isPastDate = cellDate < today;
+          const isToday = cellDate.getTime() === today.getTime();
+          
+          if (status) {
+            row.push(status);
+          } else if (isPastDate) {
+            row.push('A'); // Absent for past dates
+          } else if (isToday) {
+            row.push(''); // Blank for today
+          } else {
+            row.push(''); // Blank for future dates
+          }
+        });
+        
+        rows.push(row);
+      });
+      
+      // Convert to CSV
+      const csv = rows.map(r => r.map(x => {
+        const str = String(x).replaceAll('"', '""');
+        return `"${str}"`;
+      }).join(',')).join('\n');
+      
+      // Create and download file
       const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
-      a.href = url; a.download = `attendance_${y}-${m}.csv`; a.click();
+      a.href = url;
+      a.download = `Attendance_Sheet_${monthName}_${y}.csv`;
+      a.click();
       URL.revokeObjectURL(url);
     });
 
@@ -250,11 +342,46 @@
       const lines = text.split(/\r?\n/).filter(Boolean);
       const header = lines.shift();
       if (!header) return;
-      lines.forEach(line => {
-        const cols = line.split(',').map(s => s.replace(/^\"|\"$/g,'').replaceAll('""','"'));
-        const [emp_id, date, status] = cols;
-        if (emp_id && date) attendance[`${emp_id}_${date}`] = status || '';
-      });
+      
+      // Parse header to detect format
+      const headerCols = header.split(',').map(s => s.replace(/^\"|\"$/g,'').replaceAll('""','"'));
+      const isSheetFormat = headerCols[0] === 'Employee Name' || headerCols[0].includes('Employee');
+      
+      if (isSheetFormat) {
+        // New attendance sheet format: Employee Name, Department, Employee ID, Date1, Date2, ...
+        const dateHeaders = headerCols.slice(3); // Skip Employee Name, Department, Employee ID
+        
+        lines.forEach(line => {
+          const cols = line.split(',').map(s => s.replace(/^\"|\"$/g,'').replaceAll('""','"'));
+          if (cols.length < 3) return;
+          
+          const empId = cols[2]; // Employee ID is in 3rd column
+          if (!empId) return;
+          
+          // Parse dates from headers and match with status values
+          dateHeaders.forEach((dateHeader, idx) => {
+            const status = cols[3 + idx] || ''; // Status starts from 4th column
+            if (status && status.trim()) {
+              // Extract date from header (format: "01 Mon" or "01 Sun")
+              const dateMatch = dateHeader.match(/(\d{2})\s+\w{3}/);
+              if (dateMatch) {
+                const day = parseInt(dateMatch[1]);
+                const [y, m] = monthPicker.value.split('-').map(Number);
+                const dateStr = `${y}-${String(m).padStart(2,'0')}-${String(day).padStart(2,'0')}`;
+                attendance[`${empId}_${dateStr}`] = status.trim().toUpperCase();
+              }
+            }
+          });
+        });
+      } else {
+        // Old format: emp_id, date, status
+        lines.forEach(line => {
+          const cols = line.split(',').map(s => s.replace(/^\"|\"$/g,'').replaceAll('""','"'));
+          const [emp_id, date, status] = cols;
+          if (emp_id && date) attendance[`${emp_id}_${date}`] = status || '';
+        });
+      }
+      
       renderSheet();
       e.target.value = '';
     });

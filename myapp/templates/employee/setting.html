@@ -70,7 +70,7 @@
               <div class="row">
                 <div class="col-md-4 text-center mb-4">
                   <div class="profile-avatar-container">
-                    <img src="https://via.placeholder.com/150" alt="Profile" class="profile-avatar" id="profileAvatar">
+                    <img src="{{ employee.avatar }}" alt="Profile" class="profile-avatar" id="profileAvatar">
                     <button class="btn btn-sm btn-outline-primary mt-2" onclick="changeAvatar()">
                       <i class="bi bi-camera me-1"></i>Change Photo
                     </button>
@@ -80,41 +80,36 @@
                   <div class="row">
                     <div class="col-md-6 mb-3">
                       <label for="firstName" class="form-label">First Name</label>
-                      <input type="text" class="form-control" id="firstName" value="John">
+                      <input type="text" class="form-control" id="firstName" value="{{ employee.first_name }}">
                     </div>
                     <div class="col-md-6 mb-3">
                       <label for="lastName" class="form-label">Last Name</label>
-                      <input type="text" class="form-control" id="lastName" value="Doe">
+                      <input type="text" class="form-control" id="lastName" value="{{ employee.last_name }}">
                     </div>
                   </div>
                   <div class="row">
                     <div class="col-md-6 mb-3">
                       <label for="email" class="form-label">Email Address</label>
-                      <input type="email" class="form-control" id="email" value="john.doe@sujataassociates.com">
+                      <input type="email" class="form-control" id="email" value="{{ employee.email }}">
                     </div>
                     <div class="col-md-6 mb-3">
                       <label for="phone" class="form-label">Phone Number</label>
-                      <input type="tel" class="form-control" id="phone" value="+1 (555) 123-4567">
+                      <input type="tel" class="form-control" id="phone" value="{{ employee.phone }}">
                     </div>
                   </div>
                   <div class="row">
                     <div class="col-md-6 mb-3">
                       <label for="department" class="form-label">Department</label>
-                      <select class="form-select" id="department">
-                        <option value="it">Information Technology</option>
-                        <option value="hr">Human Resources</option>
-                        <option value="finance">Finance</option>
-                        <option value="marketing">Marketing</option>
-                      </select>
+                      <input type="text" class="form-control" id="department" value="{{ employee.department }}">
                     </div>
                     <div class="col-md-6 mb-3">
                       <label for="position" class="form-label">Position</label>
-                      <input type="text" class="form-control" id="position" value="Software Developer">
+                      <input type="text" class="form-control" id="position" value="{{ employee.position }}">
                     </div>
                   </div>
                   <div class="mb-3">
                     <label for="bio" class="form-label">Bio</label>
-                    <textarea class="form-control" id="bio" rows="3" placeholder="Tell us about yourself...">Experienced software developer with 5+ years in web development and mobile applications.</textarea>
+                    <textarea class="form-control" id="bio" rows="3" placeholder="Tell us about yourself...">{{ employee.bio }}</textarea>
                   </div>
                 </div>
               </div>
@@ -134,12 +129,12 @@
               <div class="row">
                 <div class="col-md-6 mb-3">
                   <label for="username" class="form-label">Username</label>
-                  <input type="text" class="form-control" id="username" value="john.doe">
+                  <input type="text" class="form-control" id="username" value="{{ employee.username }}">
                   <div class="form-text">This will be your login username</div>
                 </div>
                 <div class="col-md-6 mb-3">
                   <label for="employeeId" class="form-label">Employee ID</label>
-                  <input type="text" class="form-control" id="employeeId" value="EMP001" readonly>
+                  <input type="text" class="form-control" id="employeeId" value="{{ employee.employee_id }}" readonly>
                   <div class="form-text">Employee ID cannot be changed</div>
                 </div>
               </div>

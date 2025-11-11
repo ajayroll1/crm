@@ -13,6 +13,7 @@
     </button>
 
     <div class="collapse navbar-collapse justify-content-end" id="navbarNav">
+      {% comment %}
       <ul class="navbar-nav mb-2 mb-lg-0">
         <li class="nav-item">
           <a class="nav-link active" href="{% url 'home' %}">Home</a>
@@ -33,7 +34,10 @@
           <a class="nav-link" href="#contact">Contact</a>
         </li>
       </ul>
+      {% endcomment %}
+      {% comment %}
       <a href="#contact" class="btn btn-contact ms-lg-3">Get a Quote</a>
+      {% endcomment %}
     </div>
   </div>
 </nav>

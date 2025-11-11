@@ -1820,32 +1820,62 @@ def attendance_data_api(request):
     employees_data.append(emp_data)
   
   # Prepare attendance data: key format: "empId_dateStr" -> status
+  from django.utils import timezone
+  today = timezone.now().date()
+  
   attendance_data = {}
   for (emp_id, date_str), att in attendance_map.items():
-    status = 'A'  # Default to Absent
+    # Compare attendance date with today
+    att_date = att.date
+    is_today = att_date == today
     
-    if att.check_in_time and att.check_out_time:
-      # Calculate work hours
-      delta = att.check_out_time - att.check_in_time
-      total_seconds = int(delta.total_seconds())
-      total_hours = total_seconds / 3600.0  # Convert to hours (decimal)
+    # For today's date: only return data if both check-in and check-out exist
+    if is_today:
+      if att.check_in_time and att.check_out_time:
+        # Both check-in and check-out exist - calculate status
+        delta = att.check_out_time - att.check_in_time
+        total_seconds = int(delta.total_seconds())
+        total_hours = total_seconds / 3600.0
+        
+        required_hours = 8.5
+        half_day_hours = required_hours / 2.0
+        
+        if total_hours >= required_hours:
+          status = 'P'  # Present
+        elif total_hours >= half_day_hours:
+          status = 'H'  # Half day
+        else:
+          status = 'A'  # Absent (less than half day)
+        
+        key = f"{emp_id}_{date_str}"
+        attendance_data[key] = status
+      # If only check-in exists (no check-out), don't add to attendance_data
+      # This will keep today's date blank in the frontend
+    else:
+      # For past dates: calculate status normally
+      status = 'A'  # Default to Absent
       
-      # Required hours: 8 hours 30 minutes = 8.5 hours
-      required_hours = 8.5
-      half_day_hours = required_hours / 2.0  # 4 hours 15 minutes = 4.25 hours
+      if att.check_in_time and att.check_out_time:
+        # Calculate work hours
+        delta = att.check_out_time - att.check_in_time
+        total_seconds = int(delta.total_seconds())
+        total_hours = total_seconds / 3600.0
+        
+        required_hours = 8.5
+        half_day_hours = required_hours / 2.0
+        
+        if total_hours >= required_hours:
+          status = 'P'  # Present
+        elif total_hours >= half_day_hours:
+          status = 'H'  # Half day
+        else:
+          status = 'A'  # Absent (less than half day)
+      elif att.check_in_time and not att.check_out_time:
+        # Only check-in, no check-out - mark as Absent
+        status = 'A'  # Absent (no check-out, cannot calculate hours)
       
-      if total_hours >= required_hours:
-        status = 'P'  # Present
-      elif total_hours >= half_day_hours:
-        status = 'H'  # Half day
-      else:
-        status = 'A'  # Absent (less than half day)
-    elif att.check_in_time and not att.check_out_time:
-      # Only check-in, no check-out - cannot calculate hours, mark as Absent
-      status = 'A'  # Absent (no check-out, cannot calculate hours)
-    
-    key = f"{emp_id}_{date_str}"
-    attendance_data[key] = status
+      key = f"{emp_id}_{date_str}"
+      attendance_data[key] = status
   
   return JsonResponse({
     'employees': employees_data,
@@ -2940,19 +2970,43 @@ def employee_in_out(request):
 @login_required
 def employee_settings(request):
     """Employee settings view"""
+    user = request.user
+
+    # Try to find the matching Employee record for the logged-in user
+    employee_obj = None
+    user_email = getattr(user, 'email', '') or ''
+    if user_email:
+        employee_obj = Employee.objects.filter(email__iexact=user_email).first()
+
+    if not employee_obj:
+        # Fallback: try to match on first and last name from user's profile
+        user_full_name = user.get_full_name() or user.username or ''
+        name_parts = user_full_name.strip().split(' ', 1)
+        first_name = name_parts[0] if name_parts else ''
+        last_name = name_parts[1] if len(name_parts) > 1 else ''
+        if first_name:
+            qs = Employee.objects.filter(first_name__iexact=first_name)
+            if last_name:
+                qs = qs.filter(last_name__iexact=last_name)
+            employee_obj = qs.first()
+
+    # Build a simple dict for the template
+    employee_dict = {
+        'first_name': getattr(employee_obj, 'first_name', '') if employee_obj else '',
+        'last_name': getattr(employee_obj, 'last_name', '') if employee_obj else '',
+        'email': getattr(employee_obj, 'email', user_email) if employee_obj else user_email,
+        'phone': getattr(employee_obj, 'phone', '') if employee_obj else '',
+        'department': getattr(employee_obj, 'department', '') if employee_obj else '',
+        'position': getattr(employee_obj, 'designation', '') if employee_obj else '',
+        'employee_id': getattr(employee_obj, 'emp_code', '') if employee_obj else '',
+        'username': getattr(user, 'username', ''),
+        'bio': getattr(employee_obj, 'notes', '') if employee_obj else '',
+        'avatar': (employee_obj.photo.url if (employee_obj and getattr(employee_obj, 'photo', None)) else 'https://via.placeholder.com/150')
+    }
+
+    # Static defaults for preferences/notifications/privacy (can be wired later)
     context = {
-        'employee': {
-            'first_name': 'John',
-            'last_name': 'Doe',
-            'email': 'john.doe@sujataassociates.com',
-            'phone': '+1 (555) 123-4567',
-            'department': 'Information Technology',
-            'position': 'Software Developer',
-            'employee_id': 'EMP001',
-            'username': 'john.doe',
-            'bio': 'Experienced software developer with 5+ years in web development and mobile applications.',
-            'avatar': 'https://via.placeholder.com/150'
-        },
+        'employee': employee_dict,
         'preferences': {
             'timezone': 'UTC-5',
             'language': 'en',

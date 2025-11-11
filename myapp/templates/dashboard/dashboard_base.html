@@ -160,6 +160,33 @@
       flex: 1;
       margin-left: 280px;
       padding: 2rem;
+      transition: opacity 0.3s ease;
+    }
+    
+    .main-content.loading {
+      opacity: 0.5;
+      pointer-events: none;
+      position: relative;
+    }
+    
+    .main-content.loading::after {
+      content: '';
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      width: 40px;
+      height: 40px;
+      border: 4px solid #f3f3f3;
+      border-top: 4px solid var(--secondary-color);
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+      z-index: 1000;
+    }
+    
+    @keyframes spin {
+      0% { transform: translate(-50%, -50%) rotate(0deg); }
+      100% { transform: translate(-50%, -50%) rotate(360deg); }
     }
     
     .dashboard-header {
@@ -607,7 +634,123 @@
         // Close sidebar when navigation links are clicked (mobile only)
         const navLinks = document.querySelectorAll('.sidebar .nav-link');
         navLinks.forEach(link => {
-          link.addEventListener('click', function() {
+          link.addEventListener('click', function(e) {
+            // Check if this is In/Out or Leave Requests link
+            const href = this.getAttribute('href');
+            const isInOutLink = href && (href.includes('in-out') || href.includes('in_out'));
+            const isLeaveLink = href && (href.includes('leaves') || href.includes('leave'));
+            
+            // Handle AJAX navigation for In/Out and Leave Requests
+            if (isInOutLink || isLeaveLink) {
+              e.preventDefault();
+              
+              // Show loading indicator
+              const mainContent = document.querySelector('.main-content');
+              if (mainContent) {
+                mainContent.classList.add('loading');
+              }
+              
+              // Fetch the page content
+              fetch(href)
+                .then(response => response.text())
+                .then(html => {
+                  // Create a temporary container to parse the HTML
+                  const tempDiv = document.createElement('div');
+                  tempDiv.innerHTML = html;
+                  
+                  // Extract the main content area from the response
+                  const fetchedMainContent = tempDiv.querySelector('main.main-content') || tempDiv.querySelector('.main-content');
+                  
+                  if (fetchedMainContent) {
+                    // Get the current main content element
+                    const currentMainContent = document.querySelector('.main-content');
+                    
+                    if (currentMainContent) {
+                      // Preserve mobile header
+                      const mobileHeader = currentMainContent.querySelector('.mobile-header');
+                      
+                      // Get all content from fetched page (everything inside main-content except mobile-header)
+                      const fetchedContent = fetchedMainContent.cloneNode(true);
+                      const fetchedMobileHeader = fetchedContent.querySelector('.mobile-header');
+                      if (fetchedMobileHeader) {
+                        fetchedMobileHeader.remove();
+                      }
+                      
+                      // Replace content while preserving mobile header
+                      if (mobileHeader) {
+                        currentMainContent.innerHTML = '';
+                        currentMainContent.appendChild(mobileHeader);
+                        // Update mobile title if it exists in fetched content
+                        const fetchedMobileTitle = fetchedContent.querySelector('.mobile-title');
+                        if (fetchedMobileTitle) {
+                          const currentMobileTitle = mobileHeader.querySelector('.mobile-title');
+                          if (currentMobileTitle) {
+                            currentMobileTitle.textContent = fetchedMobileTitle.textContent;
+                          }
+                        }
+                        // Append the rest of the content
+                        currentMainContent.insertAdjacentHTML('beforeend', fetchedContent.innerHTML);
+                      } else {
+                        // No mobile header, just replace everything
+                        currentMainContent.innerHTML = fetchedContent.innerHTML;
+                      }
+                      
+                      // Update URL without page refresh
+                      window.history.pushState({}, '', href);
+                      
+                      // Update page title
+                      const newTitle = tempDiv.querySelector('title');
+                      if (newTitle) {
+                        document.title = newTitle.textContent;
+                      }
+                      
+                      // Execute any scripts in the fetched content
+                      const scripts = fetchedContent.querySelectorAll('script');
+                      scripts.forEach(oldScript => {
+                        const newScript = document.createElement('script');
+                        Array.from(oldScript.attributes).forEach(attr => {
+                          newScript.setAttribute(attr.name, attr.value);
+                        });
+                        newScript.appendChild(document.createTextNode(oldScript.innerHTML));
+                        document.body.appendChild(newScript);
+                      });
+                      
+                      // Reinitialize any page-specific functionality
+                      if (typeof window.reinitializePage === 'function') {
+                        window.reinitializePage();
+                      }
+                    }
+                  }
+                  
+                  // Restore main content
+                  if (mainContent) {
+                    mainContent.classList.remove('loading');
+                  }
+                  
+                  // Close sidebar on mobile
+                  if (window.innerWidth <= 768) {
+                    sidebar.classList.remove('open');
+                    sidebarOverlay.classList.remove('active');
+                    hamburgerBtn.classList.remove('active');
+                  }
+                  
+                  // Scroll to top
+                  window.scrollTo({ top: 0, behavior: 'smooth' });
+                })
+                .catch(error => {
+                  console.error('Error loading page:', error);
+                  // Restore main content
+                  if (mainContent) {
+                    mainContent.classList.remove('loading');
+                  }
+                  // Fallback to normal navigation
+                  window.location.href = href;
+                });
+              
+              return false;
+            }
+            
+            // For other links, just close sidebar on mobile
             if (window.innerWidth <= 768) {
               sidebar.classList.remove('open');
               sidebarOverlay.classList.remove('active');
@@ -616,6 +759,88 @@
           });
         });
       }
+      
+      // Handle browser back/forward buttons for AJAX navigation
+      window.addEventListener('popstate', function(event) {
+        // Reload the current page content via AJAX
+        const currentPath = window.location.pathname;
+        const isInOutLink = currentPath.includes('in-out') || currentPath.includes('in_out');
+        const isLeaveLink = currentPath.includes('leaves') || currentPath.includes('leave');
+        
+        if (isInOutLink || isLeaveLink) {
+          const mainContent = document.querySelector('.main-content');
+          if (mainContent) {
+            mainContent.classList.add('loading');
+          }
+          
+          fetch(currentPath)
+            .then(response => response.text())
+            .then(html => {
+              const tempDiv = document.createElement('div');
+              tempDiv.innerHTML = html;
+              const fetchedMainContent = tempDiv.querySelector('main.main-content') || tempDiv.querySelector('.main-content');
+              
+              if (fetchedMainContent) {
+                const currentMainContent = document.querySelector('.main-content');
+                if (currentMainContent) {
+                  const mobileHeader = currentMainContent.querySelector('.mobile-header');
+                  const fetchedContent = fetchedMainContent.cloneNode(true);
+                  const fetchedMobileHeader = fetchedContent.querySelector('.mobile-header');
+                  if (fetchedMobileHeader) {
+                    fetchedMobileHeader.remove();
+                  }
+                  
+                  if (mobileHeader) {
+                    currentMainContent.innerHTML = '';
+                    currentMainContent.appendChild(mobileHeader);
+                    const fetchedMobileTitle = fetchedContent.querySelector('.mobile-title');
+                    if (fetchedMobileTitle) {
+                      const currentMobileTitle = mobileHeader.querySelector('.mobile-title');
+                      if (currentMobileTitle) {
+                        currentMobileTitle.textContent = fetchedMobileTitle.textContent;
+                      }
+                    }
+                    currentMainContent.insertAdjacentHTML('beforeend', fetchedContent.innerHTML);
+                  } else {
+                    currentMainContent.innerHTML = fetchedContent.innerHTML;
+                  }
+                  
+                  const newTitle = tempDiv.querySelector('title');
+                  if (newTitle) {
+                    document.title = newTitle.textContent;
+                  }
+                  
+                  const scripts = fetchedContent.querySelectorAll('script');
+                  scripts.forEach(oldScript => {
+                    const newScript = document.createElement('script');
+                    Array.from(oldScript.attributes).forEach(attr => {
+                      newScript.setAttribute(attr.name, attr.value);
+                    });
+                    newScript.appendChild(document.createTextNode(oldScript.innerHTML));
+                    document.body.appendChild(newScript);
+                  });
+                  
+                  if (typeof window.reinitializePage === 'function') {
+                    window.reinitializePage();
+                  }
+                }
+              }
+              
+              if (mainContent) {
+                mainContent.classList.remove('loading');
+              }
+              
+              window.scrollTo({ top: 0, behavior: 'smooth' });
+            })
+            .catch(error => {
+              console.error('Error loading page:', error);
+              if (mainContent) {
+                mainContent.classList.remove('loading');
+              }
+              window.location.reload();
+            });
+        }
+      });
     });
   </script>
 </body>
