@@ -2155,6 +2155,7 @@ def employee_dashboard(request):
     employee_role = 'Employee'
     employee_designation = 'Employee'
     employee_id = 'N/A'
+    employee_department = None
     
     if request.user.is_authenticated:
         # Get user's full name or username safely
@@ -2203,6 +2204,7 @@ def employee_dashboard(request):
             employee_role = employee_obj.designation or 'Employee'
             employee_designation = employee_obj.designation or 'Employee'
             employee_id = employee_obj.emp_code or 'N/A'
+            employee_department = employee_obj.department or None
         else:
             employee_name = user_full_name
             employee_first_name = first_name or user_full_name.split()[0] if user_full_name else 'Guest'
@@ -2646,6 +2648,18 @@ def employee_dashboard(request):
             print(f"Error counting new projects: {str(e)}")
             new_projects_count = 0
     
+    # Sales-related counts for dashboard metrics
+    leads_count = 0
+    quotes_count = 0
+    onboardings_count = 0
+    try:
+        # Show overall totals to ensure visibility; can be scoped later if needed
+        leads_count = Lead.objects.filter(is_active=True).count()
+        quotes_count = Quote.objects.all().count()
+        onboardings_count = ClientOnboarding.objects.all().count()
+    except Exception as e:
+        print(f"Error computing sales counts: {str(e)}")
+    
     # Pending Leave Requests Count
     pending_leaves_count = 0
     if request.user.is_authenticated:
@@ -2685,6 +2699,7 @@ def employee_dashboard(request):
         'employee_initials': employee_initials,
         'employee_role': employee_role,
         'employee_designation': employee_designation,
+        'employee_department': employee_department,
         'employee_id': employee_id,
         'current_date': current_date,
         'current_time': current_time,
@@ -2693,6 +2708,10 @@ def employee_dashboard(request):
         'tasks_completed': tasks_completed_total,
         'hours_worked': round(hours_worked, 1),
         'attendance_percentage': attendance_percentage,
+        # Sales metrics
+        'leads_count': leads_count,
+        'quotes_count': quotes_count,
+        'onboardings_count': onboardings_count,
         'projects': projects,  # For dashboard projects table
         'recent_tasks': recent_tasks[:4],  # Top 4 recent tasks
         'today_schedule': today_schedule,
