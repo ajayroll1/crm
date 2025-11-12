@@ -65,6 +65,19 @@
     </div>
     {% endif %}
     
+    <!-- Account Management Section -->
+    <div class="nav-section">
+      <h3 class="nav-section-title">ACCOUNT MANAGEMENT</h3>
+      <ul class="nav-list">
+        <li class="nav-item">
+          <a href="{% url 'employee_accounts' %}" class="nav-link">
+            <i class="bi bi-journal-check"></i>
+            <span>Accounts Team</span>
+          </a>
+        </li>
+      </ul>
+    </div>
+    
     <!-- Sales Section -->
     {% if employee_department|default:''|lower != 'engineering' %}
     <div class="nav-section">

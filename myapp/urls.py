@@ -50,6 +50,7 @@ urlpatterns =[
   path('employee/projects/<int:project_id>/start/',views.employee_start_project,name='employee_start_project'),
   path('employee/projects/<int:project_id>/continue/',views.employee_continue_project,name='employee_continue_project'),
   path('employee/projects/<int:project_id>/finish/',views.employee_finish_project,name='employee_finish_project'),
+  path('employee/accounts/',views.employee_accounts,name='employee_accounts'),
   path('employee/in-out/',views.employee_in_out,name='employee_in_out'),
   path('employee/attendance/check-in/',views.employee_attendance_check_in,name='employee_attendance_check_in'),
   path('employee/attendance/check-out/',views.employee_attendance_check_out,name='employee_attendance_check_out'),

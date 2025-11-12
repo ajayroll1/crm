@@ -1,0 +1,905 @@
+{% extends "employee/base.html" %}
+{% load static %}
+
+{% block title %}Accounts Team Workspace - Sujata Associates{% endblock %}
+{% block page_title %}Accounts Team Workspace{% endblock %}
+{% block mobile_title %}Accounts{% endblock %}
+
+{% block extra_css %}
+<style>
+  .accounts-wrapper {
+    width: 100%;
+    overflow-x: hidden;
+    box-sizing: border-box;
+  }
+
+  .main-content > .accounts-wrapper {
+    padding-left: 0 !important;
+    padding-right: 0 !important;
+  }
+
+  .accounts-tabs .nav-link {
+    border-radius: 10px;
+    font-weight: 600;
+    color: #4a5568;
+    border: 1px solid transparent;
+    transition: all 0.25s ease;
+  }
+
+  .accounts-tabs .nav-link i {
+    font-size: 1.1rem;
+  }
+
+  .accounts-tabs .nav-link.active,
+  .accounts-tabs .nav-link:hover {
+    background: linear-gradient(90deg, rgba(52, 152, 219, 0.15), rgba(46, 204, 113, 0.15));
+    color: #1a202c;
+    border-color: rgba(52, 152, 219, 0.35);
+  }
+
+  .compliance-badge {
+    font-size: 0.75rem;
+    padding: 0.2rem 0.6rem;
+    border-radius: 50px;
+    font-weight: 600;
+    letter-spacing: 0.3px;
+  }
+
+  .checklist-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.75rem;
+    padding: 0.75rem 0;
+    border-bottom: 1px dashed #e2e8f0;
+  }
+
+  .checklist-item:last-child {
+    border-bottom: none;
+  }
+
+  .upload-dropzone {
+    border: 2px dashed #cbd5f5;
+    border-radius: 12px;
+    background: rgba(79, 70, 229, 0.05);
+    padding: 1rem;
+    text-align: center;
+    transition: all 0.25s ease;
+  }
+
+  .upload-dropzone:hover {
+    background: rgba(79, 70, 229, 0.1);
+    border-color: rgba(79, 70, 229, 0.5);
+  }
+
+  .section-divider {
+    margin: 2rem 0 1.5rem;
+    border-top: 1px dashed #dfe3eb;
+  }
+
+  .calendar-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 1rem;
+    padding: 0.85rem 0;
+    border-bottom: 1px solid #edf2f7;
+  }
+
+  .calendar-item:last-child {
+    border-bottom: none;
+  }
+
+  .accounts-section-card .card-header {
+    background: linear-gradient(135deg, #1f4aa1, #2fb7ff) !important;
+    color: #ffffff;
+    border: none;
+    border-radius: 12px 12px 0 0;
+  }
+
+  .accounts-section-card .card-header h6,
+  .accounts-section-card .card-header span,
+  .accounts-section-card .card-header .badge {
+    color: #ffffff !important;
+  }
+
+  .accounts-section-card .card-header .badge {
+    background: rgba(255, 255, 255, 0.2);
+  }
+
+  .accounts-header-badge {
+    background: rgba(255, 255, 255, 0.18);
+    border: 1px solid rgba(255, 255, 255, 0.35);
+  }
+
+  .btn-white {
+    background: #ffffff;
+    color: #1a202c;
+    border: 1px solid rgba(26, 32, 44, 0.1);
+    transition: all 0.2s ease;
+  }
+
+  .btn-white:hover {
+    background: #f7fafc;
+    color: #0f172a;
+    border-color: rgba(26, 32, 44, 0.25);
+  }
+
+  @media (max-width: 768px) {
+    .accounts-tabs {
+      overflow-x: visible;
+      flex-wrap: wrap;
+      gap: 0.75rem;
+    }
+
+    .accounts-tabs .nav-link {
+      white-space: normal;
+      width: 100%;
+      text-align: left;
+      font-size: 0.95rem;
+      padding: 0.65rem 1rem;
+    }
+
+    .metric-card {
+      padding: 1.1rem;
+      margin-bottom: 0.75rem;
+    }
+
+    .upload-dropzone {
+      padding: 0.85rem;
+    }
+
+    .calendar-item {
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 0.35rem;
+    }
+
+    .calendar-item .compliance-badge {
+      align-self: flex-start;
+    }
+
+    .card-body {
+      padding: 1rem;
+    }
+
+    .card-header {
+      padding: 1rem;
+    }
+
+    .tab-content .row.g-4 > [class*="col"] {
+      margin-bottom: 1rem;
+    }
+
+    .accounts-wrapper {
+      padding: 0 0.75rem !important;
+    }
+  }
+
+  @media (max-width: 576px) {
+    .accounts-tabs .nav-link {
+      font-size: 0.9rem;
+      padding: 0.6rem 0.85rem;
+    }
+
+    .metric-card {
+      padding: 1rem;
+    }
+
+    .upload-dropzone {
+      padding: 0.75rem;
+    }
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid px-0 accounts-wrapper">
+  <div class="row g-3 mb-3">
+    <div class="col-12">
+      <div class="card shadow-sm">
+        <div class="card-body">
+          <div class="d-flex flex-column flex-lg-row align-items-lg-center justify-content-between gap-3">
+            <div>
+              <h5 class="mb-1 text-primary">Account Management Control Center</h5>
+              <p class="mb-0 text-muted">Track statutory filings, collect documents, and collaborate across ROC, GST, ITR, bookkeeping, and TDS workflows.</p>
+            </div>
+            <div class="d-flex flex-wrap gap-2">
+              <button class="btn btn-primary">
+                <i class="bi bi-calendar-check me-2"></i>Compliance Calendar
+              </button>
+              <button class="btn btn-outline-secondary">
+                <i class="bi bi-shield-lock me-2"></i>View SOP Library
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="row g-3 mb-4">
+    <div class="col-sm-6 col-xl-3">
+      <div class="metric-card h-100">
+        <div class="d-flex align-items-center">
+          <div class="metric-icon primary">
+            <i class="bi bi-building-check"></i>
+          </div>
+          <div>
+            <div class="metric-title">ROC Filings</div>
+            <div class="metric-value">--</div>
+            <div class="metric-subtitle">Upcoming due dates</div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="col-sm-6 col-xl-3">
+      <div class="metric-card h-100">
+        <div class="d-flex align-items-center">
+          <div class="metric-icon info">
+            <i class="bi bi-file-earmark-spreadsheet"></i>
+          </div>
+          <div>
+            <div class="metric-title">GST Returns</div>
+            <div class="metric-value">--</div>
+            <div class="metric-subtitle">Pending submissions</div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="col-sm-6 col-xl-3">
+      <div class="metric-card h-100">
+        <div class="d-flex align-items-center">
+          <div class="metric-icon success">
+            <i class="bi bi-cash-coin"></i>
+          </div>
+          <div>
+            <div class="metric-title">ITR Filings</div>
+            <div class="metric-value">--</div>
+            <div class="metric-subtitle">FY in progress</div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="col-sm-6 col-xl-3">
+      <div class="metric-card h-100">
+        <div class="d-flex align-items-center">
+          <div class="metric-icon warning">
+            <i class="bi bi-receipt-cutoff"></i>
+          </div>
+          <div>
+            <div class="metric-title">TDS & Withholding</div>
+            <div class="metric-value">--</div>
+            <div class="metric-subtitle">Current month deductions</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="row g-3">
+    <div class="col-12">
+      <div class="card shadow-sm">
+        <div class="card-body">
+          <ul class="nav nav-pills accounts-tabs gap-2 mb-4" role="tablist">
+            <li class="nav-item" role="presentation">
+              <button class="nav-link active" id="roc-tab" data-bs-toggle="tab" data-bs-target="#roc-pane" type="button" role="tab">
+                <i class="bi bi-building"></i> ROC Compliance
+              </button>
+            </li>
+            <li class="nav-item" role="presentation">
+              <button class="nav-link" id="gst-tab" data-bs-toggle="tab" data-bs-target="#gst-pane" type="button" role="tab">
+                <i class="bi bi-receipt"></i> GST Filing
+              </button>
+            </li>
+            <li class="nav-item" role="presentation">
+              <button class="nav-link" id="itr-tab" data-bs-toggle="tab" data-bs-target="#itr-pane" type="button" role="tab">
+                <i class="bi bi-cash-stack"></i> ITR Filing
+              </button>
+            </li>
+            <li class="nav-item" role="presentation">
+              <button class="nav-link" id="bookkeeping-tab" data-bs-toggle="tab" data-bs-target="#bookkeeping-pane" type="button" role="tab">
+                <i class="bi bi-journal-bookmark"></i> Accounts & Bookkeeping
+              </button>
+            </li>
+            <li class="nav-item" role="presentation">
+              <button class="nav-link" id="tds-tab" data-bs-toggle="tab" data-bs-target="#tds-pane" type="button" role="tab">
+                <i class="bi bi-percent"></i> TDS Compliance
+              </button>
+            </li>
+          </ul>
+
+          <div class="tab-content">
+            <!-- ROC Tab -->
+            <div class="tab-pane fade show active" id="roc-pane" role="tabpanel" aria-labelledby="roc-tab">
+              <div class="row g-4">
+                <div class="col-lg-8">
+      <div class="card border-0 shadow-sm accounts-section-card">
+                    <div class="card-header bg-transparent">
+                      <h6 class="mb-0 text-primary">Annual ROC Return Preparation</h6>
+                    </div>
+                    <div class="card-body">
+                      <form class="row g-3">
+                        <div class="col-md-6">
+                          <label class="form-label">Company Name</label>
+                          <input type="text" class="form-control" placeholder="Enter registered company name">
+                        </div>
+                        <div class="col-md-6">
+                          <label class="form-label">CIN / LLPIN</label>
+                          <input type="text" class="form-control" placeholder="LXXXX00XXYYYYYYYY">
+                        </div>
+                        <div class="col-md-6">
+                          <label class="form-label">Financial Year</label>
+                          <input type="text" class="form-control" placeholder="2024-2025">
+                        </div>
+                        <div class="col-md-6">
+                          <label class="form-label">AGM Date</label>
+                          <input type="date" class="form-control">
+                        </div>
+                        <div class="col-md-6">
+                          <label class="form-label">Compliance Period</label>
+                          <select class="form-select">
+                            <option selected>Select return type</option>
+                            <option>Form AOC-4</option>
+                            <option>Form MGT-7</option>
+                            <option>Form ADT-1</option>
+                            <option>Form DIR-3 KYC</option>
+                          </select>
+                        </div>
+                        <div class="col-md-6">
+                          <label class="form-label">Digital Signature</label>
+                          <select class="form-select">
+                            <option selected>Select authorized signatory</option>
+                            <option>Director DSC (Class 3)</option>
+                            <option>Practicing CA DSC</option>
+                            <option>Company Secretary DSC</option>
+                          </select>
+                        </div>
+                        <div class="col-12">
+                          <label class="form-label">Pending Queries / Notes</label>
+                          <textarea class="form-control" rows="3" placeholder="Mention board approval status, audit observations..."></textarea>
+                        </div>
+                        <div class="col-12">
+                          <label class="form-label">Upload Supporting Documents</label>
+                          <div class="upload-dropzone">
+                            <i class="bi bi-cloud-arrow-up fs-3 text-primary"></i>
+                            <p class="mb-1 fw-semibold">Drop ROC documents or click to browse</p>
+                            <p class="text-muted small mb-2">Board report, financial statements, Auditor report, attendance registers</p>
+                            <input type="file" class="form-control" multiple>
+                          </div>
+                        </div>
+                        <div class="col-12 d-flex justify-content-end gap-2">
+                          <button type="button" class="btn btn-outline-secondary">Save Draft</button>
+                          <button type="button" class="btn btn-primary">Mark Ready for Filing</button>
+                        </div>
+                      </form>
+                    </div>
+                  </div>
+                </div>
+                <div class="col-lg-4">
+                  <div class="card border-0 shadow-sm mb-3 accounts-section-card">
+                    <div class="card-header bg-transparent d-flex justify-content-between align-items-center">
+                      <h6 class="mb-0 text-primary">ROC Document Checklist</h6>
+                      <span class="badge accounts-header-badge compliance-badge">Reference</span>
+                    </div>
+                    <div class="card-body">
+                      {% for doc in roc_required_docs %}
+                      <div class="checklist-item">
+                        <i class="bi bi-check2-circle text-success fs-5"></i>
+                        <div>
+                          <h6 class="mb-1">{{ doc.name }}</h6>
+                          <p class="mb-1 text-muted small">{{ doc.description }}</p>
+                          <span class="badge rounded-pill bg-light text-primary fw-semibold">Due: {{ doc.due }}</span>
+                        </div>
+                      </div>
+                      {% empty %}
+                      <p class="text-muted">No checklist items configured.</p>
+                      {% endfor %}
+                    </div>
+                  </div>
+
+                  <div class="card border-0 shadow-sm accounts-section-card">
+                    <div class="card-header bg-transparent">
+                      <h6 class="mb-0 text-primary">Key Statutory Notes</h6>
+                    </div>
+                    <div class="card-body">
+                      <ul class="list-unstyled mb-0 small text-muted">
+                        <li class="mb-2"><i class="bi bi-dot text-primary fs-4 align-middle"></i> Ensure financial statements are signed by directors and auditors before upload.</li>
+                        <li class="mb-2"><i class="bi bi-dot text-primary fs-4 align-middle"></i> Verify secretarial compliance certificate for companies crossing ₹10 crore paid-up capital.</li>
+                        <li class="mb-2"><i class="bi bi-dot text-primary fs-4 align-middle"></i> Maintain proof of AGM notice circulation and attendance register.</li>
+                        <li><i class="bi bi-dot text-primary fs-4 align-middle"></i> Keep digital signature tokens updated and stored in compliance locker.</li>
+                      </ul>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- GST Tab -->
+            <div class="tab-pane fade" id="gst-pane" role="tabpanel" aria-labelledby="gst-tab">
+              <div class="row g-4">
+                <div class="col-xl-7">
+                  <div class="card border-0 shadow-sm accounts-section-card">
+                    <div class="card-header bg-transparent">
+                      <h6 class="mb-0 text-primary">GST Return Builder</h6>
+                    </div>
+                    <div class="card-body">
+                      <form class="row g-3">
+                        <div class="col-md-6">
+                          <label class="form-label">GSTIN</label>
+                          <input type="text" class="form-control" placeholder="27ABCDE1234F1Z5">
+                        </div>
+                        <div class="col-md-6">
+                          <label class="form-label">Return Period</label>
+                          <input type="month" class="form-control">
+                        </div>
+                        <div class="col-md-6">
+                          <label class="form-label">Return Type</label>
+                          <select class="form-select">
+                            <option selected>Select return</option>
+                            <option>GSTR-1</option>
+                            <option>GSTR-3B</option>
+                            <option>GSTR-9</option>
+                            <option>GSTR-9C</option>
+                          </select>
+                        </div>
+                        <div class="col-md-6">
+                          <label class="form-label">Filing Scheme</label>
+                          <select class="form-select">
+                            <option selected>Regular</option>
+                            <option>QRMP (Quarterly)</option>
+                            <option>Composition</option>
+                          </select>
+                        </div>
+                        <div class="col-12">
+                          <label class="form-label">Upload Data Files</label>
+                          <div class="row g-3">
+                            <div class="col-md-6">
+                              <div class="upload-dropzone">
+                                <i class="bi bi-upload text-primary fs-4"></i>
+                                <p class="mb-1 fw-semibold">Outward Supplies (B2B/B2C)</p>
+                                <input type="file" class="form-control mt-2">
+                              </div>
+                            </div>
+                            <div class="col-md-6">
+                              <div class="upload-dropzone">
+                                <i class="bi bi-upload text-primary fs-4"></i>
+                                <p class="mb-1 fw-semibold">Input Tax Credit Register</p>
+                                <input type="file" class="form-control mt-2">
+                              </div>
+                            </div>
+                            <div class="col-md-6">
+                              <div class="upload-dropzone">
+                                <i class="bi bi-upload text-primary fs-4"></i>
+                                <p class="mb-1 fw-semibold">Reverse Charge (RCM)</p>
+                                <input type="file" class="form-control mt-2">
+                              </div>
+                            </div>
+                            <div class="col-md-6">
+                              <div class="upload-dropzone">
+                                <i class="bi bi-upload text-primary fs-4"></i>
+                                <p class="mb-1 fw-semibold">E-way Bill Summary</p>
+                                <input type="file" class="form-control mt-2">
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                        <div class="col-md-6">
+                          <label class="form-label">Tax Payable (₹)</label>
+                          <input type="number" class="form-control" placeholder="0.00">
+                        </div>
+                        <div class="col-md-6">
+                          <label class="form-label">Input Credit Utilized (₹)</label>
+                          <input type="number" class="form-control" placeholder="0.00">
+                        </div>
+                        <div class="col-12">
+                          <label class="form-label">Internal Remarks</label>
+                          <textarea class="form-control" rows="3" placeholder="Record reconciliation notes, differences between GSTR-2B and purchase register..."></textarea>
+                        </div>
+                        <div class="col-12 d-flex justify-content-end gap-2">
+                          <button type="button" class="btn btn-outline-secondary">Save Checklist</button>
+                          <button type="button" class="btn btn-primary">Generate Filing Pack</button>
+                        </div>
+                      </form>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="col-xl-5">
+                  <div class="card border-0 shadow-sm mb-3 accounts-section-card">
+                    <div class="card-header bg-transparent d-flex justify-content-between align-items-center">
+                      <h6 class="mb-0 text-primary">GST Returns at a Glance</h6>
+                      <span class="badge accounts-header-badge fw-semibold">Reference</span>
+                    </div>
+                    <div class="table-responsive">
+                      <table class="table mb-0 align-middle">
+                        <thead>
+                          <tr>
+                            <th>Return</th>
+                            <th>Frequency</th>
+                            <th>Purpose</th>
+                            <th>Due Date</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {% for gst_return in gst_return_types %}
+                          <tr>
+                            <td class="fw-semibold">{{ gst_return.code }}</td>
+                            <td>{{ gst_return.frequency }}</td>
+                            <td class="text-muted small">{{ gst_return.purpose }}</td>
+                            <td><span class="badge bg-primary text-white">{{ gst_return.due_date }}</span></td>
+                          </tr>
+                          {% empty %}
+                          <tr>
+                            <td colspan="4" class="text-center text-muted">No GST return templates configured.</td>
+                          </tr>
+                          {% endfor %}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+
+                  <div class="card border-0 shadow-sm accounts-section-card">
+                    <div class="card-header bg-transparent">
+                      <h6 class="mb-0 text-primary">Data Pack Checklist</h6>
+                    </div>
+                    <div class="card-body">
+                      <ul class="list-unstyled mb-0 small text-muted">
+                        {% for item in gst_upload_requirements %}
+                        <li class="mb-2"><i class="bi bi-dot text-primary fs-4 align-middle"></i>{{ item }}</li>
+                        {% empty %}
+                        <li class="text-muted">No checklist items configured.</li>
+                        {% endfor %}
+                      </ul>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- ITR Tab -->
+            <div class="tab-pane fade" id="itr-pane" role="tabpanel" aria-labelledby="itr-tab">
+              <div class="row g-4">
+                <div class="col-lg-7">
+                  <div class="card border-0 shadow-sm accounts-section-card">
+                    <div class="card-header bg-transparent">
+                      <h6 class="mb-0 text-primary">Income Tax Return Intake Form</h6>
+                    </div>
+                    <div class="card-body">
+                      <form class="row g-3">
+                        <div class="col-md-6">
+                          <label class="form-label">Taxpayer Name</label>
+                          <input type="text" class="form-control" placeholder="Name as per PAN">
+                        </div>
+                        <div class="col-md-6">
+                          <label class="form-label">PAN</label>
+                          <input type="text" class="form-control" placeholder="ABCDE1234F">
+                        </div>
+                        <div class="col-md-6">
+                          <label class="form-label">Assessment Year</label>
+                          <select class="form-select">
+                            <option selected>2025-26</option>
+                            <option>2024-25</option>
+                            <option>2023-24</option>
+                          </select>
+                        </div>
+                        <div class="col-md-6">
+                          <label class="form-label">Return Form</label>
+                          <select class="form-select">
+                            <option selected>Select ITR form</option>
+                            <option>ITR-1</option>
+                            <option>ITR-2</option>
+                            <option>ITR-3</option>
+                            <option>ITR-4</option>
+                            <option>ITR-6</option>
+                          </select>
+                        </div>
+                        <div class="col-md-6">
+                          <label class="form-label">Client Category</label>
+                          <select class="form-select">
+                            <option selected>Individual</option>
+                            <option>HUF</option>
+                            <option>Firm / LLP</option>
+                            <option>Company</option>
+                            <option>Trust</option>
+                          </select>
+                        </div>
+                        <div class="col-md-6">
+                          <label class="form-label">Books of Account</label>
+                          <select class="form-select">
+                            <option selected>Maintained</option>
+                            <option>Not Maintained</option>
+                            <option>Presumptive Scheme</option>
+                          </select>
+                        </div>
+                        <div class="col-12">
+                          <label class="form-label">Upload Financial Documents</label>
+                          <div class="upload-dropzone">
+                            <i class="bi bi-cloud-arrow-up fs-3 text-primary"></i>
+                            <p class="mb-1 fw-semibold">Attach Form 16, AIS, bank statements, investment proofs</p>
+                            <input type="file" class="form-control" multiple>
+                          </div>
+                        </div>
+                        <div class="col-12">
+                          <label class="form-label">Computation Notes</label>
+                          <textarea class="form-control" rows="3" placeholder="Record adjustments, disallowances, carry forward losses, MAT/AMT calculation..."></textarea>
+                        </div>
+                        <div class="col-12 d-flex justify-content-end gap-2">
+                          <button type="button" class="btn btn-outline-secondary">Save Intake</button>
+                          <button type="button" class="btn btn-primary">Send for Review</button>
+                        </div>
+                      </form>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="col-lg-5">
+                  <div class="card border-0 shadow-sm mb-3 accounts-section-card">
+                    <div class="card-header bg-transparent">
+                      <h6 class="mb-0 text-primary">ITR Form Selection Matrix</h6>
+                    </div>
+                    <div class="card-body">
+                      {% for profile in itr_profiles %}
+                      <div class="checklist-item">
+                        <i class="bi bi-file-earmark-text text-success fs-5"></i>
+                        <div>
+                          <h6 class="mb-1">{{ profile.form }}</h6>
+                          <p class="mb-1 text-muted small">{{ profile.applicable_for }}</p>
+                          <span class="badge bg-light text-primary fw-semibold">Docs: {{ profile.documents }}</span>
+                        </div>
+                      </div>
+                      {% empty %}
+                      <p class="text-muted">No ITR guidance configured.</p>
+                      {% endfor %}
+                    </div>
+                  </div>
+
+                  <div class="card border-0 shadow-sm accounts-section-card">
+                    <div class="card-header bg-transparent">
+                      <h6 class="mb-0 text-primary">Review Checklist</h6>
+                    </div>
+                    <div class="card-body">
+                      <ul class="list-unstyled mb-0 small text-muted">
+                        <li class="mb-2"><i class="bi bi-dot text-primary fs-4 align-middle"></i>Match income reported in AIS/TIS with computation.</li>
+                        <li class="mb-2"><i class="bi bi-dot text-primary fs-4 align-middle"></i>Verify advance tax and TDS credit in Form 26AS.</li>
+                        <li class="mb-2"><i class="bi bi-dot text-primary fs-4 align-middle"></i>Confirm relief claims under Section 89, 87A, and foreign tax credit.</li>
+                        <li><i class="bi bi-dot text-primary fs-4 align-middle"></i>Document final acknowledgement number after filing.</li>
+                      </ul>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Accounts & Bookkeeping Tab -->
+            <div class="tab-pane fade" id="bookkeeping-pane" role="tabpanel" aria-labelledby="bookkeeping-tab">
+              <div class="row g-4">
+                <div class="col-lg-8">
+                  <div class="card border-0 shadow-sm accounts-section-card">
+                    <div class="card-header bg-transparent">
+                      <h6 class="mb-0 text-primary">Daily Closing Checklist</h6>
+                    </div>
+                    <div class="card-body">
+                      <form class="row g-3">
+                        <div class="col-md-6">
+                          <label class="form-label">Closing Date</label>
+                          <input type="date" class="form-control">
+                        </div>
+                        <div class="col-md-6">
+                          <label class="form-label">Prepared By</label>
+                          <input type="text" class="form-control" placeholder="Team member name">
+                        </div>
+                        <div class="col-md-4">
+                          <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="cashBookCheck">
+                            <label class="form-check-label" for="cashBookCheck">Cash book updated</label>
+                          </div>
+                        </div>
+                        <div class="col-md-4">
+                          <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="bankRecCheck">
+                            <label class="form-check-label" for="bankRecCheck">Bank entries reconciled</label>
+                          </div>
+                        </div>
+                        <div class="col-md-4">
+                          <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="inventoryCheck">
+                            <label class="form-check-label" for="inventoryCheck">Inventory updated</label>
+                          </div>
+                        </div>
+                        <div class="col-12">
+                          <label class="form-label">Outstanding Task Notes</label>
+                          <textarea class="form-control" rows="3" placeholder="Mention pending vendor bills, client approvals, missing vouchers..."></textarea>
+                        </div>
+                        <div class="col-12">
+                          <label class="form-label">Upload Reconciliation Files</label>
+                          <div class="upload-dropzone">
+                            <i class="bi bi-cloud-arrow-up fs-3 text-primary"></i>
+                            <p class="mb-1 fw-semibold">Drop bank reconciliation statements, AR/AP ageing, inventory valuation reports</p>
+                            <input type="file" class="form-control" multiple>
+                          </div>
+                        </div>
+                        <div class="col-12 d-flex justify-content-end gap-2">
+                          <button type="button" class="btn btn-outline-secondary">Save Log</button>
+                          <button type="button" class="btn btn-primary">Complete Day Close</button>
+                        </div>
+                      </form>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="col-lg-4">
+                  <div class="card border-0 shadow-sm accounts-section-card">
+                    <div class="card-header bg-transparent">
+                      <h6 class="mb-0 text-primary">Process Streams</h6>
+                    </div>
+                    <div class="card-body">
+                      {% for stream in bookkeeping_streams %}
+                      <div class="mb-3 pb-3 border-bottom">
+                        <h6 class="fw-semibold">{{ stream.title }}</h6>
+                        <ul class="list-unstyled small text-muted mb-0">
+                          {% for input in stream.inputs %}
+                          <li class="mb-1"><i class="bi bi-check2 text-success me-2"></i>{{ input }}</li>
+                          {% endfor %}
+                        </ul>
+                      </div>
+                      {% empty %}
+                      <p class="text-muted">No bookkeeping streams defined.</p>
+                      {% endfor %}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- TDS Tab -->
+            <div class="tab-pane fade" id="tds-pane" role="tabpanel" aria-labelledby="tds-tab">
+              <div class="row g-4">
+                <div class="col-xl-8">
+                  <div class="card border-0 shadow-sm accounts-section-card">
+                    <div class="card-header bg-transparent">
+                      <h6 class="mb-0 text-primary">TDS Payment & Return Tracker</h6>
+                    </div>
+                    <div class="card-body">
+                      <form class="row g-3">
+                        <div class="col-md-4">
+                          <label class="form-label">Deductor TAN</label>
+                          <input type="text" class="form-control" placeholder="ABCD12345E">
+                        </div>
+                        <div class="col-md-4">
+                          <label class="form-label">Section</label>
+                          <select class="form-select">
+                            <option selected>192 - Salary</option>
+                            <option>194C - Contractors</option>
+                            <option>194J - Professional Fees</option>
+                            <option>194I - Rent</option>
+                            <option>195 - Non-resident Payments</option>
+                          </select>
+                        </div>
+                        <div class="col-md-4">
+                          <label class="form-label">Deduction Month</label>
+                          <input type="month" class="form-control">
+                        </div>
+                        <div class="col-md-6">
+                          <label class="form-label">Total Payment Amount (₹)</label>
+                          <input type="number" class="form-control" placeholder="0.00">
+                        </div>
+                        <div class="col-md-6">
+                          <label class="form-label">TDS Deducted (₹)</label>
+                          <input type="number" class="form-control" placeholder="0.00">
+                        </div>
+                        <div class="col-md-6">
+                          <label class="form-label">Challan Number (CIN)</label>
+                          <input type="text" class="form-control" placeholder="e.g. 20242560012345">
+                        </div>
+                        <div class="col-md-6">
+                          <label class="form-label">Challan Date</label>
+                          <input type="date" class="form-control">
+                        </div>
+                        <div class="col-12">
+                          <label class="form-label">Upload Proofs</label>
+                          <div class="upload-dropzone">
+                            <i class="bi bi-cloud-arrow-up fs-3 text-primary"></i>
+                            <p class="mb-1 fw-semibold">Upload challan, deduction worksheet, payee confirmation</p>
+                            <input type="file" class="form-control" multiple>
+                          </div>
+                        </div>
+                        <div class="col-12 d-flex justify-content-end gap-2">
+                          <button type="button" class="btn btn-outline-secondary">Save Record</button>
+                          <button type="button" class="btn btn-primary">Prepare 26Q/24Q</button>
+                        </div>
+                      </form>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="col-xl-4">
+                  <div class="card border-0 shadow-sm mb-3 accounts-section-card">
+                    <div class="card-header bg-transparent">
+                      <h6 class="mb-0 text-primary">TDS Sections Overview</h6>
+                    </div>
+                    <div class="card-body">
+                      {% for category in tds_categories %}
+                      <div class="mb-3 pb-3 border-bottom">
+                        <h6 class="fw-semibold">{{ category.section }}</h6>
+                        <p class="mb-1 small text-muted">Threshold: {{ category.threshold }}</p>
+                        <p class="mb-1 small text-muted">Due date: {{ category.due_date }}</p>
+                        <span class="badge bg-light text-primary fw-semibold">Docs: {{ category.documents }}</span>
+                      </div>
+                      {% empty %}
+                      <p class="text-muted">No TDS categories configured.</p>
+                      {% endfor %}
+                    </div>
+                  </div>
+
+                  <div class="card border-0 shadow-sm accounts-section-card">
+                    <div class="card-header bg-transparent">
+                      <h6 class="mb-0 text-primary">Quick Checks</h6>
+                    </div>
+                    <div class="card-body small text-muted">
+                      <ul class="list-unstyled mb-0">
+                        <li class="mb-2"><i class="bi bi-dot text-primary fs-4 align-middle"></i>Validate PAN and 15G/15H declarations before reduced deduction.</li>
+                        <li class="mb-2"><i class="bi bi-dot text-primary fs-4 align-middle"></i>Verify challan status on OLTAS before return submission.</li>
+                        <li><i class="bi bi-dot text-primary fs-4 align-middle"></i>Capture late filing fees and interest computation, if applicable.</li>
+                      </ul>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="row g-3 mt-1">
+    <div class="col-lg-7">
+      <div class="card border-0 shadow-sm accounts-section-card">
+        <div class="card-header bg-transparent d-flex justify-content-between align-items-center">
+          <h6 class="mb-0 text-primary">Compliance Calendar</h6>
+          <button class="btn btn-sm btn-white">
+            <i class="bi bi-download me-1"></i>Download Reminder Sheet
+          </button>
+        </div>
+        <div class="card-body">
+          {% for item in compliance_calendar %}
+          <div class="calendar-item">
+            <div>
+              <h6 class="mb-1">{{ item.title }}</h6>
+              <p class="mb-0 text-muted small">{{ item.due }}</p>
+            </div>
+            <span class="badge {% if item.priority == 'High' %}bg-danger-subtle text-danger{% else %}bg-warning-subtle text-warning{% endif %} compliance-badge">{{ item.priority }}</span>
+          </div>
+          {% empty %}
+          <p class="text-muted">No compliance items scheduled.</p>
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+    <div class="col-lg-5">
+      <div class="card border-0 shadow-sm accounts-section-card h-100">
+        <div class="card-header bg-transparent">
+          <h6 class="mb-0 text-primary">Support & Helpdesks</h6>
+        </div>
+        <div class="card-body">
+          {% for support in support_contacts %}
+          <div class="d-flex align-items-start gap-3 mb-3 pb-3 border-bottom">
+            <div class="rounded-circle bg-primary text-white d-flex align-items-center justify-content-center" style="width: 46px; height: 46px;">
+              <i class="bi bi-headset fs-5"></i>
+            </div>
+            <div>
+              <h6 class="mb-1">{{ support.name }}</h6>
+              <p class="mb-1 text-muted small">{{ support.contact }}</p>
+              <a href="mailto:{{ support.email }}" class="small text-primary">{{ support.email }}</a>
+            </div>
+          </div>
+          {% empty %}
+          <p class="text-muted">Support directory not available.</p>
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+

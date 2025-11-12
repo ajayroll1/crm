@@ -2926,6 +2926,167 @@ def employee_projects(request):
     }
     return render(request, 'employee/projects.html', context)
 
+
+@login_required
+def employee_accounts(request):
+    """Accounts team workspace with compliance forms and document checklists."""
+    roc_required_docs = [
+        {
+            'name': 'Audited Financial Statements',
+            'description': 'Balance sheet, profit & loss, cash-flow statements approved in AGM.',
+            'due': 'Within 30 days of AGM',
+        },
+        {
+            'name': 'Annual Return (Form MGT-7)',
+            'description': 'Shareholding pattern, board report extracts, compliance confirmation.',
+            'due': 'Within 60 days of AGM',
+        },
+        {
+            'name': 'Director KYC (Form DIR-3 KYC)',
+            'description': 'PAN, Aadhaar, passport size photo, digital signature of director.',
+            'due': '30 September every year',
+        },
+        {
+            'name': 'Form AOC-4',
+            'description': 'Financial statements in XBRL or PDF along with notes and approval.',
+            'due': 'Within 30 days of AGM',
+        },
+    ]
+
+    gst_return_types = [
+        {
+            'code': 'GSTR-1',
+            'frequency': 'Monthly / Quarterly (QRMP)',
+            'purpose': 'Outward supplies summary, invoice-wise reporting.',
+            'due_date': '11th of next month / 13th of quarter following',
+        },
+        {
+            'code': 'GSTR-3B',
+            'frequency': 'Monthly / Quarterly (QRMP)',
+            'purpose': 'Tax liability, input tax credit, payment summary.',
+            'due_date': '20th / 22nd / 24th of next month (state-wise)',
+        },
+        {
+            'code': 'GSTR-9',
+            'frequency': 'Annually',
+            'purpose': 'Annual reconciliation statement for turnover and tax paid.',
+            'due_date': '31st December following the financial year',
+        },
+        {
+            'code': 'GSTR-9C',
+            'frequency': 'Annually (if turnover > ₹5 Cr)',
+            'purpose': 'GST audit report certified by CA/CMA.',
+            'due_date': '31st December following the financial year',
+        },
+    ]
+
+    gst_upload_requirements = [
+        'Sales register (B2B, B2C, exports, credit/debit notes)',
+        'Purchase register with GSTIN and invoice details',
+        'Input tax credit reconciliation summary',
+        'Reverse charge mechanism (RCM) liabilities and payments',
+        'E-way bills summary and transport documentation',
+    ]
+
+    itr_profiles = [
+        {
+            'form': 'ITR-1 (SAHAJ)',
+            'applicable_for': 'Resident individuals with salary, one house property, other income up to ₹50L.',
+            'documents': 'Form 16, rent receipts, interest certificates, 26AS, AIS/TIS.',
+        },
+        {
+            'form': 'ITR-3',
+            'applicable_for': 'Individuals/HUF with proprietary business or professional income.',
+            'documents': 'Balance sheet, P&L, capital accounts, GST data, loan summaries.',
+        },
+        {
+            'form': 'ITR-4 (SUGAM)',
+            'applicable_for': 'Presumptive business income (Sec 44AD/ADA/AE) up to ₹2 Cr.',
+            'documents': 'Turnover statement, presumptive computation, bank statements.',
+        },
+        {
+            'form': 'ITR-6',
+            'applicable_for': 'Companies other than those claiming exemption under Section 11.',
+            'documents': 'Audited accounts, MAT computation, depreciation schedule.',
+        },
+    ]
+
+    bookkeeping_streams = [
+        {
+            'title': 'Daily Bookkeeping & Cash Book',
+            'inputs': ['Sales invoices', 'Purchase bills', 'Cash expense vouchers', 'Petty cash log'],
+        },
+        {
+            'title': 'Bank Reconciliation',
+            'inputs': ['Bank statements', 'Outstanding cheque list', 'Payment approvals', 'Deposit slips'],
+        },
+        {
+            'title': 'Accounts Payable',
+            'inputs': ['Vendor master data', 'GSTIN verification', 'PO/GRN match report', 'Payment advice'],
+        },
+        {
+            'title': 'Accounts Receivable',
+            'inputs': ['Customer ledger', 'Aging analysis', 'Credit notes approvals', 'Collection tracker'],
+        },
+    ]
+
+    tds_categories = [
+        {
+            'section': '192 - Salary',
+            'threshold': 'As per income tax slab',
+            'due_date': 'Deposit by 7th of following month; Q4 return by 31 May',
+            'documents': 'Salary register, investment proofs, Form 12BB, challan copy.',
+        },
+        {
+            'section': '194C - Contractor Payments',
+            'threshold': '₹30,000 single / ₹1,00,000 aggregate',
+            'due_date': 'Deposit by 7th; return (Form 26Q) quarterly by 31st of month after quarter',
+            'documents': 'Work orders, invoices, PAN copy, TDS deduction worksheet.',
+        },
+        {
+            'section': '194J - Professional Fees',
+            'threshold': '₹30,000 per payee annually',
+            'due_date': 'Deposit by 7th; Form 26Q quarterly filing',
+            'documents': 'Engagement letters, bills, PAN, nature of service classification.',
+        },
+        {
+            'section': '194I - Rent',
+            'threshold': '₹2,40,000 per annum',
+            'due_date': 'Deposit by 7th; Form 26Q quarterly filing',
+            'documents': 'Rental agreement, landlord PAN, TDS computation sheet.',
+        },
+    ]
+
+    compliance_calendar = [
+        {'title': 'GST GSTR-1 Filing', 'due': '11th / 13th of every month or quarter', 'priority': 'High'},
+        {'title': 'GST GSTR-3B Payment', 'due': '20th / 22nd / 24th each month', 'priority': 'High'},
+        {'title': 'ROC Form AOC-4', 'due': '30 days from AGM', 'priority': 'Medium'},
+        {'title': 'ROC Form MGT-7', 'due': '60 days from AGM', 'priority': 'Medium'},
+        {'title': 'TDS Deposit', 'due': '7th of every month', 'priority': 'High'},
+        {'title': 'TDS Quarterly Return', 'due': '31 Jul / 31 Oct / 31 Jan / 31 May', 'priority': 'Medium'},
+        {'title': 'Income Tax Return', 'due': '31 July (Individuals) / 31 October (Audit) / 30 November (TP)', 'priority': 'High'},
+    ]
+
+    support_contacts = [
+        {'name': 'ROC Helpdesk', 'contact': '1800-111-555', 'email': 'roc.support@mca.gov.in'},
+        {'name': 'GSTN Support', 'contact': '1800-103-4786', 'email': 'helpdesk@gst.gov.in'},
+        {'name': 'Income Tax Helpline', 'contact': '1800-180-1961', 'email': 'ask@incometax.gov.in'},
+        {'name': 'TDS CPC Support', 'contact': '1800-103-0344', 'email': 'contactus@tdscpc.gov.in'},
+    ]
+
+    context = {
+        'roc_required_docs': roc_required_docs,
+        'gst_return_types': gst_return_types,
+        'gst_upload_requirements': gst_upload_requirements,
+        'itr_profiles': itr_profiles,
+        'bookkeeping_streams': bookkeeping_streams,
+        'tds_categories': tds_categories,
+        'compliance_calendar': compliance_calendar,
+        'support_contacts': support_contacts,
+    }
+    return render(request, 'employee/accounts.html', context)
+
+
 @login_required
 def employee_in_out(request):
     """Employee check in/out view"""
