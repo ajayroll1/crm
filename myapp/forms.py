@@ -1,6 +1,13 @@
 from django import forms
 from django.core.exceptions import ValidationError
-from .models import Lead
+from .models import (
+    Lead,
+    ROCComplianceRecord,
+    GSTFilingRecord,
+    ITRFilingRecord,
+    BookkeepingChecklistRecord,
+    TDSComplianceRecord,
+)
 
 class LeadForm(forms.ModelForm):
     """
@@ -159,6 +166,218 @@ class LeadForm(forms.ModelForm):
             if not phone:
                 return None
         return phone
+
+
+class ROCComplianceForm(forms.ModelForm):
+    """Form for ROC compliance intake."""
+
+    compliance_period = forms.ChoiceField(
+        choices=[
+            ('Form AOC-4', 'Form AOC-4'),
+            ('Form MGT-7', 'Form MGT-7'),
+            ('Form ADT-1', 'Form ADT-1'),
+            ('Form DIR-3 KYC', 'Form DIR-3 KYC'),
+        ],
+        widget=forms.Select(attrs={'class': 'form-select'}),
+    )
+    digital_signature = forms.ChoiceField(
+        choices=[
+            ('Director DSC (Class 3)', 'Director DSC (Class 3)'),
+            ('Practicing CA DSC', 'Practicing CA DSC'),
+            ('Company Secretary DSC', 'Company Secretary DSC'),
+        ],
+        widget=forms.Select(attrs={'class': 'form-select'}),
+    )
+
+    class Meta:
+        model = ROCComplianceRecord
+        fields = [
+            'company_name',
+            'cin_llpin',
+            'financial_year',
+            'agm_date',
+            'compliance_period',
+            'digital_signature',
+            'pending_queries',
+        ]
+        widgets = {
+            'company_name': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Enter registered company name'}),
+            'cin_llpin': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'LXXXX00XXYYYYYYYY'}),
+            'financial_year': forms.TextInput(attrs={'class': 'form-control', 'placeholder': '2024-2025'}),
+            'agm_date': forms.DateInput(attrs={'class': 'form-control', 'type': 'date'}),
+            'pending_queries': forms.Textarea(attrs={'class': 'form-control', 'rows': 3, 'placeholder': 'Mention board approval status, audit observations...'}),
+        }
+
+
+class GSTFilingForm(forms.ModelForm):
+    """Form for GST return builder."""
+
+    RETURN_CHOICES = [
+        ('GSTR-1', 'GSTR-1'),
+        ('GSTR-3B', 'GSTR-3B'),
+        ('GSTR-9', 'GSTR-9'),
+        ('GSTR-9C', 'GSTR-9C'),
+    ]
+
+    FILING_SCHEME_CHOICES = [
+        ('Regular', 'Regular'),
+        ('QRMP (Quarterly)', 'QRMP (Quarterly)'),
+        ('Composition', 'Composition'),
+    ]
+
+    return_type = forms.ChoiceField(
+        choices=RETURN_CHOICES,
+        widget=forms.Select(attrs={'class': 'form-select'}),
+    )
+    filing_scheme = forms.ChoiceField(
+        choices=FILING_SCHEME_CHOICES,
+        widget=forms.Select(attrs={'class': 'form-select'}),
+    )
+
+    class Meta:
+        model = GSTFilingRecord
+        fields = [
+            'gstin',
+            'return_period',
+            'return_type',
+            'filing_scheme',
+            'tax_payable',
+            'input_credit_utilized',
+            'internal_remarks',
+        ]
+        widgets = {
+            'gstin': forms.TextInput(attrs={'class': 'form-control', 'placeholder': '27ABCDE1234F1Z5'}),
+            'return_period': forms.DateInput(attrs={'class': 'form-control', 'type': 'month'}),
+            'tax_payable': forms.NumberInput(attrs={'class': 'form-control', 'placeholder': '0.00'}),
+            'input_credit_utilized': forms.NumberInput(attrs={'class': 'form-control', 'placeholder': '0.00'}),
+            'internal_remarks': forms.Textarea(attrs={'class': 'form-control', 'rows': 3, 'placeholder': 'Record reconciliation notes, differences between GSTR-2B and purchase register...'}),
+        }
+
+
+class ITRFilingForm(forms.ModelForm):
+    """Form for ITR intake."""
+
+    assessment_year = forms.ChoiceField(
+        choices=[
+            ('2025-26', '2025-26'),
+            ('2024-25', '2024-25'),
+            ('2023-24', '2023-24'),
+        ],
+        widget=forms.Select(attrs={'class': 'form-select'}),
+    )
+    return_form = forms.ChoiceField(
+        choices=[
+            ('ITR-1', 'ITR-1'),
+            ('ITR-2', 'ITR-2'),
+            ('ITR-3', 'ITR-3'),
+            ('ITR-4', 'ITR-4'),
+            ('ITR-6', 'ITR-6'),
+        ],
+        widget=forms.Select(attrs={'class': 'form-select'}),
+    )
+    client_category = forms.ChoiceField(
+        choices=[
+            ('Individual', 'Individual'),
+            ('HUF', 'HUF'),
+            ('Firm / LLP', 'Firm / LLP'),
+            ('Company', 'Company'),
+            ('Trust', 'Trust'),
+        ],
+        widget=forms.Select(attrs={'class': 'form-select'}),
+    )
+    books_of_account = forms.ChoiceField(
+        choices=[
+            ('Maintained', 'Maintained'),
+            ('Not Maintained', 'Not Maintained'),
+            ('Presumptive Scheme', 'Presumptive Scheme'),
+        ],
+        widget=forms.Select(attrs={'class': 'form-select'}),
+    )
+
+    class Meta:
+        model = ITRFilingRecord
+        fields = [
+            'taxpayer_name',
+            'pan',
+            'assessment_year',
+            'return_form',
+            'client_category',
+            'books_of_account',
+            'computation_notes',
+        ]
+        widgets = {
+            'taxpayer_name': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Name as per PAN'}),
+            'pan': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'ABCDE1234F', 'maxlength': 10}),
+            'computation_notes': forms.Textarea(attrs={'class': 'form-control', 'rows': 3, 'placeholder': 'Record adjustments, disallowances, carry forward losses, MAT/AMT calculation...'}),
+        }
+
+
+class BookkeepingChecklistForm(forms.ModelForm):
+    """Form for daily bookkeeping checklist."""
+
+    cash_book_updated = forms.BooleanField(
+        required=False,
+        widget=forms.CheckboxInput(attrs={'class': 'form-check-input'}),
+    )
+    bank_entries_reconciled = forms.BooleanField(
+        required=False,
+        widget=forms.CheckboxInput(attrs={'class': 'form-check-input'}),
+    )
+    inventory_updated = forms.BooleanField(
+        required=False,
+        widget=forms.CheckboxInput(attrs={'class': 'form-check-input'}),
+    )
+
+    class Meta:
+        model = BookkeepingChecklistRecord
+        fields = [
+            'closing_date',
+            'prepared_by',
+            'cash_book_updated',
+            'bank_entries_reconciled',
+            'inventory_updated',
+            'outstanding_notes',
+        ]
+        widgets = {
+            'closing_date': forms.DateInput(attrs={'class': 'form-control', 'type': 'date'}),
+            'prepared_by': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Team member name'}),
+            'outstanding_notes': forms.Textarea(attrs={'class': 'form-control', 'rows': 3, 'placeholder': 'Mention pending vendor bills, client approvals, missing vouchers...'}),
+        }
+
+
+class TDSComplianceForm(forms.ModelForm):
+    """Form for TDS payment & return tracker."""
+
+    section = forms.ChoiceField(
+        choices=[
+            ('192 - Salary', '192 - Salary'),
+            ('194C - Contractors', '194C - Contractors'),
+            ('194J - Professional Fees', '194J - Professional Fees'),
+            ('194I - Rent', '194I - Rent'),
+            ('195 - Non-resident Payments', '195 - Non-resident Payments'),
+        ],
+        widget=forms.Select(attrs={'class': 'form-select'}),
+    )
+
+    class Meta:
+        model = TDSComplianceRecord
+        fields = [
+            'deductor_tan',
+            'section',
+            'deduction_month',
+            'total_payment_amount',
+            'tds_deducted',
+            'challan_number',
+            'challan_date',
+        ]
+        widgets = {
+            'deductor_tan': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'ABCD12345E'}),
+            'deduction_month': forms.DateInput(attrs={'class': 'form-control', 'type': 'month'}),
+            'total_payment_amount': forms.NumberInput(attrs={'class': 'form-control', 'placeholder': '0.00'}),
+            'tds_deducted': forms.NumberInput(attrs={'class': 'form-control', 'placeholder': '0.00'}),
+            'challan_number': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'e.g. 20242560012345'}),
+            'challan_date': forms.DateInput(attrs={'class': 'form-control', 'type': 'date'}),
+        }
 
 
 class LeadFilterForm(forms.Form):

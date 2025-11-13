@@ -329,8 +329,163 @@ class ClientOnboarding(models.Model):
             'completed': 'bg-info'
         }
         return status_classes.get(self.status, 'bg-secondary')
-# 
-# 
+
+
+class ROCComplianceRecord(models.Model):
+    """Stores ROC compliance preparation details for accounts team."""
+
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='roc_compliance_records'
+    )
+    company_name = models.CharField(max_length=255)
+    cin_llpin = models.CharField(max_length=25, verbose_name="CIN / LLPIN")
+    financial_year = models.CharField(max_length=20)
+    agm_date = models.DateField(null=True, blank=True)
+    compliance_period = models.CharField(max_length=100)
+    digital_signature = models.CharField(max_length=100)
+    pending_queries = models.TextField(blank=True, null=True)
+    documents = models.JSONField(default=list, blank=True)
+
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['-created_at']
+        verbose_name = "ROC Compliance Record"
+        verbose_name_plural = "ROC Compliance Records"
+
+    def __str__(self):
+        return f"{self.company_name} ({self.financial_year})"
+
+
+class GSTFilingRecord(models.Model):
+    """Stores GST return preparation details."""
+
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='gst_filing_records'
+    )
+    gstin = models.CharField(max_length=15, verbose_name="GSTIN")
+    return_period = models.CharField(max_length=7, help_text="YYYY-MM format")
+    return_type = models.CharField(max_length=20)
+    filing_scheme = models.CharField(max_length=30)
+    tax_payable = models.DecimalField(max_digits=14, decimal_places=2, default=0)
+    input_credit_utilized = models.DecimalField(max_digits=14, decimal_places=2, default=0)
+    internal_remarks = models.TextField(blank=True, null=True)
+    data_files = models.JSONField(default=dict, blank=True)
+
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['-created_at']
+        verbose_name = "GST Filing Record"
+        verbose_name_plural = "GST Filing Records"
+
+    def __str__(self):
+        return f"{self.gstin} - {self.return_type} ({self.return_period})"
+
+
+class ITRFilingRecord(models.Model):
+    """Stores income tax return intake details."""
+
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='itr_filing_records'
+    )
+    taxpayer_name = models.CharField(max_length=255)
+    pan = models.CharField(max_length=10)
+    assessment_year = models.CharField(max_length=9)
+    return_form = models.CharField(max_length=10)
+    client_category = models.CharField(max_length=50)
+    books_of_account = models.CharField(max_length=50)
+    computation_notes = models.TextField(blank=True, null=True)
+    documents = models.JSONField(default=list, blank=True)
+
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['-created_at']
+        verbose_name = "ITR Filing Record"
+        verbose_name_plural = "ITR Filing Records"
+
+    def __str__(self):
+        return f"{self.taxpayer_name} - {self.assessment_year}"
+
+
+class BookkeepingChecklistRecord(models.Model):
+    """Stores daily accounts & bookkeeping checklist submissions."""
+
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='bookkeeping_checklists'
+    )
+    closing_date = models.DateField(null=True, blank=True)
+    prepared_by = models.CharField(max_length=255)
+    cash_book_updated = models.BooleanField(default=False)
+    bank_entries_reconciled = models.BooleanField(default=False)
+    inventory_updated = models.BooleanField(default=False)
+    outstanding_notes = models.TextField(blank=True, null=True)
+    reconciliation_documents = models.JSONField(default=list, blank=True)
+
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['-closing_date', '-created_at']
+        verbose_name = "Bookkeeping Checklist Record"
+        verbose_name_plural = "Bookkeeping Checklist Records"
+
+    def __str__(self):
+        closing = self.closing_date.strftime('%Y-%m-%d') if self.closing_date else 'No Date'
+        return f"{self.prepared_by} - {closing}"
+
+
+class TDSComplianceRecord(models.Model):
+    """Stores TDS payment and return tracker submissions."""
+
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='tds_compliance_records'
+    )
+    deductor_tan = models.CharField(max_length=10, verbose_name="Deductor TAN")
+    section = models.CharField(max_length=30)
+    deduction_month = models.CharField(max_length=7, help_text="YYYY-MM format")
+    total_payment_amount = models.DecimalField(max_digits=14, decimal_places=2, default=0)
+    tds_deducted = models.DecimalField(max_digits=14, decimal_places=2, default=0)
+    challan_number = models.CharField(max_length=25)
+    challan_date = models.DateField(null=True, blank=True)
+    proofs = models.JSONField(default=list, blank=True)
+
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['-created_at']
+        verbose_name = "TDS Compliance Record"
+        verbose_name_plural = "TDS Compliance Records"
+
+    def __str__(self):
+        return f"{self.deductor_tan} - {self.section} ({self.deduction_month})"
+
+
 class Attendance(models.Model):
     """Employee attendance check in/out records"""
     user = models.ForeignKey(

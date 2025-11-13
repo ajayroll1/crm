@@ -13,6 +13,74 @@
     box-sizing: border-box;
   }
 
+  .accounts-table {
+    width: 100%;
+    border-collapse: collapse;
+  }
+
+  .accounts-table th,
+  .accounts-table td {
+    white-space: normal;
+    vertical-align: middle;
+    word-break: break-word;
+  }
+
+  .reference-table th,
+  .reference-table td {
+    white-space: normal;
+    word-break: normal;
+  }
+
+  .accounts-table .actions-column {
+    white-space: nowrap;
+  }
+
+  .table-section .table-wrapper {
+    width: 100%;
+  }
+
+  .action-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 34px;
+    height: 34px;
+    border-radius: 50%;
+    border: 1px solid rgba(148, 163, 184, 0.6);
+    background: #ffffff;
+    color: #1a202c;
+    margin-left: 0.35rem;
+    transition: all 0.2s ease;
+    text-decoration: none;
+  }
+
+  .action-icon:first-child {
+    margin-left: 0;
+  }
+
+  .action-icon.edit {
+    color: #1f4aa1;
+    border-color: rgba(31, 74, 161, 0.35);
+  }
+
+  .action-icon.delete {
+    color: #dc2626;
+    border-color: rgba(220, 38, 38, 0.35);
+  }
+
+  .action-icon:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(15, 23, 42, 0.08);
+  }
+
+  .action-icon.edit:hover {
+    background: rgba(31, 74, 161, 0.08);
+  }
+
+  .action-icon.delete:hover {
+    background: rgba(220, 38, 38, 0.08);
+  }
+
   .main-content > .accounts-wrapper {
     padding-left: 0 !important;
     padding-right: 0 !important;
@@ -173,6 +241,21 @@
     .accounts-wrapper {
       padding: 0 0.75rem !important;
     }
+
+    .accounts-table th,
+    .accounts-table td {
+      font-size: 0.875rem;
+    }
+
+    .reference-table th,
+    .reference-table td {
+      font-size: 0.875rem;
+    }
+
+    .action-icon {
+      width: 30px;
+      height: 30px;
+    }
   }
 
   @media (max-width: 576px) {
@@ -226,7 +309,7 @@
           </div>
           <div>
             <div class="metric-title">ROC Filings</div>
-            <div class="metric-value">--</div>
+                <div class="metric-value">{{ roc_count|default:"0" }}</div>
             <div class="metric-subtitle">Upcoming due dates</div>
           </div>
         </div>
@@ -240,7 +323,7 @@
           </div>
           <div>
             <div class="metric-title">GST Returns</div>
-            <div class="metric-value">--</div>
+                <div class="metric-value">{{ gst_count|default:"0" }}</div>
             <div class="metric-subtitle">Pending submissions</div>
           </div>
         </div>
@@ -254,7 +337,7 @@
           </div>
           <div>
             <div class="metric-title">ITR Filings</div>
-            <div class="metric-value">--</div>
+                <div class="metric-value">{{ itr_count|default:"0" }}</div>
             <div class="metric-subtitle">FY in progress</div>
           </div>
         </div>
@@ -268,7 +351,7 @@
           </div>
           <div>
             <div class="metric-title">TDS & Withholding</div>
-            <div class="metric-value">--</div>
+                <div class="metric-value">{{ tds_count|default:"0" }}</div>
             <div class="metric-subtitle">Current month deductions</div>
           </div>
         </div>
@@ -318,45 +401,64 @@
                       <h6 class="mb-0 text-primary">Annual ROC Return Preparation</h6>
                     </div>
                     <div class="card-body">
-                      <form class="row g-3">
+                      <form method="post" enctype="multipart/form-data" class="row g-3">
+                        {% csrf_token %}
+                        <input type="hidden" name="form_name" value="roc">
+                        {% if roc_form.non_field_errors %}
+                        <div class="col-12">
+                          <div class="alert alert-danger mb-0">
+                            {{ roc_form.non_field_errors }}
+                          </div>
+                        </div>
+                        {% endif %}
                         <div class="col-md-6">
                           <label class="form-label">Company Name</label>
-                          <input type="text" class="form-control" placeholder="Enter registered company name">
+                          {{ roc_form.company_name }}
+                          {% if roc_form.company_name.errors %}
+                          <div class="text-danger small">{{ roc_form.company_name.errors|join:", " }}</div>
+                          {% endif %}
                         </div>
                         <div class="col-md-6">
                           <label class="form-label">CIN / LLPIN</label>
-                          <input type="text" class="form-control" placeholder="LXXXX00XXYYYYYYYY">
+                          {{ roc_form.cin_llpin }}
+                          {% if roc_form.cin_llpin.errors %}
+                          <div class="text-danger small">{{ roc_form.cin_llpin.errors|join:", " }}</div>
+                          {% endif %}
                         </div>
                         <div class="col-md-6">
                           <label class="form-label">Financial Year</label>
-                          <input type="text" class="form-control" placeholder="2024-2025">
+                          {{ roc_form.financial_year }}
+                          {% if roc_form.financial_year.errors %}
+                          <div class="text-danger small">{{ roc_form.financial_year.errors|join:", " }}</div>
+                          {% endif %}
                         </div>
                         <div class="col-md-6">
                           <label class="form-label">AGM Date</label>
-                          <input type="date" class="form-control">
+                          {{ roc_form.agm_date }}
+                          {% if roc_form.agm_date.errors %}
+                          <div class="text-danger small">{{ roc_form.agm_date.errors|join:", " }}</div>
+                          {% endif %}
                         </div>
                         <div class="col-md-6">
                           <label class="form-label">Compliance Period</label>
-                          <select class="form-select">
-                            <option selected>Select return type</option>
-                            <option>Form AOC-4</option>
-                            <option>Form MGT-7</option>
-                            <option>Form ADT-1</option>
-                            <option>Form DIR-3 KYC</option>
-                          </select>
+                          {{ roc_form.compliance_period }}
+                          {% if roc_form.compliance_period.errors %}
+                          <div class="text-danger small">{{ roc_form.compliance_period.errors|join:", " }}</div>
+                          {% endif %}
                         </div>
                         <div class="col-md-6">
                           <label class="form-label">Digital Signature</label>
-                          <select class="form-select">
-                            <option selected>Select authorized signatory</option>
-                            <option>Director DSC (Class 3)</option>
-                            <option>Practicing CA DSC</option>
-                            <option>Company Secretary DSC</option>
-                          </select>
+                          {{ roc_form.digital_signature }}
+                          {% if roc_form.digital_signature.errors %}
+                          <div class="text-danger small">{{ roc_form.digital_signature.errors|join:", " }}</div>
+                          {% endif %}
                         </div>
                         <div class="col-12">
                           <label class="form-label">Pending Queries / Notes</label>
-                          <textarea class="form-control" rows="3" placeholder="Mention board approval status, audit observations..."></textarea>
+                          {{ roc_form.pending_queries }}
+                          {% if roc_form.pending_queries.errors %}
+                          <div class="text-danger small">{{ roc_form.pending_queries.errors|join:", " }}</div>
+                          {% endif %}
                         </div>
                         <div class="col-12">
                           <label class="form-label">Upload Supporting Documents</label>
@@ -364,14 +466,56 @@
                             <i class="bi bi-cloud-arrow-up fs-3 text-primary"></i>
                             <p class="mb-1 fw-semibold">Drop ROC documents or click to browse</p>
                             <p class="text-muted small mb-2">Board report, financial statements, Auditor report, attendance registers</p>
-                            <input type="file" class="form-control" multiple>
+                            <input type="file" class="form-control" name="roc_documents" multiple>
                           </div>
                         </div>
                         <div class="col-12 d-flex justify-content-end gap-2">
-                          <button type="button" class="btn btn-outline-secondary">Save Draft</button>
-                          <button type="button" class="btn btn-primary">Mark Ready for Filing</button>
+                          <button type="submit" name="action" value="save" class="btn btn-outline-secondary">Save Draft</button>
+                          <button type="submit" name="action" value="ready" class="btn btn-primary">Mark Ready for Filing</button>
                         </div>
                       </form>
+                      <div class="section-divider"></div>
+                      <h6 class="text-muted text-uppercase small mb-3">Saved Records</h6>
+                      {% if roc_records %}
+                      <div class="table-wrapper table-section">
+                        <table class="table table-hover align-middle mb-0 accounts-table">
+                          <thead>
+                            <tr>
+                              <th>Company</th>
+                              <th>Financial Year</th>
+                              <th>Compliance Period</th>
+                              <th>AGM Date</th>
+                              <th>Created</th>
+                              <th class="text-end">Actions</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {% for record in roc_records %}
+                            <tr>
+                              <td class="fw-semibold">{{ record.company_name }}</td>
+                              <td>{{ record.financial_year }}</td>
+                              <td>{{ record.compliance_period }}</td>
+                              <td>{{ record.agm_date|date:"d M Y"|default:"—" }}</td>
+                              <td class="text-muted small">{{ record.created_at|date:"d M Y" }}</td>
+                              <td class="actions-column text-end">
+                                <a href="{% url 'employee_accounts_edit' 'roc' record.id %}" class="action-icon edit" title="Edit">
+                                  <i class="bi bi-pencil-square"></i>
+                                </a>
+                                <form method="post" action="{% url 'employee_accounts_delete' 'roc' record.id %}" class="d-inline">
+                                  {% csrf_token %}
+                                  <button type="submit" class="action-icon delete" title="Delete" onclick="return confirm('Delete this ROC record?');">
+                                    <i class="bi bi-trash"></i>
+                                  </button>
+                                </form>
+                              </td>
+                            </tr>
+                            {% endfor %}
+                          </tbody>
+                        </table>
+                      </div>
+                      {% else %}
+                      <p class="text-muted small mb-0">No ROC compliance records saved yet.</p>
+                      {% endif %}
                     </div>
                   </div>
                 </div>
@@ -423,32 +567,43 @@
                       <h6 class="mb-0 text-primary">GST Return Builder</h6>
                     </div>
                     <div class="card-body">
-                      <form class="row g-3">
+                      <form method="post" enctype="multipart/form-data" class="row g-3">
+                        {% csrf_token %}
+                        <input type="hidden" name="form_name" value="gst">
+                        {% if gst_form.non_field_errors %}
+                        <div class="col-12">
+                          <div class="alert alert-danger mb-0">
+                            {{ gst_form.non_field_errors }}
+                          </div>
+                        </div>
+                        {% endif %}
                         <div class="col-md-6">
                           <label class="form-label">GSTIN</label>
-                          <input type="text" class="form-control" placeholder="27ABCDE1234F1Z5">
+                          {{ gst_form.gstin }}
+                          {% if gst_form.gstin.errors %}
+                          <div class="text-danger small">{{ gst_form.gstin.errors|join:", " }}</div>
+                          {% endif %}
                         </div>
                         <div class="col-md-6">
                           <label class="form-label">Return Period</label>
-                          <input type="month" class="form-control">
+                          {{ gst_form.return_period }}
+                          {% if gst_form.return_period.errors %}
+                          <div class="text-danger small">{{ gst_form.return_period.errors|join:", " }}</div>
+                          {% endif %}
                         </div>
                         <div class="col-md-6">
                           <label class="form-label">Return Type</label>
-                          <select class="form-select">
-                            <option selected>Select return</option>
-                            <option>GSTR-1</option>
-                            <option>GSTR-3B</option>
-                            <option>GSTR-9</option>
-                            <option>GSTR-9C</option>
-                          </select>
+                          {{ gst_form.return_type }}
+                          {% if gst_form.return_type.errors %}
+                          <div class="text-danger small">{{ gst_form.return_type.errors|join:", " }}</div>
+                          {% endif %}
                         </div>
                         <div class="col-md-6">
                           <label class="form-label">Filing Scheme</label>
-                          <select class="form-select">
-                            <option selected>Regular</option>
-                            <option>QRMP (Quarterly)</option>
-                            <option>Composition</option>
-                          </select>
+                          {{ gst_form.filing_scheme }}
+                          {% if gst_form.filing_scheme.errors %}
+                          <div class="text-danger small">{{ gst_form.filing_scheme.errors|join:", " }}</div>
+                          {% endif %}
                         </div>
                         <div class="col-12">
                           <label class="form-label">Upload Data Files</label>
@@ -457,49 +612,102 @@
                               <div class="upload-dropzone">
                                 <i class="bi bi-upload text-primary fs-4"></i>
                                 <p class="mb-1 fw-semibold">Outward Supplies (B2B/B2C)</p>
-                                <input type="file" class="form-control mt-2">
+                                <input type="file" class="form-control mt-2" name="gst_outward_supplies" multiple>
                               </div>
                             </div>
                             <div class="col-md-6">
                               <div class="upload-dropzone">
                                 <i class="bi bi-upload text-primary fs-4"></i>
                                 <p class="mb-1 fw-semibold">Input Tax Credit Register</p>
-                                <input type="file" class="form-control mt-2">
+                                <input type="file" class="form-control mt-2" name="gst_input_tax_credit" multiple>
                               </div>
                             </div>
                             <div class="col-md-6">
                               <div class="upload-dropzone">
                                 <i class="bi bi-upload text-primary fs-4"></i>
                                 <p class="mb-1 fw-semibold">Reverse Charge (RCM)</p>
-                                <input type="file" class="form-control mt-2">
+                                <input type="file" class="form-control mt-2" name="gst_reverse_charge" multiple>
                               </div>
                             </div>
                             <div class="col-md-6">
                               <div class="upload-dropzone">
                                 <i class="bi bi-upload text-primary fs-4"></i>
                                 <p class="mb-1 fw-semibold">E-way Bill Summary</p>
-                                <input type="file" class="form-control mt-2">
+                                <input type="file" class="form-control mt-2" name="gst_eway_bill" multiple>
                               </div>
                             </div>
                           </div>
                         </div>
                         <div class="col-md-6">
                           <label class="form-label">Tax Payable (₹)</label>
-                          <input type="number" class="form-control" placeholder="0.00">
+                          {{ gst_form.tax_payable }}
+                          {% if gst_form.tax_payable.errors %}
+                          <div class="text-danger small">{{ gst_form.tax_payable.errors|join:", " }}</div>
+                          {% endif %}
                         </div>
                         <div class="col-md-6">
                           <label class="form-label">Input Credit Utilized (₹)</label>
-                          <input type="number" class="form-control" placeholder="0.00">
+                          {{ gst_form.input_credit_utilized }}
+                          {% if gst_form.input_credit_utilized.errors %}
+                          <div class="text-danger small">{{ gst_form.input_credit_utilized.errors|join:", " }}</div>
+                          {% endif %}
                         </div>
                         <div class="col-12">
                           <label class="form-label">Internal Remarks</label>
-                          <textarea class="form-control" rows="3" placeholder="Record reconciliation notes, differences between GSTR-2B and purchase register..."></textarea>
+                          {{ gst_form.internal_remarks }}
+                          {% if gst_form.internal_remarks.errors %}
+                          <div class="text-danger small">{{ gst_form.internal_remarks.errors|join:", " }}</div>
+                          {% endif %}
                         </div>
                         <div class="col-12 d-flex justify-content-end gap-2">
-                          <button type="button" class="btn btn-outline-secondary">Save Checklist</button>
-                          <button type="button" class="btn btn-primary">Generate Filing Pack</button>
+                          <button type="submit" name="action" value="save" class="btn btn-outline-secondary">Save Checklist</button>
+                          <button type="submit" name="action" value="generate" class="btn btn-primary">Generate Filing Pack</button>
                         </div>
                       </form>
+                      <div class="section-divider"></div>
+                      <h6 class="text-muted text-uppercase small mb-3">Saved Records</h6>
+                      {% if gst_records %}
+                      <div class="table-wrapper table-section">
+                        <table class="table table-hover align-middle mb-0 accounts-table">
+                          <thead>
+                            <tr>
+                              <th>GSTIN</th>
+                              <th>Return Period</th>
+                              <th>Return Type</th>
+                              <th>Tax Payable (₹)</th>
+                              <th>Credit Utilized (₹)</th>
+                              <th>Created</th>
+                              <th class="text-end">Actions</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {% for record in gst_records %}
+                            <tr>
+                              <td class="fw-semibold">{{ record.gstin }}</td>
+                              <td>{{ record.return_period }}</td>
+                              <td>{{ record.return_type }}</td>
+                              <td>{{ record.tax_payable|floatformat:2 }}</td>
+                              <td>{{ record.input_credit_utilized|floatformat:2 }}</td>
+                              <td class="text-muted small">{{ record.created_at|date:"d M Y" }}</td>
+                              <td class="actions-column text-end">
+                                <a href="{% url 'employee_accounts_edit' 'gst' record.id %}" class="action-icon edit" title="Edit">
+                                  <i class="bi bi-pencil-square"></i>
+                                </a>
+                                <form method="post" action="{% url 'employee_accounts_delete' 'gst' record.id %}" class="d-inline">
+                                  {% csrf_token %}
+                                  <button type="submit" class="action-icon delete" title="Delete" onclick="return confirm('Delete this GST record?');">
+                                    <i class="bi bi-trash"></i>
+                                  </button>
+                                </form>
+                              </td>
+                            </tr>
+                            {% endfor %}
+                          </tbody>
+                        </table>
+                      </div>
+                      {% else %}
+                      <p class="text-muted small mb-0">No GST filing records saved yet.</p>
+                      {% endif %}
                     </div>
                   </div>
                 </div>
@@ -510,8 +718,8 @@
                       <h6 class="mb-0 text-primary">GST Returns at a Glance</h6>
                       <span class="badge accounts-header-badge fw-semibold">Reference</span>
                     </div>
-                    <div class="table-responsive">
-                      <table class="table mb-0 align-middle">
+                    <div class="table-wrapper table-section">
+                      <table class="table mb-0 align-middle reference-table">
                         <thead>
                           <tr>
                             <th>Return</th>
@@ -526,7 +734,15 @@
                             <td class="fw-semibold">{{ gst_return.code }}</td>
                             <td>{{ gst_return.frequency }}</td>
                             <td class="text-muted small">{{ gst_return.purpose }}</td>
-                            <td><span class="badge bg-primary text-white">{{ gst_return.due_date }}</span></td>
+                            <td>
+                              {% if gst_return.next_due_dates %}
+                                {% for due in gst_return.next_due_dates %}
+                                <span class="badge bg-primary text-white me-1 mb-1">{{ due }}</span>
+                                {% endfor %}
+                               {% else %}
+                               <span class="badge bg-primary text-white">{{ gst_return.due_date }}</span>
+                               {% endif %}
+                             </td>
                           </tr>
                           {% empty %}
                           <tr>
@@ -565,69 +781,122 @@
                       <h6 class="mb-0 text-primary">Income Tax Return Intake Form</h6>
                     </div>
                     <div class="card-body">
-                      <form class="row g-3">
+                      <form method="post" enctype="multipart/form-data" class="row g-3">
+                        {% csrf_token %}
+                        <input type="hidden" name="form_name" value="itr">
+                        {% if itr_form.non_field_errors %}
+                        <div class="col-12">
+                          <div class="alert alert-danger mb-0">
+                            {{ itr_form.non_field_errors }}
+                          </div>
+                        </div>
+                        {% endif %}
                         <div class="col-md-6">
                           <label class="form-label">Taxpayer Name</label>
-                          <input type="text" class="form-control" placeholder="Name as per PAN">
+                          {{ itr_form.taxpayer_name }}
+                          {% if itr_form.taxpayer_name.errors %}
+                          <div class="text-danger small">{{ itr_form.taxpayer_name.errors|join:", " }}</div>
+                          {% endif %}
                         </div>
                         <div class="col-md-6">
                           <label class="form-label">PAN</label>
-                          <input type="text" class="form-control" placeholder="ABCDE1234F">
+                          {{ itr_form.pan }}
+                          {% if itr_form.pan.errors %}
+                          <div class="text-danger small">{{ itr_form.pan.errors|join:", " }}</div>
+                          {% endif %}
                         </div>
                         <div class="col-md-6">
                           <label class="form-label">Assessment Year</label>
-                          <select class="form-select">
-                            <option selected>2025-26</option>
-                            <option>2024-25</option>
-                            <option>2023-24</option>
-                          </select>
+                          {{ itr_form.assessment_year }}
+                          {% if itr_form.assessment_year.errors %}
+                          <div class="text-danger small">{{ itr_form.assessment_year.errors|join:", " }}</div>
+                          {% endif %}
                         </div>
                         <div class="col-md-6">
                           <label class="form-label">Return Form</label>
-                          <select class="form-select">
-                            <option selected>Select ITR form</option>
-                            <option>ITR-1</option>
-                            <option>ITR-2</option>
-                            <option>ITR-3</option>
-                            <option>ITR-4</option>
-                            <option>ITR-6</option>
-                          </select>
+                          {{ itr_form.return_form }}
+                          {% if itr_form.return_form.errors %}
+                          <div class="text-danger small">{{ itr_form.return_form.errors|join:", " }}</div>
+                          {% endif %}
                         </div>
                         <div class="col-md-6">
                           <label class="form-label">Client Category</label>
-                          <select class="form-select">
-                            <option selected>Individual</option>
-                            <option>HUF</option>
-                            <option>Firm / LLP</option>
-                            <option>Company</option>
-                            <option>Trust</option>
-                          </select>
+                          {{ itr_form.client_category }}
+                          {% if itr_form.client_category.errors %}
+                          <div class="text-danger small">{{ itr_form.client_category.errors|join:", " }}</div>
+                          {% endif %}
                         </div>
                         <div class="col-md-6">
                           <label class="form-label">Books of Account</label>
-                          <select class="form-select">
-                            <option selected>Maintained</option>
-                            <option>Not Maintained</option>
-                            <option>Presumptive Scheme</option>
-                          </select>
+                          {{ itr_form.books_of_account }}
+                          {% if itr_form.books_of_account.errors %}
+                          <div class="text-danger small">{{ itr_form.books_of_account.errors|join:", " }}</div>
+                          {% endif %}
                         </div>
                         <div class="col-12">
                           <label class="form-label">Upload Financial Documents</label>
                           <div class="upload-dropzone">
                             <i class="bi bi-cloud-arrow-up fs-3 text-primary"></i>
                             <p class="mb-1 fw-semibold">Attach Form 16, AIS, bank statements, investment proofs</p>
-                            <input type="file" class="form-control" multiple>
+                            <input type="file" class="form-control" name="itr_documents" multiple>
                           </div>
                         </div>
                         <div class="col-12">
                           <label class="form-label">Computation Notes</label>
-                          <textarea class="form-control" rows="3" placeholder="Record adjustments, disallowances, carry forward losses, MAT/AMT calculation..."></textarea>
+                          {{ itr_form.computation_notes }}
+                          {% if itr_form.computation_notes.errors %}
+                          <div class="text-danger small">{{ itr_form.computation_notes.errors|join:", " }}</div>
+                          {% endif %}
                         </div>
                         <div class="col-12 d-flex justify-content-end gap-2">
-                          <button type="button" class="btn btn-outline-secondary">Save Intake</button>
-                          <button type="button" class="btn btn-primary">Send for Review</button>
+                          <button type="submit" name="action" value="save" class="btn btn-outline-secondary">Save Intake</button>
+                          <button type="submit" name="action" value="review" class="btn btn-primary">Send for Review</button>
                         </div>
                       </form>
+                      <div class="section-divider"></div>
+                      <h6 class="text-muted text-uppercase small mb-3">Saved Records</h6>
+                      {% if itr_records %}
+                      <div class="table-wrapper table-section">
+                        <table class="table table-hover align-middle mb-0 accounts-table">
+                          <thead>
+                            <tr>
+                              <th>Taxpayer</th>
+                              <th>PAN</th>
+                              <th>Assessment Year</th>
+                              <th>Return Form</th>
+                              <th>Client Category</th>
+                              <th>Created</th>
+                              <th class="text-end">Actions</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {% for record in itr_records %}
+                            <tr>
+                              <td class="fw-semibold">{{ record.taxpayer_name }}</td>
+                              <td>{{ record.pan }}</td>
+                              <td>{{ record.assessment_year }}</td>
+                              <td>{{ record.return_form }}</td>
+                              <td>{{ record.client_category }}</td>
+                              <td class="text-muted small">{{ record.created_at|date:"d M Y" }}</td>
+                              <td class="actions-column text-end">
+                                <a href="{% url 'employee_accounts_edit' 'itr' record.id %}" class="action-icon edit" title="Edit">
+                                  <i class="bi bi-pencil-square"></i>
+                                </a>
+                                <form method="post" action="{% url 'employee_accounts_delete' 'itr' record.id %}" class="d-inline">
+                                  {% csrf_token %}
+                                  <button type="submit" class="action-icon delete" title="Delete" onclick="return confirm('Delete this ITR record?');">
+                                    <i class="bi bi-trash"></i>
+                                  </button>
+                                </form>
+                              </td>
+                            </tr>
+                            {% endfor %}
+                          </tbody>
+                        </table>
+                      </div>
+                      {% else %}
+                      <p class="text-muted small mb-0">No ITR filing records saved yet.</p>
+                      {% endif %}
                     </div>
                   </div>
                 </div>
@@ -679,50 +948,139 @@
                       <h6 class="mb-0 text-primary">Daily Closing Checklist</h6>
                     </div>
                     <div class="card-body">
-                      <form class="row g-3">
+                      <form method="post" enctype="multipart/form-data" class="row g-3">
+                        {% csrf_token %}
+                        <input type="hidden" name="form_name" value="bookkeeping">
+                        {% if bookkeeping_form.non_field_errors %}
+                        <div class="col-12">
+                          <div class="alert alert-danger mb-0">
+                            {{ bookkeeping_form.non_field_errors }}
+                          </div>
+                        </div>
+                        {% endif %}
                         <div class="col-md-6">
                           <label class="form-label">Closing Date</label>
-                          <input type="date" class="form-control">
+                          {{ bookkeeping_form.closing_date }}
+                          {% if bookkeeping_form.closing_date.errors %}
+                          <div class="text-danger small">{{ bookkeeping_form.closing_date.errors|join:", " }}</div>
+                          {% endif %}
                         </div>
                         <div class="col-md-6">
                           <label class="form-label">Prepared By</label>
-                          <input type="text" class="form-control" placeholder="Team member name">
+                          {{ bookkeeping_form.prepared_by }}
+                          {% if bookkeeping_form.prepared_by.errors %}
+                          <div class="text-danger small">{{ bookkeeping_form.prepared_by.errors|join:", " }}</div>
+                          {% endif %}
                         </div>
                         <div class="col-md-4">
                           <div class="form-check">
-                            <input class="form-check-input" type="checkbox" id="cashBookCheck">
-                            <label class="form-check-label" for="cashBookCheck">Cash book updated</label>
+                            {{ bookkeeping_form.cash_book_updated }}
+                            <label class="form-check-label" for="{{ bookkeeping_form.cash_book_updated.id_for_label }}">Cash book updated</label>
                           </div>
+                          {% if bookkeeping_form.cash_book_updated.errors %}
+                          <div class="text-danger small">{{ bookkeeping_form.cash_book_updated.errors|join:", " }}</div>
+                          {% endif %}
                         </div>
                         <div class="col-md-4">
                           <div class="form-check">
-                            <input class="form-check-input" type="checkbox" id="bankRecCheck">
-                            <label class="form-check-label" for="bankRecCheck">Bank entries reconciled</label>
+                            {{ bookkeeping_form.bank_entries_reconciled }}
+                            <label class="form-check-label" for="{{ bookkeeping_form.bank_entries_reconciled.id_for_label }}">Bank entries reconciled</label>
                           </div>
+                          {% if bookkeeping_form.bank_entries_reconciled.errors %}
+                          <div class="text-danger small">{{ bookkeeping_form.bank_entries_reconciled.errors|join:", " }}</div>
+                          {% endif %}
                         </div>
                         <div class="col-md-4">
                           <div class="form-check">
-                            <input class="form-check-input" type="checkbox" id="inventoryCheck">
-                            <label class="form-check-label" for="inventoryCheck">Inventory updated</label>
+                            {{ bookkeeping_form.inventory_updated }}
+                            <label class="form-check-label" for="{{ bookkeeping_form.inventory_updated.id_for_label }}">Inventory updated</label>
                           </div>
+                          {% if bookkeeping_form.inventory_updated.errors %}
+                          <div class="text-danger small">{{ bookkeeping_form.inventory_updated.errors|join:", " }}</div>
+                          {% endif %}
                         </div>
                         <div class="col-12">
                           <label class="form-label">Outstanding Task Notes</label>
-                          <textarea class="form-control" rows="3" placeholder="Mention pending vendor bills, client approvals, missing vouchers..."></textarea>
+                          {{ bookkeeping_form.outstanding_notes }}
+                          {% if bookkeeping_form.outstanding_notes.errors %}
+                          <div class="text-danger small">{{ bookkeeping_form.outstanding_notes.errors|join:", " }}</div>
+                          {% endif %}
                         </div>
                         <div class="col-12">
                           <label class="form-label">Upload Reconciliation Files</label>
                           <div class="upload-dropzone">
                             <i class="bi bi-cloud-arrow-up fs-3 text-primary"></i>
                             <p class="mb-1 fw-semibold">Drop bank reconciliation statements, AR/AP ageing, inventory valuation reports</p>
-                            <input type="file" class="form-control" multiple>
+                            <input type="file" class="form-control" name="bookkeeping_documents" multiple>
                           </div>
                         </div>
                         <div class="col-12 d-flex justify-content-end gap-2">
-                          <button type="button" class="btn btn-outline-secondary">Save Log</button>
-                          <button type="button" class="btn btn-primary">Complete Day Close</button>
+                          <button type="submit" name="action" value="save" class="btn btn-outline-secondary">Save Log</button>
+                          <button type="submit" name="action" value="complete" class="btn btn-primary">Complete Day Close</button>
                         </div>
                       </form>
+                      <div class="section-divider"></div>
+                      <h6 class="text-muted text-uppercase small mb-3">Saved Records</h6>
+                      {% if bookkeeping_records %}
+                      <div class="table-wrapper table-section">
+                        <table class="table table-hover align-middle mb-0 accounts-table">
+                          <thead>
+                            <tr>
+                              <th>Closing Date</th>
+                              <th>Prepared By</th>
+                              <th>Cash Book</th>
+                              <th>Bank Reconciled</th>
+                              <th>Inventory</th>
+                              <th>Created</th>
+                              <th class="text-end">Actions</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {% for record in bookkeeping_records %}
+                            <tr>
+                              <td>{{ record.closing_date|date:"d M Y"|default:"—" }}</td>
+                              <td class="fw-semibold">{{ record.prepared_by }}</td>
+                              <td>
+                                {% if record.cash_book_updated %}
+                                <span class="badge bg-success-subtle text-success"><i class="bi bi-check-lg"></i></span>
+                                {% else %}
+                                <span class="badge bg-secondary-subtle text-secondary"><i class="bi bi-dash-lg"></i></span>
+                                {% endif %}
+                              </td>
+                              <td>
+                                {% if record.bank_entries_reconciled %}
+                                <span class="badge bg-success-subtle text-success"><i class="bi bi-check-lg"></i></span>
+                                {% else %}
+                                <span class="badge bg-secondary-subtle text-secondary"><i class="bi bi-dash-lg"></i></span>
+                                {% endif %}
+                              </td>
+                              <td>
+                                {% if record.inventory_updated %}
+                                <span class="badge bg-success-subtle text-success"><i class="bi bi-check-lg"></i></span>
+                                {% else %}
+                                <span class="badge bg-secondary-subtle text-secondary"><i class="bi bi-dash-lg"></i></span>
+                                {% endif %}
+                              </td>
+                              <td class="text-muted small">{{ record.created_at|date:"d M Y" }}</td>
+                              <td class="actions-column text-end">
+                                <a href="{% url 'employee_accounts_edit' 'bookkeeping' record.id %}" class="action-icon edit" title="Edit">
+                                  <i class="bi bi-pencil-square"></i>
+                                </a>
+                                <form method="post" action="{% url 'employee_accounts_delete' 'bookkeeping' record.id %}" class="d-inline">
+                                  {% csrf_token %}
+                                  <button type="submit" class="action-icon delete" title="Delete" onclick="return confirm('Delete this bookkeeping record?');">
+                                    <i class="bi bi-trash"></i>
+                                  </button>
+                                </form>
+                              </td>
+                            </tr>
+                            {% endfor %}
+                          </tbody>
+                        </table>
+                      </div>
+                      {% else %}
+                      <p class="text-muted small mb-0">No bookkeeping records saved yet.</p>
+                      {% endif %}
                     </div>
                   </div>
                 </div>
@@ -760,54 +1118,122 @@
                       <h6 class="mb-0 text-primary">TDS Payment & Return Tracker</h6>
                     </div>
                     <div class="card-body">
-                      <form class="row g-3">
+                      <form method="post" enctype="multipart/form-data" class="row g-3">
+                        {% csrf_token %}
+                        <input type="hidden" name="form_name" value="tds">
+                        {% if tds_form.non_field_errors %}
+                        <div class="col-12">
+                          <div class="alert alert-danger mb-0">
+                            {{ tds_form.non_field_errors }}
+                          </div>
+                        </div>
+                        {% endif %}
                         <div class="col-md-4">
                           <label class="form-label">Deductor TAN</label>
-                          <input type="text" class="form-control" placeholder="ABCD12345E">
+                          {{ tds_form.deductor_tan }}
+                          {% if tds_form.deductor_tan.errors %}
+                          <div class="text-danger small">{{ tds_form.deductor_tan.errors|join:", " }}</div>
+                          {% endif %}
                         </div>
                         <div class="col-md-4">
                           <label class="form-label">Section</label>
-                          <select class="form-select">
-                            <option selected>192 - Salary</option>
-                            <option>194C - Contractors</option>
-                            <option>194J - Professional Fees</option>
-                            <option>194I - Rent</option>
-                            <option>195 - Non-resident Payments</option>
-                          </select>
+                          {{ tds_form.section }}
+                          {% if tds_form.section.errors %}
+                          <div class="text-danger small">{{ tds_form.section.errors|join:", " }}</div>
+                          {% endif %}
                         </div>
                         <div class="col-md-4">
                           <label class="form-label">Deduction Month</label>
-                          <input type="month" class="form-control">
+                          {{ tds_form.deduction_month }}
+                          {% if tds_form.deduction_month.errors %}
+                          <div class="text-danger small">{{ tds_form.deduction_month.errors|join:", " }}</div>
+                          {% endif %}
                         </div>
                         <div class="col-md-6">
                           <label class="form-label">Total Payment Amount (₹)</label>
-                          <input type="number" class="form-control" placeholder="0.00">
+                          {{ tds_form.total_payment_amount }}
+                          {% if tds_form.total_payment_amount.errors %}
+                          <div class="text-danger small">{{ tds_form.total_payment_amount.errors|join:", " }}</div>
+                          {% endif %}
                         </div>
                         <div class="col-md-6">
                           <label class="form-label">TDS Deducted (₹)</label>
-                          <input type="number" class="form-control" placeholder="0.00">
+                          {{ tds_form.tds_deducted }}
+                          {% if tds_form.tds_deducted.errors %}
+                          <div class="text-danger small">{{ tds_form.tds_deducted.errors|join:", " }}</div>
+                          {% endif %}
                         </div>
                         <div class="col-md-6">
                           <label class="form-label">Challan Number (CIN)</label>
-                          <input type="text" class="form-control" placeholder="e.g. 20242560012345">
+                          {{ tds_form.challan_number }}
+                          {% if tds_form.challan_number.errors %}
+                          <div class="text-danger small">{{ tds_form.challan_number.errors|join:", " }}</div>
+                          {% endif %}
                         </div>
                         <div class="col-md-6">
                           <label class="form-label">Challan Date</label>
-                          <input type="date" class="form-control">
+                          {{ tds_form.challan_date }}
+                          {% if tds_form.challan_date.errors %}
+                          <div class="text-danger small">{{ tds_form.challan_date.errors|join:", " }}</div>
+                          {% endif %}
                         </div>
                         <div class="col-12">
                           <label class="form-label">Upload Proofs</label>
                           <div class="upload-dropzone">
                             <i class="bi bi-cloud-arrow-up fs-3 text-primary"></i>
                             <p class="mb-1 fw-semibold">Upload challan, deduction worksheet, payee confirmation</p>
-                            <input type="file" class="form-control" multiple>
+                            <input type="file" class="form-control" name="tds_proofs" multiple>
                           </div>
                         </div>
                         <div class="col-12 d-flex justify-content-end gap-2">
-                          <button type="button" class="btn btn-outline-secondary">Save Record</button>
-                          <button type="button" class="btn btn-primary">Prepare 26Q/24Q</button>
+                          <button type="submit" name="action" value="save" class="btn btn-outline-secondary">Save Record</button>
+                          <button type="submit" name="action" value="prepare" class="btn btn-primary">Prepare 26Q/24Q</button>
                         </div>
                       </form>
+                      <div class="section-divider"></div>
+                      <h6 class="text-muted text-uppercase small mb-3">Saved Records</h6>
+                      {% if tds_records %}
+                      <div class="table-wrapper table-section">
+                        <table class="table table-hover align-middle mb-0 accounts-table">
+                          <thead>
+                            <tr>
+                              <th>Deductor TAN</th>
+                              <th>Section</th>
+                              <th>Deduction Month</th>
+                              <th>TDS Deducted (₹)</th>
+                              <th>Challan Number</th>
+                              <th>Created</th>
+                              <th class="text-end">Actions</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {% for record in tds_records %}
+                            <tr>
+                              <td class="fw-semibold">{{ record.deductor_tan }}</td>
+                              <td>{{ record.section }}</td>
+                              <td>{{ record.deduction_month }}</td>
+                              <td>{{ record.tds_deducted|floatformat:2 }}</td>
+                              <td>{{ record.challan_number }}</td>
+                              <td class="text-muted small">{{ record.created_at|date:"d M Y" }}</td>
+                              <td class="actions-column text-end">
+                                <a href="{% url 'employee_accounts_edit' 'tds' record.id %}" class="action-icon edit" title="Edit">
+                                  <i class="bi bi-pencil-square"></i>
+                                </a>
+                                <form method="post" action="{% url 'employee_accounts_delete' 'tds' record.id %}" class="d-inline">
+                                  {% csrf_token %}
+                                  <button type="submit" class="action-icon delete" title="Delete" onclick="return confirm('Delete this TDS record?');">
+                                    <i class="bi bi-trash"></i>
+                                  </button>
+                                </form>
+                              </td>
+                            </tr>
+                            {% endfor %}
+                          </tbody>
+                        </table>
+                      </div>
+                      {% else %}
+                      <p class="text-muted small mb-0">No TDS compliance records saved yet.</p>
+                      {% endif %}
                     </div>
                   </div>
                 </div>
@@ -852,54 +1278,6 @@
     </div>
   </div>
 
-  <div class="row g-3 mt-1">
-    <div class="col-lg-7">
-      <div class="card border-0 shadow-sm accounts-section-card">
-        <div class="card-header bg-transparent d-flex justify-content-between align-items-center">
-          <h6 class="mb-0 text-primary">Compliance Calendar</h6>
-          <button class="btn btn-sm btn-white">
-            <i class="bi bi-download me-1"></i>Download Reminder Sheet
-          </button>
-        </div>
-        <div class="card-body">
-          {% for item in compliance_calendar %}
-          <div class="calendar-item">
-            <div>
-              <h6 class="mb-1">{{ item.title }}</h6>
-              <p class="mb-0 text-muted small">{{ item.due }}</p>
-            </div>
-            <span class="badge {% if item.priority == 'High' %}bg-danger-subtle text-danger{% else %}bg-warning-subtle text-warning{% endif %} compliance-badge">{{ item.priority }}</span>
-          </div>
-          {% empty %}
-          <p class="text-muted">No compliance items scheduled.</p>
-          {% endfor %}
-        </div>
-      </div>
-    </div>
-    <div class="col-lg-5">
-      <div class="card border-0 shadow-sm accounts-section-card h-100">
-        <div class="card-header bg-transparent">
-          <h6 class="mb-0 text-primary">Support & Helpdesks</h6>
-        </div>
-        <div class="card-body">
-          {% for support in support_contacts %}
-          <div class="d-flex align-items-start gap-3 mb-3 pb-3 border-bottom">
-            <div class="rounded-circle bg-primary text-white d-flex align-items-center justify-content-center" style="width: 46px; height: 46px;">
-              <i class="bi bi-headset fs-5"></i>
-            </div>
-            <div>
-              <h6 class="mb-1">{{ support.name }}</h6>
-              <p class="mb-1 text-muted small">{{ support.contact }}</p>
-              <a href="mailto:{{ support.email }}" class="small text-primary">{{ support.email }}</a>
-            </div>
-          </div>
-          {% empty %}
-          <p class="text-muted">Support directory not available.</p>
-          {% endfor %}
-        </div>
-      </div>
-    </div>
-  </div>
 </div>
 {% endblock %}
 

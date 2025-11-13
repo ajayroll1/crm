@@ -1,0 +1,175 @@
+{% extends "employee/base.html" %}
+{% load static %}
+
+{% block title %}Edit {{ title }} Record - Accounts Workspace{% endblock %}
+{% block page_title %}Edit {{ title }} Record{% endblock %}
+{% block mobile_title %}Edit {{ title }}{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+  <div class="row justify-content-center">
+    <div class="col-lg-8">
+      <div class="card shadow-sm">
+        <div class="card-header d-flex justify-content-between align-items-center bg-primary text-white">
+          <h5 class="mb-0">Edit {{ title }} Record</h5>
+          <a href="{% url 'employee_accounts' %}" class="btn btn-sm btn-light">Back to Accounts Workspace</a>
+        </div>
+        <div class="card-body">
+          <form method="post" enctype="multipart/form-data" class="row g-3">
+            {% csrf_token %}
+            {% if form.non_field_errors %}
+            <div class="col-12">
+              <div class="alert alert-danger mb-0">
+                {{ form.non_field_errors }}
+              </div>
+            </div>
+            {% endif %}
+
+            {% for field in form.visible_fields %}
+            {% if field.field.widget.input_type == 'checkbox' %}
+            <div class="col-md-4 col-6">
+              <div class="form-check mt-4">
+                {{ field }}
+                <label class="form-check-label" for="{{ field.id_for_label }}">{{ field.label }}</label>
+              </div>
+              {% if field.errors %}
+              <div class="text-danger small">{{ field.errors|join:", " }}</div>
+              {% endif %}
+            </div>
+            {% else %}
+            <div class="col-md-6{% if field.field.widget.__class__.__name__ == 'Textarea' %} col-12{% endif %}">
+              <label class="form-label" for="{{ field.id_for_label }}">{{ field.label }}</label>
+              {{ field }}
+              {% if field.help_text %}
+              <div class="form-text">{{ field.help_text }}</div>
+              {% endif %}
+              {% if field.errors %}
+              <div class="text-danger small">{{ field.errors|join:", " }}</div>
+              {% endif %}
+            </div>
+            {% endif %}
+            {% endfor %}
+
+            {% if section == 'roc' %}
+            <div class="col-12">
+              <label class="form-label">Existing Documents</label>
+              {% if record.documents %}
+              <ul class="list-unstyled small">
+                {% for doc in record.documents %}
+                <li><i class="bi bi-file-earmark-text me-2 text-primary"></i><a href="{{ MEDIA_URL }}{{ doc }}" target="_blank">{{ doc|slice:"-60:" }}</a></li>
+                {% endfor %}
+              </ul>
+              {% else %}
+              <p class="text-muted small mb-0">No documents uploaded yet.</p>
+              {% endif %}
+            </div>
+            <div class="col-12">
+              <label class="form-label">Add More Documents</label>
+              <input type="file" class="form-control" name="roc_documents" multiple>
+              <div class="form-text">New files will be appended to the existing list.</div>
+            </div>
+            {% elif section == 'gst' %}
+            <div class="col-12">
+              <label class="form-label">Existing Data Files</label>
+              {% if record.data_files %}
+              <ul class="list-unstyled small">
+                {% for label, files in record.data_files.items %}
+                <li class="mb-1">
+                  <span class="fw-semibold text-primary">{{ label|title }}</span>
+                  {% if files %}
+                  <ul class="mb-0 ps-3">
+                    {% for file in files %}
+                    <li><a href="{{ MEDIA_URL }}{{ file }}" target="_blank">{{ file|slice:"-60:" }}</a></li>
+                    {% endfor %}
+                  </ul>
+                  {% else %}
+                  <span class="text-muted">No files</span>
+                  {% endif %}
+                </li>
+                {% endfor %}
+              </ul>
+              {% else %}
+              <p class="text-muted small mb-0">No data files uploaded yet.</p>
+              {% endif %}
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">Add Outward Supplies</label>
+              <input type="file" class="form-control" name="gst_outward_supplies" multiple>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">Add Input Tax Credit</label>
+              <input type="file" class="form-control" name="gst_input_tax_credit" multiple>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">Add Reverse Charge Files</label>
+              <input type="file" class="form-control" name="gst_reverse_charge" multiple>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">Add E-way Bill Summary</label>
+              <input type="file" class="form-control" name="gst_eway_bill" multiple>
+            </div>
+            {% elif section == 'itr' %}
+            <div class="col-12">
+              <label class="form-label">Existing Documents</label>
+              {% if record.documents %}
+              <ul class="list-unstyled small">
+                {% for doc in record.documents %}
+                <li><i class="bi bi-file-earmark-text me-2 text-primary"></i><a href="{{ MEDIA_URL }}{{ doc }}" target="_blank">{{ doc|slice:"-60:" }}</a></li>
+                {% endfor %}
+              </ul>
+              {% else %}
+              <p class="text-muted small mb-0">No documents uploaded yet.</p>
+              {% endif %}
+            </div>
+            <div class="col-12">
+              <label class="form-label">Add More Financial Documents</label>
+              <input type="file" class="form-control" name="itr_documents" multiple>
+            </div>
+            {% elif section == 'bookkeeping' %}
+            <div class="col-12">
+              <label class="form-label">Existing Reconciliation Files</label>
+              {% if record.reconciliation_documents %}
+              <ul class="list-unstyled small">
+                {% for doc in record.reconciliation_documents %}
+                <li><i class="bi bi-file-earmark-text me-2 text-primary"></i><a href="{{ MEDIA_URL }}{{ doc }}" target="_blank">{{ doc|slice:"-60:" }}</a></li>
+                {% endfor %}
+              </ul>
+              {% else %}
+              <p class="text-muted small mb-0">No files uploaded yet.</p>
+              {% endif %}
+            </div>
+            <div class="col-12">
+              <label class="form-label">Add More Reconciliation Files</label>
+              <input type="file" class="form-control" name="bookkeeping_documents" multiple>
+            </div>
+            {% elif section == 'tds' %}
+            <div class="col-12">
+              <label class="form-label">Existing Proofs</label>
+              {% if record.proofs %}
+              <ul class="list-unstyled small">
+                {% for doc in record.proofs %}
+                <li><i class="bi bi-file-earmark-text me-2 text-primary"></i><a href="{{ MEDIA_URL }}{{ doc }}" target="_blank">{{ doc|slice:"-60:" }}</a></li>
+                {% endfor %}
+              </ul>
+              {% else %}
+              <p class="text-muted small mb-0">No proofs uploaded yet.</p>
+              {% endif %}
+            </div>
+            <div class="col-12">
+              <label class="form-label">Add More Proofs</label>
+              <input type="file" class="form-control" name="tds_proofs" multiple>
+            </div>
+            {% endif %}
+
+            <div class="col-12 d-flex justify-content-end gap-2">
+              <a href="{% url 'employee_accounts' %}" class="btn btn-outline-secondary">Cancel</a>
+              <button type="submit" class="btn btn-primary">Save Changes</button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+

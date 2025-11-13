@@ -1,19 +1,104 @@
 from django.shortcuts import render, redirect, get_object_or_404
-from django.http import HttpResponse, JsonResponse
+from django.http import HttpResponse, JsonResponse, Http404
 from django.contrib import messages
 from django.contrib.auth import logout as auth_logout, login as auth_login, authenticate
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.models import User
 from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
+from django.core.files.storage import default_storage
 from django.db.models import Q, Count, Sum
 from django.utils import timezone
 from datetime import datetime, date
 from decimal import Decimal
 import json
-from .models import Lead, LeaveRequest, Document, Attendance, Quote, ClientOnboarding, Employee, EmployeeMessage, PaymentTransaction
-from .forms import LeadForm, LeadFilterForm
+import os
+import uuid
+import calendar
+
+def _store_uploaded_files(files, subdir):
+    """
+    Save uploaded files under media/accounts/<subdir>/YYYY/MM/DD/ and return stored paths list.
+    """
+    saved_paths = []
+    if not files:
+        return saved_paths
+
+    date_path = timezone.now().strftime('%Y/%m/%d')
+    for uploaded_file in files:
+        if not uploaded_file:
+            continue
+        filename = f"{uuid.uuid4().hex}_{uploaded_file.name}"
+        storage_path = os.path.join('accounts', subdir, date_path, filename)
+        saved_path = default_storage.save(storage_path, uploaded_file)
+        saved_paths.append(saved_path)
+    return saved_paths
+from .models import (
+    Lead,
+    LeaveRequest,
+    Document,
+    Attendance,
+    Quote,
+    ClientOnboarding,
+    Employee,
+    EmployeeMessage,
+    PaymentTransaction,
+    ROCComplianceRecord,
+    GSTFilingRecord,
+    ITRFilingRecord,
+    BookkeepingChecklistRecord,
+    TDSComplianceRecord,
+)
+from .forms import (
+    LeadForm,
+    LeadFilterForm,
+    ROCComplianceForm,
+    GSTFilingForm,
+    ITRFilingForm,
+    BookkeepingChecklistForm,
+    TDSComplianceForm,
+)
 from django.views.decorators.http import require_POST
 from django.views.decorators.csrf import csrf_exempt, ensure_csrf_cookie
+
+SECTION_CONFIG = {
+    'roc': {
+        'model': ROCComplianceRecord,
+        'form': ROCComplianceForm,
+        'title': 'ROC Compliance',
+        'success_message': 'ROC compliance record updated successfully.',
+    },
+    'gst': {
+        'model': GSTFilingRecord,
+        'form': GSTFilingForm,
+        'title': 'GST Filing',
+        'success_message': 'GST filing record updated successfully.',
+    },
+    'itr': {
+        'model': ITRFilingRecord,
+        'form': ITRFilingForm,
+        'title': 'ITR Filing',
+        'success_message': 'ITR filing record updated successfully.',
+    },
+    'bookkeeping': {
+        'model': BookkeepingChecklistRecord,
+        'form': BookkeepingChecklistForm,
+        'title': 'Bookkeeping Checklist',
+        'success_message': 'Bookkeeping checklist updated successfully.',
+    },
+    'tds': {
+        'model': TDSComplianceRecord,
+        'form': TDSComplianceForm,
+        'title': 'TDS Compliance',
+        'success_message': 'TDS compliance record updated successfully.',
+    },
+}
+
+
+def _get_section_config(section):
+    config = SECTION_CONFIG.get(section)
+    if not config:
+        raise Http404("Invalid section")
+    return config
 
 def home(request):
   """Home page - show login form if not authenticated, else redirect to dashboard"""
@@ -2930,6 +3015,90 @@ def employee_projects(request):
 @login_required
 def employee_accounts(request):
     """Accounts team workspace with compliance forms and document checklists."""
+    roc_form = ROCComplianceForm()
+    gst_form = GSTFilingForm()
+    itr_form = ITRFilingForm()
+    bookkeeping_form = BookkeepingChecklistForm()
+    tds_form = TDSComplianceForm()
+
+    if request.method == 'POST':
+        form_name = request.POST.get('form_name')
+
+        if form_name == 'roc':
+            roc_form = ROCComplianceForm(request.POST)
+            if roc_form.is_valid():
+                record = roc_form.save(commit=False)
+                record.user = request.user
+                record.documents = _store_uploaded_files(
+                    request.FILES.getlist('roc_documents'),
+                    'roc',
+                )
+                record.save()
+                messages.success(request, 'ROC compliance details saved successfully.')
+                return redirect('employee_accounts')
+            messages.error(request, 'Please correct the highlighted errors in the ROC compliance form.')
+
+        elif form_name == 'gst':
+            gst_form = GSTFilingForm(request.POST)
+            if gst_form.is_valid():
+                record = gst_form.save(commit=False)
+                record.user = request.user
+                files_map = {
+                    'outward_supplies': _store_uploaded_files(request.FILES.getlist('gst_outward_supplies'), 'gst/outward'),
+                    'input_tax_credit': _store_uploaded_files(request.FILES.getlist('gst_input_tax_credit'), 'gst/input-credit'),
+                    'reverse_charge': _store_uploaded_files(request.FILES.getlist('gst_reverse_charge'), 'gst/reverse-charge'),
+                    'eway_bill_summary': _store_uploaded_files(request.FILES.getlist('gst_eway_bill'), 'gst/eway-bill'),
+                }
+                record.data_files = {key: paths for key, paths in files_map.items() if paths}
+                record.save()
+                messages.success(request, 'GST filing details saved successfully.')
+                return redirect('employee_accounts')
+            messages.error(request, 'Please correct the highlighted errors in the GST filing form.')
+
+        elif form_name == 'itr':
+            itr_form = ITRFilingForm(request.POST)
+            if itr_form.is_valid():
+                record = itr_form.save(commit=False)
+                record.user = request.user
+                record.documents = _store_uploaded_files(
+                    request.FILES.getlist('itr_documents'),
+                    'itr',
+                )
+                record.save()
+                messages.success(request, 'ITR intake details saved successfully.')
+                return redirect('employee_accounts')
+            messages.error(request, 'Please correct the highlighted errors in the ITR intake form.')
+
+        elif form_name == 'bookkeeping':
+            bookkeeping_form = BookkeepingChecklistForm(request.POST)
+            if bookkeeping_form.is_valid():
+                record = bookkeeping_form.save(commit=False)
+                record.user = request.user
+                record.reconciliation_documents = _store_uploaded_files(
+                    request.FILES.getlist('bookkeeping_documents'),
+                    'bookkeeping',
+                )
+                record.save()
+                messages.success(request, 'Bookkeeping checklist saved successfully.')
+                return redirect('employee_accounts')
+            messages.error(request, 'Please correct the highlighted errors in the bookkeeping checklist.')
+
+        elif form_name == 'tds':
+            tds_form = TDSComplianceForm(request.POST)
+            if tds_form.is_valid():
+                record = tds_form.save(commit=False)
+                record.user = request.user
+                record.proofs = _store_uploaded_files(
+                    request.FILES.getlist('tds_proofs'),
+                    'tds',
+                )
+                record.save()
+                messages.success(request, 'TDS compliance details saved successfully.')
+                return redirect('employee_accounts')
+            messages.error(request, 'Please correct the highlighted errors in the TDS compliance form.')
+
+        else:
+            messages.error(request, 'Invalid submission. Please try again.')
     roc_required_docs = [
         {
             'name': 'Audited Financial Statements',
@@ -2979,6 +3148,9 @@ def employee_accounts(request):
             'due_date': '31st December following the financial year',
         },
     ]
+
+    for gst_item in gst_return_types:
+        gst_item['next_due_dates'] = _get_gst_next_due(gst_item['code'])
 
     gst_upload_requirements = [
         'Sales register (B2B, B2C, exports, credit/debit notes)',
@@ -3074,6 +3246,12 @@ def employee_accounts(request):
         {'name': 'TDS CPC Support', 'contact': '1800-103-0344', 'email': 'contactus@tdscpc.gov.in'},
     ]
 
+    roc_records = ROCComplianceRecord.objects.filter(user=request.user).order_by('-created_at')
+    gst_records = GSTFilingRecord.objects.filter(user=request.user).order_by('-created_at')
+    itr_records = ITRFilingRecord.objects.filter(user=request.user).order_by('-created_at')
+    bookkeeping_records = BookkeepingChecklistRecord.objects.filter(user=request.user).order_by('-created_at')
+    tds_records = TDSComplianceRecord.objects.filter(user=request.user).order_by('-created_at')
+
     context = {
         'roc_required_docs': roc_required_docs,
         'gst_return_types': gst_return_types,
@@ -3083,8 +3261,102 @@ def employee_accounts(request):
         'tds_categories': tds_categories,
         'compliance_calendar': compliance_calendar,
         'support_contacts': support_contacts,
+        'roc_form': roc_form,
+        'gst_form': gst_form,
+        'itr_form': itr_form,
+        'bookkeeping_form': bookkeeping_form,
+        'tds_form': tds_form,
+        'roc_records': roc_records,
+        'gst_records': gst_records,
+        'itr_records': itr_records,
+        'bookkeeping_records': bookkeeping_records,
+        'tds_records': tds_records,
+        'roc_count': roc_records.count(),
+        'gst_count': gst_records.count(),
+        'itr_count': itr_records.count(),
+        'bookkeeping_count': bookkeeping_records.count(),
+        'tds_count': tds_records.count(),
     }
     return render(request, 'employee/accounts.html', context)
+
+
+@login_required
+def employee_accounts_edit(request, section, pk):
+    config = _get_section_config(section)
+    model = config['model']
+    form_class = config['form']
+    record = get_object_or_404(model, pk=pk, user=request.user)
+
+    if request.method == 'POST':
+        form = form_class(request.POST, instance=record)
+        if form.is_valid():
+            updated_record = form.save(commit=False)
+            updated_record.user = request.user
+
+            if section == 'roc':
+                new_docs = _store_uploaded_files(request.FILES.getlist('roc_documents'), 'roc')
+                if new_docs:
+                    existing = updated_record.documents or []
+                    updated_record.documents = existing + new_docs
+
+            elif section == 'gst':
+                files_map = {
+                    'outward_supplies': _store_uploaded_files(request.FILES.getlist('gst_outward_supplies'), 'gst/outward'),
+                    'input_tax_credit': _store_uploaded_files(request.FILES.getlist('gst_input_tax_credit'), 'gst/input-credit'),
+                    'reverse_charge': _store_uploaded_files(request.FILES.getlist('gst_reverse_charge'), 'gst/reverse-charge'),
+                    'eway_bill_summary': _store_uploaded_files(request.FILES.getlist('gst_eway_bill'), 'gst/eway-bill'),
+                }
+                if any(files_map.values()):
+                    data_files = updated_record.data_files or {}
+                    for key, paths in files_map.items():
+                        if paths:
+                            data_files[key] = (data_files.get(key, []) or []) + paths
+                    updated_record.data_files = data_files
+
+            elif section == 'itr':
+                new_docs = _store_uploaded_files(request.FILES.getlist('itr_documents'), 'itr')
+                if new_docs:
+                    existing = updated_record.documents or []
+                    updated_record.documents = existing + new_docs
+
+            elif section == 'bookkeeping':
+                new_docs = _store_uploaded_files(request.FILES.getlist('bookkeeping_documents'), 'bookkeeping')
+                if new_docs:
+                    existing = updated_record.reconciliation_documents or []
+                    updated_record.reconciliation_documents = existing + new_docs
+
+            elif section == 'tds':
+                new_docs = _store_uploaded_files(request.FILES.getlist('tds_proofs'), 'tds')
+                if new_docs:
+                    existing = updated_record.proofs or []
+                    updated_record.proofs = existing + new_docs
+
+            updated_record.save()
+            messages.success(request, config['success_message'])
+            return redirect('employee_accounts')
+        else:
+            messages.error(request, 'Please correct the errors below.')
+    else:
+        form = form_class(instance=record)
+
+    context = {
+        'form': form,
+        'section': section,
+        'record': record,
+        'title': config['title'],
+    }
+    return render(request, 'employee/account_edit.html', context)
+
+
+@login_required
+@require_POST
+def employee_accounts_delete(request, section, pk):
+    config = _get_section_config(section)
+    model = config['model']
+    record = get_object_or_404(model, pk=pk, user=request.user)
+    record.delete()
+    messages.success(request, f"{config['title']} record deleted successfully.")
+    return redirect('employee_accounts')
 
 
 @login_required
@@ -5764,7 +6036,7 @@ def employee_onboard_view(request, onboard_id):
             'project_description': onboard.project_description or '',
             'project_duration': onboard.project_duration,
             'duration_unit': onboard.duration_unit,
-            'duration_display': f"{onboard.project_duration} {onboard.duration_unit}",
+            'duration_display': f"{onboard.project_duration} {onboard.get_duration_unit_display()}",
             'project_cost': str(onboard.project_cost),
             'assigned_engineer': onboard.assigned_engineer,
             'status': onboard.status,
@@ -5776,6 +6048,8 @@ def employee_onboard_view(request, onboard_id):
         })
     except ClientOnboarding.DoesNotExist:
         return JsonResponse({'error': 'Onboarding not found'}, status=404)
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=500)
 
 
 @require_POST
@@ -5792,5 +6066,65 @@ def employee_onboard_delete(request, onboard_id):
         return JsonResponse({'success': False, 'error': 'Onboarding not found'}, status=404)
     except Exception as e:
         return JsonResponse({'success': False, 'error': str(e)}, status=500)
+
+
+def _format_display_date(value):
+    return value.strftime('%d %b %Y') if value else None
+
+
+def _next_month_due(day_of_month):
+    today = timezone.now().date()
+    month = today.month + 1
+    year = today.year
+    if month > 12:
+        month = 1
+        year += 1
+    last_day = calendar.monthrange(year, month)[1]
+    due_day = min(day_of_month, last_day)
+    return date(year, month, due_day)
+
+
+def _next_quarter_due(day_of_month):
+    today = timezone.now().date()
+    current_quarter = (today.month - 1) // 3 + 1
+    next_quarter = current_quarter + 1
+    year = today.year
+    if next_quarter == 5:
+        next_quarter = 1
+        year += 1
+    quarter_end_month = next_quarter * 3
+    due_month = quarter_end_month + 1
+    if due_month > 12:
+        due_month -= 12
+        year += 1
+    last_day = calendar.monthrange(year, due_month)[1]
+    due_day = min(day_of_month, last_day)
+    return date(year, due_month, due_day)
+
+
+def _next_annual_due(month=12, day=31):
+    today = timezone.now().date()
+    year = today.year
+    due = date(year, month, day)
+    if due <= today:
+        due = date(year + 1, month, day)
+    return due
+
+
+def _get_gst_next_due(code):
+    if code == 'GSTR-1':
+        monthly_due = _format_display_date(_next_month_due(11))
+        quarterly_due = _format_display_date(_next_quarter_due(13))
+        return [d for d in [monthly_due, quarterly_due] if d]
+    if code == 'GSTR-3B':
+        due_20 = _format_display_date(_next_month_due(20))
+        due_22 = _format_display_date(_next_month_due(22))
+        due_24 = _format_display_date(_next_month_due(24))
+        return [d for d in [due_20, due_22, due_24] if d]
+    if code == 'GSTR-9':
+        return [_format_display_date(_next_annual_due(12, 31))]
+    if code == 'GSTR-9C':
+        return [_format_display_date(_next_annual_due(12, 31))]
+    return []
 
 
