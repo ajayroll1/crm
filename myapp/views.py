@@ -3360,6 +3360,178 @@ def employee_accounts_delete(request, section, pk):
 
 
 @login_required
+def employee_backoffice(request):
+    """Back Office Management workspace (read-only UI with structured sections)."""
+    backoffice_services = [
+        {
+            'id': 'startup',
+            'title': 'Start-up India Registration',
+            'icon': 'bi-rocket-takeoff',
+            'summary': 'DPIIT recognition for eligibility to tax exemptions and procurement benefits.',
+            'form_fields': [
+                {'label': 'Legal Entity Name', 'type': 'text', 'placeholder': 'As per COI', 'col': 6},
+                {'label': 'Incorporation Date', 'type': 'date', 'placeholder': '', 'col': 6},
+                {'label': 'Entity Type', 'type': 'select', 'options': ['Pvt Ltd', 'LLP', 'Partnership', 'OPC', 'Section 8'], 'col': 6},
+                {'label': 'Industry Sector', 'type': 'select', 'options': ['Tech', 'Manufacturing', 'Fintech', 'Healthcare', 'Other'], 'col': 6},
+                {'label': 'Authorised Contact', 'type': 'text', 'placeholder': 'Founder / Director', 'col': 6},
+                {'label': 'Email', 'type': 'email', 'placeholder': 'name@company.com', 'col': 6},
+                {'label': 'Innovation / USP', 'type': 'textarea', 'placeholder': 'Summarise solution & uniqueness', 'col': 12},
+            ],
+            'documents': [
+                'Certificate of Incorporation', 'PAN of entity', 'Director list with DIN/PAN',
+                'Pitch deck/innovation note', 'Latest financials / projections'
+            ],
+        },
+        {
+            'id': 'fssai',
+            'title': 'Food Licensing (FSSAI)',
+            'icon': 'bi-egg-fried',
+            'summary': 'Basic/State/Central licence and hygiene SOPs.',
+            'form_fields': [
+                {'label': 'Business / Brand Name', 'type': 'text', 'placeholder': 'Legal / Brand name', 'col': 6},
+                {'label': 'Licence Type', 'type': 'select', 'options': ['Basic', 'State', 'Central', 'Import/Export'], 'col': 6},
+                {'label': 'Business Nature', 'type': 'select', 'options': ['Manufacturing', 'Distributor', 'Storage', 'Catering'], 'col': 6},
+                {'label': 'Premises Address', 'type': 'textarea', 'placeholder': 'Full address with PIN', 'col': 6},
+                {'label': 'Employees', 'type': 'number', 'placeholder': 'Food handlers count', 'col': 6},
+                {'label': 'Licence Tenure', 'type': 'select', 'options': ['1 Year', '2 Years', '3 Years', '5 Years'], 'col': 6},
+            ],
+            'documents': [
+                'Promoter photos & KYC', 'Incorporation documents', 'Layout plan/photos',
+                'Food category list', 'Municipal trade licence / rental agreement'
+            ],
+        },
+        {
+            'id': 'msme',
+            'title': 'MSME / Udyam Registration',
+            'icon': 'bi-building-gear',
+            'summary': 'Udyam registration for MSME benefits and tender preferences.',
+            'form_fields': [
+                {'label': 'Entity Name', 'type': 'text', 'placeholder': 'As per PAN', 'col': 6},
+                {'label': 'Organisation Type', 'type': 'select', 'options': ['Proprietorship', 'Partnership', 'LLP', 'Company'], 'col': 6},
+                {'label': 'Plant & Machinery Investment (₹)', 'type': 'number', 'placeholder': '', 'col': 6},
+                {'label': 'Annual Turnover (₹)', 'type': 'number', 'placeholder': '', 'col': 6},
+                {'label': 'Principal Activity', 'type': 'textarea', 'placeholder': 'Goods/services description', 'col': 12},
+            ],
+            'documents': ['PAN & Aadhaar', 'Business address proof', 'Bank cancelled cheque'],
+        },
+        {
+            'id': 'company-reg',
+            'title': 'Company / LLP Registration',
+            'icon': 'bi-diagram-3',
+            'summary': 'Name approval, incorporation filing, and post-incorporation kit.',
+            'form_fields': [
+                {'label': 'Entity Type', 'type': 'select', 'options': ['Pvt Ltd', 'LLP', 'OPC', 'Section 8'], 'col': 6},
+                {'label': 'Directors / Partners', 'type': 'number', 'placeholder': 'e.g. 2', 'col': 6},
+                {'label': 'Proposed Names (3)', 'type': 'textarea', 'placeholder': 'In order of preference', 'col': 12},
+                {'label': 'Authorised Capital (₹)', 'type': 'number', 'placeholder': 'Companies only', 'col': 6},
+                {'label': 'Registered Office', 'type': 'textarea', 'placeholder': 'Address with PIN', 'col': 6},
+            ],
+            'documents': ['Promoters KYC & photos', 'Office utility bill', 'Owner NOC', 'Draft objects'],
+        },
+        {
+            'id': 'fire-pollution',
+            'title': 'Fire & Pollution Licences',
+            'icon': 'bi-shield-check',
+            'summary': 'Fire NOC and Pollution Control Board consents.',
+            'form_fields': [
+                {'label': 'Establishment Type', 'type': 'select', 'options': ['Manufacturing', 'Warehouse', 'Restaurant', 'Retail', 'Office'], 'col': 6},
+                {'label': 'Built-up Area (sq.ft)', 'type': 'number', 'placeholder': 'e.g. 12000', 'col': 6},
+                {'label': 'Pollution Category', 'type': 'select', 'options': ['White', 'Green', 'Orange', 'Red'], 'col': 6},
+                {'label': 'Safety Installations', 'type': 'textarea', 'placeholder': 'Hydrants, sprinklers, ETP, etc.', 'col': 6},
+            ],
+            'documents': ['Building plan/OC', 'Equipment layout', 'Raw material list with SDS', 'Municipal NOC', 'Premises photographs'],
+        },
+        {
+            'id': 'iso',
+            'title': 'ISO Certification (9001/14001/27001)',
+            'icon': 'bi-award',
+            'summary': 'QMS/EMS/ISMS implementation and accredited certification.',
+            'form_fields': [
+                {'label': 'Standard', 'type': 'select', 'options': ['ISO 9001', 'ISO 14001', 'ISO 45001', 'ISO 27001'], 'col': 6},
+                {'label': 'Locations', 'type': 'number', 'placeholder': 'No. of sites', 'col': 6},
+                {'label': 'Employee Strength', 'type': 'number', 'placeholder': '', 'col': 6},
+                {'label': 'Existing Certifications', 'type': 'textarea', 'placeholder': 'If any', 'col': 6},
+            ],
+            'documents': ['Org chart & process maps', 'Policies & procedures', 'Training records', 'Internal audit reports'],
+        },
+        {
+            'id': 'tm-file',
+            'title': 'Trademark Filing',
+            'icon': 'bi-badge-tm',
+            'summary': 'Search, class finalisation, and TM-A filing.',
+            'form_fields': [
+                {'label': 'Brand / Logo', 'type': 'textarea', 'placeholder': 'Describe or attach logo', 'col': 12},
+                {'label': 'Applicant Type', 'type': 'select', 'options': ['Individual', 'Firm', 'Company/LLP', 'Trust/Society'], 'col': 6},
+                {'label': 'Classes', 'type': 'text', 'placeholder': 'e.g. 35, 42', 'col': 6},
+                {'label': 'First Use Date', 'type': 'date', 'placeholder': '', 'col': 6},
+            ],
+            'documents': ['Logo (JPEG)', 'Applicant KYC', 'COI / Deed', 'User affidavit (if applicable)', 'POA (TM-48)'],
+        },
+        {
+            'id': 'tm-compliance',
+            'title': 'Trademark Filing + Compliance',
+            'icon': 'bi-bag-check',
+            'summary': 'Filing with renewal tracking and watch services.',
+            'form_fields': [
+                {'label': 'Existing TM Numbers', 'type': 'textarea', 'placeholder': 'If any', 'col': 12},
+                {'label': 'Portfolio Size', 'type': 'number', 'placeholder': '', 'col': 6},
+                {'label': 'Watch Scope', 'type': 'select', 'options': ['Identical', 'Similar', 'Domains/Handles'], 'col': 6},
+                {'label': 'Renewal Month', 'type': 'month', 'placeholder': '', 'col': 6},
+            ],
+            'documents': ['Existing certificates', 'Board resolution/POA', 'Usage guidelines', 'Invoices evidencing use'],
+        },
+        {
+            'id': 'tm-instant',
+            'title': 'Trademark Filing (Instant Process)',
+            'icon': 'bi-lightning-charge',
+            'summary': '24-hr express search, class finalisation and filing.',
+            'form_fields': [
+                {'label': 'Urgency Reason', 'type': 'textarea', 'placeholder': 'Launch / diligence / other', 'col': 12},
+                {'label': 'Filing Window', 'type': 'select', 'options': ['Before 1 PM', 'Before 6 PM', 'Weekend'], 'col': 6},
+                {'label': 'Contact Mobile', 'type': 'tel', 'placeholder': '+91XXXXXXXXXX', 'col': 6},
+            ],
+            'documents': ['Applicant KYC', 'Logo artwork (if any)', 'Signed TM-48'],
+        },
+        {
+            'id': 'address-change',
+            'title': 'Company Address Change',
+            'icon': 'bi-geo-alt',
+            'summary': 'Shift registered office within city/state/ROC.',
+            'form_fields': [
+                {'label': 'Entity Type', 'type': 'select', 'options': ['Company', 'LLP'], 'col': 6},
+                {'label': 'Type of Shift', 'type': 'select', 'options': ['Within city', 'Within ROC', 'Inter-ROC / State'], 'col': 6},
+                {'label': 'Effective Date', 'type': 'date', 'placeholder': '', 'col': 6},
+                {'label': 'New Address', 'type': 'textarea', 'placeholder': 'Complete address', 'col': 6},
+            ],
+            'documents': ['Board/partner resolution', 'Altered MOA (if applicable)', 'Lease deed/ownership proof', 'Recent utility bill', 'Owner consent'],
+        },
+        {
+            'id': 'moa-alter',
+            'title': 'MOA Alteration',
+            'icon': 'bi-file-earmark-text',
+            'summary': 'Change objects/name/authorised capital clauses.',
+            'form_fields': [
+                {'label': 'Alteration Type', 'type': 'select', 'options': ['Object change', 'Name change', 'Authorised capital'], 'col': 6},
+                {'label': 'Proposed Object/Name', 'type': 'textarea', 'placeholder': 'Draft text / options', 'col': 6},
+                {'label': 'Effective Date', 'type': 'date', 'placeholder': '', 'col': 6},
+            ],
+            'documents': ['Altered MOA/AOA drafts', 'Board & shareholder resolutions', 'GM notice with explanatory statement', 'Lender consents (if any)'],
+        },
+    ]
+
+    highlights = [
+        'Project manager & SLA tracker per request',
+        'Digital document locker with versioning',
+        'Template library for resolutions, affidavits, and SOPs',
+    ]
+
+    context = {
+        'backoffice_services': backoffice_services,
+        'highlights': highlights,
+    }
+    return render(request, 'employee/backoffice.html', context)
+
+@login_required
 def employee_in_out(request):
     """Employee check in/out view"""
     # Get logged-in user's name and find employee

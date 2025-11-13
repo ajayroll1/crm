@@ -53,6 +53,7 @@ urlpatterns =[
   path('employee/accounts/',views.employee_accounts,name='employee_accounts'),
   path('employee/accounts/<str:section>/<int:pk>/edit/',views.employee_accounts_edit,name='employee_accounts_edit'),
   path('employee/accounts/<str:section>/<int:pk>/delete/',views.employee_accounts_delete,name='employee_accounts_delete'),
+  path('employee/backoffice/',views.employee_backoffice,name='employee_backoffice'),
   path('employee/in-out/',views.employee_in_out,name='employee_in_out'),
   path('employee/attendance/check-in/',views.employee_attendance_check_in,name='employee_attendance_check_in'),
   path('employee/attendance/check-out/',views.employee_attendance_check_out,name='employee_attendance_check_out'),
@@ -87,5 +88,5 @@ urlpatterns =[
 
   # // this is for footer urls 
 
- ]
+]
 
