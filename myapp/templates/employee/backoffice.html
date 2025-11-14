@@ -8,7 +8,7 @@
 {% block extra_css %}
 <style>
   .backoffice-tabs .nav-link {
-    background: linear-gradient(135deg, #0f172a, #2563eb);
+    background: linear-gradient(135deg, #0f172a, #1d4ed8);
     color: #ffffff;
     border: none;
     border-radius: 12px;
@@ -28,7 +28,7 @@
   .backoffice-tabs .nav-link:hover,
   .backoffice-tabs .nav-link:focus,
   .backoffice-tabs .nav-link.active {
-    background: linear-gradient(135deg, #0f172a, #2563eb);
+    background: linear-gradient(135deg, #0f172a, #1d4ed8);
     color: #ffffff;
     opacity: 1;
     border: none;
@@ -46,6 +46,75 @@
     background: rgba(255, 255, 255, 0.18) !important;
     color: #ffffff !important;
     border: 1px solid rgba(255, 255, 255, 0.3) !important;
+  }
+
+  /* Responsive table styles */
+  .data-table-wrapper {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .data-table {
+    width: 100%;
+    min-width: 800px;
+  }
+
+  @media (max-width: 768px) {
+    .data-table {
+      font-size: 0.875rem;
+    }
+    .data-table th,
+    .data-table td {
+      padding: 0.5rem;
+    }
+  }
+
+  .status-badge {
+    padding: 0.25rem 0.75rem;
+    border-radius: 50px;
+    font-size: 0.75rem;
+    font-weight: 600;
+  }
+
+  .status-draft {
+    background-color: #fef3c7;
+    color: #92400e;
+  }
+
+  .status-ready {
+    background-color: #dbeafe;
+    color: #1e40af;
+  }
+
+  .status-submitted {
+    background-color: #d1fae5;
+    color: #065f46;
+  }
+
+  .status-approved {
+    background-color: #d1fae5;
+    color: #065f46;
+  }
+
+  .status-pending {
+    background-color: #fde68a;
+    color: #78350f;
+  }
+
+  .status-select {
+    border: none;
+    background: transparent;
+    padding: 0.25rem 0.5rem;
+    border-radius: 50px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    cursor: pointer;
+    min-width: 100px;
+  }
+
+  .status-select:focus {
+    outline: 2px solid #1d4ed8;
+    outline-offset: 2px;
   }
 </style>
 {% endblock %}
@@ -77,7 +146,7 @@
           <ul class="nav nav-pills accounts-tabs backoffice-tabs gap-2 mb-4" role="tablist">
             {% for service in backoffice_services %}
             <li class="nav-item" role="presentation">
-              <button class="nav-link {% if forloop.first %}active{% endif %}" id="tab-{{ service.id }}" data-bs-toggle="tab" data-bs-target="#pane-{{ service.id }}" type="button" role="tab">
+              <button class="nav-link {% if forloop.first %}active{% endif %}" id="tab-{{ service.id }}" data-bs-toggle="tab" data-bs-target="#pane-{{ service.id }}" type="button" role="tab" aria-controls="pane-{{ service.id }}" aria-selected="{% if forloop.first %}true{% else %}false{% endif %}">
                 <i class="bi {{ service.icon }} me-1"></i>{{ service.title }}
               </button>
             </li>
@@ -95,38 +164,400 @@
                       <span class="badge accounts-header-badge">Intake</span>
                     </div>
                     <div class="card-body">
-                      <form class="row g-3">
-                        {% for field in service.form_fields %}
-                        <div class="col-md-{{ field.col|default:6 }}">
-                          <label class="form-label">{{ field.label }}</label>
-                          {% if field.type == 'textarea' %}
-                            <textarea class="form-control" rows="3" placeholder="{{ field.placeholder }}"></textarea>
-                          {% elif field.type == 'select' %}
-                            <select class="form-select">
-                              <option selected disabled>-- Select --</option>
-                              {% for opt in field.options %}
-                              <option>{{ opt }}</option>
-                              {% endfor %}
-                            </select>
-                          {% else %}
-                            <input type="{{ field.type }}" class="form-control" placeholder="{{ field.placeholder }}">
-                          {% endif %}
-                        </div>
-                        {% endfor %}
-
-                        <div class="col-12">
-                          <label class="form-label">Upload Supporting Documents</label>
-                          <div class="upload-dropzone">
-                            <i class="bi bi-cloud-arrow-up fs-3 text-primary"></i>
-                            <p class="mb-1 fw-semibold">Drop documents or click to browse</p>
-                            <input type="file" class="form-control" multiple>
+                      {% if service.id == 'startup' %}
+                        <!-- Start-up India Registration Form -->
+                        <form method="post" enctype="multipart/form-data" class="row g-3">
+                          {% csrf_token %}
+                          <input type="hidden" name="form_name" value="startup_india">
+                          
+                          <div class="col-md-6">
+                            <label class="form-label">{{ startup_form.legal_entity_name.label }}</label>
+                            {{ startup_form.legal_entity_name }}
+                            {% if startup_form.legal_entity_name.errors %}
+                              <div class="text-danger small">{{ startup_form.legal_entity_name.errors }}</div>
+                            {% endif %}
                           </div>
-                        </div>
-                        <div class="col-12 d-flex justify-content-end gap-2">
-                          <button type="button" class="btn btn-outline-secondary">Save Draft</button>
-                          <button type="button" class="btn btn-primary">Mark Ready</button>
-                        </div>
-                      </form>
+                          
+                          <div class="col-md-6">
+                            <label class="form-label">{{ startup_form.incorporation_date.label }}</label>
+                            {{ startup_form.incorporation_date }}
+                            {% if startup_form.incorporation_date.errors %}
+                              <div class="text-danger small">{{ startup_form.incorporation_date.errors }}</div>
+                            {% endif %}
+                          </div>
+                          
+                          <div class="col-md-6">
+                            <label class="form-label">{{ startup_form.entity_type.label }}</label>
+                            {{ startup_form.entity_type }}
+                            {% if startup_form.entity_type.errors %}
+                              <div class="text-danger small">{{ startup_form.entity_type.errors }}</div>
+                            {% endif %}
+                          </div>
+                          
+                          <div class="col-md-6">
+                            <label class="form-label">{{ startup_form.industry_sector.label }}</label>
+                            {{ startup_form.industry_sector }}
+                            {% if startup_form.industry_sector.errors %}
+                              <div class="text-danger small">{{ startup_form.industry_sector.errors }}</div>
+                            {% endif %}
+                          </div>
+                          
+                          <div class="col-md-6">
+                            <label class="form-label">{{ startup_form.authorised_contact.label }}</label>
+                            {{ startup_form.authorised_contact }}
+                            {% if startup_form.authorised_contact.errors %}
+                              <div class="text-danger small">{{ startup_form.authorised_contact.errors }}</div>
+                            {% endif %}
+                          </div>
+                          
+                          <div class="col-md-6">
+                            <label class="form-label">{{ startup_form.email.label }}</label>
+                            {{ startup_form.email }}
+                            {% if startup_form.email.errors %}
+                              <div class="text-danger small">{{ startup_form.email.errors }}</div>
+                            {% endif %}
+                          </div>
+                          
+                          <div class="col-12">
+                            <label class="form-label">{{ startup_form.innovation_usp.label }}</label>
+                            {{ startup_form.innovation_usp }}
+                            {% if startup_form.innovation_usp.errors %}
+                              <div class="text-danger small">{{ startup_form.innovation_usp.errors }}</div>
+                            {% endif %}
+                          </div>
+
+                          <div class="col-12">
+                            <label class="form-label">Upload Supporting Documents</label>
+                            <div class="upload-dropzone">
+                              <i class="bi bi-cloud-arrow-up fs-3 text-primary"></i>
+                              <p class="mb-1 fw-semibold">Drop documents or click to browse</p>
+                              <input type="file" name="startup_documents" class="form-control" multiple>
+                            </div>
+                          </div>
+                          
+                          <div class="col-12 d-flex justify-content-end gap-2">
+                            <button type="submit" name="save_draft" class="btn btn-outline-secondary">Save Draft</button>
+                            <button type="submit" name="mark_ready" class="btn btn-primary">Mark Ready</button>
+                          </div>
+                        </form>
+                      {% elif service.id == 'fssai' %}
+                        <!-- FSSAI Food Licensing Form -->
+                        <form method="post" enctype="multipart/form-data" class="row g-3">
+                          {% csrf_token %}
+                          <input type="hidden" name="form_name" value="fssai">
+                          
+                          <div class="col-md-6">
+                            <label class="form-label">{{ fssai_form.business_brand_name.label }}</label>
+                            {{ fssai_form.business_brand_name }}
+                            {% if fssai_form.business_brand_name.errors %}
+                              <div class="text-danger small">{{ fssai_form.business_brand_name.errors }}</div>
+                            {% endif %}
+                          </div>
+                          
+                          <div class="col-md-6">
+                            <label class="form-label">{{ fssai_form.licence_type.label }}</label>
+                            {{ fssai_form.licence_type }}
+                            {% if fssai_form.licence_type.errors %}
+                              <div class="text-danger small">{{ fssai_form.licence_type.errors }}</div>
+                            {% endif %}
+                          </div>
+                          
+                          <div class="col-md-6">
+                            <label class="form-label">{{ fssai_form.business_nature.label }}</label>
+                            {{ fssai_form.business_nature }}
+                            {% if fssai_form.business_nature.errors %}
+                              <div class="text-danger small">{{ fssai_form.business_nature.errors }}</div>
+                            {% endif %}
+                          </div>
+                          
+                          <div class="col-md-6">
+                            <label class="form-label">{{ fssai_form.licence_tenure.label }}</label>
+                            {{ fssai_form.licence_tenure }}
+                            {% if fssai_form.licence_tenure.errors %}
+                              <div class="text-danger small">{{ fssai_form.licence_tenure.errors }}</div>
+                            {% endif %}
+                          </div>
+                          
+                          <div class="col-md-6">
+                            <label class="form-label">{{ fssai_form.employees.label }}</label>
+                            {{ fssai_form.employees }}
+                            {% if fssai_form.employees.errors %}
+                              <div class="text-danger small">{{ fssai_form.employees.errors }}</div>
+                            {% endif %}
+                          </div>
+                          
+                          <div class="col-12">
+                            <label class="form-label">{{ fssai_form.premises_address.label }}</label>
+                            {{ fssai_form.premises_address }}
+                            {% if fssai_form.premises_address.errors %}
+                              <div class="text-danger small">{{ fssai_form.premises_address.errors }}</div>
+                            {% endif %}
+                          </div>
+
+                          <div class="col-12">
+                            <label class="form-label">Upload Supporting Documents</label>
+                            <div class="upload-dropzone">
+                              <i class="bi bi-cloud-arrow-up fs-3 text-primary"></i>
+                              <p class="mb-1 fw-semibold">Drop documents or click to browse</p>
+                              <input type="file" name="fssai_documents" class="form-control" multiple>
+                            </div>
+                          </div>
+                          
+                          <div class="col-12 d-flex justify-content-end gap-2">
+                            <button type="submit" name="save_draft" class="btn btn-outline-secondary">Save Draft</button>
+                            <button type="submit" name="mark_ready" class="btn btn-primary">Mark Ready</button>
+                          </div>
+                        </form>
+                      {% elif service.id == 'msme' %}
+                        <!-- MSME / Udyam Registration Form -->
+                        <form method="post" class="row g-3">
+                          {% csrf_token %}
+                          <input type="hidden" name="form_name" value="msme">
+
+                          <div class="col-md-6">
+                            <label class="form-label">{{ msme_form.entity_name.label }}</label>
+                            {{ msme_form.entity_name }}
+                            {% if msme_form.entity_name.errors %}
+                              <div class="text-danger small">{{ msme_form.entity_name.errors }}</div>
+                            {% endif %}
+                          </div>
+
+                          <div class="col-md-6">
+                            <label class="form-label">{{ msme_form.organisation_type.label }}</label>
+                            {{ msme_form.organisation_type }}
+                            {% if msme_form.organisation_type.errors %}
+                              <div class="text-danger small">{{ msme_form.organisation_type.errors }}</div>
+                            {% endif %}
+                          </div>
+
+                          <div class="col-md-6">
+                            <label class="form-label">{{ msme_form.plant_machinery_investment.label }}</label>
+                            {{ msme_form.plant_machinery_investment }}
+                            {% if msme_form.plant_machinery_investment.errors %}
+                              <div class="text-danger small">{{ msme_form.plant_machinery_investment.errors }}</div>
+                            {% endif %}
+                          </div>
+
+                          <div class="col-md-6">
+                            <label class="form-label">{{ msme_form.annual_turnover.label }}</label>
+                            {{ msme_form.annual_turnover }}
+                            {% if msme_form.annual_turnover.errors %}
+                              <div class="text-danger small">{{ msme_form.annual_turnover.errors }}</div>
+                            {% endif %}
+                          </div>
+
+                          <div class="col-12">
+                            <label class="form-label">{{ msme_form.principal_activity.label }}</label>
+                            {{ msme_form.principal_activity }}
+                            {% if msme_form.principal_activity.errors %}
+                              <div class="text-danger small">{{ msme_form.principal_activity.errors }}</div>
+                            {% endif %}
+                          </div>
+
+                          <div class="col-12 d-flex justify-content-end gap-2">
+                            <button type="submit" name="save_draft" class="btn btn-outline-secondary">Save Draft</button>
+                            <button type="submit" name="mark_ready" class="btn btn-primary">Mark Ready</button>
+                          </div>
+                        </form>
+                      {% elif service.id == 'company-reg' %}
+                        <!-- Company / LLP Registration Form -->
+                        <form method="post" enctype="multipart/form-data" class="row g-3">
+                          {% csrf_token %}
+                          <input type="hidden" name="form_name" value="company_llp">
+
+                          <div class="col-md-6">
+                            <label class="form-label">{{ company_form.entity_type.label }}</label>
+                            {{ company_form.entity_type }}
+                            {% if company_form.entity_type.errors %}
+                              <div class="text-danger small">{{ company_form.entity_type.errors }}</div>
+                            {% endif %}
+                          </div>
+
+                          <div class="col-md-6">
+                            <label class="form-label">{{ company_form.directors_partners.label }}</label>
+                            {{ company_form.directors_partners }}
+                            {% if company_form.directors_partners.errors %}
+                              <div class="text-danger small">{{ company_form.directors_partners.errors }}</div>
+                            {% endif %}
+                          </div>
+
+                          <div class="col-12">
+                            <label class="form-label">{{ company_form.proposed_names.label }}</label>
+                            {{ company_form.proposed_names }}
+                            {% if company_form.proposed_names.errors %}
+                              <div class="text-danger small">{{ company_form.proposed_names.errors }}</div>
+                            {% endif %}
+                          </div>
+
+                          <div class="col-md-6">
+                            <label class="form-label">{{ company_form.authorised_capital.label }}</label>
+                            {{ company_form.authorised_capital }}
+                            {% if company_form.authorised_capital.errors %}
+                              <div class="text-danger small">{{ company_form.authorised_capital.errors }}</div>
+                            {% endif %}
+                          </div>
+
+                          <div class="col-md-6">
+                            <label class="form-label">{{ company_form.registered_office.label }}</label>
+                            {{ company_form.registered_office }}
+                            {% if company_form.registered_office.errors %}
+                              <div class="text-danger small">{{ company_form.registered_office.errors }}</div>
+                            {% endif %}
+                          </div>
+
+                          <div class="col-12">
+                            <label class="form-label">Upload Supporting Documents</label>
+                            <div class="upload-dropzone">
+                              <i class="bi bi-cloud-arrow-up fs-3 text-primary"></i>
+                              <p class="mb-1 fw-semibold">Drop documents or click to browse</p>
+                              <input type="file" name="company_documents" class="form-control" multiple>
+                            </div>
+                          </div>
+
+                          <div class="col-12 d-flex justify-content-end gap-2">
+                            <button type="submit" name="save_draft" class="btn btn-outline-secondary">Save Draft</button>
+                            <button type="submit" name="mark_ready" class="btn btn-primary">Mark Ready</button>
+                          </div>
+                        </form>
+                      {% elif service.id == 'fire-pollution' %}
+                        <!-- Fire & Pollution Licence Form -->
+                        <form method="post" enctype="multipart/form-data" class="row g-3">
+                          {% csrf_token %}
+                          <input type="hidden" name="form_name" value="fire_pollution">
+
+                          <div class="col-md-6">
+                            <label class="form-label">{{ fire_form.establishment_type.label }}</label>
+                            {{ fire_form.establishment_type }}
+                            {% if fire_form.establishment_type.errors %}
+                              <div class="text-danger small">{{ fire_form.establishment_type.errors }}</div>
+                            {% endif %}
+                          </div>
+
+                          <div class="col-md-6">
+                            <label class="form-label">{{ fire_form.built_up_area.label }}</label>
+                            {{ fire_form.built_up_area }}
+                            {% if fire_form.built_up_area.errors %}
+                              <div class="text-danger small">{{ fire_form.built_up_area.errors }}</div>
+                            {% endif %}
+                          </div>
+
+                          <div class="col-md-6">
+                            <label class="form-label">{{ fire_form.pollution_category.label }}</label>
+                            {{ fire_form.pollution_category }}
+                            {% if fire_form.pollution_category.errors %}
+                              <div class="text-danger small">{{ fire_form.pollution_category.errors }}</div>
+                            {% endif %}
+                          </div>
+
+                          <div class="col-md-6">
+                            <label class="form-label">{{ fire_form.safety_installations.label }}</label>
+                            {{ fire_form.safety_installations }}
+                            {% if fire_form.safety_installations.errors %}
+                              <div class="text-danger small">{{ fire_form.safety_installations.errors }}</div>
+                            {% endif %}
+                          </div>
+
+                          <div class="col-12">
+                            <label class="form-label">Upload Supporting Documents</label>
+                            <div class="upload-dropzone">
+                              <i class="bi bi-cloud-arrow-up fs-3 text-primary"></i>
+                              <p class="mb-1 fw-semibold">Drop documents or click to browse</p>
+                              <input type="file" name="fire_documents" class="form-control" multiple>
+                            </div>
+                          </div>
+
+                          <div class="col-12 d-flex justify-content-end gap-2">
+                            <button type="submit" name="save_draft" class="btn btn-outline-secondary">Save Draft</button>
+                            <button type="submit" name="mark_ready" class="btn btn-primary">Mark Ready</button>
+                          </div>
+                        </form>
+                      {% elif service.id == 'iso' %}
+                        <!-- ISO Certification Form -->
+                        <form method="post" enctype="multipart/form-data" class="row g-3">
+                          {% csrf_token %}
+                          <input type="hidden" name="form_name" value="iso">
+
+                          <div class="col-md-6">
+                            <label class="form-label">{{ iso_form.standard.label }}</label>
+                            {{ iso_form.standard }}
+                            {% if iso_form.standard.errors %}
+                              <div class="text-danger small">{{ iso_form.standard.errors }}</div>
+                            {% endif %}
+                          </div>
+
+                          <div class="col-md-6">
+                            <label class="form-label">{{ iso_form.locations.label }}</label>
+                            {{ iso_form.locations }}
+                            {% if iso_form.locations.errors %}
+                              <div class="text-danger small">{{ iso_form.locations.errors }}</div>
+                            {% endif %}
+                          </div>
+
+                          <div class="col-md-6">
+                            <label class="form-label">{{ iso_form.employee_strength.label }}</label>
+                            {{ iso_form.employee_strength }}
+                            {% if iso_form.employee_strength.errors %}
+                              <div class="text-danger small">{{ iso_form.employee_strength.errors }}</div>
+                            {% endif %}
+                          </div>
+
+                          <div class="col-md-6">
+                            <label class="form-label">{{ iso_form.existing_certifications.label }}</label>
+                            {{ iso_form.existing_certifications }}
+                            {% if iso_form.existing_certifications.errors %}
+                              <div class="text-danger small">{{ iso_form.existing_certifications.errors }}</div>
+                            {% endif %}
+                          </div>
+
+                          <div class="col-12">
+                            <label class="form-label">Upload Supporting Documents</label>
+                            <div class="upload-dropzone">
+                              <i class="bi bi-cloud-arrow-up fs-3 text-primary"></i>
+                              <p class="mb-1 fw-semibold">Drop documents or click to browse</p>
+                              <input type="file" name="iso_documents" class="form-control" multiple>
+                            </div>
+                          </div>
+
+                          <div class="col-12 d-flex justify-content-end gap-2">
+                            <button type="submit" name="save_draft" class="btn btn-outline-secondary">Save Draft</button>
+                            <button type="submit" name="mark_ready" class="btn btn-primary">Mark Ready</button>
+                          </div>
+                        </form>
+                      {% else %}
+                        <!-- Other services - static form -->
+                        <form class="row g-3">
+                          {% for field in service.form_fields %}
+                          <div class="col-md-{{ field.col|default:6 }}">
+                            <label class="form-label">{{ field.label }}</label>
+                            {% if field.type == 'textarea' %}
+                              <textarea class="form-control" rows="3" placeholder="{{ field.placeholder }}"></textarea>
+                            {% elif field.type == 'select' %}
+                              <select class="form-select">
+                                <option selected disabled>-- Select --</option>
+                                {% for opt in field.options %}
+                                <option>{{ opt }}</option>
+                                {% endfor %}
+                              </select>
+                            {% else %}
+                              <input type="{{ field.type }}" class="form-control" placeholder="{{ field.placeholder }}">
+                            {% endif %}
+                          </div>
+                          {% endfor %}
+
+                          <div class="col-12">
+                            <label class="form-label">Upload Supporting Documents</label>
+                            <div class="upload-dropzone">
+                              <i class="bi bi-cloud-arrow-up fs-3 text-primary"></i>
+                              <p class="mb-1 fw-semibold">Drop documents or click to browse</p>
+                              <input type="file" class="form-control" multiple>
+                            </div>
+                          </div>
+                          <div class="col-12 d-flex justify-content-end gap-2">
+                            <button type="button" class="btn btn-outline-secondary">Save Draft</button>
+                            <button type="button" class="btn btn-primary">Mark Ready</button>
+                          </div>
+                        </form>
+                      {% endif %}
                     </div>
                   </div>
                 </div>
@@ -155,6 +586,322 @@
                     </div>
                   </div>
                 </div>
+
+                {% if service.id == 'startup' %}
+                <div class="col-12">
+                  <div class="card border-0 shadow-sm">
+                    <div class="card-header bg-transparent">
+                      <h6 class="mb-0">Start-up India Registration Records</h6>
+                    </div>
+                    <div class="card-body">
+                      {% if startup_registrations %}
+                        <div class="data-table-wrapper">
+                          <table class="table table-hover data-table">
+                            <thead>
+                              <tr>
+                                <th>Legal Entity Name</th>
+                                <th>Entity Type</th>
+                                <th>Industry Sector</th>
+                                <th>Incorporation Date</th>
+                                <th>Email</th>
+                                <th>Status</th>
+                                <th>Created At</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {% for record in startup_registrations %}
+                              <tr>
+                                <td>{{ record.legal_entity_name }}</td>
+                                <td>{{ record.entity_type }}</td>
+                                <td>{{ record.industry_sector }}</td>
+                                <td>{% if record.incorporation_date %}{{ record.incorporation_date|date:"d M Y" }}{% else %}--{% endif %}</td>
+                                <td>{{ record.email|default:"--" }}</td>
+                                <td>
+                                  <select class="status-select status-{{ record.status }}" 
+                                          data-record-id="{{ record.id }}" 
+                                          data-current-status="{{ record.status }}"
+                                          data-update-url="startup">
+                                    {% for value, label in status_choices %}
+                                      <option value="{{ value }}" {% if record.status == value %}selected{% endif %}>
+                                        {{ label }}
+                                      </option>
+                                    {% endfor %}
+                                  </select>
+                                </td>
+                                <td>{{ record.created_at|date:"d M Y, h:i A" }}</td>
+                              </tr>
+                              {% endfor %}
+                            </tbody>
+                          </table>
+                        </div>
+                      {% else %}
+                        <p class="text-muted text-center py-4">No registrations found. Submit a form above to create a new record.</p>
+                      {% endif %}
+                    </div>
+                  </div>
+                </div>
+                {% elif service.id == 'fssai' %}
+                <div class="col-12">
+                  <div class="card border-0 shadow-sm">
+                    <div class="card-header bg-transparent">
+                      <h6 class="mb-0">FSSAI Food Licensing Records</h6>
+                    </div>
+                    <div class="card-body">
+                      {% if fssai_licenses %}
+                        <div class="data-table-wrapper">
+                          <table class="table table-hover data-table">
+                            <thead>
+                              <tr>
+                                <th>Business / Brand Name</th>
+                                <th>Licence Type</th>
+                                <th>Business Nature</th>
+                                <th>Employees</th>
+                                <th>Licence Tenure</th>
+                                <th>Status</th>
+                                <th>Created At</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {% for record in fssai_licenses %}
+                              <tr>
+                                <td>{{ record.business_brand_name }}</td>
+                                <td>{{ record.licence_type }}</td>
+                                <td>{{ record.business_nature }}</td>
+                                <td>{{ record.employees|default:"--" }}</td>
+                                <td>{{ record.licence_tenure }}</td>
+                                <td>
+                                  <select class="status-select status-{{ record.status }}" 
+                                          data-record-id="{{ record.id }}" 
+                                          data-current-status="{{ record.status }}"
+                                          data-update-url="fssai">
+                                    {% for value, label in fssai_status_choices %}
+                                      <option value="{{ value }}" {% if record.status == value %}selected{% endif %}>
+                                        {{ label }}
+                                      </option>
+                                    {% endfor %}
+                                  </select>
+                                </td>
+                                <td>{{ record.created_at|date:"d M Y, h:i A" }}</td>
+                              </tr>
+                              {% endfor %}
+                            </tbody>
+                          </table>
+                        </div>
+                      {% else %}
+                        <p class="text-muted text-center py-4">No licenses found. Submit a form above to create a new record.</p>
+                      {% endif %}
+                    </div>
+                  </div>
+                </div>
+                {% elif service.id == 'msme' %}
+                <div class="col-12">
+                  <div class="card border-0 shadow-sm">
+                    <div class="card-header bg-transparent">
+                      <h6 class="mb-0">MSME / Udyam Registration Records</h6>
+                    </div>
+                    <div class="card-body">
+                      {% if msme_registrations %}
+                        <div class="data-table-wrapper">
+                          <table class="table table-hover data-table">
+                            <thead>
+                              <tr>
+                                <th>Entity Name</th>
+                                <th>Organisation Type</th>
+                                <th>Plant & Machinery Investment</th>
+                                <th>Annual Turnover</th>
+                                <th>Principal Activity</th>
+                                <th>Status</th>
+                                <th>Created At</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {% for record in msme_registrations %}
+                              <tr>
+                                <td>{{ record.entity_name }}</td>
+                                <td>{{ record.organisation_type }}</td>
+                                <td>₹{{ record.plant_machinery_investment|floatformat:2 }}</td>
+                                <td>₹{{ record.annual_turnover|floatformat:2 }}</td>
+                                <td>{{ record.principal_activity|default:"--" }}</td>
+                                <td>
+                                  <select class="status-select status-{{ record.status }}" 
+                                          data-record-id="{{ record.id }}" 
+                                          data-current-status="{{ record.status }}"
+                                          data-update-url="msme">
+                                    {% for value, label in msme_status_choices %}
+                                      <option value="{{ value }}" {% if record.status == value %}selected{% endif %}>
+                                        {{ label }}
+                                      </option>
+                                    {% endfor %}
+                                  </select>
+                                </td>
+                                <td>{{ record.created_at|date:"d M Y, h:i A" }}</td>
+                              </tr>
+                              {% endfor %}
+                            </tbody>
+                          </table>
+                        </div>
+                      {% else %}
+                        <p class="text-muted text-center py-4">No MSME / Udyam records found. Submit a form above to create a new record.</p>
+                      {% endif %}
+                    </div>
+                  </div>
+                </div>
+                {% elif service.id == 'company-reg' %}
+                <div class="col-12">
+                  <div class="card border-0 shadow-sm">
+                    <div class="card-header bg-transparent">
+                      <h6 class="mb-0">Company / LLP Registration Records</h6>
+                    </div>
+                    <div class="card-body">
+                      {% if company_registrations %}
+                        <div class="data-table-wrapper">
+                          <table class="table table-hover data-table">
+                            <thead>
+                              <tr>
+                                <th>Entity Type</th>
+                                <th>Directors / Partners</th>
+                                <th>Proposed Names</th>
+                                <th>Authorised Capital</th>
+                                <th>Registered Office</th>
+                                <th>Status</th>
+                                <th>Created At</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {% for record in company_registrations %}
+                              <tr>
+                                <td>{{ record.entity_type }}</td>
+                                <td>{{ record.directors_partners }}</td>
+                                <td class="text-truncate" style="max-width: 220px;">{{ record.proposed_names|linebreaksbr }}</td>
+                                <td>₹{{ record.authorised_capital|floatformat:2 }}</td>
+                                <td class="text-truncate" style="max-width: 220px;">{{ record.registered_office }}</td>
+                                <td>
+                                  <select class="status-select status-{{ record.status }}" 
+                                          data-record-id="{{ record.id }}" 
+                                          data-current-status="{{ record.status }}"
+                                          data-update-url="company-llp">
+                                    {% for value, label in company_status_choices %}
+                                      <option value="{{ value }}" {% if record.status == value %}selected{% endif %}>
+                                        {{ label }}
+                                      </option>
+                                    {% endfor %}
+                                  </select>
+                                </td>
+                                <td>{{ record.created_at|date:"d M Y, h:i A" }}</td>
+                              </tr>
+                              {% endfor %}
+                            </tbody>
+                          </table>
+                        </div>
+                      {% else %}
+                        <p class="text-muted text-center py-4">No Company / LLP records found. Submit a form above to create a new record.</p>
+                      {% endif %}
+                    </div>
+                  </div>
+                </div>
+                {% elif service.id == 'fire-pollution' %}
+                <div class="col-12">
+                  <div class="card border-0 shadow-sm">
+                    <div class="card-header bg-transparent">
+                      <h6 class="mb-0">Fire & Pollution Licence Records</h6>
+                    </div>
+                    <div class="card-body">
+                      {% if fire_licenses %}
+                        <div class="data-table-wrapper">
+                          <table class="table table-hover data-table">
+                            <thead>
+                              <tr>
+                                <th>Establishment Type</th>
+                                <th>Built-up Area</th>
+                                <th>Pollution Category</th>
+                                <th>Safety Installations</th>
+                                <th>Status</th>
+                                <th>Created At</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {% for record in fire_licenses %}
+                              <tr>
+                                <td>{{ record.establishment_type }}</td>
+                                <td>{{ record.built_up_area }} sq.ft</td>
+                                <td>{{ record.pollution_category }}</td>
+                                <td class="text-truncate" style="max-width: 220px;">{{ record.safety_installations }}</td>
+                                <td>
+                                  <select class="status-select status-{{ record.status }}" 
+                                          data-record-id="{{ record.id }}" 
+                                          data-current-status="{{ record.status }}"
+                                          data-update-url="fire-pollution">
+                                    {% for value, label in fire_status_choices %}
+                                      <option value="{{ value }}" {% if record.status == value %}selected{% endif %}>
+                                        {{ label }}
+                                      </option>
+                                    {% endfor %}
+                                  </select>
+                                </td>
+                                <td>{{ record.created_at|date:"d M Y, h:i A" }}</td>
+                              </tr>
+                              {% endfor %}
+                            </tbody>
+                          </table>
+                        </div>
+                      {% else %}
+                        <p class="text-muted text-center py-4">No Fire & Pollution records found. Submit a form above to create a new record.</p>
+                      {% endif %}
+                    </div>
+                  </div>
+                </div>
+                {% elif service.id == 'iso' %}
+                <div class="col-12">
+                  <div class="card border-0 shadow-sm">
+                    <div class="card-header bg-transparent">
+                      <h6 class="mb-0">ISO Certification Records</h6>
+                    </div>
+                    <div class="card-body">
+                      {% if iso_certifications %}
+                        <div class="data-table-wrapper">
+                          <table class="table table-hover data-table">
+                            <thead>
+                              <tr>
+                                <th>Standard</th>
+                                <th>Locations</th>
+                                <th>Employee Strength</th>
+                                <th>Existing Certifications</th>
+                                <th>Status</th>
+                                <th>Created At</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {% for record in iso_certifications %}
+                              <tr>
+                                <td>{{ record.standard }}</td>
+                                <td>{{ record.locations }}</td>
+                                <td>{{ record.employee_strength|default:"--" }}</td>
+                                <td class="text-truncate" style="max-width: 220px;">{{ record.existing_certifications|default:"--" }}</td>
+                                <td>
+                                  <select class="status-select status-{{ record.status }}" 
+                                          data-record-id="{{ record.id }}" 
+                                          data-current-status="{{ record.status }}"
+                                          data-update-url="iso">
+                                    {% for value, label in iso_status_choices %}
+                                      <option value="{{ value }}" {% if record.status == value %}selected{% endif %}>
+                                        {{ label }}
+                                      </option>
+                                    {% endfor %}
+                                  </select>
+                                </td>
+                                <td>{{ record.created_at|date:"d M Y, h:i A" }}</td>
+                              </tr>
+                              {% endfor %}
+                            </tbody>
+                          </table>
+                        </div>
+                      {% else %}
+                        <p class="text-muted text-center py-4">No ISO Certification records found. Submit a form above to create a new record.</p>
+                      {% endif %}
+                    </div>
+                  </div>
+                </div>
+                {% endif %}
               </div>
             </div>
             {% endfor %}
@@ -163,5 +910,160 @@
       </div>
     </div>
   </div>
+
 </div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  // Initialize Bootstrap tabs properly on page load
+  const tabButtons = document.querySelectorAll('.backoffice-tabs .nav-link[data-bs-toggle="tab"]');
+  const tabPanes = document.querySelectorAll('.tab-content .tab-pane');
+  
+  // Function to initialize tabs
+  function initializeTabs() {
+    if (tabButtons.length > 0 && tabPanes.length > 0) {
+      // Remove all active classes first
+      tabButtons.forEach(btn => {
+        btn.classList.remove('active');
+        btn.setAttribute('aria-selected', 'false');
+      });
+      tabPanes.forEach(pane => {
+        pane.classList.remove('show', 'active');
+      });
+      
+      // Activate first tab
+      const firstButton = tabButtons[0];
+      const firstPaneId = firstButton.getAttribute('data-bs-target');
+      const firstPane = document.querySelector(firstPaneId);
+      
+      if (firstButton && firstPane) {
+        firstButton.classList.add('active');
+        firstButton.setAttribute('aria-selected', 'true');
+        firstPane.classList.add('show', 'active');
+      }
+    }
+  }
+  
+  // Initialize immediately
+  initializeTabs();
+  
+  // Also initialize after a short delay to ensure Bootstrap is loaded
+  setTimeout(initializeTabs, 100);
+  
+  // Use Bootstrap Tab API if available, otherwise manual handling
+  tabButtons.forEach(button => {
+    button.addEventListener('click', function(e) {
+      e.preventDefault();
+      const targetId = this.getAttribute('data-bs-target');
+      const targetPane = document.querySelector(targetId);
+      
+      if (targetPane) {
+        // Try Bootstrap Tab API first
+        if (typeof bootstrap !== 'undefined' && bootstrap.Tab) {
+          const tab = new bootstrap.Tab(this);
+          tab.show();
+        } else {
+          // Fallback: manual tab switching
+          tabPanes.forEach(pane => {
+            pane.classList.remove('show', 'active');
+          });
+          tabButtons.forEach(btn => {
+            btn.classList.remove('active');
+            btn.setAttribute('aria-selected', 'false');
+          });
+          targetPane.classList.add('show', 'active');
+          this.classList.add('active');
+          this.setAttribute('aria-selected', 'true');
+        }
+      }
+    });
+  });
+  
+  // Handle status dropdown changes
+  const statusSelects = document.querySelectorAll('.status-select');
+  
+  statusSelects.forEach(select => {
+    select.addEventListener('change', function() {
+      const recordId = this.getAttribute('data-record-id');
+      const newStatus = this.value;
+      const currentStatus = this.getAttribute('data-current-status');
+      const originalValue = currentStatus;
+      
+      // Show loading state
+      this.disabled = true;
+      this.style.opacity = '0.6';
+      
+      // Get CSRF token
+      function getCookie(name) {
+        let cookieValue = null;
+        if (document.cookie && document.cookie !== '') {
+          const cookies = document.cookie.split(';');
+          for (let i = 0; i < cookies.length; i++) {
+            const cookie = cookies[i].trim();
+            if (cookie.substring(0, name.length + 1) === (name + '=')) {
+              cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+              break;
+            }
+          }
+        }
+        return cookieValue;
+      }
+      const csrftoken = getCookie('csrftoken') || document.querySelector('[name=csrfmiddlewaretoken]')?.value || '';
+      
+      // Get update URL type
+      const updateUrlType = this.getAttribute('data-update-url') || 'startup';
+      
+      // Send AJAX request
+      fetch(`/employee/backoffice/${updateUrlType}/${recordId}/update-status/`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded',
+          'X-CSRFToken': csrftoken
+        },
+        body: `status=${encodeURIComponent(newStatus)}`
+      })
+      .then(response => response.json())
+      .then(data => {
+        if (data.success) {
+          // Update the select class to match new status
+          this.className = `status-select status-${newStatus}`;
+          this.setAttribute('data-current-status', newStatus);
+          
+          // Show success message
+          const successMsg = document.createElement('div');
+          successMsg.className = 'alert alert-success alert-dismissible fade show position-fixed top-0 start-50 translate-middle-x mt-3';
+          successMsg.style.zIndex = '9999';
+          successMsg.innerHTML = `
+            <strong>Success!</strong> Status updated to ${data.status_display}.
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+          `;
+          document.body.appendChild(successMsg);
+          
+          // Auto-remove after 3 seconds
+          setTimeout(() => {
+            successMsg.remove();
+          }, 3000);
+        } else {
+          // Revert to original value
+          this.value = originalValue;
+          alert('Error: ' + (data.error || 'Failed to update status'));
+        }
+      })
+      .catch(error => {
+        // Revert to original value
+        this.value = originalValue;
+        console.error('Error:', error);
+        alert('Error: Failed to update status. Please try again.');
+      })
+      .finally(() => {
+        // Re-enable select
+        this.disabled = false;
+        this.style.opacity = '1';
+      });
+    });
+  });
+});
+</script>
 {% endblock %}

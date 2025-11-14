@@ -197,6 +197,7 @@
       margin-left: 280px;
       padding: 2rem;
       min-height: 100vh;
+      transition: opacity 0.3s ease, pointer-events 0.3s ease;
     }
     
     .dashboard-header {
@@ -808,8 +809,10 @@
           }
         });
         
-        // Handle sidebar navigation links - only close on mobile, don't interfere with desktop navigation
+        // Handle sidebar navigation links with AJAX to prevent sidebar refresh
         const navLinks = document.querySelectorAll('.sidebar .nav-link[href]');
+        const mainContent = document.querySelector('.main-content');
+        
         navLinks.forEach(link => {
           // Skip links with href="#" or empty href
           const href = link.getAttribute('href');
@@ -818,59 +821,123 @@
           }
           
           link.addEventListener('click', function(e) {
-            // Only handle sidebar closing on mobile devices
-            // On desktop, sidebar should stay open and navigation should happen normally
-            if (window.innerWidth <= 768 && hamburgerBtn && sidebar && sidebarOverlay) {
-              // Close sidebar on mobile for better UX after navigation starts
-              // Use setTimeout to allow navigation to proceed first
-              setTimeout(function() {
-                if (sidebar && sidebarOverlay && hamburgerBtn) {
-                  sidebar.classList.remove('open');
-                  sidebarOverlay.classList.remove('active');
-                  hamburgerBtn.classList.remove('active');
-                }
-              }, 150); // Small delay to allow navigation to start
+            // Prevent default navigation and stop propagation
+            e.preventDefault();
+            e.stopPropagation();
+            
+            // Check if we're already on the target page
+            const currentPath = window.location.pathname;
+            const linkPath = new URL(link.href, window.location.origin).pathname;
+            if (currentPath === linkPath) {
+              return false;
             }
-            // On desktop: let navigation happen naturally, sidebar stays open
-            // Don't prevent default or stop propagation - allow normal link behavior
-          });
+            
+            // Close sidebar on mobile
+            if (window.innerWidth <= 768 && hamburgerBtn && sidebar && sidebarOverlay) {
+              sidebar.classList.remove('open');
+              sidebarOverlay.classList.remove('active');
+              hamburgerBtn.classList.remove('active');
+            }
+            
+            // Show loading indicator
+            if (mainContent) {
+              mainContent.style.opacity = '0.6';
+              mainContent.style.pointerEvents = 'none';
+            }
+            
+            // Fetch the new page content via AJAX
+            fetch(link.href, {
+              method: 'GET',
+              headers: {
+                'X-Requested-With': 'XMLHttpRequest',
+                'Accept': 'text/html'
+              }
+            })
+            .then(response => {
+              if (!response.ok) {
+                throw new Error('Network response was not ok');
+              }
+              return response.text();
+            })
+            .then(html => {
+              // Create a temporary container to parse the HTML
+              const tempDiv = document.createElement('div');
+              tempDiv.innerHTML = html;
+              
+              // Extract the main-content from the response
+              const newMainContent = tempDiv.querySelector('.main-content');
+              if (newMainContent && mainContent) {
+                // Replace the main content without touching the sidebar
+                mainContent.innerHTML = newMainContent.innerHTML;
+                
+                // Update page title
+                const newTitle = tempDiv.querySelector('title');
+                if (newTitle) {
+                  document.title = newTitle.textContent;
+                }
+                
+                // Update URL without page refresh
+                window.history.pushState({}, '', link.href);
+                
+                // Re-initialize any page-specific JavaScript
+                // Trigger a custom event for page-specific scripts
+                window.dispatchEvent(new Event('pageContentLoaded'));
+                
+                // Scroll to top
+                window.scrollTo(0, 0);
+              } else {
+                // Fallback: if AJAX fails, do normal navigation
+                window.location.href = link.href;
+              }
+            })
+            .catch(error => {
+              console.error('Navigation error:', error);
+              // Fallback: if AJAX fails, do normal navigation
+              window.location.href = link.href;
+            })
+            .finally(() => {
+              // Restore main content opacity
+              if (mainContent) {
+                mainContent.style.opacity = '1';
+                mainContent.style.pointerEvents = 'auto';
+              }
+            });
+            
+            return false;
+          }, { passive: false });
         });
         
-        // Prevent sidebar from refreshing on desktop
-        // Stop event propagation on sidebar navigation area to prevent unwanted refresh
+        // Handle browser back/forward buttons
+        window.addEventListener('popstate', function(e) {
+          // Reload the page when using browser navigation
+          window.location.reload();
+        });
+        
+        // Prevent sidebar from refreshing - all navigation is handled by AJAX above
         const sidebarNav = document.querySelector('.sidebar-nav');
         if (sidebarNav) {
           sidebarNav.addEventListener('click', function(e) {
-            // Only prevent unwanted refresh on desktop
-            if (window.innerWidth > 768) {
-              // If clicking on a link, let it navigate normally
-              // Just ensure sidebar doesn't refresh
-              const target = e.target;
-              const link = target.closest('.nav-link');
-              if (link && link.href && link.href !== '#') {
-                // It's a navigation link - allow navigation, but prevent sidebar refresh
-                // Don't prevent default - let navigation happen
-                // Just ensure sidebar element doesn't get modified
-                return;
-              }
+            const target = e.target;
+            const link = target.closest('.nav-link');
+            
+            // If clicking on a navigation link, stop propagation
+            if (link && link.href && link.href !== '#') {
+              e.stopPropagation();
             }
-          }, { passive: true });
+          }, { passive: false });
         }
         
         // Prevent sidebar footer from causing refresh
         const sidebarFooter = document.querySelector('.sidebar-footer');
         if (sidebarFooter) {
           sidebarFooter.addEventListener('click', function(e) {
-            // On desktop, prevent sidebar refresh when clicking footer links
-            if (window.innerWidth > 768) {
-              const target = e.target;
-              const link = target.closest('.nav-link');
-              if (link && link.href && link.href !== '#') {
-                // Allow navigation but prevent sidebar refresh
-                return;
-              }
+            const target = e.target;
+            const link = target.closest('.nav-link');
+            if (link && link.href && link.href !== '#') {
+              // Stop propagation to prevent any unwanted form submission
+              e.stopPropagation();
             }
-          }, { passive: true });
+          }, { passive: false });
         }
       }
       

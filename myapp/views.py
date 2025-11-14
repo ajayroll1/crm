@@ -47,6 +47,12 @@ from .models import (
     ITRFilingRecord,
     BookkeepingChecklistRecord,
     TDSComplianceRecord,
+    StartupIndiaRegistration,
+    FSSAILicense,
+    MSMEUdyamRegistration,
+    CompanyLLPRegistration,
+    FirePollutionLicense,
+    ISOCertification,
 )
 from .forms import (
     LeadForm,
@@ -56,6 +62,12 @@ from .forms import (
     ITRFilingForm,
     BookkeepingChecklistForm,
     TDSComplianceForm,
+    StartupIndiaRegistrationForm,
+    FSSAILicenseForm,
+    MSMEUdyamRegistrationForm,
+    CompanyLLPRegistrationForm,
+    FirePollutionLicenseForm,
+    ISOCertificationForm,
 )
 from django.views.decorators.http import require_POST
 from django.views.decorators.csrf import csrf_exempt, ensure_csrf_cookie
@@ -3361,7 +3373,166 @@ def employee_accounts_delete(request, section, pk):
 
 @login_required
 def employee_backoffice(request):
-    """Back Office Management workspace (read-only UI with structured sections)."""
+    """Back Office Management workspace with form handling for Start-up India Registration."""
+    
+    # Handle Start-up India Registration form submission
+    startup_form = StartupIndiaRegistrationForm()
+    startup_registrations = StartupIndiaRegistration.objects.filter(user=request.user).order_by('-created_at')
+    
+    # Handle FSSAI License form submission
+    fssai_form = FSSAILicenseForm()
+    fssai_licenses = FSSAILicense.objects.filter(user=request.user).order_by('-created_at')
+    
+    # Handle MSME / Udyam Registration form
+    msme_form = MSMEUdyamRegistrationForm()
+    msme_registrations = MSMEUdyamRegistration.objects.filter(user=request.user).order_by('-created_at')
+
+    # Handle Company / LLP Registration form
+    company_form = CompanyLLPRegistrationForm()
+    company_registrations = CompanyLLPRegistration.objects.filter(user=request.user).order_by('-created_at')
+
+    # Handle Fire & Pollution Licence form
+    fire_form = FirePollutionLicenseForm()
+    fire_licenses = FirePollutionLicense.objects.filter(user=request.user).order_by('-created_at')
+
+    # Handle ISO Certification form
+    iso_form = ISOCertificationForm()
+    iso_certifications = ISOCertification.objects.filter(user=request.user).order_by('-created_at')
+    
+    if request.method == 'POST':
+        form_name = request.POST.get('form_name')
+        
+        if form_name == 'startup_india':
+            startup_form = StartupIndiaRegistrationForm(request.POST, request.FILES)
+            if startup_form.is_valid():
+                record = startup_form.save(commit=False)
+                record.user = request.user
+                
+                # Handle file uploads
+                uploaded_files = request.FILES.getlist('startup_documents')
+                if uploaded_files:
+                    saved_paths = _store_uploaded_files(uploaded_files, 'startup_india')
+                    record.documents = saved_paths
+                
+                # Set status based on button clicked
+                if 'mark_ready' in request.POST:
+                    record.status = 'ready'
+                else:
+                    record.status = 'draft'
+                
+                record.save()
+                messages.success(request, 'Start-up India Registration saved successfully.')
+                return redirect('employee_backoffice')
+            else:
+                messages.error(request, 'Please correct the errors in the form.')
+        
+        elif form_name == 'fssai':
+            fssai_form = FSSAILicenseForm(request.POST, request.FILES)
+            if fssai_form.is_valid():
+                record = fssai_form.save(commit=False)
+                record.user = request.user
+                
+                # Handle file uploads
+                uploaded_files = request.FILES.getlist('fssai_documents')
+                if uploaded_files:
+                    saved_paths = _store_uploaded_files(uploaded_files, 'fssai')
+                    record.documents = saved_paths
+                
+                # Set status based on button clicked
+                if 'mark_ready' in request.POST:
+                    record.status = 'ready'
+                else:
+                    record.status = 'draft'
+                
+                record.save()
+                messages.success(request, 'FSSAI License application saved successfully.')
+                return redirect('employee_backoffice')
+            else:
+                messages.error(request, 'Please correct the errors in the form.')
+        
+        elif form_name == 'msme':
+            msme_form = MSMEUdyamRegistrationForm(request.POST)
+            if msme_form.is_valid():
+                record = msme_form.save(commit=False)
+                record.user = request.user
+                
+                if 'mark_ready' in request.POST:
+                    record.status = 'ready'
+                else:
+                    record.status = 'draft'
+                
+                record.save()
+                messages.success(request, 'MSME / Udyam Registration saved successfully.')
+                return redirect('employee_backoffice')
+            else:
+                messages.error(request, 'Please correct the errors in the form.')
+
+        elif form_name == 'company_llp':
+            company_form = CompanyLLPRegistrationForm(request.POST, request.FILES)
+            if company_form.is_valid():
+                record = company_form.save(commit=False)
+                record.user = request.user
+
+                uploaded_files = request.FILES.getlist('company_documents')
+                if uploaded_files:
+                    saved_paths = _store_uploaded_files(uploaded_files, 'company_llp')
+                    record.documents = saved_paths
+
+                if 'mark_ready' in request.POST:
+                    record.status = 'ready'
+                else:
+                    record.status = 'draft'
+
+                record.save()
+                messages.success(request, 'Company / LLP Registration saved successfully.')
+                return redirect('employee_backoffice')
+            else:
+                messages.error(request, 'Please correct the errors in the form.')
+
+        elif form_name == 'fire_pollution':
+            fire_form = FirePollutionLicenseForm(request.POST, request.FILES)
+            if fire_form.is_valid():
+                record = fire_form.save(commit=False)
+                record.user = request.user
+
+                uploaded_files = request.FILES.getlist('fire_documents')
+                if uploaded_files:
+                    saved_paths = _store_uploaded_files(uploaded_files, 'fire_pollution')
+                    record.documents = saved_paths
+
+                if 'mark_ready' in request.POST:
+                    record.status = 'ready'
+                else:
+                    record.status = 'draft'
+
+                record.save()
+                messages.success(request, 'Fire & Pollution Licence saved successfully.')
+                return redirect('employee_backoffice')
+            else:
+                messages.error(request, 'Please correct the errors in the form.')
+
+        elif form_name == 'iso':
+            iso_form = ISOCertificationForm(request.POST, request.FILES)
+            if iso_form.is_valid():
+                record = iso_form.save(commit=False)
+                record.user = request.user
+
+                uploaded_files = request.FILES.getlist('iso_documents')
+                if uploaded_files:
+                    saved_paths = _store_uploaded_files(uploaded_files, 'iso')
+                    record.documents = saved_paths
+
+                if 'mark_ready' in request.POST:
+                    record.status = 'ready'
+                else:
+                    record.status = 'draft'
+
+                record.save()
+                messages.success(request, 'ISO Certification saved successfully.')
+                return redirect('employee_backoffice')
+            else:
+                messages.error(request, 'Please correct the errors in the form.')
+    
     backoffice_services = [
         {
             'id': 'startup',
@@ -3528,8 +3699,171 @@ def employee_backoffice(request):
     context = {
         'backoffice_services': backoffice_services,
         'highlights': highlights,
+        'startup_form': startup_form,
+        'startup_registrations': startup_registrations,
+        'status_choices': StartupIndiaRegistration.STATUS_CHOICES,
+        'fssai_form': fssai_form,
+        'fssai_licenses': fssai_licenses,
+        'fssai_status_choices': FSSAILicense.STATUS_CHOICES,
+        'msme_form': msme_form,
+        'msme_registrations': msme_registrations,
+        'msme_status_choices': MSMEUdyamRegistration.STATUS_CHOICES,
+        'company_form': company_form,
+        'company_registrations': company_registrations,
+        'company_status_choices': CompanyLLPRegistration.STATUS_CHOICES,
+        'fire_form': fire_form,
+        'fire_licenses': fire_licenses,
+        'fire_status_choices': FirePollutionLicense.STATUS_CHOICES,
+        'iso_form': iso_form,
+        'iso_certifications': iso_certifications,
+        'iso_status_choices': ISOCertification.STATUS_CHOICES,
     }
     return render(request, 'employee/backoffice.html', context)
+
+
+@login_required
+@require_POST
+@csrf_exempt
+def update_startup_status(request, record_id):
+    """Update status of Start-up India Registration record via AJAX."""
+    try:
+        record = get_object_or_404(StartupIndiaRegistration, id=record_id, user=request.user)
+        new_status = request.POST.get('status')
+        
+        if new_status not in dict(StartupIndiaRegistration.STATUS_CHOICES):
+            return JsonResponse({'success': False, 'error': 'Invalid status'}, status=400)
+        
+        record.status = new_status
+        record.save()
+        
+        return JsonResponse({
+            'success': True,
+            'status': new_status,
+            'status_display': record.get_status_display()
+        })
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': str(e)}, status=500)
+
+
+@login_required
+@require_POST
+@csrf_exempt
+def update_fssai_status(request, record_id):
+    """Update status of FSSAI License record via AJAX."""
+    try:
+        record = get_object_or_404(FSSAILicense, id=record_id, user=request.user)
+        new_status = request.POST.get('status')
+        
+        if new_status not in dict(FSSAILicense.STATUS_CHOICES):
+            return JsonResponse({'success': False, 'error': 'Invalid status'}, status=400)
+        
+        record.status = new_status
+        record.save()
+        
+        return JsonResponse({
+            'success': True,
+            'status': new_status,
+            'status_display': record.get_status_display()
+        })
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': str(e)}, status=500)
+
+
+@login_required
+@require_POST
+@csrf_exempt
+def update_msme_status(request, record_id):
+    """Update status of MSME / Udyam Registration record via AJAX."""
+    try:
+        record = get_object_or_404(MSMEUdyamRegistration, id=record_id, user=request.user)
+        new_status = request.POST.get('status')
+
+        if new_status not in dict(MSMEUdyamRegistration.STATUS_CHOICES):
+            return JsonResponse({'success': False, 'error': 'Invalid status'}, status=400)
+
+        record.status = new_status
+        record.save()
+
+        return JsonResponse({
+            'success': True,
+            'status': new_status,
+            'status_display': record.get_status_display()
+        })
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': str(e)}, status=500)
+
+
+@login_required
+@require_POST
+@csrf_exempt
+def update_company_llp_status(request, record_id):
+    """Update status of Company / LLP Registration record via AJAX."""
+    try:
+        record = get_object_or_404(CompanyLLPRegistration, id=record_id, user=request.user)
+        new_status = request.POST.get('status')
+
+        if new_status not in dict(CompanyLLPRegistration.STATUS_CHOICES):
+            return JsonResponse({'success': False, 'error': 'Invalid status'}, status=400)
+
+        record.status = new_status
+        record.save()
+
+        return JsonResponse({
+            'success': True,
+            'status': new_status,
+            'status_display': record.get_status_display()
+        })
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': str(e)}, status=500)
+
+
+@login_required
+@require_POST
+@csrf_exempt
+def update_fire_pollution_status(request, record_id):
+    """Update status of Fire & Pollution Licence record via AJAX."""
+    try:
+        record = get_object_or_404(FirePollutionLicense, id=record_id, user=request.user)
+        new_status = request.POST.get('status')
+
+        if new_status not in dict(FirePollutionLicense.STATUS_CHOICES):
+            return JsonResponse({'success': False, 'error': 'Invalid status'}, status=400)
+
+        record.status = new_status
+        record.save()
+
+        return JsonResponse({
+            'success': True,
+            'status': new_status,
+            'status_display': record.get_status_display()
+        })
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': str(e)}, status=500)
+
+
+@login_required
+@require_POST
+@csrf_exempt
+def update_iso_status(request, record_id):
+    """Update status of ISO Certification record via AJAX."""
+    try:
+        record = get_object_or_404(ISOCertification, id=record_id, user=request.user)
+        new_status = request.POST.get('status')
+
+        if new_status not in dict(ISOCertification.STATUS_CHOICES):
+            return JsonResponse({'success': False, 'error': 'Invalid status'}, status=400)
+
+        record.status = new_status
+        record.save()
+
+        return JsonResponse({
+            'success': True,
+            'status': new_status,
+            'status_display': record.get_status_display()
+        })
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': str(e)}, status=500)
+
 
 @login_required
 def employee_in_out(request):

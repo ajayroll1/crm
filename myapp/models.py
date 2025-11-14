@@ -486,6 +486,317 @@ class TDSComplianceRecord(models.Model):
         return f"{self.deductor_tan} - {self.section} ({self.deduction_month})"
 
 
+class StartupIndiaRegistration(models.Model):
+    """Stores Start-up India Registration submissions."""
+
+    ENTITY_TYPE_CHOICES = [
+        ('Pvt Ltd', 'Pvt Ltd'),
+        ('LLP', 'LLP'),
+        ('Partnership', 'Partnership'),
+        ('OPC', 'OPC'),
+        ('Section 8', 'Section 8'),
+    ]
+
+    INDUSTRY_SECTOR_CHOICES = [
+        ('Tech', 'Tech'),
+        ('Manufacturing', 'Manufacturing'),
+        ('Fintech', 'Fintech'),
+        ('Healthcare', 'Healthcare'),
+        ('Other', 'Other'),
+    ]
+
+    STATUS_CHOICES = [
+        ('draft', 'Draft'),
+        ('pending', 'Pending'),
+        ('ready', 'Ready'),
+        ('submitted', 'Submitted'),
+        ('approved', 'Approved'),
+    ]
+
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='startup_india_registrations'
+    )
+    legal_entity_name = models.CharField(max_length=255, verbose_name="Legal Entity Name")
+    incorporation_date = models.DateField(verbose_name="Incorporation Date", null=True, blank=True)
+    entity_type = models.CharField(max_length=50, choices=ENTITY_TYPE_CHOICES, verbose_name="Entity Type")
+    industry_sector = models.CharField(max_length=50, choices=INDUSTRY_SECTOR_CHOICES, verbose_name="Industry Sector")
+    authorised_contact = models.CharField(max_length=255, verbose_name="Authorised Contact", blank=True)
+    email = models.EmailField(verbose_name="Email", blank=True)
+    innovation_usp = models.TextField(verbose_name="Innovation / USP", blank=True)
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='draft')
+    documents = models.JSONField(default=list, blank=True)
+
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['-created_at']
+        verbose_name = "Start-up India Registration"
+        verbose_name_plural = "Start-up India Registrations"
+
+    def __str__(self):
+        return f"{self.legal_entity_name} - {self.entity_type}"
+
+
+class FSSAILicense(models.Model):
+    """Stores FSSAI Food Licensing submissions."""
+
+    LICENCE_TYPE_CHOICES = [
+        ('Basic', 'Basic'),
+        ('State', 'State'),
+        ('Central', 'Central'),
+        ('Import/Export', 'Import/Export'),
+    ]
+
+    BUSINESS_NATURE_CHOICES = [
+        ('Manufacturing', 'Manufacturing'),
+        ('Distributor', 'Distributor'),
+        ('Storage', 'Storage'),
+        ('Catering', 'Catering'),
+    ]
+
+    LICENCE_TENURE_CHOICES = [
+        ('1 Year', '1 Year'),
+        ('2 Years', '2 Years'),
+        ('3 Years', '3 Years'),
+        ('5 Years', '5 Years'),
+    ]
+
+    STATUS_CHOICES = [
+        ('draft', 'Draft'),
+        ('pending', 'Pending'),
+        ('ready', 'Ready'),
+        ('submitted', 'Submitted'),
+        ('approved', 'Approved'),
+    ]
+
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='fssai_licenses'
+    )
+    business_brand_name = models.CharField(max_length=255, verbose_name="Business / Brand Name")
+    licence_type = models.CharField(max_length=50, choices=LICENCE_TYPE_CHOICES, verbose_name="Licence Type")
+    business_nature = models.CharField(max_length=50, choices=BUSINESS_NATURE_CHOICES, verbose_name="Business Nature")
+    premises_address = models.TextField(verbose_name="Premises Address", blank=True)
+    employees = models.IntegerField(verbose_name="Employees", null=True, blank=True)
+    licence_tenure = models.CharField(max_length=20, choices=LICENCE_TENURE_CHOICES, verbose_name="Licence Tenure")
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='draft')
+    documents = models.JSONField(default=list, blank=True)
+
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['-created_at']
+        verbose_name = "FSSAI License"
+        verbose_name_plural = "FSSAI Licenses"
+
+    def __str__(self):
+        return f"{self.business_brand_name} - {self.licence_type}"
+
+
+class MSMEUdyamRegistration(models.Model):
+    """Stores MSME / Udyam Registration submissions."""
+
+    ORGANISATION_TYPE_CHOICES = [
+        ('Proprietorship', 'Proprietorship'),
+        ('Partnership', 'Partnership'),
+        ('LLP', 'LLP'),
+        ('Company', 'Company'),
+    ]
+
+    STATUS_CHOICES = [
+        ('draft', 'Draft'),
+        ('pending', 'Pending'),
+        ('ready', 'Ready'),
+        ('submitted', 'Submitted'),
+        ('approved', 'Approved'),
+    ]
+
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='msme_registrations'
+    )
+    entity_name = models.CharField(max_length=255, verbose_name="Entity Name")
+    organisation_type = models.CharField(
+        max_length=50,
+        choices=ORGANISATION_TYPE_CHOICES,
+        verbose_name="Organisation Type"
+    )
+    plant_machinery_investment = models.DecimalField(
+        max_digits=16,
+        decimal_places=2,
+        verbose_name="Plant & Machinery Investment (₹)",
+        default=0
+    )
+    annual_turnover = models.DecimalField(
+        max_digits=16,
+        decimal_places=2,
+        verbose_name="Annual Turnover (₹)",
+        default=0
+    )
+    principal_activity = models.TextField(verbose_name="Principal Activity", blank=True)
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='draft')
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['-created_at']
+        verbose_name = "MSME / Udyam Registration"
+        verbose_name_plural = "MSME / Udyam Registrations"
+
+    def __str__(self):
+        return f"{self.entity_name} - {self.organisation_type}"
+
+
+class CompanyLLPRegistration(models.Model):
+    """Stores Company / LLP Registration submissions."""
+
+    ENTITY_TYPE_CHOICES = [
+        ('Pvt Ltd', 'Pvt Ltd'),
+        ('LLP', 'LLP'),
+        ('OPC', 'OPC'),
+        ('Section 8', 'Section 8'),
+    ]
+
+    STATUS_CHOICES = [
+        ('draft', 'Draft'),
+        ('pending', 'Pending'),
+        ('ready', 'Ready'),
+        ('submitted', 'Submitted'),
+        ('approved', 'Approved'),
+    ]
+
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='company_llp_registrations'
+    )
+    entity_type = models.CharField(max_length=50, choices=ENTITY_TYPE_CHOICES, verbose_name="Entity Type")
+    directors_partners = models.PositiveIntegerField(verbose_name="Directors / Partners", default=1)
+    proposed_names = models.TextField(verbose_name="Proposed Names (3)")
+    authorised_capital = models.DecimalField(max_digits=16, decimal_places=2, verbose_name="Authorised Capital (₹)", default=0)
+    registered_office = models.TextField(verbose_name="Registered Office")
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='draft')
+    documents = models.JSONField(default=list, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['-created_at']
+        verbose_name = "Company / LLP Registration"
+        verbose_name_plural = "Company / LLP Registrations"
+
+    def __str__(self):
+        return f"{self.get_entity_type_display()} - {self.proposed_names.splitlines()[0] if self.proposed_names else 'Proposal'}"
+
+
+class FirePollutionLicense(models.Model):
+    """Stores Fire & Pollution Licence submissions."""
+
+    ESTABLISHMENT_CHOICES = [
+        ('Manufacturing', 'Manufacturing'),
+        ('Warehouse', 'Warehouse'),
+        ('Restaurant', 'Restaurant'),
+        ('Retail', 'Retail'),
+        ('Office', 'Office'),
+    ]
+
+    POLLUTION_CATEGORY_CHOICES = [
+        ('White', 'White'),
+        ('Green', 'Green'),
+        ('Orange', 'Orange'),
+        ('Red', 'Red'),
+    ]
+
+    STATUS_CHOICES = [
+        ('draft', 'Draft'),
+        ('pending', 'Pending'),
+        ('ready', 'Ready'),
+        ('submitted', 'Submitted'),
+        ('approved', 'Approved'),
+    ]
+
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='fire_pollution_licenses'
+    )
+    establishment_type = models.CharField(max_length=50, choices=ESTABLISHMENT_CHOICES, verbose_name="Establishment Type")
+    built_up_area = models.PositiveIntegerField(verbose_name="Built-up Area (sq.ft)")
+    pollution_category = models.CharField(max_length=20, choices=POLLUTION_CATEGORY_CHOICES, verbose_name="Pollution Category")
+    safety_installations = models.TextField(verbose_name="Safety Installations")
+    documents = models.JSONField(default=list, blank=True)
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='draft')
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['-created_at']
+        verbose_name = "Fire & Pollution License"
+        verbose_name_plural = "Fire & Pollution Licenses"
+
+    def __str__(self):
+        return f"{self.establishment_type} - {self.pollution_category}"
+
+
+class ISOCertification(models.Model):
+    """Stores ISO Certification submissions."""
+
+    STANDARD_CHOICES = [
+        ('ISO 9001', 'ISO 9001'),
+        ('ISO 14001', 'ISO 14001'),
+        ('ISO 45001', 'ISO 45001'),
+        ('ISO 27001', 'ISO 27001'),
+    ]
+
+    STATUS_CHOICES = [
+        ('draft', 'Draft'),
+        ('pending', 'Pending'),
+        ('ready', 'Ready'),
+        ('submitted', 'Submitted'),
+        ('approved', 'Approved'),
+    ]
+
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='iso_certifications'
+    )
+    standard = models.CharField(max_length=50, choices=STANDARD_CHOICES, verbose_name="Standard")
+    locations = models.PositiveIntegerField(verbose_name="Locations", help_text="No. of sites", default=1)
+    employee_strength = models.PositiveIntegerField(verbose_name="Employee Strength", null=True, blank=True)
+    existing_certifications = models.TextField(verbose_name="Existing Certifications", blank=True)
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='draft')
+    documents = models.JSONField(default=list, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['-created_at']
+        verbose_name = "ISO Certification"
+        verbose_name_plural = "ISO Certifications"
+
+    def __str__(self):
+        return f"{self.standard} - {self.locations} location(s)"
+
+
 class Attendance(models.Model):
     """Employee attendance check in/out records"""
     user = models.ForeignKey(
