@@ -48,7 +48,7 @@
     </div>
     
     <!-- Work Management Section -->
-    {% if employee_department|default:''|lower != 'sales' %}
+    {% if employee_department|default:''|lower != 'sales' and employee_department|default:''|lower != 'accounts' and employee_department|default:''|lower != 'backoffice' %}
     <div class="nav-section">
       <h3 class="nav-section-title">WORK MANAGEMENT</h3>
       <ul class="nav-list">
@@ -65,7 +65,8 @@
     </div>
     {% endif %}
     
-    <!-- Account Management Section -->
+    <!-- Account Management Section (Only for Accounts department) -->
+    {% if employee_department|default:''|lower == 'accounts' %}
     <div class="nav-section">
       <h3 class="nav-section-title">ACCOUNT MANAGEMENT</h3>
       <ul class="nav-list">
@@ -75,6 +76,15 @@
             <span>Accounts Team</span>
           </a>
         </li>
+      </ul>
+    </div>
+    {% endif %}
+    
+    <!-- Back Office Management Section (Only for Backoffice department) -->
+    {% if employee_department|default:''|lower == 'backoffice' %}
+    <div class="nav-section">
+      <h3 class="nav-section-title">BACK OFFICE MANAGEMENT</h3>
+      <ul class="nav-list">
         <li class="nav-item">
           <a href="{% url 'employee_backoffice' %}" class="nav-link">
             <i class="bi bi-buildings"></i>
@@ -83,9 +93,10 @@
         </li>
       </ul>
     </div>
+    {% endif %}
     
     <!-- Sales Section -->
-    {% if employee_department|default:''|lower != 'engineering' %}
+    {% if employee_department|default:''|lower != 'engineering' and employee_department|default:''|lower != 'accounts' and employee_department|default:''|lower != 'backoffice' and employee_department|default:''|lower != 'sales' %}
     <div class="nav-section">
       <h3 class="nav-section-title">SALES</h3>
       <ul class="nav-list">

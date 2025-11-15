@@ -2800,6 +2800,54 @@ def employee_dashboard(request):
     if not employee_designation or employee_designation == 'Employee':
         employee_designation = employee_role
     
+    # Account Team Data (for Accounts department users)
+    roc_count = 0
+    gst_count = 0
+    itr_count = 0
+    bookkeeping_count = 0
+    tds_count = 0
+    total_account_records = 0
+    
+    if employee_department and employee_department.lower() == 'accounts' and request.user.is_authenticated:
+        # Get counts for account team records from database
+        # For accounts department, show ALL records in the table (not filtered by user)
+        roc_count = ROCComplianceRecord.objects.all().count()
+        gst_count = GSTFilingRecord.objects.all().count()
+        itr_count = ITRFilingRecord.objects.all().count()
+        bookkeeping_count = BookkeepingChecklistRecord.objects.all().count()
+        tds_count = TDSComplianceRecord.objects.all().count()
+        total_account_records = roc_count + gst_count + itr_count + bookkeeping_count + tds_count
+    
+    # Back Office Data (for Backoffice department users)
+    startup_count = 0
+    fssai_count = 0
+    msme_count = 0
+    company_count = 0
+    fire_count = 0
+    iso_count = 0
+    trademark_count = 0
+    total_backoffice_records = 0
+    
+    # Check if user is in backoffice department (handle various formats: Backoffice, Back Office, backoffice, etc.)
+    is_backoffice = False
+    if employee_department:
+        dept_normalized = employee_department.lower().strip().replace(' ', '').replace('-', '')
+        if dept_normalized == 'backoffice':
+            is_backoffice = True
+    
+    # Always calculate counts if user is authenticated (for backoffice users)
+    if is_backoffice and request.user.is_authenticated:
+        # Get counts for back office records from database
+        # For backoffice department, show ALL records in the table (not filtered by user)
+        startup_count = StartupIndiaRegistration.objects.all().count()
+        fssai_count = FSSAILicense.objects.all().count()
+        msme_count = MSMEUdyamRegistration.objects.all().count()
+        company_count = CompanyLLPRegistration.objects.all().count()
+        fire_count = FirePollutionLicense.objects.all().count()
+        iso_count = ISOCertification.objects.all().count()
+        trademark_count = TrademarkFiling.objects.all().count()
+        total_backoffice_records = startup_count + fssai_count + msme_count + company_count + fire_count + iso_count + trademark_count
+    
     context = {
         'employee_name': employee_name,
         'employee_first_name': employee_first_name,
@@ -2829,6 +2877,23 @@ def employee_dashboard(request):
         'unread_messages_count': unread_messages_count,
         'new_projects_count': new_projects_count,
         'pending_leaves_count': pending_leaves_count,
+        # Account Team metrics (for Accounts department)
+        'roc_count': roc_count,
+        'gst_count': gst_count,
+        'itr_count': itr_count,
+        'bookkeeping_count': bookkeeping_count,
+        'tds_count': tds_count,
+        'total_account_records': total_account_records,
+        # Back Office metrics (for Backoffice department)
+        'startup_count': startup_count,
+        'fssai_count': fssai_count,
+        'msme_count': msme_count,
+        'company_count': company_count,
+        'fire_count': fire_count,
+        'iso_count': iso_count,
+        'trademark_count': trademark_count,
+        'total_backoffice_records': total_backoffice_records,
+        'is_backoffice': is_backoffice,  # Flag to help template identify backoffice users
     }
     return render(request, 'employee/dashboard.html', context)
 

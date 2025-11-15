@@ -110,7 +110,284 @@
     </a>
   </div>
 </div>
+{% elif employee_department|default:''|lower == 'accounts' %}
+<!-- Accounts Department Cards -->
+<div class="row mb-4">
+  <div class="col-xl-3 col-lg-4 col-md-6 col-sm-6 mb-3">
+    <div class="metric-card">
+      <div class="d-flex align-items-center">
+        <div class="metric-icon primary">
+          <i class="bi bi-file-earmark-text"></i>
+        </div>
+        <div>
+          <div class="metric-title">ROC Records</div>
+          <div class="metric-value">{{ roc_count|default:0 }}</div>
+          <div class="metric-subtitle">Total records</div>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <div class="col-xl-3 col-lg-4 col-md-6 col-sm-6 mb-3">
+    <div class="metric-card">
+      <div class="d-flex align-items-center">
+        <div class="metric-icon success">
+          <i class="bi bi-receipt"></i>
+        </div>
+        <div>
+          <div class="metric-title">GST Filings</div>
+          <div class="metric-value">{{ gst_count|default:0 }}</div>
+          <div class="metric-subtitle">Total records</div>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <div class="col-xl-3 col-lg-4 col-md-6 col-sm-6 mb-3">
+    <div class="metric-card">
+      <div class="d-flex align-items-center">
+        <div class="metric-icon warning">
+          <i class="bi bi-file-earmark-pdf"></i>
+        </div>
+        <div>
+          <div class="metric-title">ITR Filings</div>
+          <div class="metric-value">{{ itr_count|default:0 }}</div>
+          <div class="metric-subtitle">Total records</div>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <div class="col-xl-3 col-lg-4 col-md-6 col-sm-6 mb-3">
+    <div class="metric-card">
+      <div class="d-flex align-items-center">
+        <div class="metric-icon info">
+          <i class="bi bi-calendar-check"></i>
+        </div>
+        <div>
+          <div class="metric-title">Attendance</div>
+          <div class="metric-value">{{ attendance_percentage }}%</div>
+          <div class="metric-subtitle">This month</div>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <div class="col-xl-3 col-lg-4 col-md-6 col-sm-6 mb-3">
+    <div class="metric-card">
+      <div class="d-flex align-items-center">
+        <div class="metric-icon primary" style="background-color: #cfe2ff; color: #0d6efd;">
+          <i class="bi bi-journal-text"></i>
+        </div>
+        <div>
+          <div class="metric-title">Bookkeeping</div>
+          <div class="metric-value">{{ bookkeeping_count|default:0 }}</div>
+          <div class="metric-subtitle">Total records</div>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <div class="col-xl-3 col-lg-4 col-md-6 col-sm-6 mb-3">
+    <div class="metric-card">
+      <div class="d-flex align-items-center">
+        <div class="metric-icon success" style="background-color: #d1e7dd; color: #198754;">
+          <i class="bi bi-cash-coin"></i>
+        </div>
+        <div>
+          <div class="metric-title">TDS Records</div>
+          <div class="metric-value">{{ tds_count|default:0 }}</div>
+          <div class="metric-subtitle">Total records</div>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <div class="col-xl-3 col-lg-4 col-md-6 col-sm-6 mb-3">
+    <div class="metric-card">
+      <div class="d-flex align-items-center">
+        <div class="metric-icon warning">
+          <i class="bi bi-clock"></i>
+        </div>
+        <div>
+          <div class="metric-title">Hours Worked</div>
+          <div class="metric-value">{{ hours_worked }}</div>
+          <div class="metric-subtitle">This week</div>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <div class="col-xl-3 col-lg-4 col-md-6 col-sm-6 mb-3">
+    <div class="metric-card">
+      <div class="d-flex align-items-center">
+        <div class="metric-icon info" style="background-color: #d1ecf1; color: #0dcaf0;">
+          <i class="bi bi-files"></i>
+        </div>
+        <div>
+          <div class="metric-title">Total Records</div>
+          <div class="metric-value">{{ total_account_records|default:0 }}</div>
+          <div class="metric-subtitle">All account records</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% elif is_backoffice %}
+<!-- Backoffice Department Cards -->
+<div class="row mb-4">
+  <div class="col-xl-3 col-lg-4 col-md-6 col-sm-6 mb-3">
+    <div class="metric-card">
+      <div class="d-flex align-items-center">
+        <div class="metric-icon primary">
+          <i class="bi bi-rocket-takeoff"></i>
+        </div>
+        <div>
+          <div class="metric-title">Startup India</div>
+          <div class="metric-value">{{ startup_count|default:0 }}</div>
+          <div class="metric-subtitle">Total records</div>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <div class="col-xl-3 col-lg-4 col-md-6 col-sm-6 mb-3">
+    <div class="metric-card">
+      <div class="d-flex align-items-center">
+        <div class="metric-icon success">
+          <i class="bi bi-shield-check"></i>
+        </div>
+        <div>
+          <div class="metric-title">FSSAI License</div>
+          <div class="metric-value">{{ fssai_count|default:0 }}</div>
+          <div class="metric-subtitle">Total records</div>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <div class="col-xl-3 col-lg-4 col-md-6 col-sm-6 mb-3">
+    <div class="metric-card">
+      <div class="d-flex align-items-center">
+        <div class="metric-icon warning">
+          <i class="bi bi-building"></i>
+        </div>
+        <div>
+          <div class="metric-title">MSME Registration</div>
+          <div class="metric-value">{{ msme_count|default:0 }}</div>
+          <div class="metric-subtitle">Total records</div>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <div class="col-xl-3 col-lg-4 col-md-6 col-sm-6 mb-3">
+    <div class="metric-card">
+      <div class="d-flex align-items-center">
+        <div class="metric-icon info">
+          <i class="bi bi-calendar-check"></i>
+        </div>
+        <div>
+          <div class="metric-title">Attendance</div>
+          <div class="metric-value">{{ attendance_percentage }}%</div>
+          <div class="metric-subtitle">This month</div>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <div class="col-xl-3 col-lg-4 col-md-6 col-sm-6 mb-3">
+    <div class="metric-card">
+      <div class="d-flex align-items-center">
+        <div class="metric-icon primary" style="background-color: #cfe2ff; color: #0d6efd;">
+          <i class="bi bi-briefcase"></i>
+        </div>
+        <div>
+          <div class="metric-title">Company/LLP</div>
+          <div class="metric-value">{{ company_count|default:0 }}</div>
+          <div class="metric-subtitle">Total records</div>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <div class="col-xl-3 col-lg-4 col-md-6 col-sm-6 mb-3">
+    <div class="metric-card">
+      <div class="d-flex align-items-center">
+        <div class="metric-icon success" style="background-color: #d1e7dd; color: #198754;">
+          <i class="bi bi-fire"></i>
+        </div>
+        <div>
+          <div class="metric-title">Fire & Pollution</div>
+          <div class="metric-value">{{ fire_count|default:0 }}</div>
+          <div class="metric-subtitle">Total records</div>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <div class="col-xl-3 col-lg-4 col-md-6 col-sm-6 mb-3">
+    <div class="metric-card">
+      <div class="d-flex align-items-center">
+        <div class="metric-icon warning">
+          <i class="bi bi-award"></i>
+        </div>
+        <div>
+          <div class="metric-title">ISO Certification</div>
+          <div class="metric-value">{{ iso_count|default:0 }}</div>
+          <div class="metric-subtitle">Total records</div>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <div class="col-xl-3 col-lg-4 col-md-6 col-sm-6 mb-3">
+    <div class="metric-card">
+      <div class="d-flex align-items-center">
+        <div class="metric-icon info" style="background-color: #fff3cd; color: #856404;">
+          <i class="bi bi-copyright"></i>
+        </div>
+        <div>
+          <div class="metric-title">Trademark Filing</div>
+          <div class="metric-value">{{ trademark_count|default:0 }}</div>
+          <div class="metric-subtitle">Total records</div>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <div class="col-xl-3 col-lg-4 col-md-6 col-sm-6 mb-3">
+    <div class="metric-card">
+      <div class="d-flex align-items-center">
+        <div class="metric-icon warning">
+          <i class="bi bi-clock"></i>
+        </div>
+        <div>
+          <div class="metric-title">Hours Worked</div>
+          <div class="metric-value">{{ hours_worked }}</div>
+          <div class="metric-subtitle">This week</div>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <div class="col-xl-3 col-lg-4 col-md-6 col-sm-6 mb-3">
+    <div class="metric-card">
+      <div class="d-flex align-items-center">
+        <div class="metric-icon info" style="background-color: #d1ecf1; color: #0dcaf0;">
+          <i class="bi bi-files"></i>
+        </div>
+        <div>
+          <div class="metric-title">Total Records</div>
+          <div class="metric-value">{{ total_backoffice_records|default:0 }}</div>
+          <div class="metric-subtitle">All back office records</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
 {% else %}
+<!-- Other Departments Cards -->
 <div class="row mb-4">
   <div class="col-xl-3 col-lg-4 col-md-6 col-sm-6 mb-3">
     <div class="metric-card">
@@ -214,7 +491,7 @@
     </div>
 
     <!-- My Projects -->
-    {% if employee_department|default:''|lower != 'sales' %}
+    {% if employee_department|default:''|lower != 'sales' and employee_department|default:''|lower != 'accounts' and employee_department|default:''|lower != 'backoffice' %}
     <div class="card mb-4">
       <div class="card-header d-flex justify-content-between align-items-center">
         <h5 class="mb-0"><i class="bi bi-kanban me-2"></i>My Projects</h5>
@@ -319,6 +596,7 @@
     {% endif %}
 
     <!-- Recent Tasks -->
+    {% if employee_department|default:''|lower != 'accounts' and employee_department|default:''|lower != 'backoffice' %}
     <div class="card">
       <div class="card-header d-flex justify-content-between align-items-center">
         <h5 class="mb-0"><i class="bi bi-list-task me-2"></i>Recent Tasks</h5>
@@ -355,6 +633,7 @@
         </div>
       </div>
     </div>
+    {% endif %}
   </div>
 
   <!-- Right Column -->

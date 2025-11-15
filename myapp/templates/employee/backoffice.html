@@ -8,17 +8,18 @@
 {% block extra_css %}
 <style>
   .backoffice-tabs .nav-link {
-    background: linear-gradient(135deg, #0f172a, #1d4ed8);
-    color: #ffffff;
-    border: none;
+    background: linear-gradient(135deg, #0f172a, #1d4ed8) !important;
+    color: #ffffff !important;
+    border: none !important;
     border-radius: 12px;
     font-weight: 600;
     padding: 0.65rem 1.25rem;
     transition: none;
+    opacity: 1 !important;
   }
 
   .backoffice-tabs .nav-link:not(.active) {
-    opacity: 0.85;
+    opacity: 1 !important;
   }
 
   .backoffice-tabs .nav-link i {
@@ -28,10 +29,10 @@
   .backoffice-tabs .nav-link:hover,
   .backoffice-tabs .nav-link:focus,
   .backoffice-tabs .nav-link.active {
-    background: linear-gradient(135deg, #0f172a, #1d4ed8);
-    color: #ffffff;
-    opacity: 1;
-    border: none;
+    background: linear-gradient(135deg, #0f172a, #1d4ed8) !important;
+    color: #ffffff !important;
+    opacity: 1 !important;
+    border: none !important;
   }
 
   .accounts-section-card .card-header h6 {
@@ -121,6 +122,151 @@
   .status-select:focus {
     outline: 2px solid #1d4ed8;
     outline-offset: 2px;
+  }
+
+  /* Mobile responsive styles for all dropdowns */
+  .form-select,
+  .status-select {
+    width: 100%;
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    appearance: none;
+    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3e%3cpath fill='none' stroke='%23343a40' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M2 5l6 6 6-6'/%3e%3c/svg%3e");
+    background-repeat: no-repeat;
+    background-position: right 0.75rem center;
+    background-size: 16px 12px;
+    padding-right: 2.5rem;
+  }
+
+  @media (max-width: 768px) {
+    /* Bootstrap form select dropdowns - mobile responsive */
+    .form-select {
+      font-size: 16px !important; /* Prevents zoom on iOS */
+      padding: 0.75rem 2.5rem 0.75rem 0.75rem !important;
+      min-height: 44px !important; /* Better touch target - Bootstrap standard */
+      width: 100% !important;
+      border: 1px solid #ced4da !important;
+      border-radius: 0.375rem !important;
+      -webkit-appearance: none !important;
+      -moz-appearance: none !important;
+      appearance: none !important;
+      /* Bootstrap 5 native dropdown arrow */
+      background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3e%3cpath fill='none' stroke='%23343a40' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M2 5l6 6 6-6'/%3e%3c/svg%3e") !important;
+      background-repeat: no-repeat !important;
+      background-position: right 0.75rem center !important;
+      background-size: 16px 12px !important;
+      display: block !important;
+      line-height: 1.5 !important;
+    }
+
+    /* Bootstrap form-select focus state on mobile */
+    .form-select:focus {
+      border-color: #86b7fe !important;
+      outline: 0 !important;
+      box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25) !important;
+    }
+
+    /* Status select dropdowns - mobile responsive */
+    .status-select {
+      font-size: 14px !important;
+      padding: 0.5rem 2rem 0.5rem 0.75rem !important;
+      min-height: 40px !important;
+      min-width: auto !important;
+      width: 100% !important;
+      border: 1px solid #ced4da !important;
+      border-radius: 0.375rem !important;
+      background-color: #fff !important;
+      -webkit-appearance: none !important;
+      -moz-appearance: none !important;
+      appearance: none !important;
+    }
+
+    /* Ensure dropdowns don't overflow on mobile */
+    select.form-select,
+    select.status-select {
+      max-width: 100% !important;
+      box-sizing: border-box !important;
+    }
+
+    /* Bootstrap grid - make columns full width on mobile */
+    .row.g-3 > [class*="col-md-"],
+    .row.g-3 > [class*="col-lg-"],
+    .row.g-4 > [class*="col-md-"],
+    .row.g-4 > [class*="col-lg-"] {
+      width: 100% !important;
+      flex: 0 0 100% !important;
+      max-width: 100% !important;
+      margin-bottom: 1rem;
+    }
+
+    /* Better spacing for form fields on mobile */
+    .row.g-3 > [class*="col-"],
+    .row.g-4 > [class*="col-"] {
+      margin-bottom: 1rem;
+    }
+
+    /* Bootstrap form labels on mobile */
+    .form-label {
+      font-size: 0.875rem;
+      font-weight: 500;
+      margin-bottom: 0.5rem;
+      display: block;
+    }
+
+    /* Bootstrap form controls spacing */
+    .form-control,
+    .form-select {
+      margin-bottom: 0.5rem;
+      display: block;
+      width: 100%;
+    }
+
+    /* Ensure form groups are properly stacked */
+    .form-group,
+    [class*="col-"] {
+      margin-bottom: 1rem;
+    }
+  }
+
+  @media (max-width: 576px) {
+    /* Extra small screens - Bootstrap form-select */
+    .form-select {
+      font-size: 16px !important; /* Prevents iOS zoom */
+      padding: 0.875rem 2.5rem 0.875rem 0.875rem !important;
+      min-height: 48px !important; /* Larger touch target for small screens */
+      width: 100% !important;
+    }
+
+    .status-select {
+      font-size: 13px !important;
+      padding: 0.625rem 2rem 0.625rem 0.875rem !important;
+      min-height: 44px !important;
+    }
+
+    /* Bootstrap grid - all columns full width on extra small screens */
+    .col-md-6,
+    .col-lg-6,
+    .col-md-4,
+    .col-lg-4,
+    .col-md-8,
+    .col-lg-8 {
+      width: 100% !important;
+      flex: 0 0 100% !important;
+      max-width: 100% !important;
+    }
+
+    /* Form spacing on extra small screens */
+    .row.g-3,
+    .row.g-4 {
+      margin-left: -0.5rem;
+      margin-right: -0.5rem;
+    }
+
+    .row.g-3 > *,
+    .row.g-4 > * {
+      padding-left: 0.5rem;
+      padding-right: 0.5rem;
+    }
   }
 
   /* Ensure tab panes are hidden by default unless they have both show and active classes */
