@@ -13,6 +13,11 @@ from .models import (
     CompanyLLPRegistration,
     FirePollutionLicense,
     ISOCertification,
+    TrademarkFiling,
+    TrademarkFilingCompliance,
+    TrademarkFilingInstant,
+    CompanyAddressChange,
+    MOAAlteration,
 )
 
 class LeadForm(forms.ModelForm):
@@ -547,6 +552,123 @@ class ISOCertificationForm(forms.ModelForm):
             'locations': forms.NumberInput(attrs={'class': 'form-control', 'placeholder': 'No. of sites'}),
             'employee_strength': forms.NumberInput(attrs={'class': 'form-control', 'placeholder': 'Employee count'}),
             'existing_certifications': forms.Textarea(attrs={'class': 'form-control', 'rows': 3, 'placeholder': 'If any'}),
+        }
+
+
+class TrademarkFilingForm(forms.ModelForm):
+    """Form for Trademark Filing intake."""
+
+    applicant_type = forms.ChoiceField(
+        choices=TrademarkFiling.APPLICANT_TYPE_CHOICES,
+        widget=forms.Select(attrs={'class': 'form-select'}),
+    )
+
+    class Meta:
+        model = TrademarkFiling
+        fields = [
+            'brand_logo',
+            'applicant_type',
+            'classes',
+            'first_use_date',
+        ]
+        widgets = {
+            'brand_logo': forms.Textarea(attrs={'class': 'form-control', 'rows': 3, 'placeholder': 'Describe or attach logo'}),
+            'classes': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'e.g. 35, 42'}),
+            'first_use_date': forms.DateInput(attrs={'class': 'form-control', 'type': 'date'}),
+        }
+
+
+class TrademarkFilingComplianceForm(forms.ModelForm):
+    """Form for Trademark Filing + Compliance intake."""
+
+    watch_scope = forms.ChoiceField(
+        choices=TrademarkFilingCompliance.WATCH_SCOPE_CHOICES,
+        widget=forms.Select(attrs={'class': 'form-select'}),
+        required=False
+    )
+
+    class Meta:
+        model = TrademarkFilingCompliance
+        fields = [
+            'existing_tm_numbers',
+            'portfolio_size',
+            'watch_scope',
+            'renewal_month',
+        ]
+        widgets = {
+            'existing_tm_numbers': forms.Textarea(attrs={'class': 'form-control', 'rows': 3, 'placeholder': 'If any'}),
+            'portfolio_size': forms.NumberInput(attrs={'class': 'form-control', 'placeholder': 'Portfolio size'}),
+            'renewal_month': forms.TextInput(attrs={'class': 'form-control', 'type': 'month', 'placeholder': 'Select month'}),
+        }
+
+
+class TrademarkFilingInstantForm(forms.ModelForm):
+    """Form for Trademark Filing (Instant Process) intake."""
+
+    filing_window = forms.ChoiceField(
+        choices=TrademarkFilingInstant.FILING_WINDOW_CHOICES,
+        widget=forms.Select(attrs={'class': 'form-select'}),
+        required=False
+    )
+
+    class Meta:
+        model = TrademarkFilingInstant
+        fields = [
+            'urgency_reason',
+            'filing_window',
+            'contact_mobile',
+        ]
+        widgets = {
+            'urgency_reason': forms.Textarea(attrs={'class': 'form-control', 'rows': 3, 'placeholder': 'Launch / diligence / other'}),
+            'contact_mobile': forms.TextInput(attrs={'class': 'form-control', 'type': 'tel', 'placeholder': '+91XXXXXXXXXX'}),
+        }
+
+
+class CompanyAddressChangeForm(forms.ModelForm):
+    """Form for Company Address Change intake."""
+
+    entity_type = forms.ChoiceField(
+        choices=CompanyAddressChange.ENTITY_TYPE_CHOICES,
+        widget=forms.Select(attrs={'class': 'form-select'}),
+    )
+
+    shift_type = forms.ChoiceField(
+        choices=CompanyAddressChange.SHIFT_TYPE_CHOICES,
+        widget=forms.Select(attrs={'class': 'form-select'}),
+    )
+
+    class Meta:
+        model = CompanyAddressChange
+        fields = [
+            'entity_type',
+            'shift_type',
+            'effective_date',
+            'new_address',
+        ]
+        widgets = {
+            'effective_date': forms.DateInput(attrs={'class': 'form-control', 'type': 'date'}),
+            'new_address': forms.Textarea(attrs={'class': 'form-control', 'rows': 3, 'placeholder': 'Complete address'}),
+        }
+
+
+class MOAAlterationForm(forms.ModelForm):
+    """Form for MOA Alteration intake."""
+
+    alteration_type = forms.ChoiceField(
+        choices=MOAAlteration.ALTERATION_TYPE_CHOICES,
+        widget=forms.Select(attrs={'class': 'form-select'}),
+    )
+
+    class Meta:
+        model = MOAAlteration
+        fields = [
+            'alteration_type',
+            'proposed_object_name',
+            'effective_date',
+        ]
+        widgets = {
+            'proposed_object_name': forms.Textarea(attrs={'class': 'form-control', 'rows': 3, 'placeholder': 'Draft text / options'}),
+            'effective_date': forms.DateInput(attrs={'class': 'form-control', 'type': 'date'}),
         }
 
 

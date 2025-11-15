@@ -913,6 +913,14 @@
           window.location.reload();
         });
         
+        // Dispatch pageContentLoaded event on initial page load
+        // This ensures JavaScript that listens for this event runs on normal page refresh too
+        // Dispatch immediately and after a short delay to ensure all scripts are loaded
+        window.dispatchEvent(new Event('pageContentLoaded'));
+        setTimeout(function() {
+          window.dispatchEvent(new Event('pageContentLoaded'));
+        }, 100);
+        
         // Prevent sidebar from refreshing - all navigation is handled by AJAX above
         const sidebarNav = document.querySelector('.sidebar-nav');
         if (sidebarNav) {

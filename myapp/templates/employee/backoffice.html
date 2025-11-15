@@ -67,6 +67,12 @@
     .data-table td {
       padding: 0.5rem;
     }
+    .pagination {
+      font-size: 0.875rem;
+    }
+    .pagination .page-link {
+      padding: 0.375rem 0.5rem;
+    }
   }
 
   .status-badge {
@@ -116,6 +122,30 @@
     outline: 2px solid #1d4ed8;
     outline-offset: 2px;
   }
+
+  /* Ensure tab panes are hidden by default unless they have both show and active classes */
+  .tab-content .tab-pane {
+    display: none !important;
+    visibility: hidden !important;
+  }
+
+  .tab-content .tab-pane.show.active {
+    display: block !important;
+    visibility: visible !important;
+  }
+
+  /* Override Bootstrap fade class if it's causing issues */
+  .tab-content .tab-pane.fade:not(.show) {
+    display: none !important;
+    visibility: hidden !important;
+    opacity: 0 !important;
+  }
+
+  .tab-content .tab-pane.fade.show.active {
+    display: block !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+  }
 </style>
 {% endblock %}
 
@@ -154,8 +184,16 @@
           </ul>
 
           <div class="tab-content">
+            <script>
+            // Immediately hide all tab panes before any rendering
+            (function() {
+              const style = document.createElement('style');
+              style.textContent = '.tab-content .tab-pane { display: none !important; visibility: hidden !important; } .tab-content .tab-pane.show.active { display: block !important; visibility: visible !important; }';
+              document.head.appendChild(style);
+            })();
+            </script>
             {% for service in backoffice_services %}
-            <div class="tab-pane fade {% if forloop.first %}show active{% endif %}" id="pane-{{ service.id }}" role="tabpanel" aria-labelledby="tab-{{ service.id }}">
+            <div class="tab-pane fade {% if forloop.first %}show active{% endif %}" id="pane-{{ service.id }}" role="tabpanel" aria-labelledby="tab-{{ service.id }}" {% if not forloop.first %}style="display: none !important; visibility: hidden !important;"{% endif %}>
               <div class="row g-4">
                 <div class="col-lg-8">
                   <div class="card border-0 shadow-sm accounts-section-card">
@@ -523,6 +561,250 @@
                             <button type="submit" name="mark_ready" class="btn btn-primary">Mark Ready</button>
                           </div>
                         </form>
+                      {% elif service.id == 'tm-file' %}
+                        <!-- Trademark Filing Form -->
+                        <form method="post" enctype="multipart/form-data" class="row g-3">
+                          {% csrf_token %}
+                          <input type="hidden" name="form_name" value="trademark">
+
+                          <div class="col-12">
+                            <label class="form-label">{{ trademark_form.brand_logo.label }}</label>
+                            {{ trademark_form.brand_logo }}
+                            {% if trademark_form.brand_logo.errors %}
+                              <div class="text-danger small">{{ trademark_form.brand_logo.errors }}</div>
+                            {% endif %}
+                          </div>
+
+                          <div class="col-md-6">
+                            <label class="form-label">{{ trademark_form.applicant_type.label }}</label>
+                            {{ trademark_form.applicant_type }}
+                            {% if trademark_form.applicant_type.errors %}
+                              <div class="text-danger small">{{ trademark_form.applicant_type.errors }}</div>
+                            {% endif %}
+                          </div>
+
+                          <div class="col-md-6">
+                            <label class="form-label">{{ trademark_form.classes.label }}</label>
+                            {{ trademark_form.classes }}
+                            {% if trademark_form.classes.errors %}
+                              <div class="text-danger small">{{ trademark_form.classes.errors }}</div>
+                            {% endif %}
+                          </div>
+
+                          <div class="col-md-6">
+                            <label class="form-label">{{ trademark_form.first_use_date.label }}</label>
+                            {{ trademark_form.first_use_date }}
+                            {% if trademark_form.first_use_date.errors %}
+                              <div class="text-danger small">{{ trademark_form.first_use_date.errors }}</div>
+                            {% endif %}
+                          </div>
+
+                          <div class="col-12">
+                            <label class="form-label">Upload Supporting Documents</label>
+                            <div class="upload-dropzone">
+                              <i class="bi bi-cloud-arrow-up fs-3 text-primary"></i>
+                              <p class="mb-1 fw-semibold">Drop documents or click to browse</p>
+                              <input type="file" name="trademark_documents" class="form-control" multiple>
+                            </div>
+                          </div>
+
+                          <div class="col-12 d-flex justify-content-end gap-2">
+                            <button type="submit" name="save_draft" class="btn btn-outline-secondary">Save Draft</button>
+                            <button type="submit" name="mark_ready" class="btn btn-primary">Mark Ready</button>
+                          </div>
+                        </form>
+                      {% elif service.id == 'tm-compliance' %}
+                        <!-- Trademark Filing + Compliance Form -->
+                        <form method="post" enctype="multipart/form-data" class="row g-3">
+                          {% csrf_token %}
+                          <input type="hidden" name="form_name" value="trademark_compliance">
+
+                          <div class="col-12">
+                            <label class="form-label">{{ trademark_compliance_form.existing_tm_numbers.label }}</label>
+                            {{ trademark_compliance_form.existing_tm_numbers }}
+                            {% if trademark_compliance_form.existing_tm_numbers.errors %}
+                              <div class="text-danger small">{{ trademark_compliance_form.existing_tm_numbers.errors }}</div>
+                            {% endif %}
+                          </div>
+
+                          <div class="col-md-6">
+                            <label class="form-label">{{ trademark_compliance_form.portfolio_size.label }}</label>
+                            {{ trademark_compliance_form.portfolio_size }}
+                            {% if trademark_compliance_form.portfolio_size.errors %}
+                              <div class="text-danger small">{{ trademark_compliance_form.portfolio_size.errors }}</div>
+                            {% endif %}
+                          </div>
+
+                          <div class="col-md-6">
+                            <label class="form-label">{{ trademark_compliance_form.watch_scope.label }}</label>
+                            {{ trademark_compliance_form.watch_scope }}
+                            {% if trademark_compliance_form.watch_scope.errors %}
+                              <div class="text-danger small">{{ trademark_compliance_form.watch_scope.errors }}</div>
+                            {% endif %}
+                          </div>
+
+                          <div class="col-md-6">
+                            <label class="form-label">{{ trademark_compliance_form.renewal_month.label }}</label>
+                            {{ trademark_compliance_form.renewal_month }}
+                            {% if trademark_compliance_form.renewal_month.errors %}
+                              <div class="text-danger small">{{ trademark_compliance_form.renewal_month.errors }}</div>
+                            {% endif %}
+                          </div>
+
+                          <div class="col-12">
+                            <label class="form-label">Upload Supporting Documents</label>
+                            <div class="upload-dropzone">
+                              <i class="bi bi-cloud-arrow-up fs-3 text-primary"></i>
+                              <p class="mb-1 fw-semibold">Drop documents or click to browse</p>
+                              <input type="file" name="trademark_compliance_documents" class="form-control" multiple>
+                            </div>
+                          </div>
+
+                          <div class="col-12 d-flex justify-content-end gap-2">
+                            <button type="submit" name="save_draft" class="btn btn-outline-secondary">Save Draft</button>
+                            <button type="submit" name="mark_ready" class="btn btn-primary">Mark Ready</button>
+                          </div>
+                        </form>
+                      {% elif service.id == 'tm-instant' %}
+                        <!-- Trademark Filing (Instant Process) Form -->
+                        <form method="post" enctype="multipart/form-data" class="row g-3">
+                          {% csrf_token %}
+                          <input type="hidden" name="form_name" value="trademark_instant">
+
+                          <div class="col-12">
+                            <label class="form-label">{{ trademark_instant_form.urgency_reason.label }}</label>
+                            {{ trademark_instant_form.urgency_reason }}
+                            {% if trademark_instant_form.urgency_reason.errors %}
+                              <div class="text-danger small">{{ trademark_instant_form.urgency_reason.errors }}</div>
+                            {% endif %}
+                          </div>
+
+                          <div class="col-md-6">
+                            <label class="form-label">{{ trademark_instant_form.filing_window.label }}</label>
+                            {{ trademark_instant_form.filing_window }}
+                            {% if trademark_instant_form.filing_window.errors %}
+                              <div class="text-danger small">{{ trademark_instant_form.filing_window.errors }}</div>
+                            {% endif %}
+                          </div>
+
+                          <div class="col-md-6">
+                            <label class="form-label">{{ trademark_instant_form.contact_mobile.label }}</label>
+                            {{ trademark_instant_form.contact_mobile }}
+                            {% if trademark_instant_form.contact_mobile.errors %}
+                              <div class="text-danger small">{{ trademark_instant_form.contact_mobile.errors }}</div>
+                            {% endif %}
+                          </div>
+
+                          <div class="col-12">
+                            <label class="form-label">Upload Supporting Documents</label>
+                            <div class="upload-dropzone">
+                              <i class="bi bi-cloud-arrow-up fs-3 text-primary"></i>
+                              <p class="mb-1 fw-semibold">Drop documents or click to browse</p>
+                              <input type="file" name="trademark_instant_documents" class="form-control" multiple>
+                            </div>
+                          </div>
+
+                          <div class="col-12 d-flex justify-content-end gap-2">
+                            <button type="submit" name="save_draft" class="btn btn-outline-secondary">Save Draft</button>
+                            <button type="submit" name="mark_ready" class="btn btn-primary">Mark Ready</button>
+                          </div>
+                        </form>
+                      {% elif service.id == 'address-change' %}
+                        <!-- Company Address Change Form -->
+                        <form method="post" enctype="multipart/form-data" class="row g-3">
+                          {% csrf_token %}
+                          <input type="hidden" name="form_name" value="address_change">
+
+                          <div class="col-md-6">
+                            <label class="form-label">{{ address_change_form.entity_type.label }}</label>
+                            {{ address_change_form.entity_type }}
+                            {% if address_change_form.entity_type.errors %}
+                              <div class="text-danger small">{{ address_change_form.entity_type.errors }}</div>
+                            {% endif %}
+                          </div>
+
+                          <div class="col-md-6">
+                            <label class="form-label">{{ address_change_form.shift_type.label }}</label>
+                            {{ address_change_form.shift_type }}
+                            {% if address_change_form.shift_type.errors %}
+                              <div class="text-danger small">{{ address_change_form.shift_type.errors }}</div>
+                            {% endif %}
+                          </div>
+
+                          <div class="col-md-6">
+                            <label class="form-label">{{ address_change_form.effective_date.label }}</label>
+                            {{ address_change_form.effective_date }}
+                            {% if address_change_form.effective_date.errors %}
+                              <div class="text-danger small">{{ address_change_form.effective_date.errors }}</div>
+                            {% endif %}
+                          </div>
+
+                          <div class="col-md-6">
+                            <label class="form-label">{{ address_change_form.new_address.label }}</label>
+                            {{ address_change_form.new_address }}
+                            {% if address_change_form.new_address.errors %}
+                              <div class="text-danger small">{{ address_change_form.new_address.errors }}</div>
+                            {% endif %}
+                          </div>
+
+                          <div class="col-12">
+                            <label class="form-label">Upload Supporting Documents</label>
+                            <div class="upload-dropzone">
+                              <i class="bi bi-cloud-arrow-up fs-3 text-primary"></i>
+                              <p class="mb-1 fw-semibold">Drop documents or click to browse</p>
+                              <input type="file" name="address_change_documents" class="form-control" multiple>
+                            </div>
+                          </div>
+
+                          <div class="col-12 d-flex justify-content-end gap-2">
+                            <button type="submit" name="save_draft" class="btn btn-outline-secondary">Save Draft</button>
+                            <button type="submit" name="mark_ready" class="btn btn-primary">Mark Ready</button>
+                          </div>
+                        </form>
+                      {% elif service.id == 'moa-alter' %}
+                        <!-- MOA Alteration Form -->
+                        <form method="post" enctype="multipart/form-data" class="row g-3">
+                          {% csrf_token %}
+                          <input type="hidden" name="form_name" value="moa_alteration">
+
+                          <div class="col-md-6">
+                            <label class="form-label">{{ moa_alteration_form.alteration_type.label }}</label>
+                            {{ moa_alteration_form.alteration_type }}
+                            {% if moa_alteration_form.alteration_type.errors %}
+                              <div class="text-danger small">{{ moa_alteration_form.alteration_type.errors }}</div>
+                            {% endif %}
+                          </div>
+
+                          <div class="col-md-6">
+                            <label class="form-label">{{ moa_alteration_form.effective_date.label }}</label>
+                            {{ moa_alteration_form.effective_date }}
+                            {% if moa_alteration_form.effective_date.errors %}
+                              <div class="text-danger small">{{ moa_alteration_form.effective_date.errors }}</div>
+                            {% endif %}
+                          </div>
+
+                          <div class="col-12">
+                            <label class="form-label">{{ moa_alteration_form.proposed_object_name.label }}</label>
+                            {{ moa_alteration_form.proposed_object_name }}
+                            {% if moa_alteration_form.proposed_object_name.errors %}
+                              <div class="text-danger small">{{ moa_alteration_form.proposed_object_name.errors }}</div>
+                            {% endif %}
+                          </div>
+
+                          <div class="col-12">
+                            <label class="form-label">Upload Supporting Documents</label>
+                            <div class="upload-dropzone">
+                              <i class="bi bi-cloud-arrow-up fs-3 text-primary"></i>
+                              <p class="mb-1 fw-semibold">Drop documents or click to browse</p>
+                              <input type="file" name="moa_alteration_documents" class="form-control" multiple>
+                            </div>
+                          </div>
+
+                          <div class="col-12 d-flex justify-content-end gap-2">
+                            <button type="submit" name="save_draft" class="btn btn-outline-secondary">Save Draft</button>
+                            <button type="submit" name="mark_ready" class="btn btn-primary">Mark Ready</button>
+                          </div>
+                        </form>
                       {% else %}
                         <!-- Other services - static form -->
                         <form class="row g-3">
@@ -634,6 +916,34 @@
                             </tbody>
                           </table>
                         </div>
+                        <!-- Pagination -->
+                        {% if startup_registrations.has_other_pages %}
+                        <nav aria-label="Startup pagination" class="mt-3">
+                          <ul class="pagination justify-content-center">
+                            {% if startup_registrations.has_previous %}
+                            <li class="page-item">
+                              <a class="page-link" href="?startup_page={{ startup_registrations.previous_page_number }}&tab=startup">Previous</a>
+                            </li>
+                            {% endif %}
+                            {% for num in startup_registrations.paginator.page_range %}
+                            {% if startup_registrations.number == num %}
+                            <li class="page-item active">
+                              <span class="page-link">{{ num }}</span>
+                            </li>
+                            {% else %}
+                            <li class="page-item">
+                              <a class="page-link" href="?startup_page={{ num }}&tab=startup">{{ num }}</a>
+                            </li>
+                            {% endif %}
+                            {% endfor %}
+                            {% if startup_registrations.has_next %}
+                            <li class="page-item">
+                              <a class="page-link" href="?startup_page={{ startup_registrations.next_page_number }}&tab=startup">Next</a>
+                            </li>
+                            {% endif %}
+                          </ul>
+                        </nav>
+                        {% endif %}
                       {% else %}
                         <p class="text-muted text-center py-4">No registrations found. Submit a form above to create a new record.</p>
                       {% endif %}
@@ -687,6 +997,34 @@
                             </tbody>
                           </table>
                         </div>
+                        <!-- Pagination -->
+                        {% if fssai_licenses.has_other_pages %}
+                        <nav aria-label="FSSAI pagination" class="mt-3">
+                          <ul class="pagination justify-content-center">
+                            {% if fssai_licenses.has_previous %}
+                            <li class="page-item">
+                              <a class="page-link" href="?fssai_page={{ fssai_licenses.previous_page_number }}&tab=fssai">Previous</a>
+                            </li>
+                            {% endif %}
+                            {% for num in fssai_licenses.paginator.page_range %}
+                            {% if fssai_licenses.number == num %}
+                            <li class="page-item active">
+                              <span class="page-link">{{ num }}</span>
+                            </li>
+                            {% else %}
+                            <li class="page-item">
+                              <a class="page-link" href="?fssai_page={{ num }}&tab=fssai">{{ num }}</a>
+                            </li>
+                            {% endif %}
+                            {% endfor %}
+                            {% if fssai_licenses.has_next %}
+                            <li class="page-item">
+                              <a class="page-link" href="?fssai_page={{ fssai_licenses.next_page_number }}&tab=fssai">Next</a>
+                            </li>
+                            {% endif %}
+                          </ul>
+                        </nav>
+                        {% endif %}
                       {% else %}
                         <p class="text-muted text-center py-4">No licenses found. Submit a form above to create a new record.</p>
                       {% endif %}
@@ -740,6 +1078,34 @@
                             </tbody>
                           </table>
                         </div>
+                        <!-- Pagination -->
+                        {% if msme_registrations.has_other_pages %}
+                        <nav aria-label="MSME pagination" class="mt-3">
+                          <ul class="pagination justify-content-center">
+                            {% if msme_registrations.has_previous %}
+                            <li class="page-item">
+                              <a class="page-link" href="?msme_page={{ msme_registrations.previous_page_number }}&tab=msme">Previous</a>
+                            </li>
+                            {% endif %}
+                            {% for num in msme_registrations.paginator.page_range %}
+                            {% if msme_registrations.number == num %}
+                            <li class="page-item active">
+                              <span class="page-link">{{ num }}</span>
+                            </li>
+                            {% else %}
+                            <li class="page-item">
+                              <a class="page-link" href="?msme_page={{ num }}&tab=msme">{{ num }}</a>
+                            </li>
+                            {% endif %}
+                            {% endfor %}
+                            {% if msme_registrations.has_next %}
+                            <li class="page-item">
+                              <a class="page-link" href="?msme_page={{ msme_registrations.next_page_number }}&tab=msme">Next</a>
+                            </li>
+                            {% endif %}
+                          </ul>
+                        </nav>
+                        {% endif %}
                       {% else %}
                         <p class="text-muted text-center py-4">No MSME / Udyam records found. Submit a form above to create a new record.</p>
                       {% endif %}
@@ -793,6 +1159,34 @@
                             </tbody>
                           </table>
                         </div>
+                        <!-- Pagination -->
+                        {% if company_registrations.has_other_pages %}
+                        <nav aria-label="Company pagination" class="mt-3">
+                          <ul class="pagination justify-content-center">
+                            {% if company_registrations.has_previous %}
+                            <li class="page-item">
+                              <a class="page-link" href="?company_page={{ company_registrations.previous_page_number }}&tab=company-reg">Previous</a>
+                            </li>
+                            {% endif %}
+                            {% for num in company_registrations.paginator.page_range %}
+                            {% if company_registrations.number == num %}
+                            <li class="page-item active">
+                              <span class="page-link">{{ num }}</span>
+                            </li>
+                            {% else %}
+                            <li class="page-item">
+                              <a class="page-link" href="?company_page={{ num }}&tab=company-reg">{{ num }}</a>
+                            </li>
+                            {% endif %}
+                            {% endfor %}
+                            {% if company_registrations.has_next %}
+                            <li class="page-item">
+                              <a class="page-link" href="?company_page={{ company_registrations.next_page_number }}&tab=company-reg">Next</a>
+                            </li>
+                            {% endif %}
+                          </ul>
+                        </nav>
+                        {% endif %}
                       {% else %}
                         <p class="text-muted text-center py-4">No Company / LLP records found. Submit a form above to create a new record.</p>
                       {% endif %}
@@ -844,6 +1238,34 @@
                             </tbody>
                           </table>
                         </div>
+                        <!-- Pagination -->
+                        {% if fire_licenses.has_other_pages %}
+                        <nav aria-label="Fire pagination" class="mt-3">
+                          <ul class="pagination justify-content-center">
+                            {% if fire_licenses.has_previous %}
+                            <li class="page-item">
+                              <a class="page-link" href="?fire_page={{ fire_licenses.previous_page_number }}&tab=fire-pollution">Previous</a>
+                            </li>
+                            {% endif %}
+                            {% for num in fire_licenses.paginator.page_range %}
+                            {% if fire_licenses.number == num %}
+                            <li class="page-item active">
+                              <span class="page-link">{{ num }}</span>
+                            </li>
+                            {% else %}
+                            <li class="page-item">
+                              <a class="page-link" href="?fire_page={{ num }}&tab=fire-pollution">{{ num }}</a>
+                            </li>
+                            {% endif %}
+                            {% endfor %}
+                            {% if fire_licenses.has_next %}
+                            <li class="page-item">
+                              <a class="page-link" href="?fire_page={{ fire_licenses.next_page_number }}&tab=fire-pollution">Next</a>
+                            </li>
+                            {% endif %}
+                          </ul>
+                        </nav>
+                        {% endif %}
                       {% else %}
                         <p class="text-muted text-center py-4">No Fire & Pollution records found. Submit a form above to create a new record.</p>
                       {% endif %}
@@ -895,8 +1317,426 @@
                             </tbody>
                           </table>
                         </div>
+                        <!-- Pagination -->
+                        {% if iso_certifications.has_other_pages %}
+                        <nav aria-label="ISO pagination" class="mt-3">
+                          <ul class="pagination justify-content-center">
+                            {% if iso_certifications.has_previous %}
+                            <li class="page-item">
+                              <a class="page-link" href="?iso_page={{ iso_certifications.previous_page_number }}&tab=iso">Previous</a>
+                            </li>
+                            {% endif %}
+                            {% for num in iso_certifications.paginator.page_range %}
+                            {% if iso_certifications.number == num %}
+                            <li class="page-item active">
+                              <span class="page-link">{{ num }}</span>
+                            </li>
+                            {% else %}
+                            <li class="page-item">
+                              <a class="page-link" href="?iso_page={{ num }}&tab=iso">{{ num }}</a>
+                            </li>
+                            {% endif %}
+                            {% endfor %}
+                            {% if iso_certifications.has_next %}
+                            <li class="page-item">
+                              <a class="page-link" href="?iso_page={{ iso_certifications.next_page_number }}&tab=iso">Next</a>
+                            </li>
+                            {% endif %}
+                          </ul>
+                        </nav>
+                        {% endif %}
                       {% else %}
                         <p class="text-muted text-center py-4">No ISO Certification records found. Submit a form above to create a new record.</p>
+                      {% endif %}
+                    </div>
+                  </div>
+                </div>
+                {% elif service.id == 'tm-file' %}
+                <div class="col-12">
+                  <div class="card border-0 shadow-sm">
+                    <div class="card-header bg-transparent">
+                      <h6 class="mb-0">Trademark Filing Records</h6>
+                    </div>
+                    <div class="card-body">
+                      {% if trademark_filings %}
+                        <div class="data-table-wrapper">
+                          <table class="table table-hover data-table">
+                            <thead>
+                              <tr>
+                                <th>Brand / Logo</th>
+                                <th>Applicant Type</th>
+                                <th>Classes</th>
+                                <th>First Use Date</th>
+                                <th>Status</th>
+                                <th>Created At</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {% for record in trademark_filings %}
+                              <tr>
+                                <td class="text-truncate" style="max-width: 220px;">{{ record.brand_logo|truncatewords:10 }}</td>
+                                <td>{{ record.applicant_type }}</td>
+                                <td>{{ record.classes }}</td>
+                                <td>{{ record.first_use_date|date:"d M Y"|default:"--" }}</td>
+                                <td>
+                                  <select class="status-select status-{{ record.status }}" 
+                                          data-record-id="{{ record.id }}" 
+                                          data-current-status="{{ record.status }}"
+                                          data-update-url="trademark">
+                                    {% for value, label in trademark_status_choices %}
+                                      <option value="{{ value }}" {% if record.status == value %}selected{% endif %}>
+                                        {{ label }}
+                                      </option>
+                                    {% endfor %}
+                                  </select>
+                                </td>
+                                <td>{{ record.created_at|date:"d M Y, h:i A" }}</td>
+                              </tr>
+                              {% endfor %}
+                            </tbody>
+                          </table>
+                        </div>
+                        <!-- Pagination -->
+                        {% if trademark_filings.has_other_pages %}
+                        <nav aria-label="Trademark Filing pagination" class="mt-3">
+                          <ul class="pagination justify-content-center">
+                            {% if trademark_filings.has_previous %}
+                            <li class="page-item">
+                              <a class="page-link" href="?trademark_page={{ trademark_filings.previous_page_number }}&tab=tm-file">Previous</a>
+                            </li>
+                            {% endif %}
+                            {% for num in trademark_filings.paginator.page_range %}
+                            {% if trademark_filings.number == num %}
+                            <li class="page-item active">
+                              <span class="page-link">{{ num }}</span>
+                            </li>
+                            {% else %}
+                            <li class="page-item">
+                              <a class="page-link" href="?trademark_page={{ num }}&tab=tm-file">{{ num }}</a>
+                            </li>
+                            {% endif %}
+                            {% endfor %}
+                            {% if trademark_filings.has_next %}
+                            <li class="page-item">
+                              <a class="page-link" href="?trademark_page={{ trademark_filings.next_page_number }}&tab=tm-file">Next</a>
+                            </li>
+                            {% endif %}
+                          </ul>
+                        </nav>
+                        {% endif %}
+                      {% else %}
+                        <p class="text-muted text-center py-4">No Trademark Filing records found. Submit a form above to create a new record.</p>
+                      {% endif %}
+                    </div>
+                  </div>
+                </div>
+                {% elif service.id == 'tm-compliance' %}
+                <div class="col-12">
+                  <div class="card border-0 shadow-sm">
+                    <div class="card-header bg-transparent">
+                      <h6 class="mb-0">Trademark Filing + Compliance Records</h6>
+                    </div>
+                    <div class="card-body">
+                      {% if trademark_compliances %}
+                        <div class="data-table-wrapper">
+                          <table class="table table-hover data-table">
+                            <thead>
+                              <tr>
+                                <th>Existing TM Numbers</th>
+                                <th>Portfolio Size</th>
+                                <th>Watch Scope</th>
+                                <th>Renewal Month</th>
+                                <th>Status</th>
+                                <th>Created At</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {% for record in trademark_compliances %}
+                              <tr>
+                                <td class="text-truncate" style="max-width: 220px;">{{ record.existing_tm_numbers|truncatewords:10|default:"--" }}</td>
+                                <td>{{ record.portfolio_size|default:"--" }}</td>
+                                <td>{{ record.watch_scope|default:"--" }}</td>
+                                <td>{{ record.renewal_month|default:"--" }}</td>
+                                <td>
+                                  <select class="status-select status-{{ record.status }}" 
+                                          data-record-id="{{ record.id }}" 
+                                          data-current-status="{{ record.status }}"
+                                          data-update-url="trademark-compliance">
+                                    {% for value, label in trademark_compliance_status_choices %}
+                                      <option value="{{ value }}" {% if record.status == value %}selected{% endif %}>
+                                        {{ label }}
+                                      </option>
+                                    {% endfor %}
+                                  </select>
+                                </td>
+                                <td>{{ record.created_at|date:"d M Y, h:i A" }}</td>
+                              </tr>
+                              {% endfor %}
+                            </tbody>
+                          </table>
+                        </div>
+                        <!-- Pagination -->
+                        {% if trademark_compliances.has_other_pages %}
+                        <nav aria-label="Trademark Compliance pagination" class="mt-3">
+                          <ul class="pagination justify-content-center">
+                            {% if trademark_compliances.has_previous %}
+                            <li class="page-item">
+                              <a class="page-link" href="?tm-compliance_page={{ trademark_compliances.previous_page_number }}&tab=tm-compliance">Previous</a>
+                            </li>
+                            {% endif %}
+                            {% for num in trademark_compliances.paginator.page_range %}
+                            {% if trademark_compliances.number == num %}
+                            <li class="page-item active">
+                              <span class="page-link">{{ num }}</span>
+                            </li>
+                            {% else %}
+                            <li class="page-item">
+                              <a class="page-link" href="?tm-compliance_page={{ num }}&tab=tm-compliance">{{ num }}</a>
+                            </li>
+                            {% endif %}
+                            {% endfor %}
+                            {% if trademark_compliances.has_next %}
+                            <li class="page-item">
+                              <a class="page-link" href="?tm-compliance_page={{ trademark_compliances.next_page_number }}&tab=tm-compliance">Next</a>
+                            </li>
+                            {% endif %}
+                          </ul>
+                        </nav>
+                        {% endif %}
+                      {% else %}
+                        <p class="text-muted text-center py-4">No Trademark Filing + Compliance records found. Submit a form above to create a new record.</p>
+                      {% endif %}
+                    </div>
+                  </div>
+                </div>
+                {% elif service.id == 'tm-instant' %}
+                <div class="col-12">
+                  <div class="card border-0 shadow-sm">
+                    <div class="card-header bg-transparent">
+                      <h6 class="mb-0">Trademark Filing (Instant Process) Records</h6>
+                    </div>
+                    <div class="card-body">
+                      {% if trademark_instants %}
+                        <div class="data-table-wrapper">
+                          <table class="table table-hover data-table">
+                            <thead>
+                              <tr>
+                                <th>Urgency Reason</th>
+                                <th>Filing Window</th>
+                                <th>Contact Mobile</th>
+                                <th>Status</th>
+                                <th>Created At</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {% for record in trademark_instants %}
+                              <tr>
+                                <td class="text-truncate" style="max-width: 220px;">{{ record.urgency_reason|truncatewords:10 }}</td>
+                                <td>{{ record.filing_window|default:"--" }}</td>
+                                <td>{{ record.contact_mobile|default:"--" }}</td>
+                                <td>
+                                  <select class="status-select status-{{ record.status }}" 
+                                          data-record-id="{{ record.id }}" 
+                                          data-current-status="{{ record.status }}"
+                                          data-update-url="trademark-instant">
+                                    {% for value, label in trademark_instant_status_choices %}
+                                      <option value="{{ value }}" {% if record.status == value %}selected{% endif %}>
+                                        {{ label }}
+                                      </option>
+                                    {% endfor %}
+                                  </select>
+                                </td>
+                                <td>{{ record.created_at|date:"d M Y, h:i A" }}</td>
+                              </tr>
+                              {% endfor %}
+                            </tbody>
+                          </table>
+                        </div>
+                        <!-- Pagination -->
+                        {% if trademark_instants.has_other_pages %}
+                        <nav aria-label="Trademark Instant pagination" class="mt-3">
+                          <ul class="pagination justify-content-center">
+                            {% if trademark_instants.has_previous %}
+                            <li class="page-item">
+                              <a class="page-link" href="?trademark_instant_page={{ trademark_instants.previous_page_number }}&tab=tm-instant">Previous</a>
+                            </li>
+                            {% endif %}
+                            {% for num in trademark_instants.paginator.page_range %}
+                            {% if trademark_instants.number == num %}
+                            <li class="page-item active">
+                              <span class="page-link">{{ num }}</span>
+                            </li>
+                            {% else %}
+                            <li class="page-item">
+                              <a class="page-link" href="?trademark_instant_page={{ num }}&tab=tm-instant">{{ num }}</a>
+                            </li>
+                            {% endif %}
+                            {% endfor %}
+                            {% if trademark_instants.has_next %}
+                            <li class="page-item">
+                              <a class="page-link" href="?trademark_instant_page={{ trademark_instants.next_page_number }}&tab=tm-instant">Next</a>
+                            </li>
+                            {% endif %}
+                          </ul>
+                        </nav>
+                        {% endif %}
+                      {% else %}
+                        <p class="text-muted text-center py-4">No Trademark Filing (Instant Process) records found. Submit a form above to create a new record.</p>
+                      {% endif %}
+                    </div>
+                  </div>
+                </div>
+                {% elif service.id == 'address-change' %}
+                <div class="col-12">
+                  <div class="card border-0 shadow-sm">
+                    <div class="card-header bg-transparent">
+                      <h6 class="mb-0">Company Address Change Records</h6>
+                    </div>
+                    <div class="card-body">
+                      {% if address_changes %}
+                        <div class="data-table-wrapper">
+                          <table class="table table-hover data-table">
+                            <thead>
+                              <tr>
+                                <th>Entity Type</th>
+                                <th>Type of Shift</th>
+                                <th>Effective Date</th>
+                                <th>New Address</th>
+                                <th>Status</th>
+                                <th>Created At</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {% for record in address_changes %}
+                              <tr>
+                                <td>{{ record.entity_type }}</td>
+                                <td>{{ record.shift_type }}</td>
+                                <td>{{ record.effective_date|date:"d M Y"|default:"--" }}</td>
+                                <td class="text-truncate" style="max-width: 220px;">{{ record.new_address|truncatewords:10 }}</td>
+                                <td>
+                                  <select class="status-select status-{{ record.status }}" 
+                                          data-record-id="{{ record.id }}" 
+                                          data-current-status="{{ record.status }}"
+                                          data-update-url="address-change">
+                                    {% for value, label in address_change_status_choices %}
+                                      <option value="{{ value }}" {% if record.status == value %}selected{% endif %}>
+                                        {{ label }}
+                                      </option>
+                                    {% endfor %}
+                                  </select>
+                                </td>
+                                <td>{{ record.created_at|date:"d M Y, h:i A" }}</td>
+                              </tr>
+                              {% endfor %}
+                            </tbody>
+                          </table>
+                        </div>
+                        <!-- Pagination -->
+                        {% if address_changes.has_other_pages %}
+                        <nav aria-label="Address Change pagination" class="mt-3">
+                          <ul class="pagination justify-content-center">
+                            {% if address_changes.has_previous %}
+                            <li class="page-item">
+                              <a class="page-link" href="?address_change_page={{ address_changes.previous_page_number }}&tab=address-change">Previous</a>
+                            </li>
+                            {% endif %}
+                            {% for num in address_changes.paginator.page_range %}
+                            {% if address_changes.number == num %}
+                            <li class="page-item active">
+                              <span class="page-link">{{ num }}</span>
+                            </li>
+                            {% else %}
+                            <li class="page-item">
+                              <a class="page-link" href="?address_change_page={{ num }}&tab=address-change">{{ num }}</a>
+                            </li>
+                            {% endif %}
+                            {% endfor %}
+                            {% if address_changes.has_next %}
+                            <li class="page-item">
+                              <a class="page-link" href="?address_change_page={{ address_changes.next_page_number }}&tab=address-change">Next</a>
+                            </li>
+                            {% endif %}
+                          </ul>
+                        </nav>
+                        {% endif %}
+                      {% else %}
+                        <p class="text-muted text-center py-4">No Company Address Change records found. Submit a form above to create a new record.</p>
+                      {% endif %}
+                    </div>
+                  </div>
+                </div>
+                {% elif service.id == 'moa-alter' %}
+                <div class="col-12">
+                  <div class="card border-0 shadow-sm">
+                    <div class="card-header bg-transparent">
+                      <h6 class="mb-0">MOA Alteration Records</h6>
+                    </div>
+                    <div class="card-body">
+                      {% if moa_alterations %}
+                        <div class="data-table-wrapper">
+                          <table class="table table-hover data-table">
+                            <thead>
+                              <tr>
+                                <th>Alteration Type</th>
+                                <th>Proposed Object/Name</th>
+                                <th>Effective Date</th>
+                                <th>Status</th>
+                                <th>Created At</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {% for record in moa_alterations %}
+                              <tr>
+                                <td>{{ record.alteration_type }}</td>
+                                <td class="text-truncate" style="max-width: 300px;">{{ record.proposed_object_name|truncatewords:15 }}</td>
+                                <td>{{ record.effective_date|date:"d M Y"|default:"--" }}</td>
+                                <td>
+                                  <select class="status-select status-{{ record.status }}" 
+                                          data-record-id="{{ record.id }}" 
+                                          data-current-status="{{ record.status }}"
+                                          data-update-url="moa-alteration">
+                                    {% for value, label in moa_alteration_status_choices %}
+                                      <option value="{{ value }}" {% if record.status == value %}selected{% endif %}>
+                                        {{ label }}
+                                      </option>
+                                    {% endfor %}
+                                  </select>
+                                </td>
+                                <td>{{ record.created_at|date:"d M Y, h:i A" }}</td>
+                              </tr>
+                              {% endfor %}
+                            </tbody>
+                          </table>
+                        </div>
+                        {% if moa_alterations.has_other_pages %}
+                        <nav aria-label="MOA Alteration pagination" class="mt-3">
+                          <ul class="pagination justify-content-center">
+                            {% if moa_alterations.has_previous %}
+                            <li class="page-item">
+                              <a class="page-link" href="?moa_alteration_page={{ moa_alterations.previous_page_number }}&tab=moa-alter">Previous</a>
+                            </li>
+                            {% endif %}
+                            {% for num in moa_alterations.paginator.page_range %}
+                            {% if moa_alterations.number == num %}
+                            <li class="page-item active">
+                              <span class="page-link">{{ num }}</span>
+                            </li>
+                            {% else %}
+                            <li class="page-item">
+                              <a class="page-link" href="?moa_alteration_page={{ num }}&tab=moa-alter">{{ num }}</a>
+                            </li>
+                            {% endif %}
+                            {% endfor %}
+                            {% if moa_alterations.has_next %}
+                            <li class="page-item">
+                              <a class="page-link" href="?moa_alteration_page={{ moa_alterations.next_page_number }}&tab=moa-alter">Next</a>
+                            </li>
+                            {% endif %}
+                          </ul>
+                        </nav>
+                        {% endif %}
+                      {% else %}
+                        <p class="text-muted text-center py-4">No MOA Alteration records found. Submit a form above to create a new record.</p>
                       {% endif %}
                     </div>
                   </div>
@@ -916,32 +1756,181 @@
 
 {% block extra_js %}
 <script>
-document.addEventListener('DOMContentLoaded', function() {
-  // Initialize Bootstrap tabs properly on page load
-  const tabButtons = document.querySelectorAll('.backoffice-tabs .nav-link[data-bs-toggle="tab"]');
-  const tabPanes = document.querySelectorAll('.tab-content .tab-pane');
+(function() {
+  // Function to get active tab from URL parameter
+  function getActiveTabFromURL() {
+    const urlParams = new URLSearchParams(window.location.search);
+    const tabParam = urlParams.get('tab');
+    if (tabParam) {
+      // Map tab parameter to pane ID
+      const tabMap = {
+        'startup': 'pane-startup',
+        'fssai': 'pane-fssai',
+        'msme': 'pane-msme',
+        'company-reg': 'pane-company-reg',
+        'fire-pollution': 'pane-fire-pollution',
+        'iso': 'pane-iso',
+        'tm-file': 'pane-tm-file',
+        'tm-compliance': 'pane-tm-compliance',
+        'tm-instant': 'pane-tm-instant',
+        'address-change': 'pane-address-change',
+        'moa-alter': 'pane-moa-alter'
+      };
+      return tabMap[tabParam] || null;
+    }
+    return null;
+  }
   
-  // Function to initialize tabs
-  function initializeTabs() {
-    if (tabButtons.length > 0 && tabPanes.length > 0) {
-      // Remove all active classes first
+  // Initialize tabs immediately to prevent showing all tabs
+  function initializeTabsImmediate() {
+    const tabContent = document.querySelector('.tab-content');
+    const tabButtons = document.querySelectorAll('.backoffice-tabs .nav-link[data-bs-toggle="tab"]');
+    const tabPanes = document.querySelectorAll('.tab-content .tab-pane');
+    
+    if (tabContent && tabButtons.length > 0 && tabPanes.length > 0) {
+      // Hide ALL tab panes first with inline styles
+      tabPanes.forEach((pane, index) => {
+        pane.classList.remove('show', 'active');
+        pane.style.display = 'none';
+        pane.style.visibility = 'hidden';
+        pane.setAttribute('aria-hidden', 'true');
+      });
+      
+      // Remove active from all buttons
       tabButtons.forEach(btn => {
         btn.classList.remove('active');
         btn.setAttribute('aria-selected', 'false');
       });
-      tabPanes.forEach(pane => {
+      
+      // Check if there's a tab parameter in URL
+      const activePaneId = getActiveTabFromURL();
+      let activeButton = null;
+      let activePane = null;
+      
+      if (activePaneId) {
+        // Find the button and pane for the tab from URL
+        activePane = document.querySelector('#' + activePaneId);
+        if (activePane) {
+          const buttonId = activePane.getAttribute('aria-labelledby');
+          if (buttonId) {
+            activeButton = document.querySelector('#' + buttonId);
+          }
+        }
+      }
+      
+      // If no tab from URL or not found, use first tab
+      if (!activeButton || !activePane) {
+        activeButton = tabButtons[0];
+        const firstPaneId = activeButton ? activeButton.getAttribute('data-bs-target') : null;
+        activePane = firstPaneId ? document.querySelector(firstPaneId) : null;
+      }
+      
+      if (activeButton && activePane) {
+        activeButton.classList.add('active');
+        activeButton.setAttribute('aria-selected', 'true');
+        activePane.classList.add('show', 'active');
+        activePane.style.display = 'block';
+        activePane.style.visibility = 'visible';
+        activePane.setAttribute('aria-hidden', 'false');
+      }
+      
+      // Mark tab content as initialized
+      tabContent.classList.add('initialized');
+    }
+  }
+  
+  // Run immediately if DOM is already loaded
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initializeTabsImmediate);
+  } else {
+    initializeTabsImmediate();
+  }
+  
+  // Also run on page load and after a tiny delay
+  window.addEventListener('load', initializeTabsImmediate);
+  setTimeout(initializeTabsImmediate, 50);
+})();
+
+document.addEventListener('DOMContentLoaded', function() {
+  // Initialize Bootstrap tabs properly on page load
+  const tabButtons = document.querySelectorAll('.backoffice-tabs .nav-link[data-bs-toggle="tab"]');
+  const tabPanes = document.querySelectorAll('.tab-content .tab-pane');
+  const tabContent = document.querySelector('.tab-content');
+  
+  // Function to get active tab from URL parameter
+  function getActiveTabFromURL() {
+    const urlParams = new URLSearchParams(window.location.search);
+    const tabParam = urlParams.get('tab');
+    if (tabParam) {
+      // Map tab parameter to pane ID
+      const tabMap = {
+        'startup': 'pane-startup',
+        'fssai': 'pane-fssai',
+        'msme': 'pane-msme',
+        'company-reg': 'pane-company-reg',
+        'fire-pollution': 'pane-fire-pollution',
+        'iso': 'pane-iso',
+        'tm-file': 'pane-tm-file',
+        'tm-compliance': 'pane-tm-compliance',
+        'tm-instant': 'pane-tm-instant',
+        'address-change': 'pane-address-change',
+        'moa-alter': 'pane-moa-alter'
+      };
+      return tabMap[tabParam] || null;
+    }
+    return null;
+  }
+  
+  // Function to initialize tabs
+  function initializeTabs() {
+    if (tabButtons.length > 0 && tabPanes.length > 0) {
+      // Remove all active classes first and hide ALL panes with inline styles
+      tabButtons.forEach(btn => {
+        btn.classList.remove('active');
+        btn.setAttribute('aria-selected', 'false');
+      });
+      tabPanes.forEach((pane, index) => {
         pane.classList.remove('show', 'active');
+        pane.style.display = 'none';
+        pane.style.visibility = 'hidden';
+        pane.setAttribute('aria-hidden', 'true');
       });
       
-      // Activate first tab
-      const firstButton = tabButtons[0];
-      const firstPaneId = firstButton.getAttribute('data-bs-target');
-      const firstPane = document.querySelector(firstPaneId);
+      // Check if there's a tab parameter in URL
+      const activePaneId = getActiveTabFromURL();
+      let activeButton = null;
+      let activePane = null;
       
-      if (firstButton && firstPane) {
-        firstButton.classList.add('active');
-        firstButton.setAttribute('aria-selected', 'true');
-        firstPane.classList.add('show', 'active');
+      if (activePaneId) {
+        // Find the button and pane for the tab from URL
+        activePane = document.querySelector('#' + activePaneId);
+        if (activePane) {
+          const buttonId = activePane.getAttribute('aria-labelledby');
+          if (buttonId) {
+            activeButton = document.querySelector('#' + buttonId);
+          }
+        }
+      }
+      
+      // If no tab from URL or not found, use first tab
+      if (!activeButton || !activePane) {
+        activeButton = tabButtons[0];
+        const firstPaneId = activeButton.getAttribute('data-bs-target');
+        activePane = document.querySelector(firstPaneId);
+      }
+      
+      if (activeButton && activePane) {
+        activeButton.classList.add('active');
+        activeButton.setAttribute('aria-selected', 'true');
+        activePane.classList.add('show', 'active');
+        activePane.style.display = 'block';
+        activePane.style.visibility = 'visible';
+        activePane.setAttribute('aria-hidden', 'false');
+      }
+      
+      // Mark tab content as initialized
+      if (tabContent) {
+        tabContent.classList.add('initialized');
       }
     }
   }
@@ -965,21 +1954,63 @@ document.addEventListener('DOMContentLoaded', function() {
           const tab = new bootstrap.Tab(this);
           tab.show();
         } else {
-          // Fallback: manual tab switching
+          // Fallback: manual tab switching - hide ALL tabs first
           tabPanes.forEach(pane => {
             pane.classList.remove('show', 'active');
+            pane.style.display = 'none';
+            pane.style.visibility = 'hidden';
+            pane.setAttribute('aria-hidden', 'true');
           });
           tabButtons.forEach(btn => {
             btn.classList.remove('active');
             btn.setAttribute('aria-selected', 'false');
           });
+          // Show ONLY the clicked tab
           targetPane.classList.add('show', 'active');
+          targetPane.style.display = 'block';
+          targetPane.style.visibility = 'visible';
+          targetPane.setAttribute('aria-hidden', 'false');
           this.classList.add('active');
           this.setAttribute('aria-selected', 'true');
         }
       }
     });
   });
+  
+  // Listen to Bootstrap tab events to ensure display style is set
+  if (typeof bootstrap !== 'undefined') {
+    const tabElement = document.querySelector('.backoffice-tabs');
+    if (tabElement) {
+      tabElement.addEventListener('shown.bs.tab', function(e) {
+        const targetId = e.target.getAttribute('data-bs-target');
+        const targetPane = document.querySelector(targetId);
+        
+        // Hide ALL panes first
+        tabPanes.forEach(pane => {
+          pane.style.display = 'none';
+          pane.style.visibility = 'hidden';
+          pane.setAttribute('aria-hidden', 'true');
+        });
+        
+        // Show ONLY the active pane
+        if (targetPane) {
+          targetPane.style.display = 'block';
+          targetPane.style.visibility = 'visible';
+          targetPane.setAttribute('aria-hidden', 'false');
+        }
+      });
+      
+      tabElement.addEventListener('hidden.bs.tab', function(e) {
+        const targetId = e.target.getAttribute('data-bs-target');
+        const targetPane = document.querySelector(targetId);
+        if (targetPane) {
+          targetPane.style.display = 'none';
+          targetPane.style.visibility = 'hidden';
+          targetPane.setAttribute('aria-hidden', 'true');
+        }
+      });
+    }
+  }
   
   // Handle status dropdown changes
   const statusSelects = document.querySelectorAll('.status-select');
@@ -1062,8 +2093,149 @@ document.addEventListener('DOMContentLoaded', function() {
         this.disabled = false;
         this.style.opacity = '1';
       });
+      });
     });
   });
-});
+  
+  // Handle form submissions via AJAX to prevent page refresh
+  document.addEventListener('DOMContentLoaded', function() {
+    const forms = document.querySelectorAll('#pane-startup form, #pane-fssai form, #pane-msme form, #pane-company-reg form, #pane-fire-pollution form, #pane-iso form, #pane-tm-file form, #pane-tm-compliance form, #pane-tm-instant form, #pane-address-change form, #pane-moa-alter form');
+    
+    forms.forEach(form => {
+      form.addEventListener('submit', function(e) {
+        e.preventDefault();
+        
+        const formData = new FormData(form);
+        const submitButton = form.querySelector('button[type="submit"]:focus') || form.querySelector('button[name="mark_ready"]') || form.querySelector('button[name="save_draft"]');
+        const originalButtonText = submitButton ? submitButton.innerHTML : '';
+        const formContainer = form.closest('.tab-pane');
+        const currentTabId = formContainer ? formContainer.id.replace('pane-', '') : '';
+        
+        // Disable submit button and show loading
+        if (submitButton) {
+          submitButton.disabled = true;
+          submitButton.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Saving...';
+        }
+        
+        // Get CSRF token
+        function getCookie(name) {
+          let cookieValue = null;
+          if (document.cookie && document.cookie !== '') {
+            const cookies = document.cookie.split(';');
+            for (let i = 0; i < cookies.length; i++) {
+              const cookie = cookies[i].trim();
+              if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                break;
+              }
+            }
+          }
+          return cookieValue;
+        }
+        const csrftoken = getCookie('csrftoken') || form.querySelector('[name=csrfmiddlewaretoken]')?.value || '';
+        
+        // Send AJAX request
+        fetch(form.action || window.location.href, {
+          method: 'POST',
+          headers: {
+            'X-Requested-With': 'XMLHttpRequest',
+            'X-CSRFToken': csrftoken
+          },
+          body: formData
+        })
+        .then(response => response.json())
+        .then(data => {
+          if (data.success) {
+            // Show success message
+            const alertDiv = document.createElement('div');
+            alertDiv.className = 'alert alert-success alert-dismissible fade show';
+            alertDiv.innerHTML = `
+              <strong>Success!</strong> ${data.message}
+              <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            `;
+            form.insertBefore(alertDiv, form.firstChild);
+            
+            // Auto-hide alert after 3 seconds
+            setTimeout(() => {
+              alertDiv.remove();
+            }, 3000);
+            
+            // Reset form
+            form.reset();
+            
+            // Reload the table section via AJAX without page refresh
+            const tableSection = formContainer ? formContainer.querySelector('.data-table-wrapper') : null;
+            if (tableSection) {
+              // Fetch updated table content
+              fetch(window.location.href, {
+                method: 'GET',
+                headers: {
+                  'X-Requested-With': 'XMLHttpRequest',
+                  'Accept': 'text/html'
+                }
+              })
+              .then(response => response.text())
+              .then(html => {
+                // Parse the response
+                const tempDiv = document.createElement('div');
+                tempDiv.innerHTML = html;
+                
+                // Find the updated table in the response
+                const updatedTable = tempDiv.querySelector(`#${formContainer.id} .data-table-wrapper`);
+                if (updatedTable) {
+                  // Replace the table
+                  tableSection.outerHTML = updatedTable.outerHTML;
+                }
+              })
+              .catch(error => {
+                console.error('Error reloading table:', error);
+              });
+            }
+          } else {
+            // Show error messages
+            let errorHtml = '<div class="alert alert-danger alert-dismissible fade show"><strong>Error!</strong> Please correct the following errors:<ul>';
+            if (data.errors) {
+              for (const field in data.errors) {
+                errorHtml += `<li>${field}: ${data.errors[field].join(', ')}</li>`;
+              }
+            } else {
+              errorHtml += '<li>An error occurred. Please try again.</li>';
+            }
+            errorHtml += '</ul><button type="button" class="btn-close" data-bs-dismiss="alert"></button></div>';
+            
+            const errorDiv = document.createElement('div');
+            errorDiv.innerHTML = errorHtml;
+            form.insertBefore(errorDiv, form.firstChild);
+            
+            // Auto-hide error after 5 seconds
+            setTimeout(() => {
+              errorDiv.remove();
+            }, 5000);
+          }
+        })
+        .catch(error => {
+          console.error('Error:', error);
+          const errorDiv = document.createElement('div');
+          errorDiv.className = 'alert alert-danger alert-dismissible fade show';
+          errorDiv.innerHTML = `
+            <strong>Error!</strong> Failed to save. Please try again.
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+          `;
+          form.insertBefore(errorDiv, form.firstChild);
+          
+          setTimeout(() => {
+            errorDiv.remove();
+          }, 5000);
+        })
+        .finally(() => {
+          // Re-enable submit button
+          if (submitButton) {
+            submitButton.disabled = false;
+            submitButton.innerHTML = originalButtonText;
+          }
+        });
+      });
+    });
+  });
 </script>
 {% endblock %}

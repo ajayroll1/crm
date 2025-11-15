@@ -53,6 +53,11 @@ from .models import (
     CompanyLLPRegistration,
     FirePollutionLicense,
     ISOCertification,
+    TrademarkFiling,
+    TrademarkFilingCompliance,
+    TrademarkFilingInstant,
+    CompanyAddressChange,
+    MOAAlteration,
 )
 from .forms import (
     LeadForm,
@@ -68,6 +73,11 @@ from .forms import (
     CompanyLLPRegistrationForm,
     FirePollutionLicenseForm,
     ISOCertificationForm,
+    TrademarkFilingForm,
+    TrademarkFilingComplianceForm,
+    TrademarkFilingInstantForm,
+    CompanyAddressChangeForm,
+    MOAAlterationForm,
 )
 from django.views.decorators.http import require_POST
 from django.views.decorators.csrf import csrf_exempt, ensure_csrf_cookie
@@ -3377,30 +3387,85 @@ def employee_backoffice(request):
     
     # Handle Start-up India Registration form submission
     startup_form = StartupIndiaRegistrationForm()
-    startup_registrations = StartupIndiaRegistration.objects.filter(user=request.user).order_by('-created_at')
+    startup_registrations_all = StartupIndiaRegistration.objects.filter(user=request.user).order_by('-created_at')
+    startup_paginator = Paginator(startup_registrations_all, 10)
+    startup_page = request.GET.get('startup_page', 1)
+    startup_registrations = startup_paginator.get_page(startup_page)
     
     # Handle FSSAI License form submission
     fssai_form = FSSAILicenseForm()
-    fssai_licenses = FSSAILicense.objects.filter(user=request.user).order_by('-created_at')
+    fssai_licenses_all = FSSAILicense.objects.filter(user=request.user).order_by('-created_at')
+    fssai_paginator = Paginator(fssai_licenses_all, 10)
+    fssai_page = request.GET.get('fssai_page', 1)
+    fssai_licenses = fssai_paginator.get_page(fssai_page)
     
     # Handle MSME / Udyam Registration form
     msme_form = MSMEUdyamRegistrationForm()
-    msme_registrations = MSMEUdyamRegistration.objects.filter(user=request.user).order_by('-created_at')
+    msme_registrations_all = MSMEUdyamRegistration.objects.filter(user=request.user).order_by('-created_at')
+    msme_paginator = Paginator(msme_registrations_all, 10)
+    msme_page = request.GET.get('msme_page', 1)
+    msme_registrations = msme_paginator.get_page(msme_page)
 
     # Handle Company / LLP Registration form
     company_form = CompanyLLPRegistrationForm()
-    company_registrations = CompanyLLPRegistration.objects.filter(user=request.user).order_by('-created_at')
+    company_registrations_all = CompanyLLPRegistration.objects.filter(user=request.user).order_by('-created_at')
+    company_paginator = Paginator(company_registrations_all, 10)
+    company_page = request.GET.get('company_page', 1)
+    company_registrations = company_paginator.get_page(company_page)
 
     # Handle Fire & Pollution Licence form
     fire_form = FirePollutionLicenseForm()
-    fire_licenses = FirePollutionLicense.objects.filter(user=request.user).order_by('-created_at')
+    fire_licenses_all = FirePollutionLicense.objects.filter(user=request.user).order_by('-created_at')
+    fire_paginator = Paginator(fire_licenses_all, 10)
+    fire_page = request.GET.get('fire_page', 1)
+    fire_licenses = fire_paginator.get_page(fire_page)
 
     # Handle ISO Certification form
     iso_form = ISOCertificationForm()
-    iso_certifications = ISOCertification.objects.filter(user=request.user).order_by('-created_at')
+    iso_certifications_all = ISOCertification.objects.filter(user=request.user).order_by('-created_at')
+    iso_paginator = Paginator(iso_certifications_all, 10)
+    iso_page = request.GET.get('iso_page', 1)
+    iso_certifications = iso_paginator.get_page(iso_page)
+    
+    # Handle Trademark Filing form
+    trademark_form = TrademarkFilingForm()
+    # Fetch all trademark filings with pagination
+    trademark_filings_all = TrademarkFiling.objects.all().order_by('-created_at')
+    trademark_paginator = Paginator(trademark_filings_all, 10)
+    trademark_page = request.GET.get('trademark_page', 1)
+    trademark_filings = trademark_paginator.get_page(trademark_page)
+    
+    # Handle Trademark Filing + Compliance form
+    trademark_compliance_form = TrademarkFilingComplianceForm()
+    trademark_compliances_all = TrademarkFilingCompliance.objects.all().order_by('-created_at')
+    trademark_compliance_paginator = Paginator(trademark_compliances_all, 10)
+    trademark_compliance_page = request.GET.get('trademark_compliance_page', 1)
+    trademark_compliances = trademark_compliance_paginator.get_page(trademark_compliance_page)
+    
+    # Handle Trademark Filing (Instant Process) form
+    trademark_instant_form = TrademarkFilingInstantForm()
+    trademark_instants_all = TrademarkFilingInstant.objects.all().order_by('-created_at')
+    trademark_instant_paginator = Paginator(trademark_instants_all, 10)
+    trademark_instant_page = request.GET.get('trademark_instant_page', 1)
+    trademark_instants = trademark_instant_paginator.get_page(trademark_instant_page)
+    
+    # Handle Company Address Change form
+    address_change_form = CompanyAddressChangeForm()
+    address_changes_all = CompanyAddressChange.objects.all().order_by('-created_at')
+    address_change_paginator = Paginator(address_changes_all, 10)
+    address_change_page = request.GET.get('address_change_page', 1)
+    address_changes = address_change_paginator.get_page(address_change_page)
+    
+    # Handle MOA Alteration form
+    moa_alteration_form = MOAAlterationForm()
+    moa_alterations_all = MOAAlteration.objects.all().order_by('-created_at')
+    moa_alteration_paginator = Paginator(moa_alterations_all, 10)
+    moa_alteration_page = request.GET.get('moa_alteration_page', 1)
+    moa_alterations = moa_alteration_paginator.get_page(moa_alteration_page)
     
     if request.method == 'POST':
         form_name = request.POST.get('form_name')
+        is_ajax = request.headers.get('X-Requested-With') == 'XMLHttpRequest'
         
         if form_name == 'startup_india':
             startup_form = StartupIndiaRegistrationForm(request.POST, request.FILES)
@@ -3422,9 +3487,15 @@ def employee_backoffice(request):
                 
                 record.save()
                 messages.success(request, 'Start-up India Registration saved successfully.')
+                if is_ajax:
+                    from django.http import JsonResponse
+                    return JsonResponse({'success': True, 'message': 'Start-up India Registration saved successfully.'})
                 return redirect('employee_backoffice')
             else:
                 messages.error(request, 'Please correct the errors in the form.')
+                if is_ajax:
+                    from django.http import JsonResponse
+                    return JsonResponse({'success': False, 'errors': startup_form.errors})
         
         elif form_name == 'fssai':
             fssai_form = FSSAILicenseForm(request.POST, request.FILES)
@@ -3446,9 +3517,15 @@ def employee_backoffice(request):
                 
                 record.save()
                 messages.success(request, 'FSSAI License application saved successfully.')
+                if is_ajax:
+                    from django.http import JsonResponse
+                    return JsonResponse({'success': True, 'message': 'FSSAI License application saved successfully.'})
                 return redirect('employee_backoffice')
             else:
                 messages.error(request, 'Please correct the errors in the form.')
+                if is_ajax:
+                    from django.http import JsonResponse
+                    return JsonResponse({'success': False, 'errors': fssai_form.errors})
         
         elif form_name == 'msme':
             msme_form = MSMEUdyamRegistrationForm(request.POST)
@@ -3463,9 +3540,15 @@ def employee_backoffice(request):
                 
                 record.save()
                 messages.success(request, 'MSME / Udyam Registration saved successfully.')
+                if is_ajax:
+                    from django.http import JsonResponse
+                    return JsonResponse({'success': True, 'message': 'MSME / Udyam Registration saved successfully.'})
                 return redirect('employee_backoffice')
             else:
                 messages.error(request, 'Please correct the errors in the form.')
+                if is_ajax:
+                    from django.http import JsonResponse
+                    return JsonResponse({'success': False, 'errors': msme_form.errors})
 
         elif form_name == 'company_llp':
             company_form = CompanyLLPRegistrationForm(request.POST, request.FILES)
@@ -3485,9 +3568,15 @@ def employee_backoffice(request):
 
                 record.save()
                 messages.success(request, 'Company / LLP Registration saved successfully.')
+                if is_ajax:
+                    from django.http import JsonResponse
+                    return JsonResponse({'success': True, 'message': 'Company / LLP Registration saved successfully.'})
                 return redirect('employee_backoffice')
             else:
                 messages.error(request, 'Please correct the errors in the form.')
+                if is_ajax:
+                    from django.http import JsonResponse
+                    return JsonResponse({'success': False, 'errors': company_form.errors})
 
         elif form_name == 'fire_pollution':
             fire_form = FirePollutionLicenseForm(request.POST, request.FILES)
@@ -3507,9 +3596,15 @@ def employee_backoffice(request):
 
                 record.save()
                 messages.success(request, 'Fire & Pollution Licence saved successfully.')
+                if is_ajax:
+                    from django.http import JsonResponse
+                    return JsonResponse({'success': True, 'message': 'Fire & Pollution Licence saved successfully.'})
                 return redirect('employee_backoffice')
             else:
                 messages.error(request, 'Please correct the errors in the form.')
+                if is_ajax:
+                    from django.http import JsonResponse
+                    return JsonResponse({'success': False, 'errors': fire_form.errors})
 
         elif form_name == 'iso':
             iso_form = ISOCertificationForm(request.POST, request.FILES)
@@ -3529,9 +3624,155 @@ def employee_backoffice(request):
 
                 record.save()
                 messages.success(request, 'ISO Certification saved successfully.')
+                if is_ajax:
+                    from django.http import JsonResponse
+                    return JsonResponse({'success': True, 'message': 'ISO Certification saved successfully.'})
                 return redirect('employee_backoffice')
             else:
                 messages.error(request, 'Please correct the errors in the form.')
+                if is_ajax:
+                    from django.http import JsonResponse
+                    return JsonResponse({'success': False, 'errors': iso_form.errors})
+        
+        elif form_name == 'trademark':
+            trademark_form = TrademarkFilingForm(request.POST, request.FILES)
+            if trademark_form.is_valid():
+                record = trademark_form.save(commit=False)
+                record.user = request.user
+
+                uploaded_files = request.FILES.getlist('trademark_documents')
+                if uploaded_files:
+                    saved_paths = _store_uploaded_files(uploaded_files, 'trademark')
+                    record.documents = saved_paths
+
+                if 'mark_ready' in request.POST:
+                    record.status = 'ready'
+                else:
+                    record.status = 'draft'
+
+                record.save()
+                messages.success(request, 'Trademark Filing saved successfully.')
+                if is_ajax:
+                    from django.http import JsonResponse
+                    return JsonResponse({'success': True, 'message': 'Trademark Filing saved successfully.'})
+                return redirect('employee_backoffice')
+            else:
+                messages.error(request, 'Please correct the errors in the form.')
+                if is_ajax:
+                    from django.http import JsonResponse
+                    return JsonResponse({'success': False, 'errors': trademark_form.errors})
+        
+        elif form_name == 'trademark_compliance':
+            trademark_compliance_form = TrademarkFilingComplianceForm(request.POST, request.FILES)
+            if trademark_compliance_form.is_valid():
+                record = trademark_compliance_form.save(commit=False)
+                record.user = request.user
+
+                uploaded_files = request.FILES.getlist('trademark_compliance_documents')
+                if uploaded_files:
+                    saved_paths = _store_uploaded_files(uploaded_files, 'trademark_compliance')
+                    record.documents = saved_paths
+
+                if 'mark_ready' in request.POST:
+                    record.status = 'ready'
+                else:
+                    record.status = 'draft'
+
+                record.save()
+                messages.success(request, 'Trademark Filing + Compliance saved successfully.')
+                if is_ajax:
+                    from django.http import JsonResponse
+                    return JsonResponse({'success': True, 'message': 'Trademark Filing + Compliance saved successfully.'})
+                return redirect('employee_backoffice')
+            else:
+                messages.error(request, 'Please correct the errors in the form.')
+                if is_ajax:
+                    from django.http import JsonResponse
+                    return JsonResponse({'success': False, 'errors': trademark_compliance_form.errors})
+        
+        elif form_name == 'trademark_instant':
+            trademark_instant_form = TrademarkFilingInstantForm(request.POST, request.FILES)
+            if trademark_instant_form.is_valid():
+                record = trademark_instant_form.save(commit=False)
+                record.user = request.user
+
+                uploaded_files = request.FILES.getlist('trademark_instant_documents')
+                if uploaded_files:
+                    saved_paths = _store_uploaded_files(uploaded_files, 'trademark_instant')
+                    record.documents = saved_paths
+
+                if 'mark_ready' in request.POST:
+                    record.status = 'ready'
+                else:
+                    record.status = 'draft'
+
+                record.save()
+                messages.success(request, 'Trademark Filing (Instant Process) saved successfully.')
+                if is_ajax:
+                    from django.http import JsonResponse
+                    return JsonResponse({'success': True, 'message': 'Trademark Filing (Instant Process) saved successfully.'})
+                return redirect('employee_backoffice')
+            else:
+                messages.error(request, 'Please correct the errors in the form.')
+                if is_ajax:
+                    from django.http import JsonResponse
+                    return JsonResponse({'success': False, 'errors': trademark_instant_form.errors})
+        
+        elif form_name == 'address_change':
+            address_change_form = CompanyAddressChangeForm(request.POST, request.FILES)
+            if address_change_form.is_valid():
+                record = address_change_form.save(commit=False)
+                record.user = request.user
+
+                uploaded_files = request.FILES.getlist('address_change_documents')
+                if uploaded_files:
+                    saved_paths = _store_uploaded_files(uploaded_files, 'address_change')
+                    record.documents = saved_paths
+
+                if 'mark_ready' in request.POST:
+                    record.status = 'ready'
+                else:
+                    record.status = 'draft'
+
+                record.save()
+                messages.success(request, 'Company Address Change saved successfully.')
+                if is_ajax:
+                    from django.http import JsonResponse
+                    return JsonResponse({'success': True, 'message': 'Company Address Change saved successfully.'})
+                return redirect('employee_backoffice')
+            else:
+                messages.error(request, 'Please correct the errors in the form.')
+                if is_ajax:
+                    from django.http import JsonResponse
+                    return JsonResponse({'success': False, 'errors': address_change_form.errors})
+        
+        elif form_name == 'moa_alteration':
+            moa_alteration_form = MOAAlterationForm(request.POST, request.FILES)
+            if moa_alteration_form.is_valid():
+                record = moa_alteration_form.save(commit=False)
+                record.user = request.user
+
+                uploaded_files = request.FILES.getlist('moa_alteration_documents')
+                if uploaded_files:
+                    saved_paths = _store_uploaded_files(uploaded_files, 'moa_alteration')
+                    record.documents = saved_paths
+
+                if 'mark_ready' in request.POST:
+                    record.status = 'ready'
+                else:
+                    record.status = 'draft'
+
+                record.save()
+                messages.success(request, 'MOA Alteration saved successfully.')
+                if is_ajax:
+                    from django.http import JsonResponse
+                    return JsonResponse({'success': True, 'message': 'MOA Alteration saved successfully.'})
+                return redirect('employee_backoffice')
+            else:
+                messages.error(request, 'Please correct the errors in the form.')
+                if is_ajax:
+                    from django.http import JsonResponse
+                    return JsonResponse({'success': False, 'errors': moa_alteration_form.errors})
     
     backoffice_services = [
         {
@@ -3696,6 +3937,9 @@ def employee_backoffice(request):
         'Template library for resolutions, affidavits, and SOPs',
     ]
 
+    # Check if this is an AJAX request for table refresh
+    is_ajax_get = request.headers.get('X-Requested-With') == 'XMLHttpRequest' and request.method == 'GET'
+    
     context = {
         'backoffice_services': backoffice_services,
         'highlights': highlights,
@@ -3717,6 +3961,21 @@ def employee_backoffice(request):
         'iso_form': iso_form,
         'iso_certifications': iso_certifications,
         'iso_status_choices': ISOCertification.STATUS_CHOICES,
+        'trademark_form': trademark_form,
+        'trademark_filings': trademark_filings,
+        'trademark_status_choices': TrademarkFiling.STATUS_CHOICES,
+        'trademark_compliance_form': trademark_compliance_form,
+        'trademark_compliances': trademark_compliances,
+        'trademark_compliance_status_choices': TrademarkFilingCompliance.STATUS_CHOICES,
+        'trademark_instant_form': trademark_instant_form,
+        'trademark_instants': trademark_instants,
+        'trademark_instant_status_choices': TrademarkFilingInstant.STATUS_CHOICES,
+        'address_change_form': address_change_form,
+        'address_changes': address_changes,
+        'address_change_status_choices': CompanyAddressChange.STATUS_CHOICES,
+        'moa_alteration_form': moa_alteration_form,
+        'moa_alterations': moa_alterations,
+        'moa_alteration_status_choices': MOAAlteration.STATUS_CHOICES,
     }
     return render(request, 'employee/backoffice.html', context)
 
@@ -3849,13 +4108,133 @@ def update_iso_status(request, record_id):
     try:
         record = get_object_or_404(ISOCertification, id=record_id, user=request.user)
         new_status = request.POST.get('status')
-
+        
         if new_status not in dict(ISOCertification.STATUS_CHOICES):
             return JsonResponse({'success': False, 'error': 'Invalid status'}, status=400)
-
+        
         record.status = new_status
         record.save()
+        
+        return JsonResponse({
+            'success': True,
+            'status': new_status,
+            'status_display': record.get_status_display()
+        })
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': str(e)}, status=500)
 
+
+@login_required
+@require_POST
+@csrf_exempt
+def update_trademark_status(request, record_id):
+    """Update status of Trademark Filing record via AJAX."""
+    try:
+        record = get_object_or_404(TrademarkFiling, id=record_id, user=request.user)
+        new_status = request.POST.get('status')
+        
+        if new_status not in dict(TrademarkFiling.STATUS_CHOICES):
+            return JsonResponse({'success': False, 'error': 'Invalid status'}, status=400)
+        
+        record.status = new_status
+        record.save()
+        
+        return JsonResponse({
+            'success': True,
+            'status': new_status,
+            'status_display': record.get_status_display()
+        })
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': str(e)}, status=500)
+
+
+@login_required
+@require_POST
+@csrf_exempt
+def update_trademark_compliance_status(request, record_id):
+    """Update status of Trademark Filing + Compliance record via AJAX."""
+    try:
+        record = get_object_or_404(TrademarkFilingCompliance, id=record_id, user=request.user)
+        new_status = request.POST.get('status')
+        
+        if new_status not in dict(TrademarkFilingCompliance.STATUS_CHOICES):
+            return JsonResponse({'success': False, 'error': 'Invalid status'}, status=400)
+        
+        record.status = new_status
+        record.save()
+        
+        return JsonResponse({
+            'success': True,
+            'status': new_status,
+            'status_display': record.get_status_display()
+        })
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': str(e)}, status=500)
+
+
+@login_required
+@require_POST
+@csrf_exempt
+def update_trademark_instant_status(request, record_id):
+    """Update status of Trademark Filing (Instant Process) record via AJAX."""
+    try:
+        record = get_object_or_404(TrademarkFilingInstant, id=record_id, user=request.user)
+        new_status = request.POST.get('status')
+        
+        if new_status not in dict(TrademarkFilingInstant.STATUS_CHOICES):
+            return JsonResponse({'success': False, 'error': 'Invalid status'}, status=400)
+        
+        record.status = new_status
+        record.save()
+        
+        return JsonResponse({
+            'success': True,
+            'status': new_status,
+            'status_display': record.get_status_display()
+        })
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': str(e)}, status=500)
+
+
+@login_required
+@require_POST
+@csrf_exempt
+def update_address_change_status(request, record_id):
+    """Update status of Company Address Change record via AJAX."""
+    try:
+        record = get_object_or_404(CompanyAddressChange, id=record_id, user=request.user)
+        new_status = request.POST.get('status')
+        
+        if new_status not in dict(CompanyAddressChange.STATUS_CHOICES):
+            return JsonResponse({'success': False, 'error': 'Invalid status'}, status=400)
+        
+        record.status = new_status
+        record.save()
+        
+        return JsonResponse({
+            'success': True,
+            'status': new_status,
+            'status_display': record.get_status_display()
+        })
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': str(e)}, status=500)
+
+
+@login_required
+@require_POST
+@csrf_exempt
+def update_moa_alteration_status(request, record_id):
+    """Update status of MOA Alteration record via AJAX."""
+    try:
+        record = get_object_or_404(MOAAlteration, id=record_id, user=request.user)
+        new_status = request.POST.get('status')
+        
+        if new_status not in dict(MOAAlteration.STATUS_CHOICES):
+            return JsonResponse({'success': False, 'error': 'Invalid status'}, status=400)
+        
+        record.status = new_status
+        record.save()
+        
         return JsonResponse({
             'success': True,
             'status': new_status,

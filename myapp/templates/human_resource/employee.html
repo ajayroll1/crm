@@ -614,6 +614,22 @@
                       <i class="bi bi-graph-up me-2"></i>Sales
                     </a>
                   </li>
+                  <li>
+                    <a class="dropdown-item {% if edit_employee and edit_employee.department == 'Accounts' %}active{% endif %}" 
+                       href="#"
+                       data-value="Accounts"
+                       onclick="selectDepartment('Accounts', 'Accounts'); return false;">
+                      <i class="bi bi-cash-stack me-2"></i>Accounts
+                    </a>
+                  </li>
+                  <li>
+                    <a class="dropdown-item {% if edit_employee and edit_employee.department == 'Backoffice' %}active{% endif %}" 
+                       href="#"
+                       data-value="Backoffice"
+                       onclick="selectDepartment('Backoffice', 'Backoffice'); return false;">
+                      <i class="bi bi-briefcase me-2"></i>Backoffice
+                    </a>
+                  </li>
                 </ul>
                 <input type="hidden" id="department" name="department" value="{% if edit_employee and edit_employee.department %}{{ edit_employee.department }}{% endif %}" required>
               </div>

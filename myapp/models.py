@@ -797,6 +797,220 @@ class ISOCertification(models.Model):
         return f"{self.standard} - {self.locations} location(s)"
 
 
+class TrademarkFiling(models.Model):
+    """Stores Trademark Filing submissions."""
+
+    APPLICANT_TYPE_CHOICES = [
+        ('Individual', 'Individual'),
+        ('Firm', 'Firm'),
+        ('Company/LLP', 'Company/LLP'),
+        ('Trust/Society', 'Trust/Society'),
+    ]
+
+    STATUS_CHOICES = [
+        ('draft', 'Draft'),
+        ('pending', 'Pending'),
+        ('ready', 'Ready'),
+        ('submitted', 'Submitted'),
+        ('approved', 'Approved'),
+    ]
+
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='trademark_filings'
+    )
+    brand_logo = models.TextField(verbose_name="Brand / Logo", help_text="Describe or attach logo")
+    applicant_type = models.CharField(max_length=50, choices=APPLICANT_TYPE_CHOICES, verbose_name="Applicant Type")
+    classes = models.CharField(max_length=200, verbose_name="Classes", help_text="e.g. 35, 42")
+    first_use_date = models.DateField(verbose_name="First Use Date", null=True, blank=True)
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='draft')
+    documents = models.JSONField(default=list, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['-created_at']
+        verbose_name = "Trademark Filing"
+        verbose_name_plural = "Trademark Filings"
+
+    def __str__(self):
+        return f"{self.brand_logo[:50]}... - {self.applicant_type}"
+
+
+class TrademarkFilingCompliance(models.Model):
+    """Stores Trademark Filing + Compliance submissions."""
+
+    WATCH_SCOPE_CHOICES = [
+        ('Identical', 'Identical'),
+        ('Similar', 'Similar'),
+        ('Domains/Handles', 'Domains/Handles'),
+    ]
+
+    STATUS_CHOICES = [
+        ('draft', 'Draft'),
+        ('pending', 'Pending'),
+        ('ready', 'Ready'),
+        ('submitted', 'Submitted'),
+        ('approved', 'Approved'),
+    ]
+
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='trademark_filing_compliances'
+    )
+    existing_tm_numbers = models.TextField(verbose_name="Existing TM Numbers", blank=True, help_text="If any")
+    portfolio_size = models.PositiveIntegerField(verbose_name="Portfolio Size", null=True, blank=True)
+    watch_scope = models.CharField(max_length=50, choices=WATCH_SCOPE_CHOICES, verbose_name="Watch Scope", blank=True)
+    renewal_month = models.CharField(max_length=50, verbose_name="Renewal Month", blank=True, help_text="e.g. January, February")
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='draft')
+    documents = models.JSONField(default=list, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['-created_at']
+        verbose_name = "Trademark Filing + Compliance"
+        verbose_name_plural = "Trademark Filing + Compliances"
+
+    def __str__(self):
+        return f"TM Compliance - Portfolio: {self.portfolio_size or 'N/A'}"
+
+
+class TrademarkFilingInstant(models.Model):
+    """Stores Trademark Filing (Instant Process) submissions."""
+
+    FILING_WINDOW_CHOICES = [
+        ('Before 1 PM', 'Before 1 PM'),
+        ('Before 6 PM', 'Before 6 PM'),
+        ('Weekend', 'Weekend'),
+    ]
+
+    STATUS_CHOICES = [
+        ('draft', 'Draft'),
+        ('pending', 'Pending'),
+        ('ready', 'Ready'),
+        ('submitted', 'Submitted'),
+        ('approved', 'Approved'),
+    ]
+
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='trademark_filing_instants'
+    )
+    urgency_reason = models.TextField(verbose_name="Urgency Reason", help_text="Launch / diligence / other")
+    filing_window = models.CharField(max_length=50, choices=FILING_WINDOW_CHOICES, verbose_name="Filing Window", blank=True)
+    contact_mobile = models.CharField(max_length=20, verbose_name="Contact Mobile", blank=True, help_text="+91XXXXXXXXXX")
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='draft')
+    documents = models.JSONField(default=list, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['-created_at']
+        verbose_name = "Trademark Filing (Instant Process)"
+        verbose_name_plural = "Trademark Filing (Instant Process)"
+
+    def __str__(self):
+        return f"Instant TM - {self.filing_window or 'N/A'} - {self.urgency_reason[:30]}..."
+
+
+class CompanyAddressChange(models.Model):
+    """Stores Company Address Change submissions."""
+
+    ENTITY_TYPE_CHOICES = [
+        ('Company', 'Company'),
+        ('LLP', 'LLP'),
+    ]
+
+    SHIFT_TYPE_CHOICES = [
+        ('Within city', 'Within city'),
+        ('Within ROC', 'Within ROC'),
+        ('Inter-ROC / State', 'Inter-ROC / State'),
+    ]
+
+    STATUS_CHOICES = [
+        ('draft', 'Draft'),
+        ('pending', 'Pending'),
+        ('ready', 'Ready'),
+        ('submitted', 'Submitted'),
+        ('approved', 'Approved'),
+    ]
+
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='company_address_changes'
+    )
+    entity_type = models.CharField(max_length=50, choices=ENTITY_TYPE_CHOICES, verbose_name="Entity Type")
+    shift_type = models.CharField(max_length=50, choices=SHIFT_TYPE_CHOICES, verbose_name="Type of Shift")
+    effective_date = models.DateField(verbose_name="Effective Date", null=True, blank=True)
+    new_address = models.TextField(verbose_name="New Address", help_text="Complete address")
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='draft')
+    documents = models.JSONField(default=list, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['-created_at']
+        verbose_name = "Company Address Change"
+        verbose_name_plural = "Company Address Changes"
+
+    def __str__(self):
+        return f"{self.entity_type} - {self.shift_type} - {self.new_address[:30]}..."
+
+
+class MOAAlteration(models.Model):
+    """Stores MOA Alteration submissions."""
+
+    ALTERATION_TYPE_CHOICES = [
+        ('Object change', 'Object change'),
+        ('Name change', 'Name change'),
+        ('Authorised capital', 'Authorised capital'),
+    ]
+
+    STATUS_CHOICES = [
+        ('draft', 'Draft'),
+        ('pending', 'Pending'),
+        ('ready', 'Ready'),
+        ('submitted', 'Submitted'),
+        ('approved', 'Approved'),
+    ]
+
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='moa_alterations'
+    )
+    alteration_type = models.CharField(max_length=50, choices=ALTERATION_TYPE_CHOICES, verbose_name="Alteration Type")
+    proposed_object_name = models.TextField(verbose_name="Proposed Object/Name", help_text="Draft text / options")
+    effective_date = models.DateField(verbose_name="Effective Date", null=True, blank=True)
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='draft')
+    documents = models.JSONField(default=list, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['-created_at']
+        verbose_name = "MOA Alteration"
+        verbose_name_plural = "MOA Alterations"
+
+    def __str__(self):
+        return f"{self.alteration_type} - {self.proposed_object_name[:30]}..."
+
+
 class Attendance(models.Model):
     """Employee attendance check in/out records"""
     user = models.ForeignKey(
