@@ -1,0 +1,184 @@
+{% extends "dashboard/dashboard_base.html" %}
+{% load humanize %}
+
+{% block title %}Invoice {{ invoice.invoice_number }} - Details{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+  <div class="d-flex justify-content-between align-items-center mb-3">
+    <h1 class="h4 mb-0">Invoice Details</h1>
+    <a href="{% url 'invoices' %}" class="btn btn-sm btn-outline-secondary">
+      <i class="bi bi-arrow-left me-1"></i>Back to Invoices
+    </a>
+  </div>
+
+  <div class="card mb-3">
+    <div class="card-header">
+      <strong>Invoice Information</strong>
+    </div>
+    <div class="card-body row">
+      <div class="col-md-4 mb-2">
+        <div class="text-muted small">Invoice #</div>
+        <div class="fw-semibold">{{ invoice.invoice_number }}</div>
+      </div>
+      <div class="col-md-4 mb-2">
+        <div class="text-muted small">Status</div>
+        <span class="badge {{ invoice.get_status_badge_class }}">{{ invoice.status }}</span>
+      </div>
+      <div class="col-md-4 mb-2">
+        <div class="text-muted small">Invoice Date</div>
+        <div>{{ invoice.invoice_date|date:"M d, Y" }}</div>
+      </div>
+      <div class="col-md-4 mb-2">
+        <div class="text-muted small">Owner / Assignee</div>
+        <div>{{ invoice.owner }}</div>
+      </div>
+      <div class="col-md-4 mb-2">
+        <div class="text-muted small">Currency</div>
+        <div>{{ invoice.currency }}</div>
+      </div>
+      <div class="col-md-4 mb-2">
+        <div class="text-muted small">Created At</div>
+        <div>{{ invoice.created_at|date:"M d, Y H:i" }}</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card mb-3">
+    <div class="card-header">
+      <strong>Client Information</strong>
+    </div>
+    <div class="card-body row">
+      <div class="col-md-6 mb-2">
+        <div class="text-muted small">Client Name</div>
+        <div>{{ invoice.client_name }}</div>
+      </div>
+      <div class="col-md-6 mb-2">
+        <div class="text-muted small">Company</div>
+        <div>{{ invoice.company|default:"-" }}</div>
+      </div>
+      <div class="col-md-6 mb-2">
+        <div class="text-muted small">Email</div>
+        {% if invoice.email %}
+          <a href="mailto:{{ invoice.email }}">{{ invoice.email }}</a>
+        {% else %}
+          <div>-</div>
+        {% endif %}
+      </div>
+      <div class="col-md-6 mb-2">
+        <div class="text-muted small">Phone</div>
+        {% if invoice.phone %}
+          <a href="tel:{{ invoice.phone }}">{{ invoice.phone }}</a>
+        {% else %}
+          <div>-</div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+  <div class="card mb-3">
+    <div class="card-header">
+      <strong>Items &amp; Pricing</strong>
+    </div>
+    <div class="card-body">
+      {% if items %}
+        <div class="table-responsive">
+          <table class="table table-sm align-middle">
+            <thead>
+              <tr>
+                <th>#</th>
+                <th>Description</th>
+                <th class="text-end">Qty</th>
+                <th class="text-end">Price</th>
+                <th class="text-end">Total</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for item in items %}
+                <tr>
+                  <td>{{ forloop.counter }}</td>
+                  <td>{{ item.description|default:item.name }}</td>
+                  <td class="text-end">
+                    {{ item.quantity|default:1 }}
+                  </td>
+                  <td class="text-end">
+                    {{ item.unit_price|default:item.price|floatformat:2|intcomma }}
+                  </td>
+                  <td class="text-end">
+                    {% with total=item.total|default:item.amount %}
+                      {{ total|floatformat:2|intcomma }}
+                    {% endwith %}
+                  </td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      {% else %}
+        <p class="text-muted mb-0">No item details stored for this invoice.</p>
+      {% endif %}
+    </div>
+  </div>
+
+  <div class="card mb-3">
+    <div class="card-header">
+      <strong>Totals</strong>
+    </div>
+    <div class="card-body row">
+      <div class="col-md-4 mb-2">
+        <div class="text-muted small">Subtotal</div>
+        <div>₹ {{ invoice.subtotal|floatformat:2|intcomma }}</div>
+      </div>
+      <div class="col-md-4 mb-2">
+        <div class="text-muted small">Discount</div>
+        <div>₹ {{ invoice.discount|floatformat:2|intcomma }}</div>
+      </div>
+      <div class="col-md-4 mb-2">
+        <div class="text-muted small">GST</div>
+        <div>
+          {{ invoice.gst_percent|floatformat:2 }}% (₹ {{ invoice.gst_amount|floatformat:2|intcomma }})
+        </div>
+      </div>
+      <div class="col-md-4 mb-2">
+        <div class="text-muted small">Total</div>
+        <div class="fw-semibold">
+          ₹ {{ invoice.total|floatformat:2|intcomma }}
+        </div>
+      </div>
+    </div>
+  </div>
+
+  {% if invoice.notes or invoice.terms %}
+    <div class="card mb-3">
+      <div class="card-header">
+        <strong>Notes &amp; Terms</strong>
+      </div>
+      <div class="card-body">
+        {% if invoice.notes %}
+          <div class="mb-3">
+            <div class="text-muted small">Notes</div>
+            <div>{{ invoice.notes|linebreaksbr }}</div>
+          </div>
+        {% endif %}
+        {% if invoice.terms %}
+          <div>
+            <div class="text-muted small">Terms &amp; Conditions</div>
+            <div>{{ invoice.terms|linebreaksbr }}</div>
+          </div>
+        {% endif %}
+      </div>
+    </div>
+  {% endif %}
+
+  <div class="d-flex justify-content-end gap-2">
+    <a href="{% url 'invoice_pdf_download' 'invoice' invoice.id %}" class="btn btn-outline-success">
+      <i class="bi bi-download me-1"></i>Download PDF
+    </a>
+    <a href="{% url 'invoices' %}" class="btn btn-secondary">
+      Close
+    </a>
+  </div>
+</div>
+{% endblock %}
+
+

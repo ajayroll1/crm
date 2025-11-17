@@ -4,6 +4,7 @@ from .models import (
     LeaveRequest,
     Document,
     Quote,
+    Invoice,
     ClientOnboarding,
     ROCComplianceRecord,
     GSTFilingRecord,
@@ -39,6 +40,14 @@ class QuoteAdmin(admin.ModelAdmin):
     list_filter = ('status', 'currency', 'created_at', 'valid_until')
     search_fields = ('quote_number', 'client_name', 'company', 'email')
     date_hierarchy = 'created_at'
+    readonly_fields = ('created_at', 'updated_at')
+
+@admin.register(Invoice)
+class InvoiceAdmin(admin.ModelAdmin):
+    list_display = ('invoice_number', 'client_name', 'company', 'status', 'total', 'invoice_date', 'created_at')
+    list_filter = ('status', 'currency', 'invoice_date', 'created_at')
+    search_fields = ('invoice_number', 'client_name', 'company', 'email')
+    date_hierarchy = 'invoice_date'
     readonly_fields = ('created_at', 'updated_at')
 
 @admin.register(ClientOnboarding)

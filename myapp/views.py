@@ -6,14 +6,27 @@ from django.contrib.auth.decorators import login_required
 from django.contrib.auth.models import User
 from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
 from django.core.files.storage import default_storage
+from django.contrib.staticfiles import finders
 from django.db.models import Q, Count, Sum
 from django.utils import timezone
 from datetime import datetime, date
-from decimal import Decimal
+from decimal import Decimal, InvalidOperation, ROUND_HALF_UP
 import json
 import os
 import uuid
 import calendar
+import re
+from io import BytesIO
+try:
+    from reportlab.lib.pagesizes import letter, A4
+    from reportlab.lib import colors
+    from reportlab.lib.units import inch
+    from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer, Image
+    from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+    from reportlab.lib.enums import TA_CENTER, TA_RIGHT, TA_LEFT
+    REPORTLAB_AVAILABLE = True
+except ImportError:
+    REPORTLAB_AVAILABLE = False
 
 def _store_uploaded_files(files, subdir):
     """
@@ -32,12 +45,41 @@ def _store_uploaded_files(files, subdir):
         saved_path = default_storage.save(storage_path, uploaded_file)
         saved_paths.append(saved_path)
     return saved_paths
+
+
+def generate_invoice_number_for_date(invoice_date):
+    """
+    Generate invoice number: SA + DD + WEEKDAY(3) + YYYY + counter(2 digits)
+    Counter increments per prefix to keep numbers unique.
+    """
+    if not invoice_date:
+        invoice_date = timezone.localdate()
+    day_str = f"{invoice_date.day:02d}"
+    weekday_str = invoice_date.strftime('%a').upper()
+    year_str = str(invoice_date.year)
+    prefix = f"SA{day_str}{weekday_str}{year_str}"
+
+    existing_numbers = Invoice.objects.filter(
+        invoice_number__startswith=prefix
+    ).values_list('invoice_number', flat=True)
+
+    counter = 1
+    pattern = re.compile(rf'^{re.escape(prefix)}(\d+)$')
+    for number in existing_numbers:
+        match = pattern.match(number)
+        if match:
+            suffix_val = int(match.group(1))
+            if suffix_val >= counter:
+                counter = suffix_val + 1
+
+    return f"{prefix}{counter:02d}"
 from .models import (
     Lead,
     LeaveRequest,
     Document,
     Attendance,
     Quote,
+    Invoice,
     ClientOnboarding,
     Employee,
     EmployeeMessage,
@@ -113,6 +155,108 @@ SECTION_CONFIG = {
         'title': 'TDS Compliance',
         'success_message': 'TDS compliance record updated successfully.',
     },
+}
+
+def get_company_logo_path():
+    """
+    Locate the company logo within static files so reportlab can embed it.
+    """
+    logo_relative = COMPANY_PROFILE.get('logo_path')
+    if not logo_relative:
+        return None
+    static_path = finders.find(logo_relative)
+    if static_path and os.path.exists(static_path):
+        return static_path
+    fallback = os.path.join(settings.BASE_DIR, 'static', logo_relative)
+    return fallback if os.path.exists(fallback) else None
+
+
+INDIAN_UNITS = [
+    (10000000, 'Crore'),
+    (100000, 'Lakh'),
+    (1000, 'Thousand'),
+    (100, 'Hundred'),
+]
+
+ONES = [
+    '', 'One', 'Two', 'Three', 'Four', 'Five', 'Six', 'Seven',
+    'Eight', 'Nine', 'Ten', 'Eleven', 'Twelve', 'Thirteen',
+    'Fourteen', 'Fifteen', 'Sixteen', 'Seventeen', 'Eighteen', 'Nineteen'
+]
+
+TENS = [
+    '', '', 'Twenty', 'Thirty', 'Forty', 'Fifty', 'Sixty',
+    'Seventy', 'Eighty', 'Ninety'
+]
+
+
+def _two_digit_words(number):
+    if number < 20:
+        return ONES[number]
+    tens, ones = divmod(number, 10)
+    return TENS[tens] + (f' {ONES[ones]}' if ones else '')
+
+
+def _three_digit_words(number):
+    hundred, remainder = divmod(number, 100)
+    words = ''
+    if hundred:
+        words += f"{ONES[hundred]} Hundred"
+        if remainder:
+            words += ' and '
+    if remainder:
+        words += _two_digit_words(remainder)
+    return words.strip()
+
+
+def amount_to_words(amount):
+    """
+    Convert Decimal amount into words following Indian numbering system.
+    """
+    if amount is None:
+        return ''
+    decimal_value = Decimal(amount).quantize(Decimal('0.01'), rounding=ROUND_HALF_UP)
+    rupees = int(decimal_value)
+    paise = int((decimal_value - rupees) * 100)
+
+    if rupees == 0:
+        rupee_words = 'Zero'
+    else:
+        remaining = rupees
+        parts = []
+        for value, label in INDIAN_UNITS:
+            count, remaining = divmod(remaining, value)
+            if count:
+                parts.append(f"{_three_digit_words(count)} {label}")
+        if remaining:
+            parts.append(_three_digit_words(remaining))
+        rupee_words = ' '.join(filter(None, parts))
+
+    rupee_phrase = f"{rupee_words.strip()} Rupees"
+    if paise:
+        paise_words = _two_digit_words(paise) or 'Zero'
+        rupee_phrase += f" and {paise_words} Paise"
+
+    return f"{rupee_phrase} Only"
+
+COMPANY_PROFILE = {
+    'name': 'Sujata Associates Consultancy Pvt Ltd',
+    'tagline': 'Business Consulting & Compliance Partner',
+    'gstin': '19AAZCS9337C1ZM',
+    'pan': 'AAZCS9337C',
+    'address_lines': [
+        '4, Fairlie Place, HMP House, 5th Floor, Kolkata 700 001 (W.B.)',
+        'Email: info@sujataassociates.com    Ph: 90380013',
+        'State Name: West Bengal, State Code: 19'
+    ],
+    'logo_path': 'images/Logo-new-final.png',
+    'bank_details': {
+        'account_name': 'Sujata Associates Consultancy Pvt Ltd',
+        'bank_name': 'Bank of Maharashtra',
+        'account_number': '60476131014',
+        'ifsc': 'MAHB0001272',
+        'branch': 'Bidhan Nagar, Kolkata'
+    }
 }
 
 
@@ -1185,6 +1329,936 @@ def accounts(request):
     }
     return render(request, 'accounnts/accounts.html', context)
 ## Kanban removed
+
+
+@login_required
+def invoices(request):
+    """Invoice page - displays invoices based on accepted quotes and client onboarding"""
+    from django.core.paginator import Paginator
+    from django.db.models import Sum, Q
+    from decimal import Decimal
+    from datetime import datetime, date
+    import json
+    
+    # Handle POST request for creating new invoice
+    if request.method == 'POST':
+        try:
+            # Get client information
+            client_name = request.POST.get('client_name', '').strip()
+            if not client_name:
+                messages.error(request, 'Client name is required.')
+                return redirect('invoices')
+            
+            company = request.POST.get('company', '').strip() or None
+            email = request.POST.get('email', '').strip() or None
+            phone = request.POST.get('phone', '').strip() or None
+            
+            # Get invoice details
+            currency = request.POST.get('currency', 'INR')
+            invoice_date_str = request.POST.get('invoice_date', '')
+            owner = request.POST.get('owner', '').strip()
+            if not owner:
+                messages.error(request, 'Owner/Assignee is required.')
+                return redirect('invoices')
+            
+            # Parse invoice date
+            invoice_date = None
+            if invoice_date_str:
+                try:
+                    invoice_date = datetime.strptime(invoice_date_str, '%Y-%m-%d').date()
+                except ValueError:
+                    invoice_date = date.today()
+            else:
+                invoice_date = date.today()
+            
+            invoice_number = request.POST.get('invoice_number', '').strip()
+            if not invoice_number:
+                invoice_number = generate_invoice_number_for_date(invoice_date)
+            
+            # Check if invoice number already exists
+            if Invoice.objects.filter(invoice_number=invoice_number).exists():
+                messages.error(request, f'Invoice number {invoice_number} already exists. Please use a different number.')
+                return redirect('invoices')
+            
+            # Get payment status
+            payment_status = request.POST.get('status', 'Unpaid')
+            
+            # Get items data (allow sparse indices when rows removed)
+            items = []
+            item_index_pattern = re.compile(r'^items\[(\d+)\]\[description\]$')
+            item_indices = sorted(
+                {int(match.group(1)) for key in request.POST.keys()
+                 if (match := item_index_pattern.match(key))}
+            )
+            
+            for item_index in item_indices:
+                desc_key = f'items[{item_index}][description]'
+                description = request.POST.get(desc_key, '').strip()
+                if not description:
+                    continue
+                
+                quantity_str = request.POST.get(f'items[{item_index}][quantity]', '1') or '1'
+                price_str = request.POST.get(f'items[{item_index}][price]', '0') or '0'
+                quantity = Decimal(quantity_str)
+                price = Decimal(price_str)
+                
+                items.append({
+                    'description': description,
+                    'quantity': float(quantity),
+                    'price': float(price),
+                })
+            
+            if not items:
+                messages.error(request, 'At least one item is required.')
+                return redirect('invoices')
+            
+            # Calculate totals
+            subtotal = Decimal(request.POST.get('subtotal', '0') or '0')
+            discount = Decimal(request.POST.get('discount', '0') or '0')
+            
+            # Get GST information
+            apply_gst = request.POST.get('apply_gst', 'no')
+            gst_percent = Decimal('0')
+            gst_amount = Decimal('0')
+            if apply_gst == 'yes':
+                gst_percent = Decimal(request.POST.get('gst_percent', '0') or '0')
+                gst_amount = (subtotal * gst_percent) / 100
+            
+            total = Decimal(request.POST.get('total', '0') or '0')
+            
+            # Get additional information
+            notes = request.POST.get('notes', '').strip() or None
+            terms = request.POST.get('terms', '').strip() or None
+            
+            # Create Invoice object
+            invoice = Invoice.objects.create(
+                client_name=client_name,
+                company=company,
+                email=email,
+                phone=phone,
+                invoice_number=invoice_number,
+                invoice_date=invoice_date,
+                owner=owner,
+                status=payment_status,
+                currency=currency,
+                subtotal=subtotal,
+                discount=discount,
+                gst_percent=gst_percent,
+                gst_amount=gst_amount,
+                total=total,
+                notes=notes,
+                terms=terms,
+                items=items,
+            )
+            
+            # If payment status is Paid, try to create/update ClientOnboarding record
+            if payment_status == 'Paid':
+                client_onboard = ClientOnboarding.objects.filter(
+                    client_name__iexact=client_name
+                ).first()
+                
+                if not client_onboard:
+                    # Create a basic client onboarding record with completed status
+                    # Required fields: project_name, project_duration, project_cost, assigned_engineer
+                    ClientOnboarding.objects.create(
+                        client_name=client_name,
+                        company_name=company or '',
+                        client_email=email or '',
+                        client_phone=phone or '',
+                        project_name=f'Invoice {invoice_number}',
+                        project_description=f'Invoice created for {invoice_number}',
+                        project_duration=1,  # Default duration
+                        duration_unit='months',  # Default unit
+                        project_cost=total,
+                        status='completed',
+                        assigned_engineer=owner,
+                        start_date=invoice_date,
+                    )
+                elif client_onboard.status != 'completed':
+                    client_onboard.status = 'completed'
+                    client_onboard.save()
+            
+            messages.success(request, f'Invoice {invoice_number} created successfully!')
+            return redirect('invoices')
+            
+        except Exception as e:
+            messages.error(request, f'Error creating invoice: {str(e)}')
+            return redirect('invoices')
+    
+    # GET request handling
+    # Search functionality
+    search_query = request.GET.get('search', '').strip()
+    
+    # Get all invoices from Invoice model
+    invoices_list = Invoice.objects.all().order_by('-invoice_date', '-created_at')
+    
+    # Apply search filter to invoices
+    if search_query:
+        invoices_list = invoices_list.filter(
+            Q(invoice_number__icontains=search_query) |
+            Q(client_name__icontains=search_query) |
+            Q(company__icontains=search_query) |
+            Q(email__icontains=search_query) |
+            Q(phone__icontains=search_query) |
+            Q(owner__icontains=search_query)
+        )
+    
+    # Prepare invoice data from Invoice model
+    invoice_data = []
+    for invoice in invoices_list:
+        invoice_data.append({
+            'id': invoice.id,
+            'invoice_number': invoice.invoice_number,
+            'type': 'invoice',
+            'client_name': invoice.client_name,
+            'company': invoice.company,
+            'email': invoice.email,
+            'phone': invoice.phone,
+            'amount': invoice.total,
+            'currency': invoice.currency,
+            'status': invoice.status,
+            'status_badge': invoice.get_status_badge_class(),
+            'date': invoice.invoice_date,
+            'owner': invoice.owner,
+        })
+    
+    # Sort by date (newest first)
+    invoice_data.sort(key=lambda x: x['date'], reverse=True)
+    
+    # Pagination
+    paginator = Paginator(invoice_data, 10)  # Show 10 invoices per page
+    page_num = request.GET.get('page', 1)
+    try:
+        invoices_page = paginator.page(page_num)
+    except PageNotAnInteger:
+        invoices_page = paginator.page(1)
+    except EmptyPage:
+        invoices_page = paginator.page(paginator.num_pages)
+    
+    # Calculate statistics
+    total_invoices = len(invoice_data)
+    total_amount = sum(Decimal(str(inv['amount'])) for inv in invoice_data)
+    paid_count = sum(1 for inv in invoice_data if inv['status'] == 'Paid')
+    unpaid_count = sum(1 for inv in invoice_data if inv['status'] == 'Unpaid')
+    
+    # Get existing clients for the dropdown
+    existing_clients = []
+    
+    # Get unique clients from Invoice model
+    invoice_clients = Invoice.objects.values('client_name', 'company', 'email', 'phone').distinct()
+    for invoice_client in invoice_clients:
+        if invoice_client['client_name']:
+            existing_clients.append({
+                'name': invoice_client['client_name'],
+                'company': invoice_client.get('company') or '',
+                'email': invoice_client.get('email') or '',
+                'phone': invoice_client.get('phone') or '',
+            })
+    
+    # Get unique clients from Quote model
+    quote_clients = Quote.objects.values('client_name', 'company', 'email', 'phone').distinct()
+    for quote_client in quote_clients:
+        if quote_client['client_name']:
+            # Check if client already exists
+            if not any(client['name'].lower() == quote_client['client_name'].lower() for client in existing_clients):
+                existing_clients.append({
+                    'name': quote_client['client_name'],
+                    'company': quote_client.get('company') or '',
+                    'email': quote_client.get('email') or '',
+                    'phone': quote_client.get('phone') or '',
+                })
+    
+    # Get unique clients from ClientOnboarding model
+    onboarding_clients = ClientOnboarding.objects.values('client_name', 'company_name', 'client_email', 'client_phone').distinct()
+    for onboard_client in onboarding_clients:
+        if onboard_client['client_name']:
+            # Check if client already exists
+            if not any(client['name'].lower() == onboard_client['client_name'].lower() for client in existing_clients):
+                existing_clients.append({
+                    'name': onboard_client['client_name'],
+                    'company': onboard_client.get('company_name') or '',
+                    'email': onboard_client.get('client_email') or '',
+                    'phone': onboard_client.get('client_phone') or '',
+                })
+    
+    # Sort clients by name
+    existing_clients.sort(key=lambda x: x['name'].lower())
+    
+    suggested_invoice_number = generate_invoice_number_for_date(timezone.localdate())
+    
+    context = {
+        'invoices': invoices_page,
+        'search_query': search_query,
+        'total_invoices': total_invoices,
+        'total_amount': total_amount,
+        'paid_count': paid_count,
+        'unpaid_count': unpaid_count,
+        'existing_clients': existing_clients,
+        'suggested_invoice_number': suggested_invoice_number,
+        'company_profile': COMPANY_PROFILE,
+    }
+    return render(request, 'dashboard/invoices.html', context)
+
+
+@login_required
+def invoice_edit(request, invoice_type, invoice_id):
+    """Edit invoice - redirects to appropriate edit page based on invoice type"""
+    if invoice_type == 'invoice':
+        # For Invoice model, redirect to invoices page with edit capability
+        try:
+            invoice = Invoice.objects.get(id=invoice_id)
+            # TODO: Implement invoice edit functionality
+            messages.info(request, f'To edit invoice {invoice.invoice_number}, please use the invoice edit feature.')
+            return redirect('invoices')
+        except Invoice.DoesNotExist:
+            messages.error(request, 'Invoice not found.')
+            return redirect('invoices')
+    elif invoice_type == 'quote':
+        # Redirect to quotes page or create a quote edit modal/page
+        # For now, redirect to quotes page with a message
+        try:
+            quote = Quote.objects.get(id=invoice_id)
+            messages.info(request, f'To edit quote {quote.quote_number}, please use the Quotes page.')
+            return redirect('quotes')
+        except Quote.DoesNotExist:
+            messages.error(request, 'Quote not found.')
+            return redirect('invoices')
+    elif invoice_type == 'onboarding':
+        # Redirect to project management page where onboarding can be edited
+        try:
+            onboard = ClientOnboarding.objects.get(id=invoice_id)
+            messages.info(request, f'To edit invoice for {onboard.client_name}, please use the Project Management page.')
+            return redirect('project_management')
+        except ClientOnboarding.DoesNotExist:
+            messages.error(request, 'Client onboarding record not found.')
+            return redirect('invoices')
+    else:
+        messages.error(request, 'Invalid invoice type.')
+        return redirect('invoices')
+
+
+@login_required
+@require_POST
+def invoice_delete(request, invoice_type, invoice_id):
+    """Delete invoice - deletes the invoice, quote, or client onboarding record"""
+    try:
+        if invoice_type == 'invoice':
+            invoice = get_object_or_404(Invoice, id=invoice_id)
+            invoice_number = invoice.invoice_number
+            client_name = invoice.client_name
+            invoice.delete()
+            messages.success(request, f'Invoice {invoice_number} for {client_name} deleted successfully!')
+        elif invoice_type == 'quote':
+            quote = get_object_or_404(Quote, id=invoice_id)
+            quote_number = quote.quote_number
+            client_name = quote.client_name
+            quote.delete()
+            messages.success(request, f'Invoice (Quote {quote_number}) for {client_name} deleted successfully!')
+        elif invoice_type == 'onboarding':
+            onboard = get_object_or_404(ClientOnboarding, id=invoice_id)
+            client_name = onboard.client_name
+            invoice_number = f'INV-{onboard.id:05d}'
+            onboard.delete()
+            messages.success(request, f'Invoice ({invoice_number}) for {client_name} deleted successfully!')
+        else:
+            messages.error(request, 'Invalid invoice type.')
+            return redirect('invoices')
+    except Exception as e:
+        messages.error(request, f'Error deleting invoice: {str(e)}')
+    
+    return redirect('invoices')
+
+
+@login_required
+@require_POST
+def invoice_table_pdf_download(request):
+    """Generate quick PDF using data provided from invoices table."""
+    if not REPORTLAB_AVAILABLE:
+        return JsonResponse({'error': 'PDF generation library (reportlab) is not installed.'}, status=400)
+
+    try:
+        payload = json.loads(request.body.decode('utf-8'))
+    except (json.JSONDecodeError, UnicodeDecodeError):
+        return JsonResponse({'error': 'Invalid request payload.'}, status=400)
+
+    invoice_id = payload.get('invoice_id')
+    invoice = None
+    if invoice_id:
+        try:
+            invoice = Invoice.objects.get(id=int(invoice_id))
+        except (Invoice.DoesNotExist, ValueError, TypeError):
+            invoice = None
+
+    # If we have a real invoice, prefer trusted DB values
+    if invoice:
+        invoice_number = invoice.invoice_number
+        client_name = invoice.client_name
+        company = invoice.company or ''
+        email = invoice.email or ''
+        phone = invoice.phone or ''
+        amount_value = invoice.total or Decimal('0.00')
+        currency = invoice.currency or 'INR'
+        status_text = invoice.status or 'Unpaid'
+        invoice_date = invoice.invoice_date or date.today()
+        owner = invoice.owner or ''
+    else:
+        # Fallback to table snapshot data
+        invoice_number = (payload.get('invoice_number') or '').strip()
+        client_name = (payload.get('client_name') or '').strip()
+        company = (payload.get('company') or '').strip()
+        email = (payload.get('email') or '').strip()
+        phone = (payload.get('phone') or '').strip()
+        amount_raw = payload.get('amount') or '0'
+        currency = (payload.get('currency') or 'INR').strip()
+        status_text = (payload.get('status') or 'Unpaid').strip()
+        date_display = payload.get('date') or ''
+        owner = (payload.get('owner') or '').strip()
+
+        if not invoice_number or not client_name:
+            return JsonResponse({'error': 'Invoice number and client name are required.'}, status=400)
+
+        try:
+            invoice_date = datetime.strptime(date_display, '%b %d, %Y').date()
+        except (ValueError, TypeError):
+            invoice_date = date.today()
+
+        try:
+            amount_value = Decimal(str(amount_raw))
+        except (InvalidOperation, TypeError):
+            amount_value = Decimal('0.00')
+
+    try:
+        buffer = BytesIO()
+        doc = SimpleDocTemplate(buffer, pagesize=A4, rightMargin=72, leftMargin=72, topMargin=72, bottomMargin=36)
+        styles = getSampleStyleSheet()
+        title_style = ParagraphStyle(
+            'SnapshotTitle',
+            parent=styles['Heading1'],
+            fontSize=22,
+            textColor=colors.HexColor('#2c3e50'),
+            alignment=TA_CENTER,
+            spaceAfter=20
+        )
+
+        normal_style = styles['Normal']
+        normal_style.fontSize = 11
+
+        elements = []
+        elements.append(Paragraph("Invoice Snapshot", title_style))
+        elements.append(Paragraph(f"Generated on {timezone.now().strftime('%d %b %Y, %I:%M %p')}", normal_style))
+        elements.append(Spacer(1, 0.2 * inch))
+
+        summary_data = [
+            ['Invoice #', invoice_number],
+            ['Status', status_text],
+            ['Owner/Assignee', owner or '-'],
+            ['Date', invoice_date.strftime('%B %d, %Y')],
+            ['Client Name', client_name],
+            ['Company', company or '-'],
+            ['Email', email or '-'],
+            ['Phone', phone or '-'],
+            ['Amount', f"{currency} {float(amount_value):,.2f}"],
+        ]
+
+        summary_table = Table(summary_data, colWidths=[2.2 * inch, 3.8 * inch])
+        summary_table.setStyle(TableStyle([
+            ('BACKGROUND', (0, 0), (1, 0), colors.HexColor('#f5f5f5')),
+            ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+            ('FONTSIZE', (0, 0), (-1, -1), 11),
+            ('ALIGN', (0, 0), (0, -1), 'LEFT'),
+            ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+            ('INNERGRID', (0, 0), (-1, -1), 0.25, colors.HexColor('#d0d0d0')),
+            ('BOX', (0, 0), (-1, -1), 0.5, colors.HexColor('#d0d0d0')),
+            ('BOTTOMPADDING', (0, 0), (-1, -1), 8),
+            ('TOPPADDING', (0, 0), (-1, -1), 8),
+        ]))
+
+        elements.append(summary_table)
+        elements.append(Spacer(1, 0.3 * inch))
+
+        elements.append(Paragraph(
+            "This PDF contains snapshot details captured directly from the invoices table. "
+            "For a detailed invoice with line items and notes, please open the invoice record.",
+            normal_style
+        ))
+
+        doc.build(elements)
+
+        pdf = buffer.getvalue()
+        buffer.close()
+
+        response = HttpResponse(content_type='application/pdf')
+        filename = f"Invoice_{invoice_number}_snapshot.pdf".replace(' ', '_')
+        response['Content-Disposition'] = f'attachment; filename="{filename}"'
+        response['Content-Length'] = len(pdf)
+        response.write(pdf)
+        return response
+
+    except Exception as exc:
+        return JsonResponse({'error': f'Error generating PDF: {str(exc)}'}, status=500)
+
+
+@login_required
+def invoice_detail(request, invoice_id):
+    """Return full invoice details as JSON (used for modal view)."""
+    invoice = get_object_or_404(Invoice, id=invoice_id)
+    raw_items = invoice.items if isinstance(invoice.items, list) else []
+    items = []
+    for item in raw_items:
+        if isinstance(item, dict):
+            items.append({
+                'description': item.get('description') or item.get('name') or 'Item',
+                'quantity': item.get('quantity', 1),
+                'unit_price': item.get('unit_price', item.get('price', 0)),
+                'total': item.get('total', item.get('amount', 0)),
+            })
+        else:
+            items.append({
+                'description': str(item),
+                'quantity': 1,
+                'unit_price': 0,
+                'total': 0,
+            })
+
+    data = {
+        'id': invoice.id,
+        'invoice_number': invoice.invoice_number,
+        'status': invoice.status,
+        'status_badge': invoice.get_status_badge_class(),
+        'invoice_date': invoice.invoice_date.strftime('%b %d, %Y') if invoice.invoice_date else '',
+        'owner': invoice.owner,
+        'currency': invoice.currency,
+        'created_at': invoice.created_at.strftime('%b %d, %Y %H:%M'),
+        'client_name': invoice.client_name,
+        'company': invoice.company or '',
+        'email': invoice.email or '',
+        'phone': invoice.phone or '',
+        'subtotal': str(invoice.subtotal),
+        'discount': str(invoice.discount),
+        'gst_percent': str(invoice.gst_percent),
+        'gst_amount': str(invoice.gst_amount),
+        'total': str(invoice.total),
+        'notes': invoice.notes or '',
+        'terms': invoice.terms or '',
+        'items': items,
+    }
+    return JsonResponse(data)
+
+
+@login_required
+def invoice_pdf_download(request, invoice_type, invoice_id):
+    """Generate and download invoice as PDF"""
+    if not REPORTLAB_AVAILABLE:
+        messages.error(request, 'PDF generation library (reportlab) is not installed. Please install it to download invoices.')
+        return redirect('invoices')
+    
+    try:
+        # Get invoice data based on type
+        if invoice_type == 'invoice':
+            invoice = get_object_or_404(Invoice, id=invoice_id)
+            invoice_data = {
+                'invoice_number': invoice.invoice_number,
+                'client_name': invoice.client_name,
+                'company': invoice.company or '',
+                'email': invoice.email or '',
+                'phone': invoice.phone or '',
+                'amount': invoice.total,
+                'currency': invoice.currency,
+                'date': invoice.invoice_date,
+                'owner': invoice.owner,
+                'items': invoice.items if invoice.items else [],
+                'subtotal': invoice.subtotal,
+                'discount': invoice.discount,
+                'gst_percent': invoice.gst_percent,
+                'gst_amount': invoice.gst_amount,
+                'total': invoice.total,
+                'notes': invoice.notes or '',
+                'terms': invoice.terms or '',
+            }
+        elif invoice_type == 'quote':
+            quote = get_object_or_404(Quote, id=invoice_id)
+            invoice_data = {
+                'invoice_number': quote.quote_number,
+                'client_name': quote.client_name,
+                'company': quote.company or '',
+                'email': quote.email or '',
+                'phone': quote.phone or '',
+                'amount': quote.total,
+                'currency': quote.currency,
+                'date': quote.created_at.date(),
+                'owner': quote.owner,
+                'items': quote.items if quote.items else [],
+                'subtotal': quote.subtotal,
+                'discount': quote.discount,
+                'gst_percent': Decimal('0.00'),
+                'gst_amount': Decimal('0.00'),
+                'total': quote.total,
+                'notes': quote.notes or '',
+                'terms': quote.terms or '',
+                'valid_until': quote.valid_until,
+            }
+        elif invoice_type == 'onboarding':
+            onboard = get_object_or_404(ClientOnboarding, id=invoice_id)
+            invoice_data = {
+                'invoice_number': f'INV-{onboard.id:05d}',
+                'client_name': onboard.client_name,
+                'company': onboard.company_name or '',
+                'email': onboard.client_email or '',
+                'phone': onboard.client_phone or '',
+                'amount': onboard.project_cost,
+                'currency': 'INR',
+                'date': onboard.created_at.date(),
+                'owner': onboard.assigned_engineer or 'N/A',
+                'items': [{
+                    'description': onboard.project_name,
+                    'quantity': 1,
+                    'unit_price': float(onboard.project_cost),
+                    'total': float(onboard.project_cost)
+                }],
+                'subtotal': onboard.project_cost,
+                'discount': Decimal('0.00'),
+                'gst_percent': Decimal('0.00'),
+                'gst_amount': Decimal('0.00'),
+                'total': onboard.project_cost,
+                'notes': onboard.project_description or '',
+                'terms': '',
+                'valid_until': None,
+            }
+        else:
+            messages.error(request, 'Invalid invoice type.')
+            return redirect('invoices')
+        
+        def to_decimal(value, default=Decimal('0.00')):
+            """Safely convert any numeric-like value to Decimal."""
+            if value is None:
+                return default
+            if isinstance(value, Decimal):
+                return value
+            try:
+                return Decimal(str(value))
+            except (InvalidOperation, ValueError, TypeError):
+                return default
+
+        def normalize_quantity(value):
+            qty = to_decimal(value, Decimal('1'))
+            if qty == qty.to_integral():
+                return str(int(qty))
+            normalized = qty.normalize()
+            # normalize() may produce scientific notation; format handles that.
+            qty_str = format(normalized, 'f')
+            return qty_str.rstrip('0').rstrip('.') if '.' in qty_str else qty_str
+
+        # Create PDF buffer and styles
+        buffer = BytesIO()
+        doc = SimpleDocTemplate(
+            buffer,
+            pagesize=A4,
+            rightMargin=36,
+            leftMargin=36,
+            topMargin=36,
+            bottomMargin=36
+        )
+        elements = []
+        styles = getSampleStyleSheet()
+        base_style = ParagraphStyle(
+            'BaseStyle',
+            parent=styles['Normal'],
+            fontSize=10,
+            leading=13,
+            textColor=colors.HexColor('#2b2b2b')
+        )
+        bold_style = ParagraphStyle(
+            'BoldStyle',
+            parent=base_style,
+            fontName='Helvetica-Bold'
+        )
+        brand_heading_style = ParagraphStyle(
+            'BrandHeading',
+            parent=bold_style,
+            fontSize=20,
+            alignment=TA_CENTER,
+            textColor=accent_color,
+            spaceAfter=6
+        )
+        brand_subheading_style = ParagraphStyle(
+            'BrandSubHeading',
+            parent=base_style,
+            fontSize=10,
+            alignment=TA_CENTER,
+            textColor=colors.HexColor('#4b4b4b'),
+            leading=13
+        )
+        accent_color = colors.HexColor('#7B3F98')
+        light_purple = colors.HexColor('#ede3f4')
+
+        # Primary heading centered at top
+        elements.append(Paragraph('SUJATA ASSOCIATES', brand_heading_style))
+        elements.append(Paragraph('Sujata Associates Consultancy Pvt Ltd', brand_subheading_style))
+        elements.append(Paragraph('4, Fairlie Place, HMP House, 5th Floor, Kolkata 700 001 (W.B.)', brand_subheading_style))
+        elements.append(Paragraph('Email: info@sujataassociates.com | Ph: 90380013', brand_subheading_style))
+        elements.append(Paragraph('GSTIN: 19AAZCS9337C1ZM | PAN: AAZCS9337C | State: West Bengal (Code 19)', brand_subheading_style))
+        elements.append(Spacer(1, 0.05 * inch))
+
+        # Header with logo and company info
+        logo_path = get_company_logo_path()
+        if logo_path:
+            logo_img = Image(logo_path, width=110, height=55, hAlign='LEFT')
+        else:
+            logo_img = Paragraph(f"<b>{COMPANY_PROFILE['name']}</b>", bold_style)
+
+        company_lines = [
+            Paragraph(f"<b>{COMPANY_PROFILE['name'].upper()}</b>", bold_style),
+            Paragraph(f"GST No.: {COMPANY_PROFILE['gstin']}    PAN No.: {COMPANY_PROFILE['pan']}", base_style)
+        ]
+        if COMPANY_PROFILE.get('tagline'):
+            company_lines.append(Paragraph(COMPANY_PROFILE['tagline'], base_style))
+        for line in COMPANY_PROFILE.get('address_lines', []):
+            company_lines.append(Paragraph(line, base_style))
+
+        proforma_box = Table(
+            [[Paragraph('<b>Proforma Invoice</b>', ParagraphStyle('Proforma', parent=bold_style, alignment=TA_CENTER))]],
+            colWidths=[1.5 * inch],
+            rowHeights=[0.6 * inch]
+        )
+        proforma_box.setStyle(TableStyle([
+            ('BACKGROUND', (0, 0), (-1, -1), accent_color),
+            ('TEXTCOLOR', (0, 0), (-1, -1), colors.white),
+            ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+            ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+            ('BOX', (0, 0), (-1, -1), 1, accent_color),
+        ]))
+
+        header_table = Table(
+            [[logo_img, company_lines, proforma_box]],
+            colWidths=[1.7 * inch, 3.8 * inch, 1.5 * inch]
+        )
+        header_table.setStyle(TableStyle([
+            ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+            ('ALIGN', (2, 0), (2, 0), 'RIGHT'),
+        ]))
+        elements.append(header_table)
+        elements.append(Spacer(1, 0.15 * inch))
+
+        # Client and invoice meta information
+        invoice_date = invoice_data.get('date')
+        if not invoice_date:
+            invoice_date = date.today()
+        elif isinstance(invoice_date, datetime):
+            invoice_date = invoice_date.date()
+
+        client_details = [
+            [Paragraph('<b>Client Name</b>', base_style), Paragraph(invoice_data.get('client_name', '-'), base_style)],
+            [Paragraph('<b>Company</b>', base_style), Paragraph(invoice_data.get('company') or '-', base_style)],
+            [Paragraph('<b>Email</b>', base_style), Paragraph(invoice_data.get('email') or '-', base_style)],
+            [Paragraph('<b>Phone</b>', base_style), Paragraph(invoice_data.get('phone') or '-', base_style)],
+        ]
+
+        invoice_details = [
+            [Paragraph('<b>Date</b>', base_style), Paragraph(invoice_date.strftime('%d.%m.%Y'), base_style)],
+            [Paragraph('<b>Invoice #</b>', base_style), Paragraph(invoice_data['invoice_number'], base_style)],
+            [Paragraph('<b>Status</b>', base_style), Paragraph(invoice.status if invoice_type == 'invoice' else 'Pending', base_style)],
+        ]
+        if invoice_data.get('valid_until'):
+            invoice_details.append([
+                Paragraph('<b>Valid Until</b>', base_style),
+                Paragraph(invoice_data['valid_until'].strftime('%d.%m.%Y'), base_style)
+            ])
+
+        client_table = Table(
+            [[client_details, invoice_details]],
+            colWidths=[3.7 * inch, 3.0 * inch]
+        )
+        client_table.setStyle(TableStyle([
+            ('BACKGROUND', (0, 0), (0, 0), light_purple),
+            ('BACKGROUND', (1, 0), (1, 0), light_purple),
+            ('BOX', (0, 0), (-1, -1), 1, accent_color),
+            ('INNERGRID', (0, 0), (-1, -1), 0.3, colors.HexColor('#c0a5d4')),
+            ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+        ]))
+        elements.append(client_table)
+        elements.append(Spacer(1, 0.2 * inch))
+
+        # Currency symbol helper
+        currency_code = invoice_data.get('currency', 'INR')
+        currency_symbol = {'USD': '$', 'EUR': '€'}.get(currency_code, '₹')
+
+        def format_currency_value(value):
+            amount = to_decimal(value)
+            return f"{currency_symbol} {float(amount):,.2f}"
+
+        def format_percent(value):
+            try:
+                dec_value = Decimal(value or 0)
+            except (InvalidOperation, TypeError):
+                dec_value = Decimal('0')
+            if dec_value == 0:
+                return '0'
+            normalized = dec_value.normalize()
+            percent_str = format(normalized, 'f')
+            if '.' in percent_str:
+                percent_str = percent_str.rstrip('0').rstrip('.')
+            return percent_str
+
+        def format_summary_amount(value):
+            amount = to_decimal(value)
+            if amount == 0:
+                return '-'
+            return format_currency_value(amount)
+
+        # Items table replicating design
+        raw_items = invoice_data.get('items') or []
+        if isinstance(raw_items, str):
+            try:
+                raw_items = json.loads(raw_items)
+            except (json.JSONDecodeError, ValueError, TypeError):
+                raw_items = []
+
+        items_data = [['S.No', 'Description', 'HSN Code', 'Qty', 'Rate', 'Amount']]
+        if not raw_items:
+            total_value = to_decimal(invoice_data.get('total', Decimal('0.00')))
+            items_data.append(['01', 'Service/Product', '-', '1', format_currency_value(total_value), format_currency_value(total_value)])
+        else:
+            for idx, item in enumerate(raw_items, start=1):
+                if isinstance(item, dict):
+                    desc = item.get('description') or item.get('name') or 'Item'
+                    hsn = item.get('hsn') or item.get('hsn_code') or '-'
+                    qty_value = to_decimal(item.get('quantity', 1), Decimal('1'))
+                    rate_value = to_decimal(item.get('unit_price', item.get('price', 0)), Decimal('0'))
+                    total_value = item.get('total')
+                    if total_value is None:
+                        total_value = rate_value * qty_value
+                    total_value = to_decimal(total_value, rate_value * qty_value)
+                else:
+                    desc = str(item)
+                    hsn = '-'
+                    qty_value = Decimal('1')
+                    rate_value = Decimal('0')
+                    total_value = Decimal('0')
+
+                items_data.append([
+                    f"{idx:02d}",
+                    desc,
+                    hsn,
+                    normalize_quantity(qty_value),
+                    format_currency_value(rate_value),
+                    format_currency_value(total_value)
+                ])
+
+        items_table = Table(items_data, colWidths=[0.7 * inch, 2.8 * inch, 1.1 * inch, 0.8 * inch, 1.1 * inch, 1.1 * inch])
+        items_table.setStyle(TableStyle([
+            ('BACKGROUND', (0, 0), (-1, 0), accent_color),
+            ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
+            ('ALIGN', (0, 0), (0, -1), 'CENTER'),
+            ('ALIGN', (3, 1), (-1, -1), 'RIGHT'),
+            ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+            ('FONTSIZE', (0, 0), (-1, 0), 11),
+            ('FONTSIZE', (0, 1), (-1, -1), 10),
+            ('BOTTOMPADDING', (0, 0), (-1, 0), 10),
+            ('TOPPADDING', (0, 0), (-1, 0), 10),
+            ('GRID', (0, 0), (-1, -1), 0.5, colors.HexColor('#b18ccf')),
+        ]))
+        elements.append(items_table)
+        elements.append(Spacer(1, 0.15 * inch))
+
+        # Summary totals with GST split similar to reference
+        subtotal_value = to_decimal(invoice_data.get('subtotal', invoice_data.get('total', Decimal('0.00'))))
+        discount_value = to_decimal(invoice_data.get('discount', Decimal('0.00')))
+        gst_amount_value = to_decimal(invoice_data.get('gst_amount', Decimal('0.00')))
+        gst_percent_value = to_decimal(invoice_data.get('gst_percent', Decimal('0.00')))
+        total_value = to_decimal(invoice_data.get('total', Decimal('0.00')))
+
+        cgst_percent = sgst_percent = Decimal('0.00')
+        cgst_amount = sgst_amount = Decimal('0.00')
+        igst_percent = Decimal('0.00')
+        igst_amount = Decimal('0.00')
+        if gst_percent_value > 0 and gst_amount_value > 0:
+            cgst_percent = sgst_percent = (gst_percent_value / 2).quantize(Decimal('0.01'))
+            cgst_amount = sgst_amount = (gst_amount_value / 2).quantize(Decimal('0.01'))
+            igst_amount = gst_amount_value - (cgst_amount + sgst_amount)
+            if igst_amount < 0:
+                igst_amount = Decimal('0.00')
+        else:
+            igst_amount = gst_amount_value
+            igst_percent = gst_percent_value
+
+        summary_rows = [
+            ['Total Value', format_currency_value(subtotal_value)],
+            [f'Add : CGST {format_percent(cgst_percent)}%', format_summary_amount(cgst_amount)],
+            [f'Add : SGST {format_percent(sgst_percent)}%', format_summary_amount(sgst_amount)],
+            [f'Add : IGST {format_percent(igst_percent)}%', format_summary_amount(igst_amount)],
+            ['Less : Discount (If Any)', format_summary_amount(discount_value)],
+            ['', ''],
+            ['Grand Total', format_currency_value(total_value)],
+            ['Amount Due', format_currency_value(total_value)],
+        ]
+
+        summary_table = Table(summary_rows, colWidths=[3.0 * inch, 1.8 * inch], hAlign='RIGHT')
+        summary_table.setStyle(TableStyle([
+            ('ALIGN', (0, 0), (-1, -1), 'RIGHT'),
+            ('TEXTCOLOR', (0, -2), (-1, -1), accent_color),
+            ('FONTNAME', (0, -2), (-1, -1), 'Helvetica-Bold'),
+            ('FONTSIZE', (0, 0), (-1, -1), 10),
+            ('INNERGRID', (0, 0), (-1, -1), 0.3, colors.HexColor('#b18ccf')),
+            ('BOX', (0, 0), (-1, -1), 0.5, accent_color),
+        ]))
+        elements.append(summary_table)
+        elements.append(Spacer(1, 0.15 * inch))
+
+        # Bank details table
+        bank = COMPANY_PROFILE['bank_details']
+        bank_rows = [
+            ['Account Name', bank['account_name']],
+            ['Bank Name', bank['bank_name']],
+            ['Account No.', bank['account_number']],
+            ['IFSC', bank['ifsc']],
+            ['Branch', bank['branch']],
+        ]
+        bank_table = Table(bank_rows, colWidths=[1.6 * inch, 4.6 * inch])
+        bank_table.setStyle(TableStyle([
+            ('BACKGROUND', (0, 0), (-1, 0), light_purple),
+            ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+            ('BOX', (0, 0), (-1, -1), 0.4, accent_color),
+            ('INNERGRID', (0, 0), (-1, -1), 0.2, colors.HexColor('#c0a5d4')),
+            ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
+        ]))
+        elements.append(bank_table)
+        elements.append(Spacer(1, 0.1 * inch))
+
+        # Amount in words and signature section
+        amount_words_text = amount_to_words(total_value)
+        elements.append(Paragraph(f"<b>Amount in Words:</b> {amount_words_text}", base_style))
+        elements.append(Spacer(1, 0.2 * inch))
+
+        signature_table = Table([
+            [
+                Paragraph('Amount Received (₹) __________', base_style),
+                Paragraph(f"For {COMPANY_PROFILE['name']}<br/><br/><br/>Authorised Signature", base_style)
+            ]
+        ], colWidths=[3.0 * inch, 3.0 * inch])
+        signature_table.setStyle(TableStyle([
+            ('ALIGN', (1, 0), (1, 0), 'RIGHT'),
+        ]))
+        elements.append(signature_table)
+
+        # Build PDF
+        doc.build(elements)
+        pdf = buffer.getvalue()
+        buffer.close()
+
+        response = HttpResponse(content_type='application/pdf')
+        filename = f'Invoice_{invoice_data["invoice_number"]}.pdf'.replace(' ', '_').replace('/', '_')
+        response['Content-Disposition'] = f'attachment; filename="{filename}"'
+        response['Content-Length'] = len(pdf)
+        response.write(pdf)
+        return response
+        
+    except Exception as e:
+        import traceback
+        error_trace = traceback.format_exc()
+        print(f"PDF Generation Error: {str(e)}")
+        print(f"Traceback: {error_trace}")
+        messages.error(request, f'Error generating PDF: {str(e)}')
+        return redirect('invoices')
 
 
 @login_required

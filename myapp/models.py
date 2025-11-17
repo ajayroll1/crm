@@ -270,6 +270,71 @@ class Quote(models.Model):
         return status_classes.get(self.status, 'bg-secondary')
 
 
+class Invoice(models.Model):
+    """Invoice management"""
+    STATUS_CHOICES = [
+        ('Paid', 'Paid'),
+        ('Unpaid', 'Unpaid'),
+        ('Partial', 'Partial'),
+        ('Cancelled', 'Cancelled'),
+    ]
+    
+    CURRENCY_CHOICES = [
+        ('INR', 'INR (₹)'),
+        ('USD', 'USD ($)'),
+        ('EUR', 'EUR (€)'),
+    ]
+    
+    # Client Information
+    client_name = models.CharField(max_length=200, verbose_name="Client Name")
+    company = models.CharField(max_length=200, blank=True, null=True)
+    email = models.EmailField(blank=True, null=True)
+    phone = models.CharField(max_length=20, blank=True, null=True)
+    
+    # Invoice Details
+    invoice_number = models.CharField(max_length=50, unique=True, verbose_name="Invoice #")
+    invoice_date = models.DateField(verbose_name="Invoice Date")
+    owner = models.CharField(max_length=100, verbose_name="Owner/Assignee")
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='Unpaid')
+    currency = models.CharField(max_length=10, choices=CURRENCY_CHOICES, default='INR')
+    
+    # Financial
+    subtotal = models.DecimalField(max_digits=12, decimal_places=2, default=0.00)
+    discount = models.DecimalField(max_digits=12, decimal_places=2, default=0.00)
+    gst_percent = models.DecimalField(max_digits=5, decimal_places=2, default=0.00, verbose_name="GST Percentage (%)")
+    gst_amount = models.DecimalField(max_digits=12, decimal_places=2, default=0.00, verbose_name="GST Amount")
+    total = models.DecimalField(max_digits=12, decimal_places=2, default=0.00)
+    
+    # Additional Information
+    notes = models.TextField(blank=True, null=True, verbose_name="Notes")
+    terms = models.TextField(blank=True, null=True, verbose_name="Terms & Conditions")
+    
+    # Line Items (stored as JSON)
+    items = models.JSONField(default=list, blank=True, help_text="List of invoice items")
+    
+    # Timestamps
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    
+    class Meta:
+        ordering = ['-invoice_date', '-created_at']
+        verbose_name = "Invoice"
+        verbose_name_plural = "Invoices"
+    
+    def __str__(self):
+        return f"{self.invoice_number} - {self.client_name}"
+    
+    def get_status_badge_class(self):
+        """Get Bootstrap badge class for status"""
+        status_classes = {
+            'Paid': 'bg-success',
+            'Unpaid': 'bg-danger',
+            'Partial': 'bg-warning text-dark',
+            'Cancelled': 'bg-secondary'
+        }
+        return status_classes.get(self.status, 'bg-secondary')
+
+
 class ClientOnboarding(models.Model):
     """Client Onboarding management"""
     STATUS_CHOICES = [
