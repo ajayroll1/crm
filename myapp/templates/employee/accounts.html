@@ -89,20 +89,23 @@
   .accounts-tabs .nav-link {
     border-radius: 10px;
     font-weight: 600;
-    color: #4a5568;
-    border: 1px solid transparent;
-    transition: all 0.25s ease;
+    background: #0d6efd;
+    color: #ffffff;
+    border: 1px solid #0d6efd;
+    transition: none;
   }
 
   .accounts-tabs .nav-link i {
     font-size: 1.1rem;
+    color: #ffffff;
   }
 
   .accounts-tabs .nav-link.active,
-  .accounts-tabs .nav-link:hover {
-    background: linear-gradient(90deg, rgba(52, 152, 219, 0.15), rgba(46, 204, 113, 0.15));
-    color: #1a202c;
-    border-color: rgba(52, 152, 219, 0.35);
+  .accounts-tabs .nav-link:hover,
+  .accounts-tabs .nav-link:focus {
+    background: #0d6efd;
+    color: #ffffff;
+    border-color: #0d6efd;
   }
 
   .compliance-badge {
@@ -179,17 +182,22 @@
     border: 1px solid rgba(255, 255, 255, 0.35);
   }
 
-  .btn-white {
-    background: #ffffff;
-    color: #1a202c;
-    border: 1px solid rgba(26, 32, 44, 0.1);
-    transition: all 0.2s ease;
+  .accounts-wrapper .btn {
+    background: #0d6efd;
+    border: 1px solid #0d6efd;
+    color: #ffffff;
+    border-radius: 10px;
+    box-shadow: none;
+    transition: none;
   }
 
-  .btn-white:hover {
-    background: #f7fafc;
-    color: #0f172a;
-    border-color: rgba(26, 32, 44, 0.25);
+  .accounts-wrapper .btn:focus,
+  .accounts-wrapper .btn:active,
+  .accounts-wrapper .btn:hover {
+    background: #0d6efd;
+    border-color: #0d6efd;
+    color: #ffffff;
+    box-shadow: none;
   }
 
   @media (max-width: 768px) {
@@ -290,7 +298,7 @@
               <button class="btn btn-primary">
                 <i class="bi bi-calendar-check me-2"></i>Compliance Calendar
               </button>
-              <button class="btn btn-outline-secondary">
+              <button class="btn btn-primary btn-auxiliary">
                 <i class="bi bi-shield-lock me-2"></i>View SOP Library
               </button>
             </div>

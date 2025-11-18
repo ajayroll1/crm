@@ -2,22 +2,533 @@
 {% block title %}Accounts Department - Sujata Associates{% endblock %}
 
 {% block content %}
-<div class="container-fluid">
+<div class="container-fluid accounts-wrapper">
   <div class="dashboard-header mb-4">
     <h1>Accounts Department</h1>
     <p class="text-muted">Central hub for accounts department reporting and tools.</p>
   </div>
 
-  <div class="card">
-    <div class="card-body text-center py-5">
-      <h3 class="mb-3">This section is under construction</h3>
-      <p class="text-muted mb-4">
-        We are working on detailed dashboards and workflows for the Accounts Department.
-      </p>
-      <span class="badge bg-warning text-dark">Coming Soon</span>
+  <div class="card shadow-sm mb-3">
+    <div class="card-body">
+      <style>
+        .accounts-wrapper .accounts-tabs .nav-link {
+          border-radius: 10px;
+          font-weight: 600;
+          background: #0d6efd;
+          color: #ffffff;
+          border: 1px solid #0d6efd;
+          transition: none;
+        }
+
+        .accounts-wrapper .accounts-tabs .nav-link i {
+          font-size: 1.1rem;
+          color: #ffffff;
+        }
+
+        .accounts-wrapper .accounts-tabs .nav-link.active,
+        .accounts-wrapper .accounts-tabs .nav-link:hover,
+        .accounts-wrapper .accounts-tabs .nav-link:focus {
+          background: #0d6efd;
+          color: #ffffff;
+          border-color: #0d6efd;
+          box-shadow: none;
+        }
+
+        /* Mobile-friendly tables for all sections */
+        @media (max-width: 576px) {
+          .accounts-wrapper .card-body {
+            padding: 0.75rem;
+          }
+
+          .accounts-wrapper table {
+            font-size: 0.8rem;
+          }
+
+          .accounts-wrapper table th,
+          .accounts-wrapper table td {
+            white-space: normal;
+            padding: 0.4rem 0.5rem;
+          }
+
+          .accounts-wrapper .table-responsive {
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
+          }
+        }
+      </style>
+      <div class="d-sm-none mb-3">
+        <div class="dropdown w-100">
+          <button
+            class="btn btn-primary w-100 d-flex justify-content-between align-items-center"
+            type="button"
+            id="accountsTabDropdown"
+            data-bs-toggle="dropdown"
+            aria-expanded="false">
+            <span>
+              {% if active_tab == 'roc' %}ROC Compliance{% endif %}
+              {% if active_tab == 'gst' %}GST Filing{% endif %}
+              {% if active_tab == 'itr' %}ITR Filing{% endif %}
+              {% if active_tab == 'accounts' %}Accounts &amp; Bookkeeping{% endif %}
+              {% if active_tab == 'tds' %}TDS Compliance{% endif %}
+            </span>
+            <i class="bi bi-chevron-down"></i>
+          </button>
+          <ul class="dropdown-menu w-100" aria-labelledby="accountsTabDropdown">
+            <li>
+              <a class="dropdown-item {% if active_tab == 'roc' %}active{% endif %}" href="?tab=roc">
+                ROC Compliance
+              </a>
+            </li>
+            <li>
+              <a class="dropdown-item {% if active_tab == 'gst' %}active{% endif %}" href="?tab=gst">
+                GST Filing
+              </a>
+            </li>
+            <li>
+              <a class="dropdown-item {% if active_tab == 'itr' %}active{% endif %}" href="?tab=itr">
+                ITR Filing
+              </a>
+            </li>
+            <li>
+              <a class="dropdown-item {% if active_tab == 'accounts' %}active{% endif %}" href="?tab=accounts">
+                Accounts &amp; Bookkeeping
+              </a>
+            </li>
+            <li>
+              <a class="dropdown-item {% if active_tab == 'tds' %}active{% endif %}" href="?tab=tds">
+                TDS Compliance
+              </a>
+            </li>
+          </ul>
+        </div>
+      </div>
+
+      <ul class="nav nav-pills accounts-tabs gap-2 mb-3 d-none d-sm-flex" role="tablist">
+        <li class="nav-item" role="presentation">
+          <a href="?tab=roc" class="nav-link {% if active_tab == 'roc' %}active{% endif %}">
+            <i class="bi bi-building"></i> ROC Compliance
+          </a>
+        </li>
+        <li class="nav-item" role="presentation">
+          <a href="?tab=gst" class="nav-link {% if active_tab == 'gst' %}active{% endif %}">
+            <i class="bi bi-file-earmark-spreadsheet"></i> GST Filing
+          </a>
+        </li>
+        <li class="nav-item" role="presentation">
+          <a href="?tab=itr" class="nav-link {% if active_tab == 'itr' %}active{% endif %}">
+            <i class="bi bi-cash-coin"></i> ITR Filing
+          </a>
+        </li>
+        <li class="nav-item" role="presentation">
+          <a href="?tab=accounts" class="nav-link {% if active_tab == 'accounts' %}active{% endif %}">
+            <i class="bi bi-journal-check"></i> Accounts &amp; Bookkeeping
+          </a>
+        </li>
+        <li class="nav-item" role="presentation">
+          <a href="?tab=tds" class="nav-link {% if active_tab == 'tds' %}active{% endif %}">
+            <i class="bi bi-percent"></i> TDS Compliance
+          </a>
+        </li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="card shadow-sm">
+    <div class="card-body">
+      <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+        <h5 class="mb-0">
+          {% if active_tab == 'roc' %}ROC Compliance Records{% endif %}
+          {% if active_tab == 'gst' %}GST Filing Records{% endif %}
+          {% if active_tab == 'itr' %}ITR Filing Records{% endif %}
+          {% if active_tab == 'accounts' %}Accounts &amp; Bookkeeping Records{% endif %}
+          {% if active_tab == 'tds' %}TDS Compliance Records{% endif %}
+        </h5>
+        <form method="get" class="ms-auto" style="max-width: 260px; width: 100%;">
+          <input type="hidden" name="tab" value="{{ active_tab }}">
+          <div class="input-group input-group-sm">
+            <span class="input-group-text bg-white">
+              <i class="bi bi-search"></i>
+            </span>
+            <input type="text"
+                   name="q"
+                   value="{{ search_query }}"
+                   class="form-control"
+                   placeholder="Search records...">
+          </div>
+        </form>
+      </div>
+
+      <div class="table-responsive d-none d-sm-block">
+        {% if active_tab == 'roc' %}
+        <table class="table table-striped align-middle mb-0">
+          <thead>
+            <tr>
+              <th>Company Name</th>
+              <th>CIN / LLPIN</th>
+              <th>Financial Year</th>
+              <th>AGM Date</th>
+              <th>Compliance Period</th>
+              <th>Created At</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for r in roc_page %}
+            <tr>
+              <td>{{ r.company_name }}</td>
+              <td>{{ r.cin_llpin }}</td>
+              <td>{{ r.financial_year }}</td>
+              <td>{{ r.agm_date|date:"d M Y" }}</td>
+              <td>{{ r.compliance_period }}</td>
+              <td>{{ r.created_at|date:"d M Y" }}</td>
+            </tr>
+            {% empty %}
+            <tr>
+              <td colspan="6" class="text-center text-muted">No ROC records found.</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+        {% if roc_page.has_other_pages %}
+        <nav class="mt-3">
+          <ul class="pagination pagination-sm mb-0">
+            {% if roc_page.has_previous %}
+            <li class="page-item">
+              <a class="page-link" href="?tab=roc&page={{ roc_page.previous_page_number }}&q={{ search_query }}">Previous</a>
+            </li>
+            {% else %}
+            <li class="page-item disabled"><span class="page-link">Previous</span></li>
+            {% endif %}
+
+            <li class="page-item disabled">
+              <span class="page-link">
+                Page {{ roc_page.number }} of {{ roc_page.paginator.num_pages }}
+              </span>
+            </li>
+
+            {% if roc_page.has_next %}
+            <li class="page-item">
+              <a class="page-link" href="?tab=roc&page={{ roc_page.next_page_number }}&q={{ search_query }}">Next</a>
+            </li>
+            {% else %}
+            <li class="page-item disabled"><span class="page-link">Next</span></li>
+            {% endif %}
+          </ul>
+        </nav>
+        {% endif %}
+
+        {% elif active_tab == 'gst' %}
+        <table class="table table-striped align-middle mb-0">
+          <thead>
+            <tr>
+              <th>GSTIN</th>
+              <th>Return Period</th>
+              <th>Return Type</th>
+              <th>Filing Scheme</th>
+              <th>Tax Payable</th>
+              <th>Created At</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for r in gst_page %}
+            <tr>
+              <td>{{ r.gstin }}</td>
+              <td>{{ r.return_period }}</td>
+              <td>{{ r.return_type }}</td>
+              <td>{{ r.filing_scheme }}</td>
+              <td>{{ r.tax_payable }}</td>
+              <td>{{ r.created_at|date:"d M Y" }}</td>
+            </tr>
+            {% empty %}
+            <tr>
+              <td colspan="6" class="text-center text-muted">No GST records found.</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+        {% if gst_page.has_other_pages %}
+        <nav class="mt-3">
+          <ul class="pagination pagination-sm mb-0">
+            {% if gst_page.has_previous %}
+            <li class="page-item">
+              <a class="page-link" href="?tab=gst&page={{ gst_page.previous_page_number }}&q={{ search_query }}">Previous</a>
+            </li>
+            {% else %}
+            <li class="page-item disabled"><span class="page-link">Previous</span></li>
+            {% endif %}
+
+            <li class="page-item disabled">
+              <span class="page-link">
+                Page {{ gst_page.number }} of {{ gst_page.paginator.num_pages }}
+              </span>
+            </li>
+
+            {% if gst_page.has_next %}
+            <li class="page-item">
+              <a class="page-link" href="?tab=gst&page={{ gst_page.next_page_number }}&q={{ search_query }}">Next</a>
+            </li>
+            {% else %}
+            <li class="page-item disabled"><span class="page-link">Next</span></li>
+            {% endif %}
+          </ul>
+        </nav>
+        {% endif %}
+
+        {% elif active_tab == 'itr' %}
+        <table class="table table-striped align-middle mb-0">
+          <thead>
+            <tr>
+              <th>Taxpayer Name</th>
+              <th>PAN</th>
+              <th>Assessment Year</th>
+              <th>Return Form</th>
+              <th>Client Category</th>
+              <th>Created At</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for r in itr_page %}
+            <tr>
+              <td>{{ r.taxpayer_name }}</td>
+              <td>{{ r.pan }}</td>
+              <td>{{ r.assessment_year }}</td>
+              <td>{{ r.return_form }}</td>
+              <td>{{ r.client_category }}</td>
+              <td>{{ r.created_at|date:"d M Y" }}</td>
+            </tr>
+            {% empty %}
+            <tr>
+              <td colspan="6" class="text-center text-muted">No ITR records found.</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+        {% if itr_page.has_other_pages %}
+        <nav class="mt-3">
+          <ul class="pagination pagination-sm mb-0">
+            {% if itr_page.has_previous %}
+            <li class="page-item">
+              <a class="page-link" href="?tab=itr&page={{ itr_page.previous_page_number }}&q={{ search_query }}">Previous</a>
+            </li>
+            {% else %}
+            <li class="page-item disabled"><span class="page-link">Previous</span></li>
+            {% endif %}
+
+            <li class="page-item disabled">
+              <span class="page-link">
+                Page {{ itr_page.number }} of {{ itr_page.paginator.num_pages }}
+              </span>
+            </li>
+
+            {% if itr_page.has_next %}
+            <li class="page-item">
+              <a class="page-link" href="?tab=itr&page={{ itr_page.next_page_number }}&q={{ search_query }}">Next</a>
+            </li>
+            {% else %}
+            <li class="page-item disabled"><span class="page-link">Next</span></li>
+            {% endif %}
+          </ul>
+        </nav>
+        {% endif %}
+
+        {% elif active_tab == 'accounts' %}
+        <table class="table table-striped align-middle mb-0">
+          <thead>
+            <tr>
+              <th>Closing Date</th>
+              <th>Prepared By</th>
+              <th>Cash Book Updated</th>
+              <th>Bank Reconciled</th>
+              <th>Inventory Updated</th>
+              <th>Created At</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for r in bookkeeping_page %}
+            <tr>
+              <td>{{ r.closing_date|date:"d M Y" }}</td>
+              <td>{{ r.prepared_by }}</td>
+              <td>{{ r.cash_book_updated|yesno:"Yes,No" }}</td>
+              <td>{{ r.bank_entries_reconciled|yesno:"Yes,No" }}</td>
+              <td>{{ r.inventory_updated|yesno:"Yes,No" }}</td>
+              <td>{{ r.created_at|date:"d M Y" }}</td>
+            </tr>
+            {% empty %}
+            <tr>
+              <td colspan="6" class="text-center text-muted">No bookkeeping records found.</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+        {% if bookkeeping_page.has_other_pages %}
+        <nav class="mt-3">
+          <ul class="pagination pagination-sm mb-0">
+            {% if bookkeeping_page.has_previous %}
+            <li class="page-item">
+              <a class="page-link" href="?tab=accounts&page={{ bookkeeping_page.previous_page_number }}&q={{ search_query }}">Previous</a>
+            </li>
+            {% else %}
+            <li class="page-item disabled"><span class="page-link">Previous</span></li>
+            {% endif %}
+
+            <li class="page-item disabled">
+              <span class="page-link">
+                Page {{ bookkeeping_page.number }} of {{ bookkeeping_page.paginator.num_pages }}
+              </span>
+            </li>
+
+            {% if bookkeeping_page.has_next %}
+            <li class="page-item">
+              <a class="page-link" href="?tab=accounts&page={{ bookkeeping_page.next_page_number }}&q={{ search_query }}">Next</a>
+            </li>
+            {% else %}
+            <li class="page-item disabled"><span class="page-link">Next</span></li>
+            {% endif %}
+          </ul>
+        </nav>
+        {% endif %}
+
+        {% elif active_tab == 'tds' %}
+        <table class="table table-striped align-middle mb-0">
+          <thead>
+            <tr>
+              <th>Deductor TAN</th>
+              <th>Section</th>
+              <th>Deduction Month</th>
+              <th>Total Payment</th>
+              <th>TDS Deducted</th>
+              <th>Challan Date</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for r in tds_page %}
+            <tr>
+              <td>{{ r.deductor_tan }}</td>
+              <td>{{ r.section }}</td>
+              <td>{{ r.deduction_month }}</td>
+              <td>{{ r.total_payment_amount }}</td>
+              <td>{{ r.tds_deducted }}</td>
+              <td>{{ r.challan_date|date:"d M Y" }}</td>
+            </tr>
+            {% empty %}
+            <tr>
+              <td colspan="6" class="text-center text-muted">No TDS records found.</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+        {% if tds_page.has_other_pages %}
+        <nav class="mt-3">
+          <ul class="pagination pagination-sm mb-0">
+            {% if tds_page.has_previous %}
+            <li class="page-item">
+              <a class="page-link" href="?tab=tds&page={{ tds_page.previous_page_number }}&q={{ search_query }}">Previous</a>
+            </li>
+            {% else %}
+            <li class="page-item disabled"><span class="page-link">Previous</span></li>
+            {% endif %}
+
+            <li class="page-item disabled">
+              <span class="page-link">
+                Page {{ tds_page.number }} of {{ tds_page.paginator.num_pages }}
+              </span>
+            </li>
+
+            {% if tds_page.has_next %}
+            <li class="page-item">
+              <a class="page-link" href="?tab=tds&page={{ tds_page.next_page_number }}&q={{ search_query }}">Next</a>
+            </li>
+            {% else %}
+            <li class="page-item disabled"><span class="page-link">Next</span></li>
+            {% endif %}
+          </ul>
+        </nav>
+        {% endif %}
+        {% endif %}
+      </div>
+
+      <!-- Card layout for mobile -->
+      <div class="d-sm-none">
+        {% if active_tab == 'roc' %}
+          {% for r in roc_page %}
+          <div class="card mb-2">
+            <div class="card-body">
+              <h6 class="mb-1">{{ r.company_name }}</h6>
+              <div class="small text-muted mb-2">{{ r.cin_llpin }}</div>
+              <p class="mb-1"><strong>Financial Year:</strong> {{ r.financial_year }}</p>
+              <p class="mb-1"><strong>AGM Date:</strong> {{ r.agm_date|date:"d M Y" }}</p>
+              <p class="mb-1"><strong>Compliance Period:</strong> {{ r.compliance_period }}</p>
+              <p class="mb-0 text-muted">Created {{ r.created_at|date:"d M Y" }}</p>
+            </div>
+          </div>
+          {% empty %}
+          <p class="text-center text-muted">No ROC records found.</p>
+          {% endfor %}
+
+        {% elif active_tab == 'gst' %}
+          {% for r in gst_page %}
+          <div class="card mb-2">
+            <div class="card-body">
+              <h6 class="mb-1">{{ r.gstin }}</h6>
+              <div class="small text-muted mb-2">{{ r.return_type }} · {{ r.return_period }}</div>
+              <p class="mb-1"><strong>Filing Scheme:</strong> {{ r.filing_scheme }}</p>
+              <p class="mb-1"><strong>Tax Payable:</strong> {{ r.tax_payable }}</p>
+              <p class="mb-0 text-muted">Created {{ r.created_at|date:"d M Y" }}</p>
+            </div>
+          </div>
+          {% empty %}
+          <p class="text-center text-muted">No GST records found.</p>
+          {% endfor %}
+
+        {% elif active_tab == 'itr' %}
+          {% for r in itr_page %}
+          <div class="card mb-2">
+            <div class="card-body">
+              <h6 class="mb-1">{{ r.taxpayer_name }}</h6>
+              <div class="small text-muted mb-2">{{ r.pan }}</div>
+              <p class="mb-1"><strong>Assessment Year:</strong> {{ r.assessment_year }}</p>
+              <p class="mb-1"><strong>Return Form:</strong> {{ r.return_form }}</p>
+              <p class="mb-0 text-muted">Created {{ r.created_at|date:"d M Y" }}</p>
+            </div>
+          </div>
+          {% empty %}
+          <p class="text-center text-muted">No ITR records found.</p>
+          {% endfor %}
+
+        {% elif active_tab == 'accounts' %}
+          {% for r in bookkeeping_page %}
+          <div class="card mb-2">
+            <div class="card-body">
+              <h6 class="mb-1">{{ r.prepared_by }}</h6>
+              <div class="small text-muted mb-2">{{ r.closing_date|date:"d M Y" }}</div>
+              <p class="mb-1"><strong>Cash Book:</strong> {{ r.cash_book_updated|yesno:"Yes,No" }}</p>
+              <p class="mb-1"><strong>Bank Reconciled:</strong> {{ r.bank_entries_reconciled|yesno:"Yes,No" }}</p>
+              <p class="mb-1"><strong>Inventory Updated:</strong> {{ r.inventory_updated|yesno:"Yes,No" }}</p>
+              <p class="mb-0 text-muted">Created {{ r.created_at|date:"d M Y" }}</p>
+            </div>
+          </div>
+          {% empty %}
+          <p class="text-center text-muted">No bookkeeping records found.</p>
+          {% endfor %}
+
+        {% elif active_tab == 'tds' %}
+          {% for r in tds_page %}
+          <div class="card mb-2">
+            <div class="card-body">
+              <h6 class="mb-1">{{ r.deductor_tan }}</h6>
+              <div class="small text-muted mb-2">{{ r.section }}</div>
+              <p class="mb-1"><strong>Deduction Month:</strong> {{ r.deduction_month }}</p>
+              <p class="mb-1"><strong>Total Payment:</strong> {{ r.total_payment_amount }}</p>
+              <p class="mb-1"><strong>TDS Deducted:</strong> {{ r.tds_deducted }}</p>
+              <p class="mb-0 text-muted">Challan {{ r.challan_date|date:"d M Y" }}</p>
+            </div>
+          </div>
+          {% empty %}
+          <p class="text-center text-muted">No TDS records found.</p>
+          {% endfor %}
+        {% endif %}
+      </div>
     </div>
   </div>
 </div>
 {% endblock %}
-
 

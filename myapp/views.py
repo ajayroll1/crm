@@ -1,6 +1,8 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.http import HttpResponse, JsonResponse, Http404
 from django.contrib import messages
+from django.core.paginator import Paginator
+from django.db.models import Q
 from django.contrib.auth import logout as auth_logout, login as auth_login, authenticate
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.models import User
@@ -659,8 +661,9 @@ def dashboard(request):
 @login_required
 def accounts_department(request):
   """
-  Placeholder view for Accounts Department section.
-  Currently shows an 'Under Construction' page.
+  Accounts Department summary dashboard with compliance tabs.
+  Reuses the same 5 category tabs as the employee Accounts workspace,
+  and shows recent records in a responsive table from the selected category.
   """
   # Restrict to admin/staff similar to main dashboard
   try:
@@ -672,15 +675,90 @@ def accounts_department(request):
     if not request.user.is_staff:
       messages.warning(request, 'You do not have permission to access this page.')
       return redirect('employee_dashboard')
-  
-  return render(request, 'dashboard/accounts_department.html')
+
+  # Determine active tab and search query from URL
+  valid_tabs = ['roc', 'gst', 'itr', 'accounts', 'tds']
+  active_tab = request.GET.get('tab', 'roc')
+  if active_tab not in valid_tabs:
+    active_tab = 'roc'
+
+  search_query = request.GET.get('q', '').strip()
+  page_number = request.GET.get('page')
+  per_page = 15
+
+  roc_page = gst_page = itr_page = bookkeeping_page = tds_page = None
+
+  if active_tab == 'roc':
+    qs = ROCComplianceRecord.objects.all()
+    if search_query:
+      qs = qs.filter(
+        Q(company_name__icontains=search_query) |
+        Q(cin_llpin__icontains=search_query) |
+        Q(financial_year__icontains=search_query) |
+        Q(compliance_period__icontains=search_query)
+      )
+    roc_page = Paginator(qs, per_page).get_page(page_number)
+
+  elif active_tab == 'gst':
+    qs = GSTFilingRecord.objects.all()
+    if search_query:
+      qs = qs.filter(
+        Q(gstin__icontains=search_query) |
+        Q(return_period__icontains=search_query) |
+        Q(return_type__icontains=search_query) |
+        Q(filing_scheme__icontains=search_query)
+      )
+    gst_page = Paginator(qs, per_page).get_page(page_number)
+
+  elif active_tab == 'itr':
+    qs = ITRFilingRecord.objects.all()
+    if search_query:
+      qs = qs.filter(
+        Q(taxpayer_name__icontains=search_query) |
+        Q(pan__icontains=search_query) |
+        Q(assessment_year__icontains=search_query) |
+        Q(return_form__icontains=search_query)
+      )
+    itr_page = Paginator(qs, per_page).get_page(page_number)
+
+  elif active_tab == 'accounts':
+    qs = BookkeepingChecklistRecord.objects.all()
+    if search_query:
+      qs = qs.filter(
+        Q(prepared_by__icontains=search_query) |
+        Q(outstanding_notes__icontains=search_query)
+      )
+    bookkeeping_page = Paginator(qs, per_page).get_page(page_number)
+
+  elif active_tab == 'tds':
+    qs = TDSComplianceRecord.objects.all()
+    if search_query:
+      qs = qs.filter(
+        Q(deductor_tan__icontains=search_query) |
+        Q(section__icontains=search_query) |
+        Q(deduction_month__icontains=search_query) |
+        Q(challan_number__icontains=search_query)
+      )
+    tds_page = Paginator(qs, per_page).get_page(page_number)
+
+  context = {
+    'active_tab': active_tab,
+    'search_query': search_query,
+    'roc_page': roc_page,
+    'gst_page': gst_page,
+    'itr_page': itr_page,
+    'bookkeeping_page': bookkeeping_page,
+    'tds_page': tds_page,
+  }
+
+  return render(request, 'dashboard/accounts_department.html', context)
 
 
 @login_required
 def backoffice_department(request):
   """
-  Placeholder view for Back Office Management section.
-  Currently shows an 'Under Construction' page.
+  Back office oversight view for admins.
+  Shows tabbed datasets for every registration/licensing workflow with search & pagination.
   """
   try:
     employee = Employee.objects.get(email=request.user.email)
@@ -691,8 +769,172 @@ def backoffice_department(request):
     if not request.user.is_staff:
       messages.warning(request, 'You do not have permission to access this page.')
       return redirect('employee_dashboard')
-  
-  return render(request, 'dashboard/backoffice_department.html')
+
+  service_definitions = [
+    {
+      'id': 'startup',
+      'title': 'Start-up India Registration',
+      'icon': 'bi-rocket-takeoff',
+      'model': StartupIndiaRegistration,
+      'search_fields': [
+        'legal_entity_name__icontains',
+        'entity_type__icontains',
+        'industry_sector__icontains',
+        'email__icontains',
+      ],
+    },
+    {
+      'id': 'fssai',
+      'title': 'Food Licensing (FSSAI)',
+      'icon': 'bi-egg-fried',
+      'model': FSSAILicense,
+      'search_fields': [
+        'business_brand_name__icontains',
+        'licence_type__icontains',
+        'business_nature__icontains',
+        'premises_address__icontains',
+      ],
+    },
+    {
+      'id': 'msme',
+      'title': 'MSME / Udyam Registration',
+      'icon': 'bi-building-gear',
+      'model': MSMEUdyamRegistration,
+      'search_fields': [
+        'entity_name__icontains',
+        'organisation_type__icontains',
+        'principal_activity__icontains',
+      ],
+    },
+    {
+      'id': 'company-reg',
+      'title': 'Company / LLP Registration',
+      'icon': 'bi-diagram-3',
+      'model': CompanyLLPRegistration,
+      'search_fields': [
+        'entity_type__icontains',
+        'proposed_names__icontains',
+        'registered_office__icontains',
+      ],
+    },
+    {
+      'id': 'fire-pollution',
+      'title': 'Fire & Pollution Licences',
+      'icon': 'bi-shield-check',
+      'model': FirePollutionLicense,
+      'search_fields': [
+        'establishment_type__icontains',
+        'pollution_category__icontains',
+        'safety_installations__icontains',
+      ],
+    },
+    {
+      'id': 'iso',
+      'title': 'ISO Certification (9001/14001/27001)',
+      'icon': 'bi-award',
+      'model': ISOCertification,
+      'search_fields': [
+        'standard__icontains',
+        'existing_certifications__icontains',
+      ],
+    },
+    {
+      'id': 'tm-file',
+      'title': 'Trademark Filing',
+      'icon': 'bi-badge-tm',
+      'model': TrademarkFiling,
+      'search_fields': [
+        'brand_logo__icontains',
+        'applicant_type__icontains',
+        'classes__icontains',
+      ],
+    },
+    {
+      'id': 'tm-compliance',
+      'title': 'Trademark Filing + Compliance',
+      'icon': 'bi-bag-check',
+      'model': TrademarkFilingCompliance,
+      'search_fields': [
+        'existing_tm_numbers__icontains',
+        'watch_scope__icontains',
+      ],
+    },
+    {
+      'id': 'tm-instant',
+      'title': 'Trademark Filing (Instant Process)',
+      'icon': 'bi-lightning-charge',
+      'model': TrademarkFilingInstant,
+      'search_fields': [
+        'urgency_reason__icontains',
+        'filing_window__icontains',
+        'contact_mobile__icontains',
+      ],
+    },
+    {
+      'id': 'address-change',
+      'title': 'Company Address Change',
+      'icon': 'bi-geo-alt',
+      'model': CompanyAddressChange,
+      'search_fields': [
+        'entity_type__icontains',
+        'shift_type__icontains',
+        'new_address__icontains',
+      ],
+    },
+    {
+      'id': 'moa-alter',
+      'title': 'MOA Alteration',
+      'icon': 'bi-file-earmark-text',
+      'model': MOAAlteration,
+      'search_fields': [
+        'alteration_type__icontains',
+        'proposed_object_name__icontains',
+      ],
+    },
+  ]
+
+  service_map = {service['id']: service for service in service_definitions}
+  tab_counts = {}
+  services = []
+  for svc in service_definitions:
+    count = svc['model'].objects.count()
+    tab_counts[svc['id']] = count
+    services.append({
+      'id': svc['id'],
+      'title': svc['title'],
+      'icon': svc['icon'],
+      'count': count,
+    })
+
+  active_tab = request.GET.get('tab', 'startup')
+  if active_tab not in service_map:
+    active_tab = 'startup'
+
+  search_query = request.GET.get('q', '').strip()
+  page_number = request.GET.get('page')
+  per_page = 15
+
+  active_service = service_map[active_tab]
+  queryset = active_service['model'].objects.all().order_by('-created_at')
+
+  if search_query:
+    search_filter = Q()
+    for lookup in active_service['search_fields']:
+      search_filter |= Q(**{lookup: search_query})
+    queryset = queryset.filter(search_filter)
+
+  page_obj = Paginator(queryset, per_page).get_page(page_number)
+
+  context = {
+    'services': services,
+    'active_tab': active_tab,
+    'active_service': active_service,
+    'search_query': search_query,
+    'page_obj': page_obj,
+    'tab_counts': tab_counts,
+  }
+
+  return render(request, 'dashboard/backoffice_department.html', context)
 
 @login_required
 def dashboard_leaves(request):
@@ -4647,11 +4889,19 @@ def employee_accounts(request):
         {'name': 'TDS CPC Support', 'contact': '1800-103-0344', 'email': 'contactus@tdscpc.gov.in'},
     ]
 
+    # Records owned by the logged-in user (for detailed tables)
     roc_records = ROCComplianceRecord.objects.filter(user=request.user).order_by('-created_at')
     gst_records = GSTFilingRecord.objects.filter(user=request.user).order_by('-created_at')
     itr_records = ITRFilingRecord.objects.filter(user=request.user).order_by('-created_at')
     bookkeeping_records = BookkeepingChecklistRecord.objects.filter(user=request.user).order_by('-created_at')
     tds_records = TDSComplianceRecord.objects.filter(user=request.user).order_by('-created_at')
+
+    # High-level metric counts (show overall workload across all clients, not only current user)
+    roc_total_count = ROCComplianceRecord.objects.all().count()
+    gst_total_count = GSTFilingRecord.objects.all().count()
+    itr_total_count = ITRFilingRecord.objects.all().count()
+    bookkeeping_total_count = BookkeepingChecklistRecord.objects.all().count()
+    tds_total_count = TDSComplianceRecord.objects.all().count()
 
     context = {
         'roc_required_docs': roc_required_docs,
@@ -4672,11 +4922,12 @@ def employee_accounts(request):
         'itr_records': itr_records,
         'bookkeeping_records': bookkeeping_records,
         'tds_records': tds_records,
-        'roc_count': roc_records.count(),
-        'gst_count': gst_records.count(),
-        'itr_count': itr_records.count(),
-        'bookkeeping_count': bookkeeping_records.count(),
-        'tds_count': tds_records.count(),
+        # Metric cards - overall counts
+        'roc_count': roc_total_count,
+        'gst_count': gst_total_count,
+        'itr_count': itr_total_count,
+        'bookkeeping_count': bookkeeping_total_count,
+        'tds_count': tds_total_count,
     }
     return render(request, 'employee/accounts.html', context)
 

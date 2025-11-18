@@ -2,22 +2,545 @@
 {% block title %}Back Office Department - Sujata Associates{% endblock %}
 
 {% block content %}
-<div class="container-fluid">
+<div class="container-fluid backoffice-dashboard">
   <div class="dashboard-header mb-4">
     <h1>Back Office Department</h1>
-    <p class="text-muted">Manage and monitor all back office operations from one place.</p>
+    <p class="text-muted">Monitor every registration, licensing, certification, and IP workflow from one place.</p>
   </div>
 
-  <div class="card">
-    <div class="card-body text-center py-5">
-      <h3 class="mb-3">This section is under construction</h3>
-      <p class="text-muted mb-4">
-        Detailed workflows and dashboards for Back Office Management will be available soon.
-      </p>
-      <span class="badge bg-warning text-dark">Coming Soon</span>
+  <div class="card shadow-sm mb-3">
+    <div class="card-body">
+      <style>
+        .backoffice-tabs .nav-link {
+          border-radius: 12px;
+          font-weight: 600;
+          background: #0d6efd;
+          color: #ffffff;
+          border: 1px solid #0d6efd;
+          transition: none;
+        }
+
+        .backoffice-tabs .nav-link .badge {
+          background: rgba(255, 255, 255, 0.2);
+          margin-left: 0.35rem;
+        }
+
+        .backoffice-tabs .nav-link:hover,
+        .backoffice-tabs .nav-link:focus,
+        .backoffice-tabs .nav-link.active {
+          background: #0d6efd;
+          color: #ffffff;
+          border-color: #0d6efd;
+          box-shadow: none;
+        }
+
+        .backoffice-tabs .nav-link i {
+          font-size: 1rem;
+          color: #ffffff;
+        }
+
+        .backoffice-dashboard .card h6 {
+          font-weight: 600;
+        }
+
+        .backoffice-dashboard .btn,
+        .backoffice-dashboard .btn:focus,
+        .backoffice-dashboard .btn:active,
+        .backoffice-dashboard .btn:hover {
+          background: #0d6efd;
+          color: #ffffff;
+          border: 1px solid #0d6efd;
+          box-shadow: none;
+          transition: none;
+        }
+
+        .table-responsive {
+          border-radius: 12px;
+        }
+
+        .table thead {
+          background: #f8fafc;
+        }
+
+        .table thead th {
+          font-size: 0.85rem;
+          font-weight: 600;
+          text-transform: uppercase;
+          letter-spacing: 0.5px;
+        }
+
+        .mobile-record-card h6 {
+          font-size: 1rem;
+          font-weight: 600;
+        }
+
+        .mobile-record-card .label {
+          font-size: 0.85rem;
+          font-weight: 600;
+          color: #475467;
+        }
+
+        @media (max-width: 576px) {
+          .table-responsive {
+            display: none;
+          }
+
+          .backoffice-tabs {
+            display: none;
+          }
+        }
+      </style>
+
+      <div class="d-sm-none mb-3">
+        <div class="dropdown w-100">
+          <button class="btn btn-primary w-100 d-flex justify-content-between align-items-center" type="button" id="backofficeTabDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+            <span>
+              {% for service in services %}
+                {% if service.id == active_tab %}{{ service.title }}{% endif %}
+              {% endfor %}
+            </span>
+            <i class="bi bi-chevron-down"></i>
+          </button>
+          <ul class="dropdown-menu w-100" aria-labelledby="backofficeTabDropdown">
+            {% for service in services %}
+            <li>
+              <a class="dropdown-item {% if service.id == active_tab %}active{% endif %}" href="?tab={{ service.id }}">
+                {{ service.title }}
+              </a>
+            </li>
+            {% endfor %}
+          </ul>
+        </div>
+      </div>
+
+      <ul class="nav nav-pills backoffice-tabs gap-2 mb-0 d-none d-sm-flex" role="tablist">
+        {% for service in services %}
+        <li class="nav-item" role="presentation">
+          <a href="?tab={{ service.id }}" class="nav-link {% if service.id == active_tab %}active{% endif %}">
+            <i class="bi {{ service.icon }} me-1"></i>{{ service.title }}
+            <span class="badge">{{ service.count }}</span>
+          </a>
+        </li>
+        {% endfor %}
+      </ul>
+    </div>
+  </div>
+
+  <div class="card shadow-sm">
+    <div class="card-body">
+      <div class="d-flex flex-column flex-md-row align-items-md-center gap-3 mb-3">
+        <div>
+          <h5 class="mb-0">{{ active_service.title }}</h5>
+          <small class="text-muted">Realtime records synced from employee submissions.</small>
+        </div>
+        <form method="get" class="ms-md-auto" style="max-width: 320px; width: 100%;">
+          <input type="hidden" name="tab" value="{{ active_tab }}">
+          <div class="input-group input-group-sm">
+            <span class="input-group-text bg-white border-end-0">
+              <i class="bi bi-search text-secondary"></i>
+            </span>
+            <input type="text"
+                   name="q"
+                   value="{{ search_query }}"
+                   class="form-control border-start-0"
+                   placeholder="Search records...">
+          </div>
+        </form>
+      </div>
+
+      <div class="table-responsive d-none d-sm-block">
+        {% if page_obj and page_obj.object_list %}
+          {% if active_tab == 'startup' %}
+          <table class="table table-striped align-middle mb-0">
+            <thead>
+              <tr>
+                <th>Legal Entity Name</th>
+                <th>Entity Type</th>
+                <th>Industry Sector</th>
+                <th>Incorporation Date</th>
+                <th>Email</th>
+                <th>Status</th>
+                <th>Created At</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for record in page_obj %}
+              <tr>
+                <td>{{ record.legal_entity_name }}</td>
+                <td>{{ record.entity_type }}</td>
+                <td>{{ record.industry_sector }}</td>
+                <td>{{ record.incorporation_date|date:"d M Y"|default:"--" }}</td>
+                <td>{{ record.email|default:"--" }}</td>
+                <td>{{ record.get_status_display|default:record.status|default:"--" }}</td>
+                <td>{{ record.created_at|date:"d M Y, h:i A" }}</td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+          {% elif active_tab == 'fssai' %}
+          <table class="table table-striped align-middle mb-0">
+            <thead>
+              <tr>
+                <th>Business / Brand</th>
+                <th>Licence Type</th>
+                <th>Business Nature</th>
+                <th>Employees</th>
+                <th>Licence Tenure</th>
+                <th>Status</th>
+                <th>Created At</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for record in page_obj %}
+              <tr>
+                <td>{{ record.business_brand_name }}</td>
+                <td>{{ record.licence_type }}</td>
+                <td>{{ record.business_nature }}</td>
+                <td>{{ record.employees|default:"--" }}</td>
+                <td>{{ record.licence_tenure }}</td>
+                <td>{{ record.get_status_display|default:record.status|default:"--" }}</td>
+                <td>{{ record.created_at|date:"d M Y, h:i A" }}</td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+          {% elif active_tab == 'msme' %}
+          <table class="table table-striped align-middle mb-0">
+            <thead>
+              <tr>
+                <th>Entity Name</th>
+                <th>Organisation Type</th>
+                <th>Investment (₹)</th>
+                <th>Annual Turnover (₹)</th>
+                <th>Principal Activity</th>
+                <th>Status</th>
+                <th>Created At</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for record in page_obj %}
+              <tr>
+                <td>{{ record.entity_name }}</td>
+                <td>{{ record.organisation_type }}</td>
+                <td>{{ record.plant_machinery_investment|default:"--" }}</td>
+                <td>{{ record.annual_turnover|default:"--" }}</td>
+                <td>{{ record.principal_activity|default:"--" }}</td>
+                <td>{{ record.get_status_display|default:record.status|default:"--" }}</td>
+                <td>{{ record.created_at|date:"d M Y, h:i A" }}</td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+          {% elif active_tab == 'company-reg' %}
+          <table class="table table-striped align-middle mb-0">
+            <thead>
+              <tr>
+                <th>Entity Type</th>
+                <th>Directors / Partners</th>
+                <th>Proposed Names</th>
+                <th>Authorised Capital</th>
+                <th>Registered Office</th>
+                <th>Status</th>
+                <th>Created At</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for record in page_obj %}
+              <tr>
+                <td>{{ record.entity_type }}</td>
+                <td>{{ record.directors_partners }}</td>
+                <td class="text-truncate" style="max-width: 220px;">{{ record.proposed_names|linebreaksbr }}</td>
+                <td>{{ record.authorised_capital|default:"--" }}</td>
+                <td class="text-truncate" style="max-width: 220px;">{{ record.registered_office }}</td>
+                <td>{{ record.get_status_display|default:record.status|default:"--" }}</td>
+                <td>{{ record.created_at|date:"d M Y, h:i A" }}</td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+          {% elif active_tab == 'fire-pollution' %}
+          <table class="table table-striped align-middle mb-0">
+            <thead>
+              <tr>
+                <th>Establishment Type</th>
+                <th>Built-up Area</th>
+                <th>Pollution Category</th>
+                <th>Safety Installations</th>
+                <th>Status</th>
+                <th>Created At</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for record in page_obj %}
+              <tr>
+                <td>{{ record.establishment_type }}</td>
+                <td>{{ record.built_up_area }} sq.ft</td>
+                <td>{{ record.pollution_category }}</td>
+                <td class="text-truncate" style="max-width: 220px;">{{ record.safety_installations|default:"--" }}</td>
+                <td>{{ record.get_status_display|default:record.status|default:"--" }}</td>
+                <td>{{ record.created_at|date:"d M Y, h:i A" }}</td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+          {% elif active_tab == 'iso' %}
+          <table class="table table-striped align-middle mb-0">
+            <thead>
+              <tr>
+                <th>Standard</th>
+                <th>Locations</th>
+                <th>Employee Strength</th>
+                <th>Existing Certifications</th>
+                <th>Status</th>
+                <th>Created At</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for record in page_obj %}
+              <tr>
+                <td>{{ record.standard }}</td>
+                <td>{{ record.locations }}</td>
+                <td>{{ record.employee_strength|default:"--" }}</td>
+                <td class="text-truncate" style="max-width: 220px;">{{ record.existing_certifications|default:"--" }}</td>
+                <td>{{ record.get_status_display|default:record.status|default:"--" }}</td>
+                <td>{{ record.created_at|date:"d M Y, h:i A" }}</td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+          {% elif active_tab == 'tm-file' %}
+          <table class="table table-striped align-middle mb-0">
+            <thead>
+              <tr>
+                <th>Brand / Logo</th>
+                <th>Applicant Type</th>
+                <th>Classes</th>
+                <th>First Use Date</th>
+                <th>Status</th>
+                <th>Created At</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for record in page_obj %}
+              <tr>
+                <td class="text-truncate" style="max-width: 220px;">{{ record.brand_logo|default:"--" }}</td>
+                <td>{{ record.applicant_type }}</td>
+                <td>{{ record.classes }}</td>
+                <td>{{ record.first_use_date|date:"d M Y"|default:"--" }}</td>
+                <td>{{ record.get_status_display|default:record.status|default:"--" }}</td>
+                <td>{{ record.created_at|date:"d M Y, h:i A" }}</td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+          {% elif active_tab == 'tm-compliance' %}
+          <table class="table table-striped align-middle mb-0">
+            <thead>
+              <tr>
+                <th>Existing TM Numbers</th>
+                <th>Portfolio Size</th>
+                <th>Watch Scope</th>
+                <th>Renewal Month</th>
+                <th>Status</th>
+                <th>Created At</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for record in page_obj %}
+              <tr>
+                <td class="text-truncate" style="max-width: 220px;">{{ record.existing_tm_numbers|default:"--" }}</td>
+                <td>{{ record.portfolio_size|default:"--" }}</td>
+                <td>{{ record.watch_scope|default:"--" }}</td>
+                <td>{{ record.renewal_month|default:"--" }}</td>
+                <td>{{ record.get_status_display|default:record.status|default:"--" }}</td>
+                <td>{{ record.created_at|date:"d M Y, h:i A" }}</td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+          {% elif active_tab == 'tm-instant' %}
+          <table class="table table-striped align-middle mb-0">
+            <thead>
+              <tr>
+                <th>Urgency Reason</th>
+                <th>Filing Window</th>
+                <th>Contact Mobile</th>
+                <th>Status</th>
+                <th>Created At</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for record in page_obj %}
+              <tr>
+                <td class="text-truncate" style="max-width: 220px;">{{ record.urgency_reason|default:"--" }}</td>
+                <td>{{ record.filing_window|default:"--" }}</td>
+                <td>{{ record.contact_mobile|default:"--" }}</td>
+                <td>{{ record.get_status_display|default:record.status|default:"--" }}</td>
+                <td>{{ record.created_at|date:"d M Y, h:i A" }}</td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+          {% elif active_tab == 'address-change' %}
+          <table class="table table-striped align-middle mb-0">
+            <thead>
+              <tr>
+                <th>Entity Type</th>
+                <th>Shift Type</th>
+                <th>Effective Date</th>
+                <th>New Address</th>
+                <th>Status</th>
+                <th>Created At</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for record in page_obj %}
+              <tr>
+                <td>{{ record.entity_type }}</td>
+                <td>{{ record.shift_type }}</td>
+                <td>{{ record.effective_date|date:"d M Y"|default:"--" }}</td>
+                <td class="text-truncate" style="max-width: 220px;">{{ record.new_address|default:"--" }}</td>
+                <td>{{ record.get_status_display|default:record.status|default:"--" }}</td>
+                <td>{{ record.created_at|date:"d M Y, h:i A" }}</td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+          {% elif active_tab == 'moa-alter' %}
+          <table class="table table-striped align-middle mb-0">
+            <thead>
+              <tr>
+                <th>Alteration Type</th>
+                <th>Proposed Object / Name</th>
+                <th>Effective Date</th>
+                <th>Status</th>
+                <th>Created At</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for record in page_obj %}
+              <tr>
+                <td>{{ record.alteration_type }}</td>
+                <td class="text-truncate" style="max-width: 280px;">{{ record.proposed_object_name|default:"--" }}</td>
+                <td>{{ record.effective_date|date:"d M Y"|default:"--" }}</td>
+                <td>{{ record.get_status_display|default:record.status|default:"--" }}</td>
+                <td>{{ record.created_at|date:"d M Y, h:i A" }}</td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+          {% endif %}
+        {% else %}
+          <p class="text-center text-muted py-4 mb-0">No records found.</p>
+        {% endif %}
+      </div>
+
+      <div class="d-sm-none">
+        {% if page_obj and page_obj.object_list %}
+          {% for record in page_obj %}
+          <div class="card mb-2 mobile-record-card">
+            <div class="card-body">
+              {% if active_tab == 'startup' %}
+                <h6 class="mb-1">{{ record.legal_entity_name }}</h6>
+                <div class="small text-muted mb-2">{{ record.entity_type }} • {{ record.industry_sector }}</div>
+                <p class="mb-1"><span class="label">Incorporation:</span> {{ record.incorporation_date|date:"d M Y"|default:"--" }}</p>
+                <p class="mb-1"><span class="label">Email:</span> {{ record.email|default:"--" }}</p>
+                <p class="mb-0 text-muted">Status: {{ record.get_status_display|default:record.status|default:"--" }}</p>
+              {% elif active_tab == 'fssai' %}
+                <h6 class="mb-1">{{ record.business_brand_name }}</h6>
+                <div class="small text-muted mb-2">{{ record.licence_type }} • {{ record.business_nature }}</div>
+                <p class="mb-1"><span class="label">Employees:</span> {{ record.employees|default:"--" }}</p>
+                <p class="mb-1"><span class="label">Tenure:</span> {{ record.licence_tenure }}</p>
+                <p class="mb-0 text-muted">Status: {{ record.get_status_display|default:record.status|default:"--" }}</p>
+              {% elif active_tab == 'msme' %}
+                <h6 class="mb-1">{{ record.entity_name }}</h6>
+                <div class="small text-muted mb-2">{{ record.organisation_type }}</div>
+                <p class="mb-1"><span class="label">Investment:</span> {{ record.plant_machinery_investment|default:"--" }}</p>
+                <p class="mb-1"><span class="label">Turnover:</span> {{ record.annual_turnover|default:"--" }}</p>
+                <p class="mb-0 text-muted">Status: {{ record.get_status_display|default:record.status|default:"--" }}</p>
+              {% elif active_tab == 'company-reg' %}
+                <h6 class="mb-1">{{ record.entity_type }}</h6>
+                <div class="small text-muted mb-2">Directors / Partners: {{ record.directors_partners }}</div>
+                <p class="mb-1"><span class="label">Authorised Capital:</span> {{ record.authorised_capital|default:"--" }}</p>
+                <p class="mb-1"><span class="label">Registered Office:</span> {{ record.registered_office }}</p>
+                <p class="mb-0 text-muted">Status: {{ record.get_status_display|default:record.status|default:"--" }}</p>
+              {% elif active_tab == 'fire-pollution' %}
+                <h6 class="mb-1">{{ record.establishment_type }}</h6>
+                <div class="small text-muted mb-2">{{ record.pollution_category }}</div>
+                <p class="mb-1"><span class="label">Built-up Area:</span> {{ record.built_up_area }} sq.ft</p>
+                <p class="mb-1"><span class="label">Safety:</span> {{ record.safety_installations|default:"--" }}</p>
+                <p class="mb-0 text-muted">Status: {{ record.get_status_display|default:record.status|default:"--" }}</p>
+              {% elif active_tab == 'iso' %}
+                <h6 class="mb-1">{{ record.standard }}</h6>
+                <div class="small text-muted mb-2">{{ record.locations }} locations</div>
+                <p class="mb-1"><span class="label">Employees:</span> {{ record.employee_strength|default:"--" }}</p>
+                <p class="mb-1"><span class="label">Existing Certs:</span> {{ record.existing_certifications|default:"--" }}</p>
+                <p class="mb-0 text-muted">Status: {{ record.get_status_display|default:record.status|default:"--" }}</p>
+              {% elif active_tab == 'tm-file' %}
+                <h6 class="mb-1">{{ record.applicant_type }}</h6>
+                <div class="small text-muted mb-2">{{ record.classes }}</div>
+                <p class="mb-1"><span class="label">Brand:</span> {{ record.brand_logo|default:"--" }}</p>
+                <p class="mb-1"><span class="label">First Use:</span> {{ record.first_use_date|date:"d M Y"|default:"--" }}</p>
+                <p class="mb-0 text-muted">Status: {{ record.get_status_display|default:record.status|default:"--" }}</p>
+              {% elif active_tab == 'tm-compliance' %}
+                <h6 class="mb-1">{{ record.portfolio_size|default:"--" }} TM Portfolio</h6>
+                <div class="small text-muted mb-2">{{ record.watch_scope|default:"--" }}</div>
+                <p class="mb-1"><span class="label">Existing TM:</span> {{ record.existing_tm_numbers|default:"--" }}</p>
+                <p class="mb-1"><span class="label">Renewal:</span> {{ record.renewal_month|default:"--" }}</p>
+                <p class="mb-0 text-muted">Status: {{ record.get_status_display|default:record.status|default:"--" }}</p>
+              {% elif active_tab == 'tm-instant' %}
+                <h6 class="mb-1">{{ record.filing_window|default:"Instant Filing" }}</h6>
+                <div class="small text-muted mb-2">{{ record.contact_mobile|default:"Contact pending" }}</div>
+                <p class="mb-1"><span class="label">Reason:</span> {{ record.urgency_reason|default:"--" }}</p>
+                <p class="mb-0 text-muted">Status: {{ record.get_status_display|default:record.status|default:"--" }}</p>
+              {% elif active_tab == 'address-change' %}
+                <h6 class="mb-1">{{ record.entity_type }}</h6>
+                <div class="small text-muted mb-2">{{ record.shift_type }}</div>
+                <p class="mb-1"><span class="label">Effective:</span> {{ record.effective_date|date:"d M Y"|default:"--" }}</p>
+                <p class="mb-1"><span class="label">New Address:</span> {{ record.new_address|default:"--" }}</p>
+                <p class="mb-0 text-muted">Status: {{ record.get_status_display|default:record.status|default:"--" }}</p>
+              {% elif active_tab == 'moa-alter' %}
+                <h6 class="mb-1">{{ record.alteration_type }}</h6>
+                <div class="small text-muted mb-2">{{ record.effective_date|date:"d M Y"|default:"--" }}</div>
+                <p class="mb-1"><span class="label">Proposal:</span> {{ record.proposed_object_name|default:"--" }}</p>
+                <p class="mb-0 text-muted">Status: {{ record.get_status_display|default:record.status|default:"--" }}</p>
+              {% endif %}
+            </div>
+          </div>
+          {% endfor %}
+        {% else %}
+          <p class="text-center text-muted py-4 mb-0">No records found.</p>
+        {% endif %}
+      </div>
+
+      {% if page_obj and page_obj.has_other_pages %}
+      <nav class="mt-3">
+        <ul class="pagination pagination-sm mb-0">
+          {% if page_obj.has_previous %}
+          <li class="page-item">
+            <a class="page-link" href="?tab={{ active_tab }}&page={{ page_obj.previous_page_number }}{% if search_query %}&q={{ search_query|urlencode }}{% endif %}">Previous</a>
+          </li>
+          {% else %}
+          <li class="page-item disabled"><span class="page-link">Previous</span></li>
+          {% endif %}
+
+          <li class="page-item disabled">
+            <span class="page-link">
+              Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}
+            </span>
+          </li>
+
+          {% if page_obj.has_next %}
+          <li class="page-item">
+            <a class="page-link" href="?tab={{ active_tab }}&page={{ page_obj.next_page_number }}{% if search_query %}&q={{ search_query|urlencode }}{% endif %}">Next</a>
+          </li>
+          {% else %}
+          <li class="page-item disabled"><span class="page-link">Next</span></li>
+          {% endif %}
+        </ul>
+      </nav>
+      {% endif %}
     </div>
   </div>
 </div>
 {% endblock %}
-
-
