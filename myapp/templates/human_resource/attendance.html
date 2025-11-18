@@ -203,9 +203,6 @@
           if (attendance[key]) {
             // DB has data - show it (this means both check-in and check-out exist)
             td.textContent = attendance[key];
-          } else if (isPastDate) {
-            // Past dates without login: show 'A' (Absent)
-            td.textContent = 'A';
           } else if (isFutureDate) {
             // Future dates: leave blank
             td.textContent = '';
@@ -307,8 +304,6 @@
           
           if (status) {
             row.push(status);
-          } else if (isPastDate) {
-            row.push('A'); // Absent for past dates
           } else if (isToday) {
             row.push(''); // Blank for today
           } else {
