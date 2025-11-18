@@ -128,10 +128,9 @@
                 <th>Company</th>
                 <th>Email</th>
                 <th>Phone</th>
-                <th>Amount</th>
+                <th>Amount / Due</th>
                 <th>Status</th>
                 <th>Date</th>
-                <th>Owner</th>
                 <th class="text-end">Actions</th>
               </tr>
             </thead>
@@ -157,7 +156,7 @@
                       -
                     {% endif %}
                   </td>
-                  <td data-label="Amount">
+                  <td data-label="Amount / Due">
                     <strong>
                       {% if invoice.currency == 'USD' %}
                         $ {{ invoice.amount|floatformat:2|intcomma|default:"0.00" }}
@@ -167,6 +166,16 @@
                         ₹ {{ invoice.amount|floatformat:2|intcomma|default:"0.00" }}
                       {% endif %}
                     </strong>
+                    <span class="text-muted">
+                      /
+                      {% if invoice.currency == 'USD' %}
+                        $ {{ invoice.pending_balance|floatformat:2|intcomma|default:"0.00" }}
+                      {% elif invoice.currency == 'EUR' %}
+                        € {{ invoice.pending_balance|floatformat:2|intcomma|default:"0.00" }}
+                      {% else %}
+                        ₹ {{ invoice.pending_balance|floatformat:2|intcomma|default:"0.00" }}
+                      {% endif %}
+                    </span>
                   </td>
                   <td data-label="Status">
                     <span class="badge {{ invoice.status_badge|default:'bg-secondary' }}">
@@ -180,9 +189,16 @@
                       -
                     {% endif %}
                   </td>
-                  <td data-label="Owner">{{ invoice.owner|default:"-" }}</td>
                   <td data-label="Actions" class="text-end">
                     <div class="btn-group" role="group">
+                      {% if invoice.pending_balance > 0 %}
+                      <a href="{% url 'invoices' %}?open_invoice={{ invoice.id }}#create-invoice"
+                         class="btn btn-sm btn-outline-warning invoice-pay-due-link"
+                         data-invoice-id="{{ invoice.id }}"
+                         title="Pay Due">
+                        <i class="bi bi-cash-stack"></i>
+                      </a>
+                      {% endif %}
                       <button type="button"
                               class="btn btn-sm btn-outline-secondary invoice-view-btn"
                               data-invoice-id="{{ invoice.id }}"
@@ -289,6 +305,165 @@
         <!-- Create New Invoice Tab -->
         <div class="tab-pane fade" id="create-invoice" role="tabpanel" aria-labelledby="create-invoice-tab">
           <div class="create-invoice-section">
+            {% if selected_invoice %}
+            <div class="card border-warning mb-4" id="pay-due-card">
+              <div class="card-body">
+                <div class="d-flex flex-column flex-lg-row justify-content-between align-items-start align-items-lg-center mb-3 gap-3">
+                  <div>
+                    <h5 class="mb-1 text-warning">
+                      <i class="bi bi-cash-coin me-2"></i>Record Due Payment for {{ selected_invoice.client_name }}
+                    </h5>
+                    <p class="mb-0 text-muted">Invoice {{ selected_invoice.invoice_number }} · Issued {{ selected_invoice.invoice_date|default:"-" }}</p>
+                  </div>
+                  <div class="text-lg-end">
+                    <div class="fw-semibold text-muted">Pending Due</div>
+                    <div class="fs-5 fw-bold text-danger">
+                      {% if selected_invoice.currency == 'USD' %}
+                        $ {{ selected_invoice.pending_balance|floatformat:2|intcomma }}
+                      {% elif selected_invoice.currency == 'EUR' %}
+                        € {{ selected_invoice.pending_balance|floatformat:2|intcomma }}
+                      {% else %}
+                        ₹ {{ selected_invoice.pending_balance|floatformat:2|intcomma }}
+                      {% endif %}
+                    </div>
+                  </div>
+                </div>
+
+                <div class="row g-3 mb-3">
+                  <div class="col-md-4">
+                    <div class="p-3 bg-light rounded">
+                      <div class="text-muted">Total Amount</div>
+                      <div class="fw-bold">
+                        {% if selected_invoice.currency == 'USD' %}
+                          $ {{ selected_invoice.total|floatformat:2|intcomma }}
+                        {% elif selected_invoice.currency == 'EUR' %}
+                          € {{ selected_invoice.total|floatformat:2|intcomma }}
+                        {% else %}
+                          ₹ {{ selected_invoice.total|floatformat:2|intcomma }}
+                        {% endif %}
+                      </div>
+                    </div>
+                  </div>
+                  <div class="col-md-4">
+                    <div class="p-3 bg-light rounded">
+                      <div class="text-muted">Previous Payment</div>
+                      <div class="fw-bold text-success">
+                        {% if selected_invoice.currency == 'USD' %}
+                          $ {{ selected_invoice.amount_received|floatformat:2|intcomma }}
+                        {% elif selected_invoice.currency == 'EUR' %}
+                          € {{ selected_invoice.amount_received|floatformat:2|intcomma }}
+                        {% else %}
+                          ₹ {{ selected_invoice.amount_received|floatformat:2|intcomma }}
+                        {% endif %}
+                      </div>
+                    </div>
+                  </div>
+                  <div class="col-md-4">
+                    <div class="p-3 bg-light rounded h-100">
+                      <div class="text-muted mb-1">Client</div>
+                      <div class="fw-semibold">{{ selected_invoice.client_name }}</div>
+                      <div class="small text-muted">{{ selected_invoice.company|default:"-" }}</div>
+                      <div class="small">
+                        {% if selected_invoice.email %}
+                          <a href="mailto:{{ selected_invoice.email }}">{{ selected_invoice.email }}</a>
+                        {% else %}
+                          <span class="text-muted">No email</span>
+                        {% endif %}
+                        ·
+                        {% if selected_invoice.phone %}
+                          <a href="tel:{{ selected_invoice.phone }}">{{ selected_invoice.phone }}</a>
+                        {% else %}
+                          <span class="text-muted">No phone</span>
+                        {% endif %}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="table-responsive mb-3">
+                  <table class="table table-sm align-middle mb-0">
+                    <thead class="table-light">
+                      <tr>
+                        <th style="width: 60%;">Payment Date</th>
+                        <th class="text-end">Amount</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {% if selected_invoice.payment_history %}
+                        {% for entry in selected_invoice.payment_history %}
+                        <tr>
+                          <td>{{ entry.date_display|default:"-" }}</td>
+                          <td class="text-end">
+                            {% if selected_invoice.currency == 'USD' %}
+                              $ {{ entry.amount|floatformat:2|intcomma }}
+                            {% elif selected_invoice.currency == 'EUR' %}
+                              € {{ entry.amount|floatformat:2|intcomma }}
+                            {% else %}
+                              ₹ {{ entry.amount|floatformat:2|intcomma }}
+                            {% endif %}
+                          </td>
+                        </tr>
+                        {% endfor %}
+                      {% else %}
+                        <tr>
+                          <td colspan="2" class="text-center text-muted">No previous payments recorded.</td>
+                        </tr>
+                      {% endif %}
+                    </tbody>
+                  </table>
+                </div>
+
+                <form method="post"
+                      action="{% url 'invoice_pay_due' selected_invoice.id %}"
+                      class="mt-3" id="payDueForm">
+                  {% csrf_token %}
+                  <div class="row g-3">
+                    <div class="col-md-4">
+                      <label for="pay_due_amount" class="form-label">Pay Due Amount</label>
+                      <input type="number"
+                             class="form-control"
+                             id="pay_due_amount"
+                             name="pay_amount"
+                             min="0.01"
+                             step="0.01"
+                             max="{{ selected_invoice.pending_balance }}"
+                             value="{{ selected_invoice.pending_balance|floatformat:2 }}"
+                             data-pending="{{ selected_invoice.pending_balance }}"
+                             required>
+                      <small class="text-muted">Maximum {{ selected_invoice.pending_balance|floatformat:2 }}</small>
+                    </div>
+                    <div class="col-md-4">
+                      <label for="pay_due_date" class="form-label">Payment Date</label>
+                      <input type="date"
+                             class="form-control"
+                             id="pay_due_date"
+                             name="pay_date"
+                             value="{{ today_iso }}"
+                             required>
+                    </div>
+                    <div class="col-md-4 d-flex align-items-end">
+                      <button type="submit" class="btn btn-warning w-100">
+                        <i class="bi bi-check-circle me-1"></i>Apply Payment
+                      </button>
+                    </div>
+                  </div>
+                  <div class="mt-2 text-muted">
+                    Remaining Due after payment:
+                    <span class="fw-semibold" id="pay_due_preview">
+                      {% if selected_invoice.currency == 'USD' %}
+                        $ 0.00
+                      {% elif selected_invoice.currency == 'EUR' %}
+                        € 0.00
+                      {% else %}
+                        ₹ 0.00
+                      {% endif %}
+                    </span>
+                  </div>
+                </form>
+              </div>
+            </div>
+            {% endif %}
+
             <h5 class="mb-4">
               <i class="bi bi-file-earmark-plus me-2"></i>Create New Invoice
             </h5>
@@ -466,6 +641,18 @@
                   <label for="total" class="form-label">Total Amount <span class="text-danger">*</span></label>
                   <input type="number" class="form-control" id="total" name="total" step="0.01" required readonly>
                 </div>
+                
+                <div class="col-md-6 mb-3">
+                  <label for="amount_received" class="form-label">Amount Received</label>
+                  <input type="number" class="form-control" id="amount_received" name="amount_received" step="0.01" min="0" value="0.00">
+                  <small class="text-muted">Enter the amount received from client</small>
+                </div>
+                
+                <div class="col-md-6 mb-3">
+                  <label for="pending_balance" class="form-label">Pending Balance</label>
+                  <input type="number" class="form-control" id="pending_balance" name="pending_balance" step="0.01" readonly>
+                  <small class="text-muted text-danger">Amount remaining to be paid</small>
+                </div>
               </div>
               
               <div class="row mb-4">
@@ -536,6 +723,8 @@
               <p><strong>Discount:</strong> <span id="detailDiscount">-</span></p>
               <p><strong>GST:</strong> <span id="detailGst">-</span></p>
               <p><strong>Total:</strong> <span id="detailTotal">-</span></p>
+              <p><strong>Previous Payment:</strong> <span id="detailAmountReceived" class="text-success">-</span></p>
+              <p><strong>Due Payment:</strong> <span id="detailPendingBalance" class="text-danger">-</span></p>
             </div>
           </div>
         </div>
@@ -731,6 +920,9 @@
 </style>
 
 {{ company_profile|json_script:"companyProfileData" }}
+{% if selected_invoice %}
+  {{ selected_invoice|json_script:"selectedInvoiceData" }}
+{% endif %}
 {% if company_profile.logo_path %}
   <div id="companyLogoUrl" data-logo-url="{% static company_profile.logo_path %}"></div>
 {% else %}
@@ -741,6 +933,72 @@
   document.addEventListener('DOMContentLoaded', function() {
     // Set today's date as default invoice date
     const today = new Date().toISOString().split('T')[0];
+    // Handle Pay Due card interactions
+    const createTabTrigger = document.querySelector('#create-invoice-tab');
+    const createTabPane = document.getElementById('create-invoice');
+
+    function activateCreateTab() {
+      if (!createTabTrigger) return;
+      if (window.bootstrap && bootstrap.Tab) {
+        const tabInstance = bootstrap.Tab.getOrCreateInstance(createTabTrigger);
+        tabInstance.show();
+      } else {
+        const allTabTrigger = document.querySelector('#all-invoices-tab');
+        const allTabPane = document.getElementById('all-invoices');
+        if (allTabTrigger) allTabTrigger.classList.remove('active');
+        if (allTabPane) allTabPane.classList.remove('show', 'active');
+        createTabTrigger.classList.add('active');
+        if (createTabPane) createTabPane.classList.add('show', 'active');
+      }
+    }
+
+    function scrollToCreateTab() {
+      if (createTabPane) {
+        setTimeout(() => {
+          createTabPane.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }, 300);
+      }
+    }
+
+    const urlParams = new URLSearchParams(window.location.search);
+    const openInvoiceParam = urlParams.get('open_invoice');
+
+    const selectedInvoiceDataEl = document.getElementById('selectedInvoiceData');
+    if (selectedInvoiceDataEl) {
+      activateCreateTab();
+      const payDueAmountInput = document.getElementById('pay_due_amount');
+      const payDuePreview = document.getElementById('pay_due_preview');
+      if (payDueAmountInput && payDuePreview) {
+        const pending = parseFloat(payDueAmountInput.dataset.pending || '0');
+        const invoiceData = JSON.parse(selectedInvoiceDataEl.textContent);
+        function formatCurrency(value) {
+          const currency = invoiceData.currency || 'INR';
+          const amount = Number(value) || 0;
+          const formatted = amount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+          if (currency === 'USD') return `$ ${formatted}`;
+          if (currency === 'EUR') return `€ ${formatted}`;
+          return `₹ ${formatted}`;
+        }
+        function updatePayDuePreview() {
+          let entered = parseFloat(payDueAmountInput.value) || 0;
+          if (entered > pending) {
+            entered = pending;
+            payDueAmountInput.value = pending.toFixed(2);
+          } else if (entered < 0) {
+            entered = 0;
+            payDueAmountInput.value = '0.00';
+          }
+          const remaining = Math.max(0, pending - entered);
+          payDuePreview.textContent = remaining > 0 ? formatCurrency(remaining) : `${formatCurrency(0)} (No Due)`;
+        }
+        updatePayDuePreview();
+        payDueAmountInput.addEventListener('input', updatePayDuePreview);
+        scrollToCreateTab();
+      }
+    } else if (openInvoiceParam) {
+      activateCreateTab();
+      scrollToCreateTab();
+    }
     const invoiceDateField = document.getElementById('invoice_date');
     if (invoiceDateField && !invoiceDateField.value) {
       invoiceDateField.value = today;
@@ -939,6 +1197,31 @@
       if (totalField) {
         totalField.value = Math.max(0, total).toFixed(2);
       }
+      
+      // Calculate pending balance
+      calculatePendingBalance();
+    }
+    
+    // Calculate pending balance function
+    function calculatePendingBalance() {
+      const totalField = document.getElementById('total');
+      const amountReceivedField = document.getElementById('amount_received');
+      const pendingBalanceField = document.getElementById('pending_balance');
+      
+      if (totalField && amountReceivedField && pendingBalanceField) {
+        const total = parseFloat(totalField.value) || 0;
+        let amountReceived = parseFloat(amountReceivedField.value) || 0;
+        
+        // Ensure amount received doesn't exceed total
+        if (amountReceived > total) {
+          amountReceived = total;
+          amountReceivedField.value = total.toFixed(2);
+          alert('Amount received cannot exceed total amount. It has been adjusted to match the total.');
+        }
+        
+        const pendingBalance = Math.max(0, total - amountReceived);
+        pendingBalanceField.value = pendingBalance.toFixed(2);
+      }
     }
     
     // Add calculation listeners to existing inputs
@@ -985,8 +1268,16 @@
       gstPercentInput.addEventListener('input', calculateTotals);
     }
     
+    // Amount received input listener
+    const amountReceivedField = document.getElementById('amount_received');
+    if (amountReceivedField) {
+      amountReceivedField.addEventListener('input', calculatePendingBalance);
+      amountReceivedField.addEventListener('change', calculatePendingBalance);
+    }
+    
     // Initial calculation
     calculateTotals();
+    calculatePendingBalance();
     
     // Form validation function
     window.validateClientForm = function() {
@@ -1022,6 +1313,7 @@
         if (clientNameHidden) {
           clientNameHidden.value = newClientValue;
         }
+
       }
       
       return true;
@@ -1118,6 +1410,8 @@
     function openPrintWindow(data) {
       const currency = data.currency || 'INR';
       const items = Array.isArray(data.items) ? data.items : [];
+      const paymentHistory = Array.isArray(data.payment_history) ? data.payment_history : [];
+      const pendingBalanceValue = Number(data.pending_balance || 0);
       const itemsRows = items.length ? items.map((item, index) => {
         const qty = Number(item.quantity) || 0;
         const price = Number(item.unit_price || item.price) || 0;
@@ -1141,6 +1435,25 @@
       const discount = Number(data.discount) ? formatCurrencyDisplay(data.discount, currency) : '-';
       const gstAmount = Number(data.gst_amount) ? formatCurrencyDisplay(data.gst_amount, currency) : '-';
       const total = formatCurrencyDisplay(data.total, currency);
+      const amountReceived = Number(data.amount_received || 0) ? formatCurrencyDisplay(data.amount_received, currency) : formatCurrencyDisplay(0, currency);
+      const pendingBalanceDisplay = pendingBalanceValue > 0
+        ? formatCurrencyDisplay(pendingBalanceValue, currency)
+        : `${formatCurrencyDisplay(0, currency)} (No Due)`;
+      const paymentHistoryRows = paymentHistory.length ? paymentHistory.map((entry, idx) => {
+        const amount = formatCurrencyDisplay(entry.amount, currency);
+        const dateDisplay = entry.date_display || entry.date || '-';
+        return `
+          <tr>
+            <td>${idx + 1}</td>
+            <td>${dateDisplay}</td>
+            <td class="text-right">${amount}</td>
+          </tr>
+        `;
+      }).join('') : `
+        <tr>
+          <td colspan="3" style="text-align:center;padding:12px;">No payments recorded yet.</td>
+        </tr>
+      `;
 
       const printWindow = window.open('', '_blank', 'width=900,height=700');
       const logoMarkup = companyLogoUrl
@@ -1228,11 +1541,31 @@
               <tr><td>Discount</td><td class="text-right">${discount}</td></tr>
               <tr><td>GST</td><td class="text-right">${gstAmount}</td></tr>
               <tr><td><strong>Grand Total</strong></td><td class="text-right"><strong>${total}</strong></td></tr>
+              <tr><td><strong>Previous Payment</strong></td><td class="text-right" style="color: #28a745;">${amountReceived}</td></tr>
+              <tr><td><strong>Due Payment</strong></td><td class="text-right" style="color: #dc3545;"><strong>${pendingBalanceDisplay}</strong></td></tr>
             </table>
           </div>
 
+          <h3 style="margin-top:24px;font-size:16px;color:#4a306d;">Payment History & Due</h3>
+          <table>
+            <thead>
+              <tr>
+                <th style="width:15%;">#</th>
+                <th style="width:45%;">Payment Date</th>
+                <th style="width:40%; text-align:right;">Amount</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${paymentHistoryRows}
+              <tr>
+                <td colspan="2" style="text-align:right;font-weight:bold;">Pending Balance (${new Date().toLocaleDateString()})</td>
+                <td class="text-right" style="color:#dc3545;font-weight:bold;">${pendingBalanceDisplay}</td>
+              </tr>
+            </tbody>
+          </table>
+
           <div class="signature">
-            <div>Amount Received (₹) __________________</div>
+            <div></div>
             <div style="text-align:right;">
               For ${companyProfile.name || 'Sujata Associates'}<br><br><br>
               Authorised Signature
@@ -1315,6 +1648,19 @@
               gstField.textContent = '-';
             }
           }
+          
+          // Amount received and pending balance
+          const amountReceivedField = document.getElementById('detailAmountReceived');
+          if (amountReceivedField) {
+            const amountReceived = parseFloat(data.amount_received || 0);
+            amountReceivedField.textContent = `${data.currency || '₹'} ${amountReceived.toFixed(2)}`;
+          }
+          
+          const pendingBalanceField = document.getElementById('detailPendingBalance');
+          if (pendingBalanceField) {
+            const pendingBalance = parseFloat(data.pending_balance || 0);
+            pendingBalanceField.textContent = `${data.currency || '₹'} ${pendingBalance.toFixed(2)}`;
+          }
 
           const meta = document.getElementById('invoiceDetailMeta');
           if (meta) {
@@ -1392,4 +1738,5 @@
   });
 </script>
 {% endblock %}
+
 

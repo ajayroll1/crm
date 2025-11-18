@@ -304,6 +304,8 @@ class Invoice(models.Model):
     gst_percent = models.DecimalField(max_digits=5, decimal_places=2, default=0.00, verbose_name="GST Percentage (%)")
     gst_amount = models.DecimalField(max_digits=12, decimal_places=2, default=0.00, verbose_name="GST Amount")
     total = models.DecimalField(max_digits=12, decimal_places=2, default=0.00)
+    amount_received = models.DecimalField(max_digits=12, decimal_places=2, default=0.00, verbose_name="Amount Received")
+    payment_history = models.JSONField(default=list, blank=True, help_text="List of partial payments with amount and date")
     
     # Additional Information
     notes = models.TextField(blank=True, null=True, verbose_name="Notes")
@@ -333,6 +335,11 @@ class Invoice(models.Model):
             'Cancelled': 'bg-secondary'
         }
         return status_classes.get(self.status, 'bg-secondary')
+    
+    def get_pending_balance(self):
+        """Calculate pending balance (Total - Amount Received)"""
+        pending = float(self.total) - float(self.amount_received)
+        return max(0, pending)
 
 
 class ClientOnboarding(models.Model):

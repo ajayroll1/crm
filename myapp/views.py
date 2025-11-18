@@ -9,6 +9,7 @@ from django.core.files.storage import default_storage
 from django.contrib.staticfiles import finders
 from django.db.models import Q, Count, Sum
 from django.utils import timezone
+from django.urls import reverse
 from datetime import datetime, date
 from decimal import Decimal, InvalidOperation, ROUND_HALF_UP
 import json
@@ -653,6 +654,45 @@ def dashboard(request):
   }
   
   return render(request, 'dashboard/dashboard.html', context)
+
+
+@login_required
+def accounts_department(request):
+  """
+  Placeholder view for Accounts Department section.
+  Currently shows an 'Under Construction' page.
+  """
+  # Restrict to admin/staff similar to main dashboard
+  try:
+    employee = Employee.objects.get(email=request.user.email)
+    if employee.role != 'Admin':
+      messages.warning(request, 'You do not have permission to access this page.')
+      return redirect('employee_dashboard')
+  except Employee.DoesNotExist:
+    if not request.user.is_staff:
+      messages.warning(request, 'You do not have permission to access this page.')
+      return redirect('employee_dashboard')
+  
+  return render(request, 'dashboard/accounts_department.html')
+
+
+@login_required
+def backoffice_department(request):
+  """
+  Placeholder view for Back Office Management section.
+  Currently shows an 'Under Construction' page.
+  """
+  try:
+    employee = Employee.objects.get(email=request.user.email)
+    if employee.role != 'Admin':
+      messages.warning(request, 'You do not have permission to access this page.')
+      return redirect('employee_dashboard')
+  except Employee.DoesNotExist:
+    if not request.user.is_staff:
+      messages.warning(request, 'You do not have permission to access this page.')
+      return redirect('employee_dashboard')
+  
+  return render(request, 'dashboard/backoffice_department.html')
 
 @login_required
 def dashboard_leaves(request):
@@ -1425,6 +1465,7 @@ def invoices(request):
                 gst_amount = (subtotal * gst_percent) / 100
             
             total = Decimal(request.POST.get('total', '0') or '0')
+            amount_received = Decimal(request.POST.get('amount_received', '0') or '0')
             
             # Get additional information
             notes = request.POST.get('notes', '').strip() or None
@@ -1446,6 +1487,7 @@ def invoices(request):
                 gst_percent=gst_percent,
                 gst_amount=gst_amount,
                 total=total,
+                amount_received=amount_received,
                 notes=notes,
                 terms=terms,
                 items=items,
@@ -1506,6 +1548,9 @@ def invoices(request):
     # Prepare invoice data from Invoice model
     invoice_data = []
     for invoice in invoices_list:
+        pending_balance = invoice.total - invoice.amount_received
+        if pending_balance < Decimal('0.00'):
+            pending_balance = Decimal('0.00')
         invoice_data.append({
             'id': invoice.id,
             'invoice_number': invoice.invoice_number,
@@ -1520,6 +1565,7 @@ def invoices(request):
             'status_badge': invoice.get_status_badge_class(),
             'date': invoice.invoice_date,
             'owner': invoice.owner,
+            'pending_balance': pending_balance,
         })
     
     # Sort by date (newest first)
@@ -1541,6 +1587,52 @@ def invoices(request):
     paid_count = sum(1 for inv in invoice_data if inv['status'] == 'Paid')
     unpaid_count = sum(1 for inv in invoice_data if inv['status'] == 'Unpaid')
     
+    # Prepare selected invoice details if requested
+    open_invoice_id = request.GET.get('open_invoice')
+    selected_invoice = None
+    if open_invoice_id:
+        try:
+            selected_obj = Invoice.objects.get(id=int(open_invoice_id))
+            history_entries = selected_obj.payment_history if isinstance(selected_obj.payment_history, list) else []
+            formatted_history = []
+            for entry in history_entries:
+                amount_val = Decimal(str(entry.get('amount', 0)))
+                entry_date = entry.get('date')
+                entry_created = entry.get('created_at')
+                display_date = ''
+                if entry_date:
+                    try:
+                        display_date = datetime.strptime(entry_date, '%Y-%m-%d').strftime('%b %d, %Y')
+                    except ValueError:
+                        display_date = entry_date
+                elif entry_created:
+                    try:
+                        display_date = datetime.fromisoformat(entry_created).strftime('%b %d, %Y')
+                    except ValueError:
+                        display_date = entry_created
+                formatted_history.append({
+                    'amount': float(amount_val),
+                    'amount_display': f"{amount_val:,.2f}",
+                    'date': entry_date or '',
+                    'date_display': display_date or ''
+                })
+            selected_invoice = {
+                'id': selected_obj.id,
+                'invoice_number': selected_obj.invoice_number,
+                'client_name': selected_obj.client_name,
+                'company': selected_obj.company or '',
+                'email': selected_obj.email or '',
+                'phone': selected_obj.phone or '',
+                'currency': selected_obj.currency,
+                'total': float(selected_obj.total),
+                'amount_received': float(selected_obj.amount_received),
+                'pending_balance': float(selected_obj.get_pending_balance()),
+                'payment_history': formatted_history,
+                'invoice_date': selected_obj.invoice_date.strftime('%b %d, %Y') if selected_obj.invoice_date else '',
+            }
+        except (Invoice.DoesNotExist, ValueError, TypeError):
+            selected_invoice = None
+
     # Get existing clients for the dropdown
     existing_clients = []
     
@@ -1584,7 +1676,8 @@ def invoices(request):
     # Sort clients by name
     existing_clients.sort(key=lambda x: x['name'].lower())
     
-    suggested_invoice_number = generate_invoice_number_for_date(timezone.localdate())
+    today = timezone.localdate()
+    suggested_invoice_number = generate_invoice_number_for_date(today)
     
     context = {
         'invoices': invoices_page,
@@ -1596,6 +1689,8 @@ def invoices(request):
         'existing_clients': existing_clients,
         'suggested_invoice_number': suggested_invoice_number,
         'company_profile': COMPANY_PROFILE,
+        'selected_invoice': selected_invoice,
+        'today_iso': today.isoformat(),
     }
     return render(request, 'dashboard/invoices.html', context)
 
@@ -1671,6 +1766,51 @@ def invoice_delete(request, invoice_type, invoice_id):
 
 @login_required
 @require_POST
+def invoice_pay_due(request, invoice_id):
+    """Mark invoice as paid by clearing pending balance"""
+    invoice = get_object_or_404(Invoice, id=invoice_id)
+    try:
+        pay_amount_str = request.POST.get('pay_amount', '').strip() or '0'
+        pay_amount = Decimal(pay_amount_str)
+    except (InvalidOperation, TypeError):
+        pay_amount = Decimal('0')
+    pay_date_str = request.POST.get('pay_date')
+    pay_date = timezone.now().date()
+    if pay_date_str:
+        try:
+            pay_date = datetime.strptime(pay_date_str, '%Y-%m-%d').date()
+        except ValueError:
+            pass
+    
+    pending_before = Decimal(invoice.get_pending_balance())
+    if pending_before <= 0:
+        messages.info(request, f'Invoice {invoice.invoice_number} is already fully paid.')
+        return redirect(f"{reverse('invoices')}?open_invoice={invoice.id}")
+    
+    if pay_amount <= 0 or pay_amount > pending_before:
+        pay_amount = pending_before
+    
+    invoice.amount_received = Decimal(invoice.amount_received) + pay_amount
+    history = list(invoice.payment_history or [])
+    history.append({
+        'amount': float(pay_amount),
+        'date': pay_date.isoformat(),
+        'created_at': timezone.now().isoformat()
+    })
+    invoice.payment_history = history
+    if invoice.amount_received >= invoice.total:
+        invoice.amount_received = invoice.total
+        invoice.status = 'Paid'
+    elif invoice.amount_received > 0:
+        invoice.status = 'Partial'
+    
+    invoice.save(update_fields=['amount_received', 'status', 'updated_at', 'payment_history'])
+    messages.success(request, f'INR {pay_amount:,.2f} applied to invoice {invoice.invoice_number}. Pending balance updated.')
+    return redirect(f"{reverse('invoices')}?open_invoice={invoice.id}")
+
+
+@login_required
+@require_POST
 def invoice_table_pdf_download(request):
     """Generate quick PDF using data provided from invoices table."""
     if not REPORTLAB_AVAILABLE:
@@ -1697,6 +1837,8 @@ def invoice_table_pdf_download(request):
         email = invoice.email or ''
         phone = invoice.phone or ''
         amount_value = invoice.total or Decimal('0.00')
+        amount_received_value = invoice.amount_received or Decimal('0.00')
+        pending_balance_value = invoice.get_pending_balance()
         currency = invoice.currency or 'INR'
         status_text = invoice.status or 'Unpaid'
         invoice_date = invoice.invoice_date or date.today()
@@ -1726,6 +1868,10 @@ def invoice_table_pdf_download(request):
             amount_value = Decimal(str(amount_raw))
         except (InvalidOperation, TypeError):
             amount_value = Decimal('0.00')
+        
+        # For snapshot data, set defaults
+        amount_received_value = Decimal('0.00')
+        pending_balance_value = amount_value
 
     try:
         buffer = BytesIO()
@@ -1748,6 +1894,9 @@ def invoice_table_pdf_download(request):
         elements.append(Paragraph(f"Generated on {timezone.now().strftime('%d %b %Y, %I:%M %p')}", normal_style))
         elements.append(Spacer(1, 0.2 * inch))
 
+        currency_symbol = {'USD': '$', 'EUR': '€'}.get(currency, '₹')
+        
+        due_display = f"{currency_symbol} {float(pending_balance_value):,.2f}" if pending_balance_value > 0 else f"{currency_symbol} {0:,.2f} (No Due)"
         summary_data = [
             ['Invoice #', invoice_number],
             ['Status', status_text],
@@ -1757,7 +1906,9 @@ def invoice_table_pdf_download(request):
             ['Company', company or '-'],
             ['Email', email or '-'],
             ['Phone', phone or '-'],
-            ['Amount', f"{currency} {float(amount_value):,.2f}"],
+            ['Total Amount', f"{currency_symbol} {float(amount_value):,.2f}"],
+            ['Previous Payment', f"{currency_symbol} {float(amount_received_value):,.2f}"],
+            ['Due Payment', due_display],
         ]
 
         summary_table = Table(summary_data, colWidths=[2.2 * inch, 3.8 * inch])
@@ -1820,6 +1971,32 @@ def invoice_detail(request, invoice_id):
                 'total': 0,
             })
 
+    history_entries = []
+    raw_history = invoice.payment_history if isinstance(invoice.payment_history, list) else []
+    for entry in raw_history:
+        amount_val = entry.get('amount', 0)
+        try:
+            amount_val = float(amount_val)
+        except (TypeError, ValueError):
+            amount_val = 0
+        date_raw = entry.get('date')
+        date_display = ''
+        if date_raw:
+            try:
+                date_display = datetime.strptime(date_raw, '%Y-%m-%d').strftime('%b %d, %Y')
+            except ValueError:
+                date_display = date_raw
+        elif entry.get('created_at'):
+            try:
+                date_display = datetime.fromisoformat(entry['created_at']).strftime('%b %d, %Y')
+            except ValueError:
+                date_display = entry['created_at']
+        history_entries.append({
+            'amount': amount_val,
+            'date': date_raw or '',
+            'date_display': date_display
+        })
+
     data = {
         'id': invoice.id,
         'invoice_number': invoice.invoice_number,
@@ -1838,9 +2015,12 @@ def invoice_detail(request, invoice_id):
         'gst_percent': str(invoice.gst_percent),
         'gst_amount': str(invoice.gst_amount),
         'total': str(invoice.total),
+        'amount_received': str(invoice.amount_received),
+        'pending_balance': str(invoice.get_pending_balance()),
         'notes': invoice.notes or '',
         'terms': invoice.terms or '',
         'items': items,
+        'payment_history': history_entries,
     }
     return JsonResponse(data)
 
@@ -1872,8 +2052,11 @@ def invoice_pdf_download(request, invoice_type, invoice_id):
                 'gst_percent': invoice.gst_percent,
                 'gst_amount': invoice.gst_amount,
                 'total': invoice.total,
+                'amount_received': invoice.amount_received,
+                'pending_balance': invoice.get_pending_balance(),
                 'notes': invoice.notes or '',
                 'terms': invoice.terms or '',
+                'payment_history': invoice.payment_history if isinstance(invoice.payment_history, list) else [],
             }
         elif invoice_type == 'quote':
             quote = get_object_or_404(Quote, id=invoice_id)
@@ -1896,6 +2079,7 @@ def invoice_pdf_download(request, invoice_type, invoice_id):
                 'notes': quote.notes or '',
                 'terms': quote.terms or '',
                 'valid_until': quote.valid_until,
+                'payment_history': [],
             }
         elif invoice_type == 'onboarding':
             onboard = get_object_or_404(ClientOnboarding, id=invoice_id)
@@ -1923,6 +2107,7 @@ def invoice_pdf_download(request, invoice_type, invoice_id):
                 'notes': onboard.project_description or '',
                 'terms': '',
                 'valid_until': None,
+                'payment_history': [],
             }
         else:
             messages.error(request, 'Invalid invoice type.')
@@ -2181,6 +2366,14 @@ def invoice_pdf_download(request, invoice_type, invoice_id):
             igst_amount = gst_amount_value
             igst_percent = gst_percent_value
 
+        # Get amount_received and pending_balance for invoice type
+        amount_received_value = Decimal('0.00')
+        pending_balance_value = total_value
+        if invoice_type == 'invoice':
+            amount_received_value = to_decimal(invoice_data.get('amount_received', Decimal('0.00')))
+            pending_balance_value = to_decimal(invoice_data.get('pending_balance', total_value))
+        
+        due_summary_display = format_currency_value(pending_balance_value) if pending_balance_value > 0 else f"{format_currency_value(Decimal('0.00'))} (No Due)"
         summary_rows = [
             ['Total Value', format_currency_value(subtotal_value)],
             [f'Add : CGST {format_percent(cgst_percent)}%', format_summary_amount(cgst_amount)],
@@ -2189,8 +2382,14 @@ def invoice_pdf_download(request, invoice_type, invoice_id):
             ['Less : Discount (If Any)', format_summary_amount(discount_value)],
             ['', ''],
             ['Grand Total', format_currency_value(total_value)],
-            ['Amount Due', format_currency_value(total_value)],
         ]
+        
+        # Add amount received and pending balance only for invoice type
+        if invoice_type == 'invoice':
+            summary_rows.append([Paragraph('<b>Previous Payment</b>', base_style), format_currency_value(amount_received_value)])
+            summary_rows.append(['Due Payment', due_summary_display])
+        else:
+            summary_rows.append(['Amount Due', format_currency_value(total_value)])
 
         summary_table = Table(summary_rows, colWidths=[3.0 * inch, 1.8 * inch], hAlign='RIGHT')
         summary_table.setStyle(TableStyle([
@@ -2203,6 +2402,47 @@ def invoice_pdf_download(request, invoice_type, invoice_id):
         ]))
         elements.append(summary_table)
         elements.append(Spacer(1, 0.15 * inch))
+
+        # Payment history table for invoices
+        if invoice_type == 'invoice':
+            history_entries = invoice_data.get('payment_history') or []
+            if isinstance(history_entries, str):
+                try:
+                    history_entries = json.loads(history_entries)
+                except (json.JSONDecodeError, ValueError, TypeError):
+                    history_entries = []
+            payment_rows = [['#', 'Payment Date', 'Amount']]
+            if history_entries:
+                for idx, entry in enumerate(history_entries, start=1):
+                    amount_val = to_decimal(entry.get('amount', Decimal('0.00')))
+                    date_raw = entry.get('date') or entry.get('date_display') or entry.get('created_at')
+                    date_display = '-'
+                    if date_raw:
+                        try:
+                            date_display = datetime.strptime(date_raw[:10], '%Y-%m-%d').strftime('%d %b %Y')
+                        except (ValueError, TypeError):
+                            date_display = date_raw
+                    payment_rows.append([
+                        str(idx),
+                        date_display,
+                        format_currency_value(amount_val)
+                    ])
+            else:
+                payment_rows.append(['-', 'No payments recorded', '-'])
+            pending_display = format_currency_value(pending_balance_value) if pending_balance_value > 0 else f"{format_currency_value(Decimal('0.00'))} (No Due)"
+            payment_rows.append(['', f'Pending Balance as of {date.today().strftime("%d %b %Y")}', pending_display])
+
+            payment_table = Table(payment_rows, colWidths=[0.6 * inch, 3.2 * inch, 1.8 * inch])
+            payment_table.setStyle(TableStyle([
+                ('BACKGROUND', (0, 0), (-1, 0), light_purple),
+                ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+                ('ALIGN', (0, 0), (0, -1), 'CENTER'),
+                ('ALIGN', (2, 0), (2, -1), 'RIGHT'),
+                ('BOX', (0, 0), (-1, -1), 0.4, accent_color),
+                ('INNERGRID', (0, 0), (-1, -1), 0.2, colors.HexColor('#c0a5d4')),
+            ]))
+            elements.append(payment_table)
+            elements.append(Spacer(1, 0.15 * inch))
 
         # Bank details table
         bank = COMPANY_PROFILE['bank_details']
@@ -2231,7 +2471,7 @@ def invoice_pdf_download(request, invoice_type, invoice_id):
 
         signature_table = Table([
             [
-                Paragraph('Amount Received (₹) __________', base_style),
+                Paragraph('', base_style),
                 Paragraph(f"For {COMPANY_PROFILE['name']}<br/><br/><br/>Authorised Signature", base_style)
             ]
         ], colWidths=[3.0 * inch, 3.0 * inch])

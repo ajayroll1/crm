@@ -140,9 +140,21 @@
         </div>
       </div>
       <div class="col-md-4 mb-2">
-        <div class="text-muted small">Total</div>
+        <div class="text-muted small">Total Amount</div>
         <div class="fw-semibold">
           ₹ {{ invoice.total|floatformat:2|intcomma }}
+        </div>
+      </div>
+      <div class="col-md-4 mb-2">
+        <div class="text-muted small">Amount Received</div>
+        <div class="fw-semibold text-success">
+          ₹ {{ invoice.amount_received|floatformat:2|intcomma }}
+        </div>
+      </div>
+      <div class="col-md-4 mb-2">
+        <div class="text-muted small">Pending Balance</div>
+        <div class="fw-semibold text-danger">
+          ₹ {{ invoice.get_pending_balance|floatformat:2|intcomma }}
         </div>
       </div>
     </div>
