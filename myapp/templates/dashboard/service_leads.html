@@ -1,0 +1,452 @@
+{% extends "dashboard/dashboard_base.html" %}
+{% load static %}
+{% block title %}Service Leads - Sujata Associates{% endblock %}
+
+{% block content %}
+<div class="container-fluid" style="padding: 2rem;">
+  <div class="dashboard-header mb-4">
+    <h1>Account & Backoffice Leads</h1>
+    <p class="text-muted">Manage and assign leads from service forms</p>
+  </div>
+
+  {% if messages %}
+    <div class="messages-container mb-3">
+      {% for message in messages %}
+        <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+          {{ message }}
+          <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+      {% endfor %}
+    </div>
+  {% endif %}
+
+  <!-- Accounts Department Leads -->
+  <div class="row mb-4">
+    <div class="col-12">
+      <div class="card shadow-sm">
+        <div class="card-header bg-primary text-white">
+          <h5 class="mb-0"><i class="bi bi-building"></i> Accounts Department Leads</h5>
+        </div>
+        <div class="card-body">
+          <div class="accordion" id="accountsAccordion">
+            {% for service_id, service_data in accounts_leads.items %}
+              <div class="accordion-item">
+                <h2 class="accordion-header" id="heading{{ service_id }}">
+                  <button class="accordion-button {% if not forloop.first %}collapsed{% endif %}" type="button" data-bs-toggle="collapse" data-bs-target="#collapse{{ service_id }}" aria-expanded="{% if forloop.first %}true{% else %}false{% endif %}">
+                    <i class="{{ service_data.icon }} me-2"></i>
+                    {{ service_data.title }} 
+                    <span class="badge bg-primary ms-2">{{ service_data.count }}</span>
+                  </button>
+                </h2>
+                <div id="collapse{{ service_id }}" class="accordion-collapse collapse {% if forloop.first %}show{% endif %}" data-bs-parent="#accountsAccordion">
+                  <div class="accordion-body">
+                    {% if service_data.records %}
+                      <div class="table-responsive">
+                        <table class="table table-hover">
+                          <thead>
+                            <tr>
+                              <th>ID</th>
+                              {% if service_id == 'roc' %}
+                                <th>Company Name</th>
+                                <th>CIN/LLPIN</th>
+                                <th>Financial Year</th>
+                                <th>Compliance Period</th>
+                              {% elif service_id == 'gst' %}
+                                <th>GSTIN</th>
+                                <th>Return Period</th>
+                                <th>Return Type</th>
+                                <th>Tax Payable</th>
+                              {% elif service_id == 'itr' %}
+                                <th>Taxpayer Name</th>
+                                <th>PAN</th>
+                                <th>Assessment Year</th>
+                                <th>Return Form</th>
+                              {% elif service_id == 'bookkeeping' %}
+                                <th>Prepared By</th>
+                                <th>Closing Date</th>
+                                <th>Cash Book Updated</th>
+                                <th>Bank Entries Reconciled</th>
+                              {% elif service_id == 'tds' %}
+                                <th>Deductor TAN</th>
+                                <th>Section</th>
+                                <th>Deduction Month</th>
+                                <th>TDS Deducted</th>
+                              {% endif %}
+                              <th>Lead Source</th>
+                              <th>Assigned To</th>
+                              <th>Created At</th>
+                              <th>Actions</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {% for record in service_data.records %}
+                              <tr>
+                                <td>{{ record.id }}</td>
+                                {% if service_id == 'roc' %}
+                                  <td>{{ record.company_name }}</td>
+                                  <td>{{ record.cin_llpin }}</td>
+                                  <td>{{ record.financial_year }}</td>
+                                  <td>{{ record.compliance_period }}</td>
+                                {% elif service_id == 'gst' %}
+                                  <td>{{ record.gstin }}</td>
+                                  <td>{{ record.return_period }}</td>
+                                  <td>{{ record.return_type }}</td>
+                                  <td>₹{{ record.tax_payable }}</td>
+                                {% elif service_id == 'itr' %}
+                                  <td>{{ record.taxpayer_name }}</td>
+                                  <td>{{ record.pan }}</td>
+                                  <td>{{ record.assessment_year }}</td>
+                                  <td>{{ record.return_form }}</td>
+                                {% elif service_id == 'bookkeeping' %}
+                                  <td>{{ record.prepared_by }}</td>
+                                  <td>{{ record.closing_date|date:"d M Y"|default:"N/A" }}</td>
+                                  <td>{% if record.cash_book_updated %}<i class="bi bi-check-circle text-success"></i>{% else %}<i class="bi bi-x-circle text-danger"></i>{% endif %}</td>
+                                  <td>{% if record.bank_entries_reconciled %}<i class="bi bi-check-circle text-success"></i>{% else %}<i class="bi bi-x-circle text-danger"></i>{% endif %}</td>
+                                {% elif service_id == 'tds' %}
+                                  <td>{{ record.deductor_tan }}</td>
+                                  <td>{{ record.section }}</td>
+                                  <td>{{ record.deduction_month }}</td>
+                                  <td>₹{{ record.tds_deducted }}</td>
+                                {% endif %}
+                                <td><span class="badge bg-info">{{ record.lead_source|default:"website" }}</span></td>
+                                <td>
+                                  {% if record.assigned_to %}
+                                    <span class="badge bg-success">{{ record.assigned_to.get_full_name }}</span>
+                                  {% else %}
+                                    <span class="badge bg-secondary">Unassigned</span>
+                                  {% endif %}
+                                </td>
+                                <td>{{ record.created_at|date:"d M Y" }}</td>
+                                <td>
+                                  <button type="button" class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#assignModal{{ service_id }}{{ record.id }}">
+                                    <i class="bi bi-person-plus"></i> Assign
+                                  </button>
+                                </td>
+                              </tr>
+                              
+                              <!-- Assign Modal -->
+                              <div class="modal fade" id="assignModal{{ service_id }}{{ record.id }}" tabindex="-1">
+                                <div class="modal-dialog">
+                                  <div class="modal-content">
+                                    <div class="modal-header">
+                                      <h5 class="modal-title">Assign Lead</h5>
+                                      <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                                    </div>
+                                    <div class="modal-body">
+                                      <form id="assignForm{{ service_id }}{{ record.id }}">
+                                        <input type="hidden" name="service_type" value="{{ service_id }}">
+                                        <input type="hidden" name="record_id" value="{{ record.id }}">
+                                        <div class="mb-3">
+                                          <label class="form-label">Select Employee (Accounts Department)</label>
+                                          <select name="employee_id" class="form-select" id="employeeSelect{{ service_id }}{{ record.id }}">
+                                            <option value="">-- Unassign --</option>
+                                            {% for emp in accounts_employees %}
+                                              <option value="{{ emp.id }}" {% if record.assigned_to.id == emp.id %}selected{% endif %}>
+                                                {{ emp.get_full_name }} ({{ emp.emp_code|default:"N/A" }})
+                                              </option>
+                                            {% endfor %}
+                                          </select>
+                                        </div>
+                                      </form>
+                                    </div>
+                                    <div class="modal-footer">
+                                      <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                                      <button type="button" class="btn btn-primary" onclick="assignLead('{{ service_id }}', {{ record.id }})">Assign</button>
+                                    </div>
+                                  </div>
+                                </div>
+                              </div>
+                            {% endfor %}
+                          </tbody>
+                        </table>
+                      </div>
+                    {% else %}
+                      <p class="text-muted text-center">No leads found for this service.</p>
+                    {% endif %}
+                  </div>
+                </div>
+              </div>
+            {% endfor %}
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Back Office Department Leads -->
+  <div class="row">
+    <div class="col-12">
+      <div class="card shadow-sm">
+        <div class="card-header bg-success text-white">
+          <h5 class="mb-0"><i class="bi bi-building-gear"></i> Back Office Department Leads</h5>
+        </div>
+        <div class="card-body">
+          <div class="accordion" id="backofficeAccordion">
+            {% for service_id, service_data in backoffice_leads.items %}
+              <div class="accordion-item">
+                <h2 class="accordion-header" id="heading{{ service_id }}">
+                  <button class="accordion-button {% if not forloop.first %}collapsed{% endif %}" type="button" data-bs-toggle="collapse" data-bs-target="#collapse{{ service_id }}" aria-expanded="{% if forloop.first %}true{% else %}false{% endif %}">
+                    <i class="{{ service_data.icon }} me-2"></i>
+                    {{ service_data.title }} 
+                    <span class="badge bg-success ms-2">{{ service_data.count }}</span>
+                  </button>
+                </h2>
+                <div id="collapse{{ service_id }}" class="accordion-collapse collapse {% if forloop.first %}show{% endif %}" data-bs-parent="#backofficeAccordion">
+                  <div class="accordion-body">
+                    {% if service_data.records %}
+                      <div class="table-responsive">
+                        <table class="table table-hover">
+                          <thead>
+                            <tr>
+                              <th>ID</th>
+                              {% if service_id == 'startup' %}
+                                <th>Legal Entity Name</th>
+                                <th>Entity Type</th>
+                                <th>Industry Sector</th>
+                                <th>Email</th>
+                                <th>Status</th>
+                              {% elif service_id == 'fssai' %}
+                                <th>Business/Brand Name</th>
+                                <th>Licence Type</th>
+                                <th>Business Nature</th>
+                                <th>Status</th>
+                              {% elif service_id == 'msme' %}
+                                <th>Entity Name</th>
+                                <th>Organisation Type</th>
+                                <th>Annual Turnover</th>
+                                <th>Status</th>
+                              {% elif service_id == 'company-llp' %}
+                                <th>Entity Type</th>
+                                <th>Directors/Partners</th>
+                                <th>Authorised Capital</th>
+                                <th>Status</th>
+                              {% elif service_id == 'fire-pollution' %}
+                                <th>Establishment Type</th>
+                                <th>Built-up Area</th>
+                                <th>Pollution Category</th>
+                                <th>Status</th>
+                              {% elif service_id == 'iso' %}
+                                <th>Standard</th>
+                                <th>Locations</th>
+                                <th>Employee Strength</th>
+                                <th>Status</th>
+                              {% elif service_id == 'trademark' %}
+                                <th>Brand/Logo</th>
+                                <th>Applicant Type</th>
+                                <th>Classes</th>
+                                <th>Status</th>
+                              {% elif service_id == 'trademark-compliance' %}
+                                <th>Existing TM Numbers</th>
+                                <th>Portfolio Size</th>
+                                <th>Watch Scope</th>
+                                <th>Status</th>
+                              {% elif service_id == 'trademark-instant' %}
+                                <th>Urgency Reason</th>
+                                <th>Filing Window</th>
+                                <th>Contact Mobile</th>
+                                <th>Status</th>
+                              {% elif service_id == 'address-change' %}
+                                <th>Entity Type</th>
+                                <th>Shift Type</th>
+                                <th>Effective Date</th>
+                                <th>Status</th>
+                              {% elif service_id == 'moa-alteration' %}
+                                <th>Alteration Type</th>
+                                <th>Proposed Object/Name</th>
+                                <th>Effective Date</th>
+                                <th>Status</th>
+                              {% endif %}
+                              <th>Lead Source</th>
+                              <th>Assigned To</th>
+                              <th>Created At</th>
+                              <th>Actions</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {% for record in service_data.records %}
+                              <tr>
+                                <td>{{ record.id }}</td>
+                                {% if service_id == 'startup' %}
+                                  <td>{{ record.legal_entity_name }}</td>
+                                  <td>{{ record.entity_type }}</td>
+                                  <td>{{ record.industry_sector }}</td>
+                                  <td>{{ record.email|default:"N/A" }}</td>
+                                  <td><span class="badge bg-{{ record.get_status_badge_class }}">{{ record.get_status_display }}</span></td>
+                                {% elif service_id == 'fssai' %}
+                                  <td>{{ record.business_brand_name }}</td>
+                                  <td>{{ record.licence_type }}</td>
+                                  <td>{{ record.business_nature }}</td>
+                                  <td><span class="badge bg-{{ record.get_status_badge_class }}">{{ record.get_status_display }}</span></td>
+                                {% elif service_id == 'msme' %}
+                                  <td>{{ record.entity_name }}</td>
+                                  <td>{{ record.organisation_type }}</td>
+                                  <td>₹{{ record.annual_turnover|default:"0" }}</td>
+                                  <td><span class="badge bg-{{ record.get_status_badge_class }}">{{ record.get_status_display }}</span></td>
+                                {% elif service_id == 'company-llp' %}
+                                  <td>{{ record.entity_type }}</td>
+                                  <td>{{ record.directors_partners }}</td>
+                                  <td>₹{{ record.authorised_capital }}</td>
+                                  <td><span class="badge bg-{{ record.get_status_badge_class }}">{{ record.get_status_display }}</span></td>
+                                {% elif service_id == 'fire-pollution' %}
+                                  <td>{{ record.establishment_type }}</td>
+                                  <td>{{ record.built_up_area }} sq.ft</td>
+                                  <td>{{ record.pollution_category }}</td>
+                                  <td><span class="badge bg-{{ record.get_status_badge_class }}">{{ record.get_status_display }}</span></td>
+                                {% elif service_id == 'iso' %}
+                                  <td>{{ record.standard }}</td>
+                                  <td>{{ record.locations }}</td>
+                                  <td>{{ record.employee_strength|default:"N/A" }}</td>
+                                  <td><span class="badge bg-{{ record.get_status_badge_class }}">{{ record.get_status_display }}</span></td>
+                                {% elif service_id == 'trademark' %}
+                                  <td>{{ record.brand_logo|truncatewords:5 }}</td>
+                                  <td>{{ record.applicant_type }}</td>
+                                  <td>{{ record.classes }}</td>
+                                  <td><span class="badge bg-{{ record.get_status_badge_class }}">{{ record.get_status_display }}</span></td>
+                                {% elif service_id == 'trademark-compliance' %}
+                                  <td>{{ record.existing_tm_numbers|truncatewords:5|default:"N/A" }}</td>
+                                  <td>{{ record.portfolio_size|default:"N/A" }}</td>
+                                  <td>{{ record.watch_scope|default:"N/A" }}</td>
+                                  <td><span class="badge bg-{{ record.get_status_badge_class }}">{{ record.get_status_display }}</span></td>
+                                {% elif service_id == 'trademark-instant' %}
+                                  <td>{{ record.urgency_reason|truncatewords:5 }}</td>
+                                  <td>{{ record.filing_window|default:"N/A" }}</td>
+                                  <td>{{ record.contact_mobile|default:"N/A" }}</td>
+                                  <td><span class="badge bg-{{ record.get_status_badge_class }}">{{ record.get_status_display }}</span></td>
+                                {% elif service_id == 'address-change' %}
+                                  <td>{{ record.entity_type }}</td>
+                                  <td>{{ record.shift_type }}</td>
+                                  <td>{{ record.effective_date|date:"d M Y"|default:"N/A" }}</td>
+                                  <td><span class="badge bg-{{ record.get_status_badge_class }}">{{ record.get_status_display }}</span></td>
+                                {% elif service_id == 'moa-alteration' %}
+                                  <td>{{ record.alteration_type }}</td>
+                                  <td>{{ record.proposed_object_name|truncatewords:5 }}</td>
+                                  <td>{{ record.effective_date|date:"d M Y"|default:"N/A" }}</td>
+                                  <td><span class="badge bg-{{ record.get_status_badge_class }}">{{ record.get_status_display }}</span></td>
+                                {% endif %}
+                                <td><span class="badge bg-info">{{ record.lead_source|default:"website" }}</span></td>
+                                <td>
+                                  {% if record.assigned_to %}
+                                    <span class="badge bg-success">{{ record.assigned_to.get_full_name }}</span>
+                                  {% else %}
+                                    <span class="badge bg-secondary">Unassigned</span>
+                                  {% endif %}
+                                </td>
+                                <td>{{ record.created_at|date:"d M Y" }}</td>
+                                <td>
+                                  <button type="button" class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#assignModal{{ service_id }}{{ record.id }}">
+                                    <i class="bi bi-person-plus"></i> Assign
+                                  </button>
+                                </td>
+                              </tr>
+                              
+                              <!-- Assign Modal -->
+                              <div class="modal fade" id="assignModal{{ service_id }}{{ record.id }}" tabindex="-1">
+                                <div class="modal-dialog">
+                                  <div class="modal-content">
+                                    <div class="modal-header">
+                                      <h5 class="modal-title">Assign Lead</h5>
+                                      <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                                    </div>
+                                    <div class="modal-body">
+                                      <form id="assignForm{{ service_id }}{{ record.id }}">
+                                        <input type="hidden" name="service_type" value="{{ service_id }}">
+                                        <input type="hidden" name="record_id" value="{{ record.id }}">
+                                        <div class="mb-3">
+                                          <label class="form-label">Select Employee (Back Office Department)</label>
+                                          <select name="employee_id" class="form-select" id="employeeSelect{{ service_id }}{{ record.id }}">
+                                            <option value="">-- Unassign --</option>
+                                            {% for emp in backoffice_employees %}
+                                              <option value="{{ emp.id }}" {% if record.assigned_to.id == emp.id %}selected{% endif %}>
+                                                {{ emp.get_full_name }} ({{ emp.emp_code|default:"N/A" }})
+                                              </option>
+                                            {% endfor %}
+                                          </select>
+                                        </div>
+                                      </form>
+                                    </div>
+                                    <div class="modal-footer">
+                                      <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                                      <button type="button" class="btn btn-primary" onclick="assignLead('{{ service_id }}', {{ record.id }})">Assign</button>
+                                    </div>
+                                  </div>
+                                </div>
+                              </div>
+                            {% endfor %}
+                          </tbody>
+                        </table>
+                      </div>
+                    {% else %}
+                      <p class="text-muted text-center">No leads found for this service.</p>
+                    {% endif %}
+                  </div>
+                </div>
+              </div>
+            {% endfor %}
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+function assignLead(serviceType, recordId) {
+  const form = document.getElementById('assignForm' + serviceType + recordId);
+  const formData = new FormData(form);
+  
+  // Get CSRF token from cookie
+  function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+      const cookies = document.cookie.split(';');
+      for (let i = 0; i < cookies.length; i++) {
+        const cookie = cookies[i].trim();
+        if (cookie.substring(0, name.length + 1) === (name + '=')) {
+          cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+          break;
+        }
+      }
+    }
+    return cookieValue;
+  }
+  
+  fetch('{% url "assign_service_lead" %}', {
+    method: 'POST',
+    body: formData,
+    headers: {
+      'X-CSRFToken': getCookie('csrftoken')
+    }
+  })
+  .then(response => response.json())
+  .then(data => {
+    if (data.success) {
+      // Close modal
+      const modal = bootstrap.Modal.getInstance(document.getElementById('assignModal' + serviceType + recordId));
+      modal.hide();
+      
+      // Reload page to show updated assignment
+      location.reload();
+    } else {
+      alert('Error: ' + data.error);
+    }
+  })
+  .catch(error => {
+    console.error('Error:', error);
+    alert('An error occurred while assigning the lead.');
+  });
+}
+</script>
+
+<style>
+@media (max-width: 768px) {
+  .table-responsive {
+    font-size: 0.85rem;
+  }
+  .btn-sm {
+    padding: 0.25rem 0.5rem;
+    font-size: 0.75rem;
+  }
+}
+</style>
+{% endblock %}
+

@@ -936,6 +936,452 @@ def backoffice_department(request):
 
   return render(request, 'dashboard/backoffice_department.html', context)
 
+def service_forms(request):
+  """
+  Service Forms page - User selects a service and then sees the form.
+  Shows all services from Accounts Department and Back Office Department.
+  Accessible to all users (no login required).
+  """
+
+  # Get selected service from query parameter
+  selected_service = request.GET.get('service', '')
+  
+  # Define all services from Accounts Department
+  accounts_services = [
+    {
+      'id': 'roc',
+      'title': 'ROC Compliance',
+      'icon': 'bi-file-earmark-check',
+      'department': 'Accounts',
+      'form_class': ROCComplianceForm,
+      'form_name': 'roc',
+      'model': ROCComplianceRecord,
+    },
+    {
+      'id': 'gst',
+      'title': 'GST Filing',
+      'icon': 'bi-receipt',
+      'department': 'Accounts',
+      'form_class': GSTFilingForm,
+      'form_name': 'gst',
+      'model': GSTFilingRecord,
+    },
+    {
+      'id': 'itr',
+      'title': 'ITR Filing',
+      'icon': 'bi-file-earmark-text',
+      'department': 'Accounts',
+      'form_class': ITRFilingForm,
+      'form_name': 'itr',
+      'model': ITRFilingRecord,
+    },
+    {
+      'id': 'bookkeeping',
+      'title': 'Bookkeeping Checklist',
+      'icon': 'bi-clipboard-check',
+      'department': 'Accounts',
+      'form_class': BookkeepingChecklistForm,
+      'form_name': 'bookkeeping',
+      'model': BookkeepingChecklistRecord,
+    },
+    {
+      'id': 'tds',
+      'title': 'TDS Compliance',
+      'icon': 'bi-cash-stack',
+      'department': 'Accounts',
+      'form_class': TDSComplianceForm,
+      'form_name': 'tds',
+      'model': TDSComplianceRecord,
+    },
+  ]
+  
+  # Define all services from Back Office Department
+  backoffice_services = [
+    {
+      'id': 'startup',
+      'title': 'Start-up India Registration',
+      'icon': 'bi-rocket-takeoff',
+      'department': 'Back Office',
+      'form_class': StartupIndiaRegistrationForm,
+      'form_name': 'startup_india',
+      'model': StartupIndiaRegistration,
+    },
+    {
+      'id': 'fssai',
+      'title': 'Food Licensing (FSSAI)',
+      'icon': 'bi-egg-fried',
+      'department': 'Back Office',
+      'form_class': FSSAILicenseForm,
+      'form_name': 'fssai',
+      'model': FSSAILicense,
+    },
+    {
+      'id': 'msme',
+      'title': 'MSME / Udyam Registration',
+      'icon': 'bi-building-gear',
+      'department': 'Back Office',
+      'form_class': MSMEUdyamRegistrationForm,
+      'form_name': 'msme',
+      'model': MSMEUdyamRegistration,
+    },
+    {
+      'id': 'company-llp',
+      'title': 'Company / LLP Registration',
+      'icon': 'bi-diagram-3',
+      'department': 'Back Office',
+      'form_class': CompanyLLPRegistrationForm,
+      'form_name': 'company_llp',
+      'model': CompanyLLPRegistration,
+    },
+    {
+      'id': 'fire-pollution',
+      'title': 'Fire & Pollution Licences',
+      'icon': 'bi-shield-check',
+      'department': 'Back Office',
+      'form_class': FirePollutionLicenseForm,
+      'form_name': 'fire_pollution',
+      'model': FirePollutionLicense,
+    },
+    {
+      'id': 'iso',
+      'title': 'ISO Certification',
+      'icon': 'bi-award',
+      'department': 'Back Office',
+      'form_class': ISOCertificationForm,
+      'form_name': 'iso',
+      'model': ISOCertification,
+    },
+    {
+      'id': 'trademark',
+      'title': 'Trademark Filing',
+      'icon': 'bi-trademark',
+      'department': 'Back Office',
+      'form_class': TrademarkFilingForm,
+      'form_name': 'trademark',
+      'model': TrademarkFiling,
+    },
+    {
+      'id': 'trademark-compliance',
+      'title': 'Trademark Filing + Compliance',
+      'icon': 'bi-shield-check',
+      'department': 'Back Office',
+      'form_class': TrademarkFilingComplianceForm,
+      'form_name': 'trademark_compliance',
+      'model': TrademarkFilingCompliance,
+    },
+    {
+      'id': 'trademark-instant',
+      'title': 'Trademark Filing (Instant)',
+      'icon': 'bi-lightning',
+      'department': 'Back Office',
+      'form_class': TrademarkFilingInstantForm,
+      'form_name': 'trademark_instant',
+      'model': TrademarkFilingInstant,
+    },
+    {
+      'id': 'address-change',
+      'title': 'Company Address Change',
+      'icon': 'bi-geo-alt',
+      'department': 'Back Office',
+      'form_class': CompanyAddressChangeForm,
+      'form_name': 'address_change',
+      'model': CompanyAddressChange,
+    },
+    {
+      'id': 'moa-alteration',
+      'title': 'MOA Alteration',
+      'icon': 'bi-pencil-square',
+      'department': 'Back Office',
+      'form_class': MOAAlterationForm,
+      'form_name': 'moa_alteration',
+      'model': MOAAlteration,
+    },
+  ]
+  
+  # Combine all services
+  all_services = accounts_services + backoffice_services
+  
+  # Find selected service
+  selected_service_obj = None
+  form_instance = None
+  
+  if selected_service:
+    for service in all_services:
+      if service['id'] == selected_service:
+        selected_service_obj = service
+        form_instance = service['form_class']()
+        break
+  
+  # Handle form submission
+  if request.method == 'POST':
+    form_name = request.POST.get('form_name')
+    
+    # Find the service by form_name
+    for service in all_services:
+      if service['form_name'] == form_name:
+        selected_service_obj = service
+        form_instance = service['form_class'](request.POST, request.FILES)
+        
+        if form_instance.is_valid():
+          record = form_instance.save(commit=False)
+          # Only set user if authenticated, otherwise leave as None
+          if request.user.is_authenticated:
+            record.user = request.user
+          else:
+            record.user = None
+          
+          # Set lead_source to 'website' if not provided
+          if not record.lead_source:
+            record.lead_source = 'website'
+          
+          # Handle file uploads based on service type
+          if form_name == 'roc':
+            uploaded_files = request.FILES.getlist('roc_documents')
+            if uploaded_files:
+              record.documents = _store_uploaded_files(uploaded_files, 'roc')
+          
+          elif form_name == 'gst':
+            files_map = {
+              'outward_supplies': _store_uploaded_files(request.FILES.getlist('gst_outward_supplies'), 'gst/outward'),
+              'input_tax_credit': _store_uploaded_files(request.FILES.getlist('gst_input_tax_credit'), 'gst/input-credit'),
+              'reverse_charge': _store_uploaded_files(request.FILES.getlist('gst_reverse_charge'), 'gst/reverse-charge'),
+              'eway_bill_summary': _store_uploaded_files(request.FILES.getlist('gst_eway_bill'), 'gst/eway-bill'),
+            }
+            record.data_files = {key: paths for key, paths in files_map.items() if paths}
+          
+          elif form_name == 'itr':
+            uploaded_files = request.FILES.getlist('itr_documents')
+            if uploaded_files:
+              record.documents = _store_uploaded_files(uploaded_files, 'itr')
+          
+          elif form_name == 'bookkeeping':
+            uploaded_files = request.FILES.getlist('bookkeeping_documents')
+            if uploaded_files:
+              record.reconciliation_documents = _store_uploaded_files(uploaded_files, 'bookkeeping')
+          
+          elif form_name == 'tds':
+            uploaded_files = request.FILES.getlist('tds_proofs')
+            if uploaded_files:
+              record.proofs = _store_uploaded_files(uploaded_files, 'tds')
+          
+          elif form_name == 'startup_india':
+            uploaded_files = request.FILES.getlist('startup_documents')
+            if uploaded_files:
+              record.documents = _store_uploaded_files(uploaded_files, 'startup_india')
+            record.status = 'pending'
+          
+          elif form_name == 'fssai':
+            uploaded_files = request.FILES.getlist('fssai_documents')
+            if uploaded_files:
+              record.documents = _store_uploaded_files(uploaded_files, 'fssai')
+            record.status = 'pending'
+          
+          elif form_name == 'msme':
+            record.status = 'pending'
+          
+          elif form_name == 'company_llp':
+            uploaded_files = request.FILES.getlist('company_documents')
+            if uploaded_files:
+              record.documents = _store_uploaded_files(uploaded_files, 'company_llp')
+            record.status = 'pending'
+          
+          elif form_name == 'fire_pollution':
+            uploaded_files = request.FILES.getlist('fire_documents')
+            if uploaded_files:
+              record.documents = _store_uploaded_files(uploaded_files, 'fire_pollution')
+            record.status = 'pending'
+          
+          elif form_name == 'iso':
+            uploaded_files = request.FILES.getlist('iso_documents')
+            if uploaded_files:
+              record.documents = _store_uploaded_files(uploaded_files, 'iso')
+            record.status = 'pending'
+          
+          elif form_name == 'trademark':
+            uploaded_files = request.FILES.getlist('trademark_documents')
+            if uploaded_files:
+              record.documents = _store_uploaded_files(uploaded_files, 'trademark')
+            record.status = 'pending'
+          
+          elif form_name == 'trademark_compliance':
+            uploaded_files = request.FILES.getlist('trademark_compliance_documents')
+            if uploaded_files:
+              record.documents = _store_uploaded_files(uploaded_files, 'trademark_compliance')
+            record.status = 'pending'
+          
+          elif form_name == 'trademark_instant':
+            uploaded_files = request.FILES.getlist('trademark_instant_documents')
+            if uploaded_files:
+              record.documents = _store_uploaded_files(uploaded_files, 'trademark_instant')
+            record.status = 'pending'
+          
+          elif form_name == 'address_change':
+            uploaded_files = request.FILES.getlist('address_change_documents')
+            if uploaded_files:
+              record.documents = _store_uploaded_files(uploaded_files, 'address_change')
+            record.status = 'pending'
+          
+          elif form_name == 'moa_alteration':
+            uploaded_files = request.FILES.getlist('moa_alteration_documents')
+            if uploaded_files:
+              record.documents = _store_uploaded_files(uploaded_files, 'moa_alteration')
+            record.status = 'pending'
+          
+          record.save()
+          messages.success(request, f'{selected_service_obj["title"]} form submitted successfully!')
+          return redirect('service_forms')
+        else:
+          messages.error(request, 'Please correct the errors in the form.')
+        break
+  
+  # Get all records for each service to display in tables
+  service_records = {}
+  for service in all_services:
+    try:
+      records = service['model'].objects.all().order_by('-created_at')[:50]  # Latest 50 records
+      service_records[service['id']] = records
+    except:
+      service_records[service['id']] = []
+  
+  context = {
+    'accounts_services': accounts_services,
+    'backoffice_services': backoffice_services,
+    'all_services': all_services,
+    'selected_service': selected_service,
+    'selected_service_obj': selected_service_obj,
+    'form': form_instance,
+    'service_records': service_records,
+  }
+  
+  return render(request, 'dashboard/service_forms.html', context)
+
+@login_required
+def service_leads(request):
+  """
+  Service Leads page - Shows all leads from service forms.
+  Organized by Accounts and Back Office departments.
+  """
+  # Check if user has Admin role
+  try:
+    employee = Employee.objects.get(email=request.user.email)
+    if employee.role != 'Admin':
+      messages.warning(request, 'You do not have permission to access this page.')
+      return redirect('employee_dashboard')
+  except Employee.DoesNotExist:
+    if not request.user.is_staff:
+      messages.warning(request, 'You do not have permission to access this page.')
+      return redirect('employee_dashboard')
+  
+  # Define all services
+  accounts_services = [
+    {'id': 'roc', 'title': 'ROC Compliance', 'model': ROCComplianceRecord, 'icon': 'bi-file-earmark-check'},
+    {'id': 'gst', 'title': 'GST Filing', 'model': GSTFilingRecord, 'icon': 'bi-receipt'},
+    {'id': 'itr', 'title': 'ITR Filing', 'model': ITRFilingRecord, 'icon': 'bi-file-earmark-text'},
+    {'id': 'bookkeeping', 'title': 'Bookkeeping Checklist', 'model': BookkeepingChecklistRecord, 'icon': 'bi-clipboard-check'},
+    {'id': 'tds', 'title': 'TDS Compliance', 'model': TDSComplianceRecord, 'icon': 'bi-cash-stack'},
+  ]
+  
+  backoffice_services = [
+    {'id': 'startup', 'title': 'Start-up India Registration', 'model': StartupIndiaRegistration, 'icon': 'bi-rocket-takeoff'},
+    {'id': 'fssai', 'title': 'Food Licensing (FSSAI)', 'model': FSSAILicense, 'icon': 'bi-egg-fried'},
+    {'id': 'msme', 'title': 'MSME / Udyam Registration', 'model': MSMEUdyamRegistration, 'icon': 'bi-building-gear'},
+    {'id': 'company-llp', 'title': 'Company / LLP Registration', 'model': CompanyLLPRegistration, 'icon': 'bi-diagram-3'},
+    {'id': 'fire-pollution', 'title': 'Fire & Pollution Licences', 'model': FirePollutionLicense, 'icon': 'bi-shield-check'},
+    {'id': 'iso', 'title': 'ISO Certification', 'model': ISOCertification, 'icon': 'bi-award'},
+    {'id': 'trademark', 'title': 'Trademark Filing', 'model': TrademarkFiling, 'icon': 'bi-trademark'},
+    {'id': 'trademark-compliance', 'title': 'Trademark Filing + Compliance', 'model': TrademarkFilingCompliance, 'icon': 'bi-shield-check'},
+    {'id': 'trademark-instant', 'title': 'Trademark Filing (Instant)', 'model': TrademarkFilingInstant, 'icon': 'bi-lightning'},
+    {'id': 'address-change', 'title': 'Company Address Change', 'model': CompanyAddressChange, 'icon': 'bi-geo-alt'},
+    {'id': 'moa-alteration', 'title': 'MOA Alteration', 'model': MOAAlteration, 'icon': 'bi-pencil-square'},
+  ]
+  
+  # Get all records for each service
+  accounts_leads = {}
+  for service in accounts_services:
+    records = service['model'].objects.all().order_by('-created_at')
+    accounts_leads[service['id']] = {
+      'title': service['title'],
+      'icon': service['icon'],
+      'records': records,
+      'count': records.count(),
+    }
+  
+  backoffice_leads = {}
+  for service in backoffice_services:
+    records = service['model'].objects.all().order_by('-created_at')
+    backoffice_leads[service['id']] = {
+      'title': service['title'],
+      'icon': service['icon'],
+      'records': records,
+      'count': records.count(),
+    }
+  
+  # Get all employees for assign dropdown
+  accounts_employees = Employee.objects.filter(department__iexact='accounts', status='active').order_by('first_name', 'last_name')
+  backoffice_employees = Employee.objects.filter(department__iexact='backoffice', status='active').order_by('first_name', 'last_name')
+  
+  context = {
+    'accounts_leads': accounts_leads,
+    'backoffice_leads': backoffice_leads,
+    'accounts_employees': accounts_employees,
+    'backoffice_employees': backoffice_employees,
+  }
+  
+  return render(request, 'dashboard/service_leads.html', context)
+
+@login_required
+def assign_service_lead(request):
+  """Assign a service lead to an employee"""
+  if request.method == 'POST':
+    try:
+      service_type = request.POST.get('service_type')
+      record_id = request.POST.get('record_id')
+      employee_id = request.POST.get('employee_id')
+      
+      # Map service types to models
+      service_models = {
+        'roc': ROCComplianceRecord,
+        'gst': GSTFilingRecord,
+        'itr': ITRFilingRecord,
+        'bookkeeping': BookkeepingChecklistRecord,
+        'tds': TDSComplianceRecord,
+        'startup': StartupIndiaRegistration,
+        'fssai': FSSAILicense,
+        'msme': MSMEUdyamRegistration,
+        'company-llp': CompanyLLPRegistration,
+        'fire-pollution': FirePollutionLicense,
+        'iso': ISOCertification,
+        'trademark': TrademarkFiling,
+        'trademark-compliance': TrademarkFilingCompliance,
+        'trademark-instant': TrademarkFilingInstant,
+        'address-change': CompanyAddressChange,
+        'moa-alteration': MOAAlteration,
+      }
+      
+      if service_type not in service_models:
+        return JsonResponse({'success': False, 'error': 'Invalid service type'})
+      
+      model_class = service_models[service_type]
+      record = model_class.objects.get(id=record_id)
+      
+      if employee_id:
+        employee = Employee.objects.get(id=employee_id)
+        record.assigned_to = employee
+      else:
+        record.assigned_to = None
+      
+      record.save()
+      
+      return JsonResponse({
+        'success': True,
+        'message': 'Lead assigned successfully',
+        'assigned_to': record.assigned_to.get_full_name() if record.assigned_to else None
+      })
+    except Exception as e:
+      return JsonResponse({'success': False, 'error': str(e)})
+  
+  return JsonResponse({'success': False, 'error': 'Invalid request method'})
+
 @login_required
 def dashboard_leaves(request):
     """Dashboard view to manage all leave requests - requires login and Admin role"""
@@ -4364,14 +4810,14 @@ def employee_dashboard(request):
     tds_count = 0
     total_account_records = 0
     
-    if employee_department and employee_department.lower() == 'accounts' and request.user.is_authenticated:
+    if employee_department and employee_department.lower() == 'accounts' and request.user.is_authenticated and employee_obj:
         # Get counts for account team records from database
-        # For accounts department, show ALL records in the table (not filtered by user)
-        roc_count = ROCComplianceRecord.objects.all().count()
-        gst_count = GSTFilingRecord.objects.all().count()
-        itr_count = ITRFilingRecord.objects.all().count()
-        bookkeeping_count = BookkeepingChecklistRecord.objects.all().count()
-        tds_count = TDSComplianceRecord.objects.all().count()
+        # For accounts department, show only ASSIGNED records
+        roc_count = ROCComplianceRecord.objects.filter(assigned_to=employee_obj).count()
+        gst_count = GSTFilingRecord.objects.filter(assigned_to=employee_obj).count()
+        itr_count = ITRFilingRecord.objects.filter(assigned_to=employee_obj).count()
+        bookkeeping_count = BookkeepingChecklistRecord.objects.filter(assigned_to=employee_obj).count()
+        tds_count = TDSComplianceRecord.objects.filter(assigned_to=employee_obj).count()
         total_account_records = roc_count + gst_count + itr_count + bookkeeping_count + tds_count
     
     # Back Office Data (for Backoffice department users)
@@ -4392,16 +4838,16 @@ def employee_dashboard(request):
             is_backoffice = True
     
     # Always calculate counts if user is authenticated (for backoffice users)
-    if is_backoffice and request.user.is_authenticated:
+    if is_backoffice and request.user.is_authenticated and employee_obj:
         # Get counts for back office records from database
-        # For backoffice department, show ALL records in the table (not filtered by user)
-        startup_count = StartupIndiaRegistration.objects.all().count()
-        fssai_count = FSSAILicense.objects.all().count()
-        msme_count = MSMEUdyamRegistration.objects.all().count()
-        company_count = CompanyLLPRegistration.objects.all().count()
-        fire_count = FirePollutionLicense.objects.all().count()
-        iso_count = ISOCertification.objects.all().count()
-        trademark_count = TrademarkFiling.objects.all().count()
+        # For backoffice department, show only ASSIGNED records
+        startup_count = StartupIndiaRegistration.objects.filter(assigned_to=employee_obj).count()
+        fssai_count = FSSAILicense.objects.filter(assigned_to=employee_obj).count()
+        msme_count = MSMEUdyamRegistration.objects.filter(assigned_to=employee_obj).count()
+        company_count = CompanyLLPRegistration.objects.filter(assigned_to=employee_obj).count()
+        fire_count = FirePollutionLicense.objects.filter(assigned_to=employee_obj).count()
+        iso_count = ISOCertification.objects.filter(assigned_to=employee_obj).count()
+        trademark_count = TrademarkFiling.objects.filter(assigned_to=employee_obj).count() + TrademarkFilingCompliance.objects.filter(assigned_to=employee_obj).count() + TrademarkFilingInstant.objects.filter(assigned_to=employee_obj).count()
         total_backoffice_records = startup_count + fssai_count + msme_count + company_count + fire_count + iso_count + trademark_count
     
     context = {

@@ -181,6 +181,12 @@ class LeadForm(forms.ModelForm):
 
 class ROCComplianceForm(forms.ModelForm):
     """Form for ROC compliance intake."""
+    
+    lead_source = forms.CharField(
+        initial='website',
+        widget=forms.HiddenInput(),
+        required=False
+    )
 
     compliance_period = forms.ChoiceField(
         choices=[
@@ -203,6 +209,7 @@ class ROCComplianceForm(forms.ModelForm):
     class Meta:
         model = ROCComplianceRecord
         fields = [
+            'lead_source',
             'company_name',
             'cin_llpin',
             'financial_year',
@@ -222,6 +229,12 @@ class ROCComplianceForm(forms.ModelForm):
 
 class GSTFilingForm(forms.ModelForm):
     """Form for GST return builder."""
+    
+    lead_source = forms.CharField(
+        initial='website',
+        widget=forms.HiddenInput(),
+        required=False
+    )
 
     RETURN_CHOICES = [
         ('GSTR-1', 'GSTR-1'),
@@ -248,6 +261,7 @@ class GSTFilingForm(forms.ModelForm):
     class Meta:
         model = GSTFilingRecord
         fields = [
+            'lead_source',
             'gstin',
             'return_period',
             'return_type',
@@ -267,6 +281,12 @@ class GSTFilingForm(forms.ModelForm):
 
 class ITRFilingForm(forms.ModelForm):
     """Form for ITR intake."""
+    
+    lead_source = forms.CharField(
+        initial='website',
+        widget=forms.HiddenInput(),
+        required=False
+    )
 
     assessment_year = forms.ChoiceField(
         choices=[
@@ -308,6 +328,7 @@ class ITRFilingForm(forms.ModelForm):
     class Meta:
         model = ITRFilingRecord
         fields = [
+            'lead_source',
             'taxpayer_name',
             'pan',
             'assessment_year',
@@ -325,6 +346,12 @@ class ITRFilingForm(forms.ModelForm):
 
 class BookkeepingChecklistForm(forms.ModelForm):
     """Form for daily bookkeeping checklist."""
+    
+    lead_source = forms.CharField(
+        initial='website',
+        widget=forms.HiddenInput(),
+        required=False
+    )
 
     cash_book_updated = forms.BooleanField(
         required=False,
@@ -342,6 +369,7 @@ class BookkeepingChecklistForm(forms.ModelForm):
     class Meta:
         model = BookkeepingChecklistRecord
         fields = [
+            'lead_source',
             'closing_date',
             'prepared_by',
             'cash_book_updated',
@@ -358,6 +386,12 @@ class BookkeepingChecklistForm(forms.ModelForm):
 
 class TDSComplianceForm(forms.ModelForm):
     """Form for TDS payment & return tracker."""
+    
+    lead_source = forms.CharField(
+        initial='website',
+        widget=forms.HiddenInput(),
+        required=False
+    )
 
     section = forms.ChoiceField(
         choices=[
@@ -373,6 +407,7 @@ class TDSComplianceForm(forms.ModelForm):
     class Meta:
         model = TDSComplianceRecord
         fields = [
+            'lead_source',
             'deductor_tan',
             'section',
             'deduction_month',
@@ -393,6 +428,12 @@ class TDSComplianceForm(forms.ModelForm):
 
 class StartupIndiaRegistrationForm(forms.ModelForm):
     """Form for Start-up India Registration intake."""
+    
+    lead_source = forms.CharField(
+        initial='website',
+        widget=forms.HiddenInput(),
+        required=False
+    )
 
     entity_type = forms.ChoiceField(
         choices=StartupIndiaRegistration.ENTITY_TYPE_CHOICES,
@@ -406,6 +447,7 @@ class StartupIndiaRegistrationForm(forms.ModelForm):
     class Meta:
         model = StartupIndiaRegistration
         fields = [
+            'lead_source',
             'legal_entity_name',
             'incorporation_date',
             'entity_type',
@@ -425,6 +467,12 @@ class StartupIndiaRegistrationForm(forms.ModelForm):
 
 class FSSAILicenseForm(forms.ModelForm):
     """Form for FSSAI Food Licensing intake."""
+    
+    lead_source = forms.CharField(
+        initial='website',
+        widget=forms.HiddenInput(),
+        required=False
+    )
 
     licence_type = forms.ChoiceField(
         choices=FSSAILicense.LICENCE_TYPE_CHOICES,
@@ -442,6 +490,7 @@ class FSSAILicenseForm(forms.ModelForm):
     class Meta:
         model = FSSAILicense
         fields = [
+            'lead_source',
             'business_brand_name',
             'licence_type',
             'business_nature',
@@ -458,6 +507,12 @@ class FSSAILicenseForm(forms.ModelForm):
 
 class MSMEUdyamRegistrationForm(forms.ModelForm):
     """Form for MSME / Udyam Registration intake."""
+    
+    lead_source = forms.CharField(
+        initial='website',
+        widget=forms.HiddenInput(),
+        required=False
+    )
 
     organisation_type = forms.ChoiceField(
         choices=MSMEUdyamRegistration.ORGANISATION_TYPE_CHOICES,
@@ -467,6 +522,7 @@ class MSMEUdyamRegistrationForm(forms.ModelForm):
     class Meta:
         model = MSMEUdyamRegistration
         fields = [
+            'lead_source',
             'entity_name',
             'organisation_type',
             'plant_machinery_investment',
@@ -483,6 +539,12 @@ class MSMEUdyamRegistrationForm(forms.ModelForm):
 
 class CompanyLLPRegistrationForm(forms.ModelForm):
     """Form for Company / LLP Registration intake."""
+    
+    lead_source = forms.CharField(
+        initial='website',
+        widget=forms.HiddenInput(),
+        required=False
+    )
 
     entity_type = forms.ChoiceField(
         choices=CompanyLLPRegistration.ENTITY_TYPE_CHOICES,
@@ -492,6 +554,7 @@ class CompanyLLPRegistrationForm(forms.ModelForm):
     class Meta:
         model = CompanyLLPRegistration
         fields = [
+            'lead_source',
             'entity_type',
             'directors_partners',
             'proposed_names',
@@ -508,6 +571,12 @@ class CompanyLLPRegistrationForm(forms.ModelForm):
 
 class FirePollutionLicenseForm(forms.ModelForm):
     """Form for Fire & Pollution Licence intake."""
+    
+    lead_source = forms.CharField(
+        initial='website',
+        widget=forms.HiddenInput(),
+        required=False
+    )
 
     establishment_type = forms.ChoiceField(
         choices=FirePollutionLicense.ESTABLISHMENT_CHOICES,
@@ -521,6 +590,7 @@ class FirePollutionLicenseForm(forms.ModelForm):
     class Meta:
         model = FirePollutionLicense
         fields = [
+            'lead_source',
             'establishment_type',
             'built_up_area',
             'pollution_category',
@@ -534,6 +604,12 @@ class FirePollutionLicenseForm(forms.ModelForm):
 
 class ISOCertificationForm(forms.ModelForm):
     """Form for ISO Certification intake."""
+    
+    lead_source = forms.CharField(
+        initial='website',
+        widget=forms.HiddenInput(),
+        required=False
+    )
 
     standard = forms.ChoiceField(
         choices=ISOCertification.STANDARD_CHOICES,
@@ -543,6 +619,7 @@ class ISOCertificationForm(forms.ModelForm):
     class Meta:
         model = ISOCertification
         fields = [
+            'lead_source',
             'standard',
             'locations',
             'employee_strength',
@@ -557,6 +634,12 @@ class ISOCertificationForm(forms.ModelForm):
 
 class TrademarkFilingForm(forms.ModelForm):
     """Form for Trademark Filing intake."""
+    
+    lead_source = forms.CharField(
+        initial='website',
+        widget=forms.HiddenInput(),
+        required=False
+    )
 
     applicant_type = forms.ChoiceField(
         choices=TrademarkFiling.APPLICANT_TYPE_CHOICES,
@@ -566,6 +649,7 @@ class TrademarkFilingForm(forms.ModelForm):
     class Meta:
         model = TrademarkFiling
         fields = [
+            'lead_source',
             'brand_logo',
             'applicant_type',
             'classes',
@@ -580,6 +664,12 @@ class TrademarkFilingForm(forms.ModelForm):
 
 class TrademarkFilingComplianceForm(forms.ModelForm):
     """Form for Trademark Filing + Compliance intake."""
+    
+    lead_source = forms.CharField(
+        initial='website',
+        widget=forms.HiddenInput(),
+        required=False
+    )
 
     watch_scope = forms.ChoiceField(
         choices=TrademarkFilingCompliance.WATCH_SCOPE_CHOICES,
@@ -590,6 +680,7 @@ class TrademarkFilingComplianceForm(forms.ModelForm):
     class Meta:
         model = TrademarkFilingCompliance
         fields = [
+            'lead_source',
             'existing_tm_numbers',
             'portfolio_size',
             'watch_scope',
@@ -604,6 +695,12 @@ class TrademarkFilingComplianceForm(forms.ModelForm):
 
 class TrademarkFilingInstantForm(forms.ModelForm):
     """Form for Trademark Filing (Instant Process) intake."""
+    
+    lead_source = forms.CharField(
+        initial='website',
+        widget=forms.HiddenInput(),
+        required=False
+    )
 
     filing_window = forms.ChoiceField(
         choices=TrademarkFilingInstant.FILING_WINDOW_CHOICES,
@@ -614,6 +711,7 @@ class TrademarkFilingInstantForm(forms.ModelForm):
     class Meta:
         model = TrademarkFilingInstant
         fields = [
+            'lead_source',
             'urgency_reason',
             'filing_window',
             'contact_mobile',
@@ -626,6 +724,12 @@ class TrademarkFilingInstantForm(forms.ModelForm):
 
 class CompanyAddressChangeForm(forms.ModelForm):
     """Form for Company Address Change intake."""
+    
+    lead_source = forms.CharField(
+        initial='website',
+        widget=forms.HiddenInput(),
+        required=False
+    )
 
     entity_type = forms.ChoiceField(
         choices=CompanyAddressChange.ENTITY_TYPE_CHOICES,
@@ -640,6 +744,7 @@ class CompanyAddressChangeForm(forms.ModelForm):
     class Meta:
         model = CompanyAddressChange
         fields = [
+            'lead_source',
             'entity_type',
             'shift_type',
             'effective_date',
@@ -653,6 +758,12 @@ class CompanyAddressChangeForm(forms.ModelForm):
 
 class MOAAlterationForm(forms.ModelForm):
     """Form for MOA Alteration intake."""
+    
+    lead_source = forms.CharField(
+        initial='website',
+        widget=forms.HiddenInput(),
+        required=False
+    )
 
     alteration_type = forms.ChoiceField(
         choices=MOAAlteration.ALTERATION_TYPE_CHOICES,
@@ -662,6 +773,7 @@ class MOAAlterationForm(forms.ModelForm):
     class Meta:
         model = MOAAlteration
         fields = [
+            'lead_source',
             'alteration_type',
             'proposed_object_name',
             'effective_date',
