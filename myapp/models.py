@@ -406,6 +406,13 @@ class ClientOnboarding(models.Model):
 class ROCComplianceRecord(models.Model):
     """Stores ROC compliance preparation details for accounts team."""
 
+    STATUS_CHOICES = [
+        ('pending', 'Pending'),
+        ('accepted', 'Accepted'),
+        ('submitted', 'Submitted'),
+        ('complete', 'Complete'),
+    ]
+
     user = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.SET_NULL,
@@ -422,6 +429,7 @@ class ROCComplianceRecord(models.Model):
         related_name='assigned_roc_records',
         verbose_name="Assigned To"
     )
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='pending', verbose_name="Status")
     company_name = models.CharField(max_length=255)
     cin_llpin = models.CharField(max_length=25, verbose_name="CIN / LLPIN")
     financial_year = models.CharField(max_length=20)
@@ -442,9 +450,26 @@ class ROCComplianceRecord(models.Model):
     def __str__(self):
         return f"{self.company_name} ({self.financial_year})"
 
+    def get_status_badge_class(self):
+        """Return Bootstrap badge class for display"""
+        status_classes = {
+            'pending': 'bg-warning text-dark',
+            'accepted': 'bg-info text-dark',
+            'submitted': 'bg-primary text-dark',
+            'complete': 'bg-success text-dark',
+        }
+        return status_classes.get(self.status, 'bg-secondary')
+
 
 class GSTFilingRecord(models.Model):
     """Stores GST return preparation details."""
+
+    STATUS_CHOICES = [
+        ('pending', 'Pending'),
+        ('accepted', 'Accepted'),
+        ('submitted', 'Submitted'),
+        ('complete', 'Complete'),
+    ]
 
     user = models.ForeignKey(
         settings.AUTH_USER_MODEL,
@@ -462,6 +487,7 @@ class GSTFilingRecord(models.Model):
         related_name='assigned_gst_records',
         verbose_name="Assigned To"
     )
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='pending', verbose_name="Status")
     gstin = models.CharField(max_length=15, verbose_name="GSTIN")
     return_period = models.CharField(max_length=7, help_text="YYYY-MM format")
     return_type = models.CharField(max_length=20)
@@ -482,9 +508,26 @@ class GSTFilingRecord(models.Model):
     def __str__(self):
         return f"{self.gstin} - {self.return_type} ({self.return_period})"
 
+    def get_status_badge_class(self):
+        """Return Bootstrap badge class for display"""
+        status_classes = {
+            'pending': 'bg-warning text-dark',
+            'accepted': 'bg-info text-dark',
+            'submitted': 'bg-primary text-dark',
+            'complete': 'bg-success text-dark',
+        }
+        return status_classes.get(self.status, 'bg-secondary')
+
 
 class ITRFilingRecord(models.Model):
     """Stores income tax return intake details."""
+
+    STATUS_CHOICES = [
+        ('pending', 'Pending'),
+        ('accepted', 'Accepted'),
+        ('submitted', 'Submitted'),
+        ('complete', 'Complete'),
+    ]
 
     user = models.ForeignKey(
         settings.AUTH_USER_MODEL,
@@ -502,6 +545,7 @@ class ITRFilingRecord(models.Model):
         related_name='assigned_itr_records',
         verbose_name="Assigned To"
     )
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='pending', verbose_name="Status")
     taxpayer_name = models.CharField(max_length=255)
     pan = models.CharField(max_length=10)
     assessment_year = models.CharField(max_length=9)
@@ -522,9 +566,26 @@ class ITRFilingRecord(models.Model):
     def __str__(self):
         return f"{self.taxpayer_name} - {self.assessment_year}"
 
+    def get_status_badge_class(self):
+        """Return Bootstrap badge class for display"""
+        status_classes = {
+            'pending': 'bg-warning text-dark',
+            'accepted': 'bg-info text-dark',
+            'submitted': 'bg-primary text-dark',
+            'complete': 'bg-success text-dark',
+        }
+        return status_classes.get(self.status, 'bg-secondary')
+
 
 class BookkeepingChecklistRecord(models.Model):
     """Stores daily accounts & bookkeeping checklist submissions."""
+
+    STATUS_CHOICES = [
+        ('pending', 'Pending'),
+        ('accepted', 'Accepted'),
+        ('submitted', 'Submitted'),
+        ('complete', 'Complete'),
+    ]
 
     user = models.ForeignKey(
         settings.AUTH_USER_MODEL,
@@ -542,6 +603,7 @@ class BookkeepingChecklistRecord(models.Model):
         related_name='assigned_bookkeeping_records',
         verbose_name="Assigned To"
     )
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='pending', verbose_name="Status")
     closing_date = models.DateField(null=True, blank=True)
     prepared_by = models.CharField(max_length=255)
     cash_book_updated = models.BooleanField(default=False)
@@ -562,9 +624,26 @@ class BookkeepingChecklistRecord(models.Model):
         closing = self.closing_date.strftime('%Y-%m-%d') if self.closing_date else 'No Date'
         return f"{self.prepared_by} - {closing}"
 
+    def get_status_badge_class(self):
+        """Return Bootstrap badge class for display"""
+        status_classes = {
+            'pending': 'bg-warning text-dark',
+            'accepted': 'bg-info text-dark',
+            'submitted': 'bg-primary text-dark',
+            'complete': 'bg-success text-dark',
+        }
+        return status_classes.get(self.status, 'bg-secondary')
+
 
 class TDSComplianceRecord(models.Model):
     """Stores TDS payment and return tracker submissions."""
+
+    STATUS_CHOICES = [
+        ('pending', 'Pending'),
+        ('accepted', 'Accepted'),
+        ('submitted', 'Submitted'),
+        ('complete', 'Complete'),
+    ]
 
     user = models.ForeignKey(
         settings.AUTH_USER_MODEL,
@@ -582,6 +661,7 @@ class TDSComplianceRecord(models.Model):
         related_name='assigned_tds_records',
         verbose_name="Assigned To"
     )
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='pending', verbose_name="Status")
     deductor_tan = models.CharField(max_length=10, verbose_name="Deductor TAN")
     section = models.CharField(max_length=30)
     deduction_month = models.CharField(max_length=7, help_text="YYYY-MM format")
@@ -601,6 +681,16 @@ class TDSComplianceRecord(models.Model):
 
     def __str__(self):
         return f"{self.deductor_tan} - {self.section} ({self.deduction_month})"
+
+    def get_status_badge_class(self):
+        """Return Bootstrap badge class for display"""
+        status_classes = {
+            'pending': 'bg-warning text-dark',
+            'accepted': 'bg-info text-dark',
+            'submitted': 'bg-primary text-dark',
+            'complete': 'bg-success text-dark',
+        }
+        return status_classes.get(self.status, 'bg-secondary')
 
 
 class StartupIndiaRegistration(models.Model):
@@ -666,6 +756,16 @@ class StartupIndiaRegistration(models.Model):
 
     def __str__(self):
         return f"{self.legal_entity_name} - {self.entity_type}"
+
+    def get_status_badge_class(self):
+        status_classes = {
+            'draft': 'bg-secondary text-dark',
+            'pending': 'bg-warning text-dark',
+            'ready': 'bg-info text-dark',
+            'submitted': 'bg-primary text-dark',
+            'approved': 'bg-success text-dark',
+        }
+        return status_classes.get(self.status, 'bg-secondary text-dark')
 
 
 class FSSAILicense(models.Model):
@@ -736,6 +836,16 @@ class FSSAILicense(models.Model):
     def __str__(self):
         return f"{self.business_brand_name} - {self.licence_type}"
 
+    def get_status_badge_class(self):
+        status_classes = {
+            'draft': 'bg-secondary text-dark',
+            'pending': 'bg-warning text-dark',
+            'ready': 'bg-info text-dark',
+            'submitted': 'bg-primary text-dark',
+            'approved': 'bg-success text-dark',
+        }
+        return status_classes.get(self.status, 'bg-secondary text-dark')
+
 
 class MSMEUdyamRegistration(models.Model):
     """Stores MSME / Udyam Registration submissions."""
@@ -802,6 +912,16 @@ class MSMEUdyamRegistration(models.Model):
     def __str__(self):
         return f"{self.entity_name} - {self.organisation_type}"
 
+    def get_status_badge_class(self):
+        status_classes = {
+            'draft': 'bg-secondary text-dark',
+            'pending': 'bg-warning text-dark',
+            'ready': 'bg-info text-dark',
+            'submitted': 'bg-primary text-dark',
+            'approved': 'bg-success text-dark',
+        }
+        return status_classes.get(self.status, 'bg-secondary text-dark')
+
 
 class CompanyLLPRegistration(models.Model):
     """Stores Company / LLP Registration submissions."""
@@ -854,6 +974,16 @@ class CompanyLLPRegistration(models.Model):
 
     def __str__(self):
         return f"{self.get_entity_type_display()} - {self.proposed_names.splitlines()[0] if self.proposed_names else 'Proposal'}"
+
+    def get_status_badge_class(self):
+        status_classes = {
+            'draft': 'bg-secondary text-dark',
+            'pending': 'bg-warning text-dark',
+            'ready': 'bg-info text-dark',
+            'submitted': 'bg-primary text-dark',
+            'approved': 'bg-success text-dark',
+        }
+        return status_classes.get(self.status, 'bg-secondary text-dark')
 
 
 class FirePollutionLicense(models.Model):
@@ -915,6 +1045,16 @@ class FirePollutionLicense(models.Model):
     def __str__(self):
         return f"{self.establishment_type} - {self.pollution_category}"
 
+    def get_status_badge_class(self):
+        status_classes = {
+            'draft': 'bg-secondary text-dark',
+            'pending': 'bg-warning text-dark',
+            'ready': 'bg-info text-dark',
+            'submitted': 'bg-primary text-dark',
+            'approved': 'bg-success text-dark',
+        }
+        return status_classes.get(self.status, 'bg-secondary text-dark')
+
 
 class ISOCertification(models.Model):
     """Stores ISO Certification submissions."""
@@ -966,6 +1106,16 @@ class ISOCertification(models.Model):
 
     def __str__(self):
         return f"{self.standard} - {self.locations} location(s)"
+
+    def get_status_badge_class(self):
+        status_classes = {
+            'draft': 'bg-secondary text-dark',
+            'pending': 'bg-warning text-dark',
+            'ready': 'bg-info text-dark',
+            'submitted': 'bg-primary text-dark',
+            'approved': 'bg-success text-dark',
+        }
+        return status_classes.get(self.status, 'bg-secondary text-dark')
 
 
 class TrademarkFiling(models.Model):
@@ -1019,6 +1169,16 @@ class TrademarkFiling(models.Model):
     def __str__(self):
         return f"{self.brand_logo[:50]}... - {self.applicant_type}"
 
+    def get_status_badge_class(self):
+        status_classes = {
+            'draft': 'bg-secondary text-dark',
+            'pending': 'bg-warning text-dark',
+            'ready': 'bg-info text-dark',
+            'submitted': 'bg-primary text-dark',
+            'approved': 'bg-success text-dark',
+        }
+        return status_classes.get(self.status, 'bg-secondary text-dark')
+
 
 class TrademarkFilingCompliance(models.Model):
     """Stores Trademark Filing + Compliance submissions."""
@@ -1070,6 +1230,16 @@ class TrademarkFilingCompliance(models.Model):
     def __str__(self):
         return f"TM Compliance - Portfolio: {self.portfolio_size or 'N/A'}"
 
+    def get_status_badge_class(self):
+        status_classes = {
+            'draft': 'bg-secondary text-dark',
+            'pending': 'bg-warning text-dark',
+            'ready': 'bg-info text-dark',
+            'submitted': 'bg-primary text-dark',
+            'approved': 'bg-success text-dark',
+        }
+        return status_classes.get(self.status, 'bg-secondary text-dark')
+
 
 class TrademarkFilingInstant(models.Model):
     """Stores Trademark Filing (Instant Process) submissions."""
@@ -1119,6 +1289,16 @@ class TrademarkFilingInstant(models.Model):
 
     def __str__(self):
         return f"Instant TM - {self.filing_window or 'N/A'} - {self.urgency_reason[:30]}..."
+
+    def get_status_badge_class(self):
+        status_classes = {
+            'draft': 'bg-secondary text-dark',
+            'pending': 'bg-warning text-dark',
+            'ready': 'bg-info text-dark',
+            'submitted': 'bg-primary text-dark',
+            'approved': 'bg-success text-dark',
+        }
+        return status_classes.get(self.status, 'bg-secondary text-dark')
 
 
 class CompanyAddressChange(models.Model):
@@ -1176,6 +1356,16 @@ class CompanyAddressChange(models.Model):
     def __str__(self):
         return f"{self.entity_type} - {self.shift_type} - {self.new_address[:30]}..."
 
+    def get_status_badge_class(self):
+        status_classes = {
+            'draft': 'bg-secondary text-dark',
+            'pending': 'bg-warning text-dark',
+            'ready': 'bg-info text-dark',
+            'submitted': 'bg-primary text-dark',
+            'approved': 'bg-success text-dark',
+        }
+        return status_classes.get(self.status, 'bg-secondary text-dark')
+
 
 class MOAAlteration(models.Model):
     """Stores MOA Alteration submissions."""
@@ -1225,6 +1415,16 @@ class MOAAlteration(models.Model):
 
     def __str__(self):
         return f"{self.alteration_type} - {self.proposed_object_name[:30]}..."
+
+    def get_status_badge_class(self):
+        status_classes = {
+            'draft': 'bg-secondary text-dark',
+            'pending': 'bg-warning text-dark',
+            'ready': 'bg-info text-dark',
+            'submitted': 'bg-primary text-dark',
+            'approved': 'bg-success text-dark',
+        }
+        return status_classes.get(self.status, 'bg-secondary text-dark')
 
 
 class Attendance(models.Model):

@@ -16,6 +16,7 @@ urlpatterns =[
   path('dashboard/service-forms/', views.service_forms, name='service_forms'),
   path('dashboard/service-leads/', views.service_leads, name='service_leads'),
   path('dashboard/service-leads/assign/', views.assign_service_lead, name='assign_service_lead'),
+  path('dashboard/service-leads/update-status/', views.update_service_lead_status, name='update_service_lead_status'),
   path('leads/',views.leads,name='leads'),
   path('leads/<int:lead_id>/',views.lead_detail,name='lead_detail'),
   path('leads/<int:lead_id>/edit/',views.lead_edit,name='lead_edit'),

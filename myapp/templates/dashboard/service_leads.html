@@ -3,10 +3,10 @@
 {% block title %}Service Leads - Sujata Associates{% endblock %}
 
 {% block content %}
-<div class="container-fluid" style="padding: 2rem;">
-  <div class="dashboard-header mb-4">
-    <h1>Account & Backoffice Leads</h1>
-    <p class="text-muted">Manage and assign leads from service forms</p>
+<div class="container-fluid px-2 px-md-3 px-lg-4 py-3 py-md-4">
+  <div class="dashboard-header mb-3 mb-md-4">
+    <h1 class="h4 h3-md mb-2">Account & Backoffice Leads</h1>
+    <p class="text-muted small mb-0">Manage and assign leads from service forms</p>
   </div>
 
   {% if messages %}
@@ -39,43 +39,109 @@
                   </button>
                 </h2>
                 <div id="collapse{{ service_id }}" class="accordion-collapse collapse {% if forloop.first %}show{% endif %}" data-bs-parent="#accountsAccordion">
-                  <div class="accordion-body">
+                  <div class="accordion-body p-2 p-md-3">
                     {% if service_data.records %}
-                      <div class="table-responsive">
-                        <table class="table table-hover">
-                          <thead>
-                            <tr>
-                              <th>ID</th>
+                      <!-- Mobile Card View -->
+                      <div class="d-block d-md-none cards-scroll-container">
+                        {% for record in service_data.records %}
+                          <div class="card mb-2 shadow-sm">
+                            <div class="card-body p-3">
+                              <div class="d-flex justify-content-between align-items-start mb-2">
+                                <h6 class="card-title mb-0">ID: {{ record.id }}</h6>
+                                <span class="badge bg-info">{{ record.lead_source|default:"website" }}</span>
+                              </div>
+                              
                               {% if service_id == 'roc' %}
-                                <th>Company Name</th>
-                                <th>CIN/LLPIN</th>
-                                <th>Financial Year</th>
-                                <th>Compliance Period</th>
+                                <div class="mb-2"><strong>Company:</strong> {{ record.company_name }}</div>
+                                <div class="mb-2"><strong>CIN/LLPIN:</strong> {{ record.cin_llpin }}</div>
+                                <div class="mb-2"><strong>Financial Year:</strong> {{ record.financial_year }}</div>
+                                <div class="mb-2"><strong>Compliance Period:</strong> {{ record.compliance_period }}</div>
                               {% elif service_id == 'gst' %}
-                                <th>GSTIN</th>
-                                <th>Return Period</th>
-                                <th>Return Type</th>
-                                <th>Tax Payable</th>
+                                <div class="mb-2"><strong>GSTIN:</strong> {{ record.gstin }}</div>
+                                <div class="mb-2"><strong>Return Period:</strong> {{ record.return_period }}</div>
+                                <div class="mb-2"><strong>Return Type:</strong> {{ record.return_type }}</div>
+                                <div class="mb-2"><strong>Tax Payable:</strong> ₹{{ record.tax_payable }}</div>
                               {% elif service_id == 'itr' %}
-                                <th>Taxpayer Name</th>
-                                <th>PAN</th>
-                                <th>Assessment Year</th>
-                                <th>Return Form</th>
+                                <div class="mb-2"><strong>Taxpayer:</strong> {{ record.taxpayer_name }}</div>
+                                <div class="mb-2"><strong>PAN:</strong> {{ record.pan }}</div>
+                                <div class="mb-2"><strong>Assessment Year:</strong> {{ record.assessment_year }}</div>
+                                <div class="mb-2"><strong>Return Form:</strong> {{ record.return_form }}</div>
                               {% elif service_id == 'bookkeeping' %}
-                                <th>Prepared By</th>
-                                <th>Closing Date</th>
-                                <th>Cash Book Updated</th>
-                                <th>Bank Entries Reconciled</th>
+                                <div class="mb-2"><strong>Prepared By:</strong> {{ record.prepared_by }}</div>
+                                <div class="mb-2"><strong>Closing Date:</strong> {{ record.closing_date|date:"d M Y"|default:"N/A" }}</div>
+                                <div class="mb-2"><strong>Cash Book:</strong> {% if record.cash_book_updated %}<i class="bi bi-check-circle text-success"></i> Updated{% else %}<i class="bi bi-x-circle text-danger"></i> Pending{% endif %}</div>
+                                <div class="mb-2"><strong>Bank Entries:</strong> {% if record.bank_entries_reconciled %}<i class="bi bi-check-circle text-success"></i> Reconciled{% else %}<i class="bi bi-x-circle text-danger"></i> Pending{% endif %}</div>
                               {% elif service_id == 'tds' %}
-                                <th>Deductor TAN</th>
-                                <th>Section</th>
-                                <th>Deduction Month</th>
-                                <th>TDS Deducted</th>
+                                <div class="mb-2"><strong>TAN:</strong> {{ record.deductor_tan }}</div>
+                                <div class="mb-2"><strong>Section:</strong> {{ record.section }}</div>
+                                <div class="mb-2"><strong>Deduction Month:</strong> {{ record.deduction_month }}</div>
+                                <div class="mb-2"><strong>TDS Deducted:</strong> ₹{{ record.tds_deducted }}</div>
                               {% endif %}
-                              <th>Lead Source</th>
-                              <th>Assigned To</th>
-                              <th>Created At</th>
-                              <th>Actions</th>
+                              <div class="mb-2"><strong>Status:</strong> <span class="badge bg-{{ record.get_status_badge_class }}">{{ record.get_status_display }}</span></div>
+                              
+                              <hr class="my-2">
+                              <div class="d-flex justify-content-between align-items-center flex-wrap">
+                                <div class="mb-2">
+                                  <small class="text-muted d-block">Assigned To:</small>
+                                  {% if record.assigned_to %}
+                                    <span class="badge bg-success assigned-badge" data-service="{{ service_id }}" data-record="{{ record.id }}">{{ record.assigned_to.get_full_name }}</span>
+                                  {% else %}
+                                    <span class="badge bg-secondary assigned-badge" data-service="{{ service_id }}" data-record="{{ record.id }}">Unassigned</span>
+                                  {% endif %}
+                                </div>
+                                <div class="mb-2">
+                                  <small class="text-muted d-block">Created:</small>
+                                  <small>{{ record.created_at|date:"d M Y" }}</small>
+                                </div>
+                                <div>
+                                  <button type="button" class="btn btn-sm btn-primary assign-btn" data-bs-toggle="modal" data-bs-target="#assignModal{{ service_id }}{{ record.id }}" data-service="{{ service_id }}" data-record="{{ record.id }}">
+                                    <i class="bi bi-person-plus"></i>
+                                    <span class="assign-label">{% if record.assigned_to %}Change Employee{% else %}Assign{% endif %}</span>
+                                  </button>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        {% endfor %}
+                      </div>
+                      
+                      <!-- Desktop Table View -->
+                      <div class="d-none d-md-block table-responsive table-scroll-container">
+                        <table class="table table-hover table-sm mb-0">
+                          <thead class="table-light sticky-header">
+                            <tr>
+                              <th class="text-nowrap">ID</th>
+                              {% if service_id == 'roc' %}
+                                <th class="text-nowrap">Company Name</th>
+                                <th class="text-nowrap">CIN/LLPIN</th>
+                                <th class="text-nowrap">Financial Year</th>
+                                <th class="text-nowrap">Compliance Period</th>
+                              {% elif service_id == 'gst' %}
+                                <th class="text-nowrap">GSTIN</th>
+                                <th class="text-nowrap">Return Period</th>
+                                <th class="text-nowrap">Return Type</th>
+                                <th class="text-nowrap">Tax Payable</th>
+                              {% elif service_id == 'itr' %}
+                                <th class="text-nowrap">Taxpayer Name</th>
+                                <th class="text-nowrap">PAN</th>
+                                <th class="text-nowrap">Assessment Year</th>
+                                <th class="text-nowrap">Return Form</th>
+                              {% elif service_id == 'bookkeeping' %}
+                                <th class="text-nowrap">Prepared By</th>
+                                <th class="text-nowrap">Closing Date</th>
+                                <th class="text-nowrap">Cash Book Updated</th>
+                                <th class="text-nowrap">Bank Entries Reconciled</th>
+                              {% elif service_id == 'tds' %}
+                                <th class="text-nowrap">Deductor TAN</th>
+                                <th class="text-nowrap">Section</th>
+                                <th class="text-nowrap">Deduction Month</th>
+                                <th class="text-nowrap">TDS Deducted</th>
+                              {% endif %}
+                              <th class="text-nowrap">Status</th>
+                              <th class="text-nowrap">Lead Source</th>
+                              <th class="text-nowrap">Assigned To</th>
+                              <th class="text-nowrap">Created At</th>
+                              <th class="text-nowrap">Actions</th>
                             </tr>
                           </thead>
                           <tbody>
@@ -108,29 +174,39 @@
                                   <td>{{ record.deduction_month }}</td>
                                   <td>₹{{ record.tds_deducted }}</td>
                                 {% endif %}
+                                <td><span class="badge bg-{{ record.get_status_badge_class }}">{{ record.get_status_display }}</span></td>
                                 <td><span class="badge bg-info">{{ record.lead_source|default:"website" }}</span></td>
                                 <td>
                                   {% if record.assigned_to %}
-                                    <span class="badge bg-success">{{ record.assigned_to.get_full_name }}</span>
+                                    <span class="badge bg-success assigned-badge" data-service="{{ service_id }}" data-record="{{ record.id }}">{{ record.assigned_to.get_full_name }}</span>
                                   {% else %}
-                                    <span class="badge bg-secondary">Unassigned</span>
+                                    <span class="badge bg-secondary assigned-badge" data-service="{{ service_id }}" data-record="{{ record.id }}">Unassigned</span>
                                   {% endif %}
                                 </td>
-                                <td>{{ record.created_at|date:"d M Y" }}</td>
-                                <td>
-                                  <button type="button" class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#assignModal{{ service_id }}{{ record.id }}">
-                                    <i class="bi bi-person-plus"></i> Assign
+                                <td class="text-nowrap">{{ record.created_at|date:"d M Y" }}</td>
+                                <td class="text-nowrap">
+                                  <button type="button" class="btn btn-sm btn-primary assign-btn" data-bs-toggle="modal" data-bs-target="#assignModal{{ service_id }}{{ record.id }}" data-service="{{ service_id }}" data-record="{{ record.id }}">
+                                    <i class="bi bi-person-plus"></i>
+                                    <span class="assign-label d-none d-md-inline">
+                                      {% if record.assigned_to %}Change Employee{% else %}Assign{% endif %}
+                                    </span>
                                   </button>
                                 </td>
                               </tr>
+                            {% endfor %}
+                          </tbody>
+                        </table>
+                      </div>
                               
+                      <!-- Modals - Outside both views so they're always accessible -->
+                      {% for record in service_data.records %}
                               <!-- Assign Modal -->
-                              <div class="modal fade" id="assignModal{{ service_id }}{{ record.id }}" tabindex="-1">
-                                <div class="modal-dialog">
+                        <div class="modal fade" id="assignModal{{ service_id }}{{ record.id }}" tabindex="-1" aria-labelledby="assignModalLabel{{ service_id }}{{ record.id }}" aria-hidden="true">
+                          <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
                                   <div class="modal-content">
                                     <div class="modal-header">
-                                      <h5 class="modal-title">Assign Lead</h5>
-                                      <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                                <h5 class="modal-title" id="assignModalLabel{{ service_id }}{{ record.id }}">Assign Lead</h5>
+                                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                                     </div>
                                     <div class="modal-body">
                                       <form id="assignForm{{ service_id }}{{ record.id }}">
@@ -138,14 +214,24 @@
                                         <input type="hidden" name="record_id" value="{{ record.id }}">
                                         <div class="mb-3">
                                           <label class="form-label">Select Employee (Accounts Department)</label>
-                                          <select name="employee_id" class="form-select" id="employeeSelect{{ service_id }}{{ record.id }}">
-                                            <option value="">-- Unassign --</option>
+                                          <input type="hidden" name="employee_id" id="employeeSelect{{ service_id }}{{ record.id }}" value="{% if record.assigned_to %}{{ record.assigned_to.id }}{% endif %}">
+                                          <div class="dropdown w-100">
+                                            <button class="btn btn-outline-secondary dropdown-toggle w-100 text-start d-flex justify-content-between align-items-center" type="button" id="employeeDropdown{{ service_id }}{{ record.id }}" data-bs-toggle="dropdown" aria-expanded="false">
+                                              <span id="employeeDropdownText{{ service_id }}{{ record.id }}">
+                                                {% if record.assigned_to %}
+                                                  {{ record.assigned_to.get_full_name }} ({{ record.assigned_to.emp_code|default:"N/A" }})
+                                                {% else %}
+                                                  -- Unassign --
+                                                {% endif %}
+                                              </span>
+                                            </button>
+                                            <ul class="dropdown-menu w-100" aria-labelledby="employeeDropdown{{ service_id }}{{ record.id }}" style="max-height: 300px; overflow-y: auto;">
+                                              <li><a class="dropdown-item employee-option" href="#" data-value="" data-text="-- Unassign --">-- Unassign --</a></li>
                                             {% for emp in accounts_employees %}
-                                              <option value="{{ emp.id }}" {% if record.assigned_to.id == emp.id %}selected{% endif %}>
-                                                {{ emp.get_full_name }} ({{ emp.emp_code|default:"N/A" }})
-                                              </option>
+                                                <li><a class="dropdown-item employee-option" href="#" data-value="{{ emp.id }}" data-text="{{ emp.get_full_name }} ({{ emp.emp_code|default:"N/A" }})" {% if record.assigned_to.id == emp.id %}data-selected="true"{% endif %}>{{ emp.get_full_name }} ({{ emp.emp_code|default:"N/A" }})</a></li>
                                             {% endfor %}
-                                          </select>
+                                            </ul>
+                                          </div>
                                         </div>
                                       </form>
                                     </div>
@@ -157,9 +243,6 @@
                                 </div>
                               </div>
                             {% endfor %}
-                          </tbody>
-                        </table>
-                      </div>
                     {% else %}
                       <p class="text-muted text-center">No leads found for this service.</p>
                     {% endif %}
@@ -192,74 +275,169 @@
                   </button>
                 </h2>
                 <div id="collapse{{ service_id }}" class="accordion-collapse collapse {% if forloop.first %}show{% endif %}" data-bs-parent="#backofficeAccordion">
-                  <div class="accordion-body">
+                  <div class="accordion-body p-2 p-md-3">
                     {% if service_data.records %}
-                      <div class="table-responsive">
-                        <table class="table table-hover">
-                          <thead>
-                            <tr>
-                              <th>ID</th>
+                      <!-- Mobile Card View -->
+                      <div class="d-block d-md-none cards-scroll-container">
+                        {% for record in service_data.records %}
+                          <div class="card mb-2 shadow-sm">
+                            <div class="card-body p-3">
+                              <div class="d-flex justify-content-between align-items-start mb-2">
+                                <h6 class="card-title mb-0">ID: {{ record.id }}</h6>
+                                <span class="badge bg-info">{{ record.lead_source|default:"website" }}</span>
+                              </div>
+                              
                               {% if service_id == 'startup' %}
-                                <th>Legal Entity Name</th>
-                                <th>Entity Type</th>
-                                <th>Industry Sector</th>
-                                <th>Email</th>
-                                <th>Status</th>
+                                <div class="mb-2"><strong>Legal Entity:</strong> {{ record.legal_entity_name }}</div>
+                                <div class="mb-2"><strong>Entity Type:</strong> {{ record.entity_type }}</div>
+                                <div class="mb-2"><strong>Industry:</strong> {{ record.industry_sector }}</div>
+                                <div class="mb-2"><strong>Email:</strong> {{ record.email|default:"N/A" }}</div>
+                                <div class="mb-2"><strong>Status:</strong> <span class="badge bg-{{ record.get_status_badge_class }}">{{ record.get_status_display }}</span></div>
                               {% elif service_id == 'fssai' %}
-                                <th>Business/Brand Name</th>
-                                <th>Licence Type</th>
-                                <th>Business Nature</th>
-                                <th>Status</th>
+                                <div class="mb-2"><strong>Business/Brand:</strong> {{ record.business_brand_name }}</div>
+                                <div class="mb-2"><strong>Licence Type:</strong> {{ record.licence_type }}</div>
+                                <div class="mb-2"><strong>Business Nature:</strong> {{ record.business_nature }}</div>
+                                <div class="mb-2"><strong>Status:</strong> <span class="badge bg-{{ record.get_status_badge_class }}">{{ record.get_status_display }}</span></div>
                               {% elif service_id == 'msme' %}
-                                <th>Entity Name</th>
-                                <th>Organisation Type</th>
-                                <th>Annual Turnover</th>
-                                <th>Status</th>
+                                <div class="mb-2"><strong>Entity Name:</strong> {{ record.entity_name }}</div>
+                                <div class="mb-2"><strong>Organisation Type:</strong> {{ record.organisation_type }}</div>
+                                <div class="mb-2"><strong>Annual Turnover:</strong> ₹{{ record.annual_turnover|default:"0" }}</div>
+                                <div class="mb-2"><strong>Status:</strong> <span class="badge bg-{{ record.get_status_badge_class }}">{{ record.get_status_display }}</span></div>
                               {% elif service_id == 'company-llp' %}
-                                <th>Entity Type</th>
-                                <th>Directors/Partners</th>
-                                <th>Authorised Capital</th>
-                                <th>Status</th>
+                                <div class="mb-2"><strong>Entity Type:</strong> {{ record.entity_type }}</div>
+                                <div class="mb-2"><strong>Directors/Partners:</strong> {{ record.directors_partners }}</div>
+                                <div class="mb-2"><strong>Authorised Capital:</strong> ₹{{ record.authorised_capital }}</div>
+                                <div class="mb-2"><strong>Status:</strong> <span class="badge bg-{{ record.get_status_badge_class }}">{{ record.get_status_display }}</span></div>
                               {% elif service_id == 'fire-pollution' %}
-                                <th>Establishment Type</th>
-                                <th>Built-up Area</th>
-                                <th>Pollution Category</th>
-                                <th>Status</th>
+                                <div class="mb-2"><strong>Establishment Type:</strong> {{ record.establishment_type }}</div>
+                                <div class="mb-2"><strong>Built-up Area:</strong> {{ record.built_up_area }} sq.ft</div>
+                                <div class="mb-2"><strong>Pollution Category:</strong> {{ record.pollution_category }}</div>
+                                <div class="mb-2"><strong>Status:</strong> <span class="badge bg-{{ record.get_status_badge_class }}">{{ record.get_status_display }}</span></div>
                               {% elif service_id == 'iso' %}
-                                <th>Standard</th>
-                                <th>Locations</th>
-                                <th>Employee Strength</th>
-                                <th>Status</th>
+                                <div class="mb-2"><strong>Standard:</strong> {{ record.standard }}</div>
+                                <div class="mb-2"><strong>Locations:</strong> {{ record.locations }}</div>
+                                <div class="mb-2"><strong>Employee Strength:</strong> {{ record.employee_strength|default:"N/A" }}</div>
+                                <div class="mb-2"><strong>Status:</strong> <span class="badge bg-{{ record.get_status_badge_class }}">{{ record.get_status_display }}</span></div>
                               {% elif service_id == 'trademark' %}
-                                <th>Brand/Logo</th>
-                                <th>Applicant Type</th>
-                                <th>Classes</th>
-                                <th>Status</th>
+                                <div class="mb-2"><strong>Brand/Logo:</strong> {{ record.brand_logo|truncatewords:5 }}</div>
+                                <div class="mb-2"><strong>Applicant Type:</strong> {{ record.applicant_type }}</div>
+                                <div class="mb-2"><strong>Classes:</strong> {{ record.classes }}</div>
+                                <div class="mb-2"><strong>Status:</strong> <span class="badge bg-{{ record.get_status_badge_class }}">{{ record.get_status_display }}</span></div>
                               {% elif service_id == 'trademark-compliance' %}
-                                <th>Existing TM Numbers</th>
-                                <th>Portfolio Size</th>
-                                <th>Watch Scope</th>
-                                <th>Status</th>
+                                <div class="mb-2"><strong>Existing TM Numbers:</strong> {{ record.existing_tm_numbers|truncatewords:5|default:"N/A" }}</div>
+                                <div class="mb-2"><strong>Portfolio Size:</strong> {{ record.portfolio_size|default:"N/A" }}</div>
+                                <div class="mb-2"><strong>Watch Scope:</strong> {{ record.watch_scope|default:"N/A" }}</div>
+                                <div class="mb-2"><strong>Status:</strong> <span class="badge bg-{{ record.get_status_badge_class }}">{{ record.get_status_display }}</span></div>
                               {% elif service_id == 'trademark-instant' %}
-                                <th>Urgency Reason</th>
-                                <th>Filing Window</th>
-                                <th>Contact Mobile</th>
-                                <th>Status</th>
+                                <div class="mb-2"><strong>Urgency Reason:</strong> {{ record.urgency_reason|truncatewords:5 }}</div>
+                                <div class="mb-2"><strong>Filing Window:</strong> {{ record.filing_window|default:"N/A" }}</div>
+                                <div class="mb-2"><strong>Contact Mobile:</strong> {{ record.contact_mobile|default:"N/A" }}</div>
+                                <div class="mb-2"><strong>Status:</strong> <span class="badge bg-{{ record.get_status_badge_class }}">{{ record.get_status_display }}</span></div>
                               {% elif service_id == 'address-change' %}
-                                <th>Entity Type</th>
-                                <th>Shift Type</th>
-                                <th>Effective Date</th>
-                                <th>Status</th>
+                                <div class="mb-2"><strong>Entity Type:</strong> {{ record.entity_type }}</div>
+                                <div class="mb-2"><strong>Shift Type:</strong> {{ record.shift_type }}</div>
+                                <div class="mb-2"><strong>Effective Date:</strong> {{ record.effective_date|date:"d M Y"|default:"N/A" }}</div>
+                                <div class="mb-2"><strong>Status:</strong> <span class="badge bg-{{ record.get_status_badge_class }}">{{ record.get_status_display }}</span></div>
                               {% elif service_id == 'moa-alteration' %}
-                                <th>Alteration Type</th>
-                                <th>Proposed Object/Name</th>
-                                <th>Effective Date</th>
-                                <th>Status</th>
+                                <div class="mb-2"><strong>Alteration Type:</strong> {{ record.alteration_type }}</div>
+                                <div class="mb-2"><strong>Proposed Object/Name:</strong> {{ record.proposed_object_name|truncatewords:5 }}</div>
+                                <div class="mb-2"><strong>Effective Date:</strong> {{ record.effective_date|date:"d M Y"|default:"N/A" }}</div>
+                                <div class="mb-2"><strong>Status:</strong> <span class="badge bg-{{ record.get_status_badge_class }}">{{ record.get_status_display }}</span></div>
                               {% endif %}
-                              <th>Lead Source</th>
-                              <th>Assigned To</th>
-                              <th>Created At</th>
-                              <th>Actions</th>
+                              
+                              <hr class="my-2">
+                              <div class="d-flex justify-content-between align-items-center flex-wrap">
+                                <div class="mb-2">
+                                  <small class="text-muted d-block">Assigned To:</small>
+                                  {% if record.assigned_to %}
+                                    <span class="badge bg-success">{{ record.assigned_to.get_full_name }}</span>
+                                  {% else %}
+                                    <span class="badge bg-secondary">Unassigned</span>
+                                  {% endif %}
+                                </div>
+                                <div class="mb-2">
+                                  <small class="text-muted d-block">Created:</small>
+                                  <small>{{ record.created_at|date:"d M Y" }}</small>
+                                </div>
+                                <div>
+                                  <button type="button" class="btn btn-sm btn-primary assign-btn" data-bs-toggle="modal" data-bs-target="#assignModal{{ service_id }}{{ record.id }}">
+                                    <i class="bi bi-person-plus"></i>
+                                    {% if record.assigned_to %}Change Employee{% else %}Assign{% endif %}
+                                  </button>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        {% endfor %}
+                      </div>
+                      
+                      <!-- Desktop Table View -->
+                      <div class="d-none d-md-block table-responsive table-scroll-container">
+                        <table class="table table-hover table-sm mb-0">
+                          <thead class="table-light sticky-header">
+                            <tr>
+                              <th class="text-nowrap">ID</th>
+                              {% if service_id == 'startup' %}
+                                <th class="text-nowrap">Legal Entity Name</th>
+                                <th class="text-nowrap">Entity Type</th>
+                                <th class="text-nowrap">Industry Sector</th>
+                                <th class="text-nowrap">Email</th>
+                                <th class="text-nowrap">Status</th>
+                              {% elif service_id == 'fssai' %}
+                                <th class="text-nowrap">Business/Brand Name</th>
+                                <th class="text-nowrap">Licence Type</th>
+                                <th class="text-nowrap">Business Nature</th>
+                                <th class="text-nowrap">Status</th>
+                              {% elif service_id == 'msme' %}
+                                <th class="text-nowrap">Entity Name</th>
+                                <th class="text-nowrap">Organisation Type</th>
+                                <th class="text-nowrap">Annual Turnover</th>
+                                <th class="text-nowrap">Status</th>
+                              {% elif service_id == 'company-llp' %}
+                                <th class="text-nowrap">Entity Type</th>
+                                <th class="text-nowrap">Directors/Partners</th>
+                                <th class="text-nowrap">Authorised Capital</th>
+                                <th class="text-nowrap">Status</th>
+                              {% elif service_id == 'fire-pollution' %}
+                                <th class="text-nowrap">Establishment Type</th>
+                                <th class="text-nowrap">Built-up Area</th>
+                                <th class="text-nowrap">Pollution Category</th>
+                                <th class="text-nowrap">Status</th>
+                              {% elif service_id == 'iso' %}
+                                <th class="text-nowrap">Standard</th>
+                                <th class="text-nowrap">Locations</th>
+                                <th class="text-nowrap">Employee Strength</th>
+                                <th class="text-nowrap">Status</th>
+                              {% elif service_id == 'trademark' %}
+                                <th class="text-nowrap">Brand/Logo</th>
+                                <th class="text-nowrap">Applicant Type</th>
+                                <th class="text-nowrap">Classes</th>
+                                <th class="text-nowrap">Status</th>
+                              {% elif service_id == 'trademark-compliance' %}
+                                <th class="text-nowrap">Existing TM Numbers</th>
+                                <th class="text-nowrap">Portfolio Size</th>
+                                <th class="text-nowrap">Watch Scope</th>
+                                <th class="text-nowrap">Status</th>
+                              {% elif service_id == 'trademark-instant' %}
+                                <th class="text-nowrap">Urgency Reason</th>
+                                <th class="text-nowrap">Filing Window</th>
+                                <th class="text-nowrap">Contact Mobile</th>
+                                <th class="text-nowrap">Status</th>
+                              {% elif service_id == 'address-change' %}
+                                <th class="text-nowrap">Entity Type</th>
+                                <th class="text-nowrap">Shift Type</th>
+                                <th class="text-nowrap">Effective Date</th>
+                                <th class="text-nowrap">Status</th>
+                              {% elif service_id == 'moa-alteration' %}
+                                <th class="text-nowrap">Alteration Type</th>
+                                <th class="text-nowrap">Proposed Object/Name</th>
+                                <th class="text-nowrap">Effective Date</th>
+                                <th class="text-nowrap">Status</th>
+                              {% endif %}
+                              <th class="text-nowrap">Lead Source</th>
+                              <th class="text-nowrap">Assigned To</th>
+                              <th class="text-nowrap">Created At</th>
+                              <th class="text-nowrap">Actions</th>
                             </tr>
                           </thead>
                           <tbody>
@@ -331,21 +509,30 @@
                                     <span class="badge bg-secondary">Unassigned</span>
                                   {% endif %}
                                 </td>
-                                <td>{{ record.created_at|date:"d M Y" }}</td>
-                                <td>
-                                  <button type="button" class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#assignModal{{ service_id }}{{ record.id }}">
-                                    <i class="bi bi-person-plus"></i> Assign
+                                <td class="text-nowrap">{{ record.created_at|date:"d M Y" }}</td>
+                                <td class="text-nowrap">
+                                  <button type="button" class="btn btn-sm btn-primary assign-btn" data-bs-toggle="modal" data-bs-target="#assignModal{{ service_id }}{{ record.id }}">
+                                    <i class="bi bi-person-plus"></i>
+                                    <span class="d-none d-md-inline">
+                                      {% if record.assigned_to %}Change Employee{% else %}Assign{% endif %}
+                                    </span>
                                   </button>
                                 </td>
                               </tr>
+                            {% endfor %}
+                          </tbody>
+                        </table>
+                      </div>
                               
+                      <!-- Modals - Outside both views so they're always accessible -->
+                      {% for record in service_data.records %}
                               <!-- Assign Modal -->
-                              <div class="modal fade" id="assignModal{{ service_id }}{{ record.id }}" tabindex="-1">
-                                <div class="modal-dialog">
+                        <div class="modal fade" id="assignModal{{ service_id }}{{ record.id }}" tabindex="-1" aria-labelledby="assignModalLabel{{ service_id }}{{ record.id }}" aria-hidden="true">
+                          <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
                                   <div class="modal-content">
                                     <div class="modal-header">
-                                      <h5 class="modal-title">Assign Lead</h5>
-                                      <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                                <h5 class="modal-title" id="assignModalLabel{{ service_id }}{{ record.id }}">Assign Lead</h5>
+                                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                                     </div>
                                     <div class="modal-body">
                                       <form id="assignForm{{ service_id }}{{ record.id }}">
@@ -353,14 +540,24 @@
                                         <input type="hidden" name="record_id" value="{{ record.id }}">
                                         <div class="mb-3">
                                           <label class="form-label">Select Employee (Back Office Department)</label>
-                                          <select name="employee_id" class="form-select" id="employeeSelect{{ service_id }}{{ record.id }}">
-                                            <option value="">-- Unassign --</option>
+                                          <input type="hidden" name="employee_id" id="employeeSelect{{ service_id }}{{ record.id }}" value="{% if record.assigned_to %}{{ record.assigned_to.id }}{% endif %}">
+                                          <div class="dropdown w-100">
+                                            <button class="btn btn-outline-secondary dropdown-toggle w-100 text-start d-flex justify-content-between align-items-center" type="button" id="employeeDropdown{{ service_id }}{{ record.id }}" data-bs-toggle="dropdown" aria-expanded="false">
+                                              <span id="employeeDropdownText{{ service_id }}{{ record.id }}">
+                                                {% if record.assigned_to %}
+                                                  {{ record.assigned_to.get_full_name }} ({{ record.assigned_to.emp_code|default:"N/A" }})
+                                                {% else %}
+                                                  -- Unassign --
+                                                {% endif %}
+                                              </span>
+                                            </button>
+                                            <ul class="dropdown-menu w-100" aria-labelledby="employeeDropdown{{ service_id }}{{ record.id }}" style="max-height: 300px; overflow-y: auto;">
+                                              <li><a class="dropdown-item employee-option" href="#" data-value="" data-text="-- Unassign --">-- Unassign --</a></li>
                                             {% for emp in backoffice_employees %}
-                                              <option value="{{ emp.id }}" {% if record.assigned_to.id == emp.id %}selected{% endif %}>
-                                                {{ emp.get_full_name }} ({{ emp.emp_code|default:"N/A" }})
-                                              </option>
+                                                <li><a class="dropdown-item employee-option" href="#" data-value="{{ emp.id }}" data-text="{{ emp.get_full_name }} ({{ emp.emp_code|default:"N/A" }})" {% if record.assigned_to.id == emp.id %}data-selected="true"{% endif %}>{{ emp.get_full_name }} ({{ emp.emp_code|default:"N/A" }})</a></li>
                                             {% endfor %}
-                                          </select>
+                                            </ul>
+                                          </div>
                                         </div>
                                       </form>
                                     </div>
@@ -372,9 +569,6 @@
                                 </div>
                               </div>
                             {% endfor %}
-                          </tbody>
-                        </table>
-                      </div>
                     {% else %}
                       <p class="text-muted text-center">No leads found for this service.</p>
                     {% endif %}
@@ -390,6 +584,10 @@
 </div>
 
 <script>
+document.addEventListener('DOMContentLoaded', function() {
+  document.body.classList.add('no-horizontal-scroll');
+});
+
 function assignLead(serviceType, recordId) {
   const form = document.getElementById('assignForm' + serviceType + recordId);
   const formData = new FormData(form);
@@ -424,8 +622,7 @@ function assignLead(serviceType, recordId) {
       const modal = bootstrap.Modal.getInstance(document.getElementById('assignModal' + serviceType + recordId));
       modal.hide();
       
-      // Reload page to show updated assignment
-      location.reload();
+      updateAssignmentUI(serviceType, recordId, data.assigned_to);
     } else {
       alert('Error: ' + data.error);
     }
@@ -435,16 +632,568 @@ function assignLead(serviceType, recordId) {
     alert('An error occurred while assigning the lead.');
   });
 }
+
+function updateAssignmentUI(serviceType, recordId, assignedName) {
+  const badges = document.querySelectorAll(`.assigned-badge[data-service="${serviceType}"][data-record="${recordId}"]`);
+  badges.forEach(function(badge) {
+    badge.textContent = assignedName || 'Unassigned';
+    badge.classList.remove('bg-success', 'bg-secondary');
+    badge.classList.add(assignedName ? 'bg-success' : 'bg-secondary');
+  });
+
+  const buttons = document.querySelectorAll(`.assign-btn[data-service="${serviceType}"][data-record="${recordId}"]`);
+  buttons.forEach(function(button) {
+    const label = button.querySelector('.assign-label');
+    if (label) {
+      label.textContent = assignedName ? 'Change Employee' : 'Assign';
+    }
+  });
+}
+
+// Fix modal visibility and button opacity on mobile
+document.addEventListener('DOMContentLoaded', function() {
+  // Ensure modals are visible when opened
+  const modals = document.querySelectorAll('.modal');
+  modals.forEach(function(modal) {
+    modal.addEventListener('show.bs.modal', function() {
+      // Ensure modal is visible
+      this.style.display = 'block';
+      this.style.opacity = '1';
+      
+      // Fix button opacity
+      const buttons = document.querySelectorAll('.assign-btn, .btn-primary, .btn-secondary');
+      buttons.forEach(function(btn) {
+        btn.style.opacity = '1';
+      });
+    });
+    
+    modal.addEventListener('shown.bs.modal', function() {
+      // Ensure modal content is visible
+      const modalContent = this.querySelector('.modal-content');
+      if (modalContent) {
+        modalContent.style.opacity = '1';
+        modalContent.style.transform = 'none';
+      }
+    });
+  });
+  
+  // Fix button opacity on click
+  const assignButtons = document.querySelectorAll('.assign-btn, [data-bs-toggle="modal"]');
+  assignButtons.forEach(function(btn) {
+    btn.addEventListener('click', function(e) {
+      // Prevent opacity change
+      this.style.opacity = '1';
+      
+      // Get modal target
+      const targetId = this.getAttribute('data-bs-target');
+      if (targetId) {
+        const modal = document.querySelector(targetId);
+        if (modal) {
+          // Ensure modal will be visible
+          setTimeout(function() {
+            modal.style.display = 'block';
+            modal.style.opacity = '1';
+          }, 10);
+        }
+      }
+    });
+    
+    // Fix on active/focus states
+    btn.addEventListener('mousedown', function() {
+      this.style.opacity = '1';
+    });
+    
+    btn.addEventListener('mouseup', function() {
+      this.style.opacity = '1';
+    });
+  });
+  
+  // Handle Bootstrap dropdown selection
+  document.querySelectorAll('.employee-option').forEach(function(option) {
+    option.addEventListener('click', function(e) {
+      e.preventDefault();
+      
+      // Get the dropdown button and hidden input
+      const dropdown = this.closest('.dropdown');
+      const dropdownButton = dropdown.querySelector('.dropdown-toggle');
+      const hiddenInput = dropdown.parentElement.querySelector('input[name="employee_id"]');
+      const textSpan = dropdown.querySelector('span[id^="employeeDropdownText"]');
+      
+      // Get selected value and text
+      const value = this.getAttribute('data-value');
+      const text = this.getAttribute('data-text');
+      
+      // Update hidden input
+      if (hiddenInput) {
+        hiddenInput.value = value;
+      }
+      
+      // Update button text
+      if (textSpan) {
+        textSpan.textContent = text;
+      }
+      
+      // Update active state
+      dropdown.querySelectorAll('.dropdown-item').forEach(function(item) {
+        item.classList.remove('active');
+      });
+      this.classList.add('active');
+      
+      // Close dropdown
+      const bsDropdown = bootstrap.Dropdown.getInstance(dropdownButton);
+      if (bsDropdown) {
+        bsDropdown.hide();
+      }
+    });
+  });
+  
+  // Mark initially selected option
+  document.querySelectorAll('.employee-option[data-selected="true"]').forEach(function(option) {
+    option.classList.add('active');
+  });
+});
 </script>
 
 <style>
+body.no-horizontal-scroll {
+  overflow-x: hidden;
+}
+
+/* Table scroll container - limits to 10 rows */
+.table-scroll-container {
+  max-height: calc(11 * 2.5rem); /* Approximately 10 rows + header */
+  overflow-y: auto;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  border: 1px solid #dee2e6;
+  border-radius: 0.375rem;
+}
+
+/* Cards scroll container - limits to 10 cards on mobile */
+.cards-scroll-container {
+  max-height: calc(10 * 8rem); /* Approximately 10 cards */
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  padding: 0.25rem;
+}
+
+.table-scroll-container table {
+  margin-bottom: 0 !important;
+}
+
+/* Sticky header for better UX */
+.sticky-header {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  background-color: #f8f9fa !important;
+}
+
+/* Fix button opacity issue on click */
+.btn-primary,
+.btn-secondary,
+.btn-sm,
+.btn,
+.assign-btn {
+  opacity: 1 !important;
+  transition: background-color 0.15s ease-in-out, border-color 0.15s ease-in-out !important;
+}
+
+.btn-primary:active,
+.btn-primary:focus,
+.btn-primary:hover,
+.btn-primary:not(:disabled):not(.disabled):active,
+.btn-secondary:active,
+.btn-secondary:focus,
+.btn-secondary:hover,
+.btn-secondary:not(:disabled):not(.disabled):active,
+.btn-sm:active,
+.btn-sm:focus,
+.btn-sm:hover,
+.btn-sm:not(:disabled):not(.disabled):active,
+.assign-btn:active,
+.assign-btn:focus,
+.assign-btn:hover {
+  opacity: 1 !important;
+  filter: brightness(0.95);
+}
+
+/* Prevent modal backdrop from affecting button visibility */
+.modal-backdrop {
+  opacity: 0.5;
+  z-index: 1040;
+}
+
+/* Ensure buttons remain visible when modal is open */
+body.modal-open .btn,
+body.modal-open .btn-primary,
+body.modal-open .btn-secondary,
+body.modal-open .btn-sm,
+body.modal-open .assign-btn {
+  opacity: 1 !important;
+}
+
+/* Fix for buttons inside cards and tables */
+.card .btn,
+.table .btn,
+.card .assign-btn,
+.table .assign-btn {
+  opacity: 1 !important;
+}
+
+.card .btn:active,
+.card .btn:focus,
+.table .btn:active,
+.table .btn:focus,
+.card .assign-btn:active,
+.card .assign-btn:focus,
+.table .assign-btn:active,
+.table .assign-btn:focus {
+  opacity: 1 !important;
+}
+
+/* Bootstrap Dropdown Styles */
+.dropdown {
+  width: 100%;
+}
+
+.dropdown-toggle {
+  width: 100%;
+  text-align: left;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.dropdown-toggle::after {
+  margin-left: auto;
+  flex-shrink: 0;
+}
+
+.dropdown-menu {
+  width: 100%;
+  max-height: 300px;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.dropdown-item {
+  cursor: pointer;
+  padding: 0.5rem 1rem;
+  white-space: normal;
+  word-wrap: break-word;
+}
+
+.dropdown-item:hover {
+  background-color: #f8f9fa;
+}
+
+.dropdown-item.active {
+  background-color: #0d6efd;
+  color: white;
+}
+
+.dropdown-item.active:hover {
+  background-color: #0b5ed7;
+  color: white;
+}
+
+/* Mobile Modal Styles */
 @media (max-width: 768px) {
-  .table-responsive {
+  .modal {
+    z-index: 1055;
+  }
+  
+  .modal-dialog {
+    margin: 0.5rem;
+    max-width: calc(100% - 1rem);
+  }
+  
+  .modal-content {
+    border-radius: 0.5rem;
+    font-size: 0.9rem;
+  }
+  
+  .modal-header {
+    padding: 1rem;
+  }
+  
+  .modal-header .modal-title {
+    font-size: 1rem;
+  }
+  
+  .modal-body {
+    padding: 1rem;
+  }
+  
+  .modal-footer {
+    padding: 0.75rem 1rem;
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+  
+  .modal-footer .btn {
+    width: 100%;
+    margin: 0;
+  }
+  
+  .modal-dialog-centered {
+    min-height: calc(100% - 1rem);
+    display: flex;
+    align-items: center;
+  }
+  
+  .modal-dialog-scrollable {
+    max-height: calc(100vh - 2rem);
+  }
+  
+  .form-label {
+    font-size: 0.9rem;
+    margin-bottom: 0.5rem;
+  }
+  
+  /* Responsive Bootstrap Dropdown */
+  .dropdown-toggle {
+    font-size: 0.9rem;
+    padding: 0.5rem 0.75rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  
+  .dropdown-toggle span {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    flex: 1;
+    min-width: 0;
+  }
+  
+  .dropdown-menu {
+    font-size: 0.9rem;
+    max-width: 100%;
+    width: 100%;
+  }
+  
+  .dropdown-item {
+    padding: 0.5rem 0.75rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    min-height: 44px; /* Touch-friendly size */
+    display: flex;
+    align-items: center;
+  }
+  
+  .dropdown-item:hover,
+  .dropdown-item:focus,
+  .dropdown-item.active {
+    background-color: #0d6efd;
+    color: white;
+  }
+  
+  /* Ensure dropdown menu is visible on mobile */
+  .dropdown-menu.show {
+    display: block;
+    position: absolute;
+    z-index: 1000;
+  }
+  
+  /* Dropdown inside modal - ensure it's above modal */
+  .modal .dropdown-menu {
+    z-index: 1060;
+    position: absolute;
+    transform: translateY(0);
+  }
+  
+  /* Prevent dropdown from being cut off */
+  .modal-body .dropdown {
+    position: relative;
+  }
+}
+
+@media (max-width: 576px) {
+  .dropdown-toggle {
+    font-size: 0.85rem;
+    padding: 0.5rem;
+  }
+  
+  .dropdown-menu {
+    font-size: 0.85rem;
+    max-height: 250px;
+  }
+  
+  .dropdown-item {
+    padding: 0.6rem 0.75rem;
     font-size: 0.85rem;
   }
-  .btn-sm {
-    padding: 0.25rem 0.5rem;
+}
+
+/* Mobile Responsive Styles */
+@media (max-width: 768px) {
+  .container-fluid {
+    padding-left: 0.5rem !important;
+    padding-right: 0.5rem !important;
+  }
+  
+  .card {
+    margin-bottom: 1rem;
+  }
+  
+  .card-header {
+    padding: 0.75rem;
+  }
+  
+  .card-header h5 {
+    font-size: 0.95rem;
+  }
+  
+  .accordion-button {
+    padding: 0.75rem 1rem;
+    font-size: 0.9rem;
+  }
+  
+  .accordion-body {
+    padding: 0.75rem !important;
+  }
+  
+  .table-scroll-container {
+    max-height: calc(11 * 2.2rem); /* Slightly smaller on mobile */
+    font-size: 0.8rem;
+  }
+  
+  .cards-scroll-container {
+    max-height: calc(10 * 7rem); /* Slightly smaller cards on mobile */
+  }
+  
+  .cards-scroll-container .card {
+    font-size: 0.85rem;
+  }
+  
+  .cards-scroll-container .card-body {
+    padding: 0.75rem !important;
+  }
+  
+  .cards-scroll-container .card-title {
+    font-size: 0.9rem;
+  }
+  
+  .table th,
+  .table td {
+    padding: 0.5rem 0.4rem;
+    font-size: 0.8rem;
+    white-space: nowrap;
+  }
+  
+  .table th {
     font-size: 0.75rem;
+    font-weight: 600;
+  }
+  
+  .btn-sm {
+    padding: 0.2rem 0.4rem;
+    font-size: 0.7rem;
+  }
+  
+  .badge {
+    font-size: 0.65rem;
+    padding: 0.25em 0.4em;
+  }
+  
+  .dashboard-header h1 {
+    font-size: 1.25rem;
+  }
+  
+  .dashboard-header p {
+    font-size: 0.85rem;
+  }
+}
+
+@media (max-width: 576px) {
+  .table-scroll-container {
+    max-height: calc(11 * 2rem);
+    font-size: 0.75rem;
+  }
+  
+  .cards-scroll-container {
+    max-height: calc(10 * 6.5rem);
+  }
+  
+  .cards-scroll-container .card-body {
+    padding: 0.6rem !important;
+  }
+  
+  .cards-scroll-container .card-title {
+    font-size: 0.85rem;
+  }
+  
+  .cards-scroll-container .card-body strong {
+    font-size: 0.8rem;
+  }
+  
+  .cards-scroll-container .card-body div {
+    font-size: 0.8rem;
+    margin-bottom: 0.4rem !important;
+  }
+  
+  .table th,
+  .table td {
+    padding: 0.4rem 0.3rem;
+    font-size: 0.75rem;
+  }
+  
+  .accordion-button {
+    font-size: 0.85rem;
+    padding: 0.6rem 0.75rem;
+  }
+  
+  .accordion-button .badge {
+    font-size: 0.6rem;
+    margin-left: 0.25rem !important;
+  }
+  
+  .btn-sm {
+    padding: 0.15rem 0.3rem;
+    font-size: 0.65rem;
+  }
+  
+  .card-header h5 {
+    font-size: 0.85rem;
+  }
+}
+
+/* Better scrollbar styling */
+.table-scroll-container::-webkit-scrollbar,
+.cards-scroll-container::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+.table-scroll-container::-webkit-scrollbar-track,
+.cards-scroll-container::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 4px;
+}
+
+.table-scroll-container::-webkit-scrollbar-thumb,
+.cards-scroll-container::-webkit-scrollbar-thumb {
+  background: #888;
+  border-radius: 4px;
+}
+
+.table-scroll-container::-webkit-scrollbar-thumb:hover,
+.cards-scroll-container::-webkit-scrollbar-thumb:hover {
+  background: #555;
+}
+
+/* Ensure table cells don't wrap on mobile */
+@media (max-width: 768px) {
+  .table th.text-nowrap,
+  .table td.text-nowrap {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 120px;
   }
 }
 </style>

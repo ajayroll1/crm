@@ -18,7 +18,11 @@
     border-collapse: collapse;
   }
 
-  .accounts-table th,
+  .accounts-table th {
+    white-space: nowrap;
+    vertical-align: middle;
+  }
+
   .accounts-table td {
     white-space: normal;
     vertical-align: middle;
@@ -37,6 +41,12 @@
 
   .table-section .table-wrapper {
     width: 100%;
+    overflow-x: auto;
+  }
+
+  .table-section .table-wrapper table {
+    width: 100%;
+    min-width: 650px;
   }
 
   .action-icon {
@@ -202,17 +212,32 @@
 
   @media (max-width: 768px) {
     .accounts-tabs {
-      overflow-x: visible;
-      flex-wrap: wrap;
-      gap: 0.75rem;
+      flex-wrap: nowrap;
+      overflow-x: auto;
+      gap: 0.5rem;
     }
 
     .accounts-tabs .nav-link {
-      white-space: normal;
+      white-space: nowrap;
+      width: auto;
+    }
+
+    .tab-content .row.g-4 {
+      flex-direction: column;
+    }
+
+    .tab-content .row.g-4 > [class*="col"] {
       width: 100%;
-      text-align: left;
-      font-size: 0.95rem;
-      padding: 0.65rem 1rem;
+      max-width: 100%;
+    }
+
+    .table-section .table-wrapper table {
+      min-width: 520px;
+    }
+
+    .accounts-tabs {
+      overflow-x: auto;
+      padding-bottom: 0.5rem;
     }
 
     .metric-card {
@@ -267,11 +292,6 @@
   }
 
   @media (max-width: 576px) {
-    .accounts-tabs .nav-link {
-      font-size: 0.9rem;
-      padding: 0.6rem 0.85rem;
-    }
-
     .metric-card {
       padding: 1rem;
     }
@@ -279,8 +299,173 @@
     .upload-dropzone {
       padding: 0.75rem;
     }
+
+    .table-section .table-wrapper table {
+      min-width: 480px;
+    }
+
+    .status-btn {
+      min-width: 70px;
+      font-size: 0.75rem;
+    }
+  }
+  
+  /* Status Button Styles */
+  .status-btn {
+    min-width: 90px;
+    font-size: 0.8rem;
+    font-weight: 500;
+    border-radius: 6px;
+    transition: none;
+    white-space: nowrap;
+  }
+  
+  .status-btn.status-pending {
+    background-color: #ffc107;
+    color: #000;
+    border-color: #ffc107;
+  }
+  
+  .status-btn.status-accepted {
+    background-color: #0dcaf0;
+    color: #000;
+    border-color: #0dcaf0;
+  }
+  
+  .status-btn.status-submitted {
+    background-color: #0d6efd;
+    color: #fff;
+    border-color: #0d6efd;
+  }
+  
+  .status-btn.status-complete {
+    background-color: #198754;
+    color: #fff;
+    border-color: #198754;
+  }
+  
+  .status-btn:hover {
+    opacity: 1;
+    transform: none;
+  }
+  
+  /* Ensure all status dropdown options use black text */
+  .status-option {
+    color: #000 !important;
+  }
+
+  .status-option.active {
+    background-color: #0d6efd;
+    color: #000 !important;
+  }
+  
+  .status-option.active:hover {
+    background-color: #0b5ed7;
+    color: #000 !important;
   }
 </style>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  // Handle status updates
+  document.querySelectorAll('.status-option').forEach(function(option) {
+    option.addEventListener('click', function(e) {
+      e.preventDefault();
+      
+      const serviceType = this.getAttribute('data-service');
+      const recordId = this.getAttribute('data-record');
+      const status = this.getAttribute('data-status');
+      const statusText = this.textContent.trim();
+      
+      // Get CSRF token
+      function getCookie(name) {
+        let cookieValue = null;
+        if (document.cookie && document.cookie !== '') {
+          const cookies = document.cookie.split(';');
+          for (let i = 0; i < cookies.length; i++) {
+            const cookie = cookies[i].trim();
+            if (cookie.substring(0, name.length + 1) === (name + '=')) {
+              cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+              break;
+            }
+          }
+        }
+        return cookieValue;
+      }
+      
+      // Show loading state
+      const button = document.getElementById('statusDropdown' + recordId);
+      const originalText = button.textContent;
+      button.disabled = true;
+      button.textContent = 'Updating...';
+      
+      // Send update request
+      const formData = new FormData();
+      formData.append('service_type', serviceType);
+      formData.append('record_id', recordId);
+      formData.append('status', status);
+      
+      fetch('{% url "update_service_lead_status" %}', {
+        method: 'POST',
+        body: formData,
+        headers: {
+          'X-CSRFToken': getCookie('csrftoken')
+        }
+      })
+      .then(response => response.json())
+      .then(data => {
+        if (data.success) {
+          // Update button text and class
+          button.textContent = statusText;
+          button.className = 'btn btn-sm status-btn status-' + status;
+          
+          // Update active state in dropdown
+          const dropdown = button.closest('.dropdown');
+          dropdown.querySelectorAll('.status-option').forEach(function(item) {
+            item.classList.remove('active');
+          });
+          this.classList.add('active');
+          
+          // Close dropdown (ensure instance exists)
+          let bsDropdown = bootstrap.Dropdown.getInstance(button);
+          if (!bsDropdown && typeof bootstrap.Dropdown !== 'undefined') {
+            bsDropdown = new bootstrap.Dropdown(button);
+          }
+          if (bsDropdown) {
+            bsDropdown.hide();
+          }
+        } else {
+          alert('Error: ' + data.error);
+          button.textContent = originalText;
+        }
+        button.disabled = false;
+      })
+      .catch(error => {
+        console.error('Error:', error);
+        alert('An error occurred while updating status.');
+        button.textContent = originalText;
+        button.disabled = false;
+      });
+    });
+  });
+  
+  // Mark active status in dropdown
+  document.querySelectorAll('.status-btn').forEach(function(btn) {
+    const dropdown = btn.closest('.dropdown');
+    const status = btn.className.match(/status-(\w+)/);
+    if (status) {
+      const currentStatus = status[1];
+      dropdown.querySelectorAll('.status-option').forEach(function(option) {
+        if (option.getAttribute('data-status') === currentStatus) {
+          option.classList.add('active');
+        }
+      });
+    }
+  });
+});
+</script>
 {% endblock %}
 
 {% block content %}
@@ -524,6 +709,54 @@
                       {% else %}
                       <p class="text-muted small mb-0">No ROC compliance records saved yet.</p>
                       {% endif %}
+                      
+                      <!-- Client from Website Table -->
+                      <div class="section-divider"></div>
+                      <h6 class="text-muted text-uppercase small mb-3">Client from Website</h6>
+                      {% if roc_clients_website %}
+                      <div class="table-wrapper table-section">
+                        <table class="table table-hover align-middle mb-0 accounts-table">
+                          <thead>
+                            <tr>
+                              <th>ID</th>
+                              <th>Company Name</th>
+                              <th>CIN/LLPIN</th>
+                              <th>Financial Year</th>
+                              <th>Compliance Period</th>
+                              <th>Status</th>
+                              <th>Created At</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {% for record in roc_clients_website %}
+                            <tr>
+                              <td>{{ record.id }}</td>
+                              <td class="fw-semibold">{{ record.company_name }}</td>
+                              <td>{{ record.cin_llpin }}</td>
+                              <td>{{ record.financial_year }}</td>
+                              <td>{{ record.compliance_period }}</td>
+                              <td>
+                                <div class="dropdown">
+                                  <button class="btn btn-sm status-btn status-{{ record.status }}" type="button" id="statusDropdown{{ record.id }}" data-bs-toggle="dropdown" aria-expanded="false">
+                                    {{ record.get_status_display|title }}
+                                  </button>
+                                  <ul class="dropdown-menu" aria-labelledby="statusDropdown{{ record.id }}">
+                                    <li><a class="dropdown-item status-option" href="#" data-status="pending" data-service="roc" data-record="{{ record.id }}">Pending</a></li>
+                                    <li><a class="dropdown-item status-option" href="#" data-status="accepted" data-service="roc" data-record="{{ record.id }}">Accepted</a></li>
+                                    <li><a class="dropdown-item status-option" href="#" data-status="submitted" data-service="roc" data-record="{{ record.id }}">Submitted</a></li>
+                                    <li><a class="dropdown-item status-option" href="#" data-status="complete" data-service="roc" data-record="{{ record.id }}">Complete</a></li>
+                                  </ul>
+                                </div>
+                              </td>
+                              <td class="text-muted small">{{ record.created_at|date:"d M Y" }}</td>
+                            </tr>
+                            {% endfor %}
+                          </tbody>
+                        </table>
+                      </div>
+                      {% else %}
+                      <p class="text-muted small mb-0">No clients from website assigned yet.</p>
+                      {% endif %}
                     </div>
                   </div>
                 </div>
@@ -716,6 +949,54 @@
                       {% else %}
                       <p class="text-muted small mb-0">No GST filing records saved yet.</p>
                       {% endif %}
+                      
+                      <!-- Client from Website Table -->
+                      <div class="section-divider"></div>
+                      <h6 class="text-muted text-uppercase small mb-3">Client from Website</h6>
+                      {% if gst_clients_website %}
+                      <div class="table-wrapper table-section">
+                        <table class="table table-hover align-middle mb-0 accounts-table">
+                          <thead>
+                            <tr>
+                              <th>ID</th>
+                              <th>GSTIN</th>
+                              <th>Return Period</th>
+                              <th>Return Type</th>
+                              <th>Tax Payable (₹)</th>
+                              <th>Status</th>
+                              <th>Created At</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {% for record in gst_clients_website %}
+                            <tr>
+                              <td>{{ record.id }}</td>
+                              <td class="fw-semibold">{{ record.gstin }}</td>
+                              <td>{{ record.return_period }}</td>
+                              <td>{{ record.return_type }}</td>
+                              <td>{{ record.tax_payable|floatformat:2 }}</td>
+                              <td>
+                                <div class="dropdown">
+                                  <button class="btn btn-sm status-btn status-{{ record.status }}" type="button" id="statusDropdown{{ record.id }}" data-bs-toggle="dropdown" aria-expanded="false">
+                                    {{ record.get_status_display|title }}
+                                  </button>
+                                  <ul class="dropdown-menu" aria-labelledby="statusDropdown{{ record.id }}">
+                                    <li><a class="dropdown-item status-option" href="#" data-status="pending" data-service="gst" data-record="{{ record.id }}">Pending</a></li>
+                                    <li><a class="dropdown-item status-option" href="#" data-status="accepted" data-service="gst" data-record="{{ record.id }}">Accepted</a></li>
+                                    <li><a class="dropdown-item status-option" href="#" data-status="submitted" data-service="gst" data-record="{{ record.id }}">Submitted</a></li>
+                                    <li><a class="dropdown-item status-option" href="#" data-status="complete" data-service="gst" data-record="{{ record.id }}">Complete</a></li>
+                                  </ul>
+                                </div>
+                              </td>
+                              <td class="text-muted small">{{ record.created_at|date:"d M Y" }}</td>
+                            </tr>
+                            {% endfor %}
+                          </tbody>
+                        </table>
+                      </div>
+                      {% else %}
+                      <p class="text-muted small mb-0">No clients from website assigned yet.</p>
+                      {% endif %}
                     </div>
                   </div>
                 </div>
@@ -905,6 +1186,54 @@
                       {% else %}
                       <p class="text-muted small mb-0">No ITR filing records saved yet.</p>
                       {% endif %}
+                      
+                      <!-- Client from Website Table -->
+                      <div class="section-divider"></div>
+                      <h6 class="text-muted text-uppercase small mb-3">Client from Website</h6>
+                      {% if itr_clients_website %}
+                      <div class="table-wrapper table-section">
+                        <table class="table table-hover align-middle mb-0 accounts-table">
+                          <thead>
+                            <tr>
+                              <th>ID</th>
+                              <th>Taxpayer Name</th>
+                              <th>PAN</th>
+                              <th>Assessment Year</th>
+                              <th>Return Form</th>
+                              <th>Status</th>
+                              <th>Created At</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {% for record in itr_clients_website %}
+                            <tr>
+                              <td>{{ record.id }}</td>
+                              <td class="fw-semibold">{{ record.taxpayer_name }}</td>
+                              <td>{{ record.pan }}</td>
+                              <td>{{ record.assessment_year }}</td>
+                              <td>{{ record.return_form }}</td>
+                              <td>
+                                <div class="dropdown">
+                                  <button class="btn btn-sm status-btn status-{{ record.status }}" type="button" id="statusDropdown{{ record.id }}" data-bs-toggle="dropdown" aria-expanded="false">
+                                    {{ record.get_status_display|title }}
+                                  </button>
+                                  <ul class="dropdown-menu" aria-labelledby="statusDropdown{{ record.id }}">
+                                    <li><a class="dropdown-item status-option" href="#" data-status="pending" data-service="itr" data-record="{{ record.id }}">Pending</a></li>
+                                    <li><a class="dropdown-item status-option" href="#" data-status="accepted" data-service="itr" data-record="{{ record.id }}">Accepted</a></li>
+                                    <li><a class="dropdown-item status-option" href="#" data-status="submitted" data-service="itr" data-record="{{ record.id }}">Submitted</a></li>
+                                    <li><a class="dropdown-item status-option" href="#" data-status="complete" data-service="itr" data-record="{{ record.id }}">Complete</a></li>
+                                  </ul>
+                                </div>
+                              </td>
+                              <td class="text-muted small">{{ record.created_at|date:"d M Y" }}</td>
+                            </tr>
+                            {% endfor %}
+                          </tbody>
+                        </table>
+                      </div>
+                      {% else %}
+                      <p class="text-muted small mb-0">No clients from website assigned yet.</p>
+                      {% endif %}
                     </div>
                   </div>
                 </div>
@@ -1089,6 +1418,66 @@
                       {% else %}
                       <p class="text-muted small mb-0">No bookkeeping records saved yet.</p>
                       {% endif %}
+                      
+                      <!-- Client from Website Table -->
+                      <div class="section-divider"></div>
+                      <h6 class="text-muted text-uppercase small mb-3">Client from Website</h6>
+                      {% if bookkeeping_clients_website %}
+                      <div class="table-wrapper table-section">
+                        <table class="table table-hover align-middle mb-0 accounts-table">
+                          <thead>
+                            <tr>
+                              <th>ID</th>
+                              <th>Prepared By</th>
+                              <th>Closing Date</th>
+                              <th>Cash Book Updated</th>
+                              <th>Bank Entries Reconciled</th>
+                              <th>Status</th>
+                              <th>Created At</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {% for record in bookkeeping_clients_website %}
+                            <tr>
+                              <td>{{ record.id }}</td>
+                              <td class="fw-semibold">{{ record.prepared_by }}</td>
+                              <td>{{ record.closing_date|date:"d M Y"|default:"—" }}</td>
+                              <td>
+                                {% if record.cash_book_updated %}
+                                <span class="badge bg-success-subtle text-success"><i class="bi bi-check-lg"></i></span>
+                                {% else %}
+                                <span class="badge bg-secondary-subtle text-secondary"><i class="bi bi-dash-lg"></i></span>
+                                {% endif %}
+                              </td>
+                              <td>
+                                {% if record.bank_entries_reconciled %}
+                                <span class="badge bg-success-subtle text-success"><i class="bi bi-check-lg"></i></span>
+                                {% else %}
+                                <span class="badge bg-secondary-subtle text-secondary"><i class="bi bi-dash-lg"></i></span>
+                                {% endif %}
+                              </td>
+                              <td>
+                                <div class="dropdown">
+                                  <button class="btn btn-sm status-btn status-{{ record.status }}" type="button" id="statusDropdown{{ record.id }}" data-bs-toggle="dropdown" aria-expanded="false">
+                                    {{ record.get_status_display|title }}
+                                  </button>
+                                  <ul class="dropdown-menu" aria-labelledby="statusDropdown{{ record.id }}">
+                                    <li><a class="dropdown-item status-option" href="#" data-status="pending" data-service="bookkeeping" data-record="{{ record.id }}">Pending</a></li>
+                                    <li><a class="dropdown-item status-option" href="#" data-status="accepted" data-service="bookkeeping" data-record="{{ record.id }}">Accepted</a></li>
+                                    <li><a class="dropdown-item status-option" href="#" data-status="submitted" data-service="bookkeeping" data-record="{{ record.id }}">Submitted</a></li>
+                                    <li><a class="dropdown-item status-option" href="#" data-status="complete" data-service="bookkeeping" data-record="{{ record.id }}">Complete</a></li>
+                                  </ul>
+                                </div>
+                              </td>
+                              <td class="text-muted small">{{ record.created_at|date:"d M Y" }}</td>
+                            </tr>
+                            {% endfor %}
+                          </tbody>
+                        </table>
+                      </div>
+                      {% else %}
+                      <p class="text-muted small mb-0">No clients from website assigned yet.</p>
+                      {% endif %}
                     </div>
                   </div>
                 </div>
@@ -1241,6 +1630,54 @@
                       </div>
                       {% else %}
                       <p class="text-muted small mb-0">No TDS compliance records saved yet.</p>
+                      {% endif %}
+                      
+                      <!-- Client from Website Table -->
+                      <div class="section-divider"></div>
+                      <h6 class="text-muted text-uppercase small mb-3">Client from Website</h6>
+                      {% if tds_clients_website %}
+                      <div class="table-wrapper table-section">
+                        <table class="table table-hover align-middle mb-0 accounts-table">
+                          <thead>
+                            <tr>
+                              <th>ID</th>
+                              <th>Deductor TAN</th>
+                              <th>Section</th>
+                              <th>Deduction Month</th>
+                              <th>TDS Deducted (₹)</th>
+                              <th>Status</th>
+                              <th>Created At</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {% for record in tds_clients_website %}
+                            <tr>
+                              <td>{{ record.id }}</td>
+                              <td class="fw-semibold">{{ record.deductor_tan }}</td>
+                              <td>{{ record.section }}</td>
+                              <td>{{ record.deduction_month }}</td>
+                              <td>{{ record.tds_deducted|floatformat:2 }}</td>
+                              <td>
+                                <div class="dropdown">
+                                  <button class="btn btn-sm status-btn status-{{ record.status }}" type="button" id="statusDropdown{{ record.id }}" data-bs-toggle="dropdown" aria-expanded="false">
+                                    {{ record.get_status_display|title }}
+                                  </button>
+                                  <ul class="dropdown-menu" aria-labelledby="statusDropdown{{ record.id }}">
+                                    <li><a class="dropdown-item status-option" href="#" data-status="pending" data-service="tds" data-record="{{ record.id }}">Pending</a></li>
+                                    <li><a class="dropdown-item status-option" href="#" data-status="accepted" data-service="tds" data-record="{{ record.id }}">Accepted</a></li>
+                                    <li><a class="dropdown-item status-option" href="#" data-status="submitted" data-service="tds" data-record="{{ record.id }}">Submitted</a></li>
+                                    <li><a class="dropdown-item status-option" href="#" data-status="complete" data-service="tds" data-record="{{ record.id }}">Complete</a></li>
+                                  </ul>
+                                </div>
+                              </td>
+                              <td class="text-muted small">{{ record.created_at|date:"d M Y" }}</td>
+                            </tr>
+                            {% endfor %}
+                          </tbody>
+                        </table>
+                      </div>
+                      {% else %}
+                      <p class="text-muted small mb-0">No clients from website assigned yet.</p>
                       {% endif %}
                     </div>
                   </div>

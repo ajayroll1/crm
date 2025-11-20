@@ -1382,6 +1382,59 @@ def assign_service_lead(request):
   
   return JsonResponse({'success': False, 'error': 'Invalid request method'})
 
+
+@login_required
+def update_service_lead_status(request):
+  """Update status of a service lead"""
+  if request.method == 'POST':
+    try:
+      service_type = request.POST.get('service_type')
+      record_id = request.POST.get('record_id')
+      status = request.POST.get('status')
+      
+      # Map service types to models
+      service_models = {
+        'roc': ROCComplianceRecord,
+        'gst': GSTFilingRecord,
+        'itr': ITRFilingRecord,
+        'bookkeeping': BookkeepingChecklistRecord,
+        'tds': TDSComplianceRecord,
+      }
+      
+      if service_type not in service_models:
+        return JsonResponse({'success': False, 'error': 'Invalid service type'})
+      
+      # Validate status
+      valid_statuses = ['pending', 'accepted', 'submitted', 'complete']
+      if status not in valid_statuses:
+        return JsonResponse({'success': False, 'error': 'Invalid status'})
+      
+      model_class = service_models[service_type]
+      record = model_class.objects.get(id=record_id)
+      
+      # Check if user has permission (must be assigned to them or be admin)
+      try:
+        employee = Employee.objects.get(email=request.user.email)
+        if employee.role != 'Admin' and record.assigned_to != employee:
+          return JsonResponse({'success': False, 'error': 'You do not have permission to update this record'})
+      except Employee.DoesNotExist:
+        if not request.user.is_staff:
+          return JsonResponse({'success': False, 'error': 'Permission denied'})
+      
+      record.status = status
+      record.save()
+      
+      return JsonResponse({
+        'success': True,
+        'message': 'Status updated successfully',
+        'status': status,
+        'status_display': record.get_status_display()
+      })
+    except Exception as e:
+      return JsonResponse({'success': False, 'error': str(e)})
+  else:
+    return JsonResponse({'success': False, 'error': 'Invalid request method'})
+
 @login_required
 def dashboard_leaves(request):
     """Dashboard view to manage all leave requests - requires login and Admin role"""
@@ -5335,6 +5388,13 @@ def employee_accounts(request):
         {'name': 'TDS CPC Support', 'contact': '1800-103-0344', 'email': 'contactus@tdscpc.gov.in'},
     ]
 
+    # Get current employee
+    employee_obj = None
+    try:
+        employee_obj = Employee.objects.get(email=request.user.email)
+    except Employee.DoesNotExist:
+        pass
+    
     # Records owned by the logged-in user (for detailed tables)
     roc_records = ROCComplianceRecord.objects.filter(user=request.user).order_by('-created_at')
     gst_records = GSTFilingRecord.objects.filter(user=request.user).order_by('-created_at')
@@ -5342,12 +5402,59 @@ def employee_accounts(request):
     bookkeeping_records = BookkeepingChecklistRecord.objects.filter(user=request.user).order_by('-created_at')
     tds_records = TDSComplianceRecord.objects.filter(user=request.user).order_by('-created_at')
 
-    # High-level metric counts (show overall workload across all clients, not only current user)
-    roc_total_count = ROCComplianceRecord.objects.all().count()
-    gst_total_count = GSTFilingRecord.objects.all().count()
-    itr_total_count = ITRFilingRecord.objects.all().count()
-    bookkeeping_total_count = BookkeepingChecklistRecord.objects.all().count()
-    tds_total_count = TDSComplianceRecord.objects.all().count()
+    # Client from Website - Assigned records for current employee
+    roc_clients_website = []
+    gst_clients_website = []
+    itr_clients_website = []
+    bookkeeping_clients_website = []
+    tds_clients_website = []
+    
+    if employee_obj:
+        # Get assigned records from website (lead_source='website' or default)
+        from django.db.models import Q
+        roc_clients_website = ROCComplianceRecord.objects.filter(
+            assigned_to=employee_obj
+        ).filter(
+            Q(lead_source='website') | Q(lead_source='') | Q(lead_source__isnull=True)
+        ).order_by('-created_at')
+        
+        gst_clients_website = GSTFilingRecord.objects.filter(
+            assigned_to=employee_obj
+        ).filter(
+            Q(lead_source='website') | Q(lead_source='') | Q(lead_source__isnull=True)
+        ).order_by('-created_at')
+        
+        itr_clients_website = ITRFilingRecord.objects.filter(
+            assigned_to=employee_obj
+        ).filter(
+            Q(lead_source='website') | Q(lead_source='') | Q(lead_source__isnull=True)
+        ).order_by('-created_at')
+        
+        bookkeeping_clients_website = BookkeepingChecklistRecord.objects.filter(
+            assigned_to=employee_obj
+        ).filter(
+            Q(lead_source='website') | Q(lead_source='') | Q(lead_source__isnull=True)
+        ).order_by('-created_at')
+        
+        tds_clients_website = TDSComplianceRecord.objects.filter(
+            assigned_to=employee_obj
+        ).filter(
+            Q(lead_source='website') | Q(lead_source='') | Q(lead_source__isnull=True)
+        ).order_by('-created_at')
+
+    # High-level metric counts (show assigned count for current employee)
+    if employee_obj:
+        roc_total_count = ROCComplianceRecord.objects.filter(assigned_to=employee_obj).count()
+        gst_total_count = GSTFilingRecord.objects.filter(assigned_to=employee_obj).count()
+        itr_total_count = ITRFilingRecord.objects.filter(assigned_to=employee_obj).count()
+        bookkeeping_total_count = BookkeepingChecklistRecord.objects.filter(assigned_to=employee_obj).count()
+        tds_total_count = TDSComplianceRecord.objects.filter(assigned_to=employee_obj).count()
+    else:
+        roc_total_count = 0
+        gst_total_count = 0
+        itr_total_count = 0
+        bookkeeping_total_count = 0
+        tds_total_count = 0
 
     context = {
         'roc_required_docs': roc_required_docs,
@@ -5368,7 +5475,13 @@ def employee_accounts(request):
         'itr_records': itr_records,
         'bookkeeping_records': bookkeeping_records,
         'tds_records': tds_records,
-        # Metric cards - overall counts
+        # Client from Website - Assigned records
+        'roc_clients_website': roc_clients_website,
+        'gst_clients_website': gst_clients_website,
+        'itr_clients_website': itr_clients_website,
+        'bookkeeping_clients_website': bookkeeping_clients_website,
+        'tds_clients_website': tds_clients_website,
+        # Metric cards - assigned counts
         'roc_count': roc_total_count,
         'gst_count': gst_total_count,
         'itr_count': itr_total_count,
