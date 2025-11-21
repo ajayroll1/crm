@@ -47,11 +47,11 @@
           </span>
           <input type="text" class="form-control border-0 bg-light" id="searchContacts" placeholder="Search contacts...">
         </div>
-        <div class="contacts-list" style="max-height: 600px; overflow-y: auto;">
+        <div class="contacts-list">
           {% if contacts and contacts|length > 0 %}
             {% for contact in contacts %}
               <div class="contact-item p-3 border-bottom cursor-pointer {% if selected_contact_id == contact.id %}active{% endif %}" 
-                   onclick="selectContact('{{ contact.id }}', '{{ contact.name|escapejs }}', '{{ contact.role|escapejs }}')"
+                   onclick="selectContact('{{ contact.id }}', '{{ contact.name|escapejs }}', '{{ contact.role|escapejs }}', event)"
                    data-contact-id="{{ contact.id }}">
                 <div class="d-flex align-items-center">
                   <div class="contact-avatar me-3">
@@ -89,9 +89,14 @@
   <div class="col-lg-8 col-md-7 mb-4">
     <div class="card">
       <div class="card-header d-flex justify-content-between align-items-center" id="messageHeader">
-        <div>
-          <h5 class="mb-0" id="selectedContactName">Select a contact to start messaging</h5>
-          <small class="text-muted" id="selectedContactRole"></small>
+        <div class="d-flex align-items-center gap-2">
+          <button class="btn btn-sm btn-outline-secondary d-md-none" id="backToContacts" onclick="showContactsList()" style="display: none;">
+            <i class="bi bi-arrow-left"></i>
+          </button>
+          <div>
+            <h5 class="mb-0" id="selectedContactName">Select a contact to start messaging</h5>
+            <small class="text-muted" id="selectedContactRole"></small>
+          </div>
         </div>
         <div class="d-flex gap-2">
           <button class="btn btn-sm btn-outline-secondary" id="refreshMessages" onclick="refreshMessages()" style="display: none;">
@@ -214,6 +219,18 @@
   .contact-item.active {
     background-color: #e3f2fd;
     border-left: 3px solid var(--primary-color);
+  }
+
+  .contacts-list {
+    max-height: calc(7 * 4.5rem); /* roughly 7 rows */
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  @media (max-width: 768px) {
+    .contacts-list {
+      max-height: calc(7 * 4rem);
+    }
   }
   
   .contact-avatar {
@@ -403,6 +420,22 @@
     .messages-container {
       height: 400px !important;
     }
+    
+    /* Ensure messages area is visible on mobile when contact is selected */
+    .col-lg-8.col-md-7 {
+      display: block !important;
+    }
+    
+    /* On mobile, show messages area when contact is clicked */
+    .contact-item.active ~ .col-lg-8,
+    .col-lg-8:has(+ .contact-item.active) {
+      display: block !important;
+    }
+  }
+  
+  /* Ensure messages area is always visible when contact is selected */
+  .col-lg-8.col-md-7 {
+    display: block;
   }
 </style>
 {% endblock %}
@@ -422,7 +455,7 @@
   let hasMoreMessages = {}; // Track if more messages available per contact
   
   // Select contact
-  function selectContact(contactId, contactName, contactRole) {
+  function selectContact(contactId, contactName, contactRole, event) {
     selectedContactId = contactId;
     selectedContactName = contactName;
     selectedContactRole = contactRole;
@@ -438,7 +471,7 @@
       localStorage.setItem(`contact_count_${contactId}`, currentCount.toString());
     }
     
-    // Update UI
+    // Update UI - Show messages area
     document.getElementById('selectedContactName').textContent = contactName;
     document.getElementById('selectedContactRole').textContent = contactRole;
     document.getElementById('noMessagesPlaceholder').style.display = 'none';
@@ -446,42 +479,180 @@
     document.getElementById('messageInput').style.display = 'block';
     document.getElementById('refreshMessages').style.display = 'block';
     
+    // Show back button on mobile
+    const backButton = document.getElementById('backToContacts');
+    if (backButton && window.innerWidth <= 768) {
+      backButton.style.display = 'block';
+    }
+    
+    // Ensure messages area is visible (especially on mobile)
+    const messagesArea = document.querySelector('.col-lg-8.col-md-7');
+    const contactsArea = document.querySelector('.col-lg-4.col-md-5');
+    
+    if (messagesArea) {
+      messagesArea.style.display = 'block';
+      messagesArea.style.visibility = 'visible';
+      messagesArea.style.opacity = '1';
+    }
+    
+    // On mobile, hide contacts list and show messages area
+    if (window.innerWidth <= 768) {
+      if (contactsArea) {
+        contactsArea.style.display = 'none';
+      }
+      if (messagesArea) {
+        messagesArea.style.display = 'block';
+        messagesArea.classList.add('mobile-active');
+      }
+    }
+    
     // Update active state
     document.querySelectorAll('.contact-item').forEach(item => {
       item.classList.remove('active');
     });
-    const clickedItem = event.currentTarget || document.querySelector(`[data-contact-id="${contactId}"]`);
+    
+    // Get clicked item - try event.currentTarget first, then fallback to querySelector
+    let clickedItem = null;
+    if (event && event.currentTarget) {
+      clickedItem = event.currentTarget;
+    } else {
+      clickedItem = document.querySelector(`[data-contact-id="${contactId}"]`);
+    }
+    
     if (clickedItem) {
       clickedItem.classList.add('active');
     }
+    
+    // Save selected contact to localStorage for persistence
+    localStorage.setItem('selectedContactId', contactId);
+    localStorage.setItem('selectedContactName', contactName);
+    localStorage.setItem('selectedContactRole', contactRole);
     
     // Load messages
     loadMessages(contactId);
   }
   
+  // Add back button for mobile view
+  function showContactsList() {
+    const messagesArea = document.querySelector('.col-lg-8.col-md-7');
+    const contactsArea = document.querySelector('.col-lg-4.col-md-5');
+    
+    if (window.innerWidth <= 768) {
+      if (contactsArea) {
+        contactsArea.style.display = 'block';
+      }
+      if (messagesArea) {
+        messagesArea.style.display = 'none';
+        messagesArea.classList.remove('mobile-active');
+      }
+      
+      // Hide back button
+      const backButton = document.getElementById('backToContacts');
+      if (backButton) {
+        backButton.style.display = 'none';
+      }
+      
+      // Clear selected contact from localStorage
+      localStorage.removeItem('selectedContactId');
+      localStorage.removeItem('selectedContactName');
+      localStorage.removeItem('selectedContactRole');
+      
+      // Reset selected contact
+      selectedContactId = null;
+      selectedContactName = null;
+      selectedContactRole = null;
+      
+      document.getElementById('selectedContactName').textContent = 'Select a contact to start messaging';
+      document.getElementById('selectedContactRole').textContent = '';
+      document.getElementById('noMessagesPlaceholder').style.display = 'block';
+      document.getElementById('messagesList').style.display = 'none';
+      document.getElementById('messageInput').style.display = 'none';
+      document.getElementById('refreshMessages').style.display = 'none';
+      
+      // Remove active state from contacts
+      document.querySelectorAll('.contact-item').forEach(item => {
+        item.classList.remove('active');
+      });
+    }
+  }
+  
+  // Handle window resize
+  window.addEventListener('resize', function() {
+    if (window.innerWidth > 768) {
+      // Desktop view - show both columns
+      const messagesArea = document.querySelector('.col-lg-8.col-md-7');
+      const contactsArea = document.querySelector('.col-lg-4.col-md-5');
+      const backButton = document.getElementById('backToContacts');
+      
+      if (contactsArea) {
+        contactsArea.style.display = 'block';
+      }
+      if (messagesArea) {
+        messagesArea.style.display = 'block';
+      }
+      if (backButton) {
+        backButton.style.display = 'none';
+      }
+    }
+  });
+  
   // Load messages for selected contact (with caching)
   function loadMessages(contactId, forceRefresh = false) {
-    if (isLoadingMessages) return;
+    if (!contactId) {
+      console.error('loadMessages called without contactId');
+      return;
+    }
+    
+    // If already loading, wait a bit and retry
+    if (isLoadingMessages) {
+      console.log('Messages already loading, will retry in 500ms...');
+      setTimeout(() => {
+        loadMessages(contactId, forceRefresh);
+      }, 500);
+      return;
+    }
+    
     isLoadingMessages = true;
+    console.log('Loading messages for contact:', contactId, 'forceRefresh:', forceRefresh);
     
     const messagesList = document.getElementById('messagesList');
+    if (!messagesList) {
+      console.error('messagesList element not found!');
+      isLoadingMessages = false;
+      return;
+    }
     
-    // Check cache first
+    // Check cache first (only if not forcing refresh)
     if (!forceRefresh && messagesCache[contactId]) {
       const cachedData = messagesCache[contactId];
       const cacheAge = Date.now() - cachedData.timestamp;
       // Use cache if less than 5 seconds old
       if (cacheAge < 5000) {
+        console.log('Using cached messages for contact:', contactId);
         displayMessages(cachedData.messages, contactId, false);
         isLoadingMessages = false;
         return;
       }
     }
     
+    // Show loading state
     messagesList.innerHTML = '<div class="text-center py-3 text-muted"><small>Loading messages...</small></div>';
     
-    fetch(`{% url 'employee_get_messages' %}?receiver_id=${contactId}&limit=50`, {
-      credentials: 'include'  // Include cookies/session
+    // Hide placeholder
+    const noMessagesPlaceholder = document.getElementById('noMessagesPlaceholder');
+    if (noMessagesPlaceholder) {
+      noMessagesPlaceholder.style.display = 'none';
+    }
+    
+    // Fetch messages from server
+    const url = `{% url 'employee_get_messages' %}?receiver_id=${contactId}&limit=50`;
+    console.log('Fetching messages from:', url);
+    
+    fetch(url, {
+      credentials: 'include',  // Include cookies/session
+      headers: {
+        'X-Requested-With': 'XMLHttpRequest'
+      }
     })
       .then(response => {
         if (!response.ok) {
@@ -490,6 +661,7 @@
         return response.json();
       })
       .then(data => {
+        console.log('Messages loaded from database:', data);
         if (data.success) {
           // Cache the messages
           messagesCache[contactId] = {
@@ -507,9 +679,33 @@
           }
           
           // Display messages (append mode for initial load)
+          console.log('Displaying', data.messages?.length || 0, 'messages for contact:', contactId);
+          
+          // Hide placeholder before displaying messages
+          const noMessagesPlaceholder = document.getElementById('noMessagesPlaceholder');
+          if (noMessagesPlaceholder) {
+            noMessagesPlaceholder.style.display = 'none';
+          }
+          
           displayMessages(data.messages || [], contactId, false);
+          
+          // Scroll to bottom after displaying messages
+          setTimeout(() => {
+            const messagesContainer = document.getElementById('messagesContainer');
+            if (messagesContainer) {
+              messagesContainer.scrollTop = messagesContainer.scrollHeight;
+            }
+          }, 200);
         } else {
           // API returned success:false - no messages available
+          console.log('No messages found for contact:', contactId);
+          
+          // Hide placeholder and show no messages in messagesList
+          const noMessagesPlaceholder = document.getElementById('noMessagesPlaceholder');
+          if (noMessagesPlaceholder) {
+            noMessagesPlaceholder.style.display = 'none';
+          }
+          
           messagesList.innerHTML = `
             <div class="text-center py-5">
               <i class="bi bi-chat-dots display-4 text-muted d-block mb-3"></i>
@@ -524,6 +720,13 @@
       })
       .catch(error => {
         console.error('Error loading messages:', error);
+        
+        // Hide placeholder on error
+        const noMessagesPlaceholder = document.getElementById('noMessagesPlaceholder');
+        if (noMessagesPlaceholder) {
+          noMessagesPlaceholder.style.display = 'none';
+        }
+        
         // On error, show "No conversation done yet" instead of error message
         messagesList.innerHTML = `
           <div class="text-center py-5">
@@ -690,6 +893,21 @@
   // Display messages function (separated for reusability)
   function displayMessages(messages, contactId, append = false) {
     const messagesList = document.getElementById('messagesList');
+    const noMessagesPlaceholder = document.getElementById('noMessagesPlaceholder');
+    
+    // Ensure messagesList element exists
+    if (!messagesList) {
+      console.error('messagesList element not found!');
+      return;
+    }
+    
+    // Hide noMessagesPlaceholder immediately
+    if (noMessagesPlaceholder) {
+      noMessagesPlaceholder.style.display = 'none';
+    }
+    
+    // Ensure messagesList is visible
+    messagesList.style.display = 'block';
     
     if (messages.length === 0) {
       // No messages yet - show friendly message
@@ -700,13 +918,13 @@
           <small class="text-muted">Start the conversation by sending a message!</small>
         </div>
       `;
+      // Show placeholder if no messages
+      if (noMessagesPlaceholder) {
+        noMessagesPlaceholder.style.display = 'block';
+      }
     } else {
       // Show messages in WhatsApp-like style
-      // Clear existing messages but preserve structure
-      const existingMessages = messagesList.querySelectorAll('.message-item');
-      const existingMessageIds = Array.from(existingMessages).map(el => el.getAttribute('data-id'));
-      
-      // Build new messages HTML
+      // Build new messages HTML from scratch (don't append when append=false)
       let messagesHTML = '';
       let lastDate = null;
       
@@ -720,12 +938,11 @@
               
               // Show date separator if date changed
               if (lastDate !== currentDate) {
-                const dateSeparator = `
+                messagesHTML += `
                   <div class="text-center my-3">
                     <span class="badge bg-light text-muted px-3 py-1">${currentDate}</span>
                   </div>
                 `;
-                messagesList.innerHTML += dateSeparator;
                 lastDate = currentDate;
               }
               
@@ -1262,6 +1479,175 @@
       } else {
         // First time - store the count
         localStorage.setItem(`contact_count_${contactId}`, badge.getAttribute('data-count') || '0');
+      }
+    });
+    
+    // Flag to prevent multiple restore attempts
+    let isRestoring = false;
+    
+    // Function to restore conversation
+    function restoreConversation() {
+      // Prevent multiple restore attempts
+      if (isRestoring) {
+        console.log('Restore already in progress, skipping...');
+        return;
+      }
+      
+      // If contact is already selected, don't restore
+      if (selectedContactId) {
+        console.log('Contact already selected:', selectedContactId);
+        return;
+      }
+      
+      isRestoring = true;
+      
+      let contactToRestore = null;
+      
+      // Priority 1: Check localStorage (user's last selection)
+      const savedContactId = localStorage.getItem('selectedContactId');
+      const savedContactName = localStorage.getItem('selectedContactName');
+      const savedContactRole = localStorage.getItem('selectedContactRole');
+      
+      // Priority 2: Check template context (from URL parameter)
+      {% if selected_contact_id %}
+      const templateContactId = '{{ selected_contact_id }}';
+      const templateContact = document.querySelector(`[data-contact-id="${templateContactId}"]`);
+      if (templateContact) {
+        const templateContactName = templateContact.querySelector('.fw-bold')?.textContent || '';
+        const templateContactRole = templateContact.querySelector('.small.text-muted')?.textContent || '';
+        contactToRestore = {
+          id: templateContactId,
+          name: templateContactName,
+          role: templateContactRole
+        };
+      }
+      {% endif %}
+      
+      // Use saved contact if available, otherwise use template contact
+      const restoreContactId = savedContactId || (contactToRestore ? contactToRestore.id : null);
+      const restoreContactName = savedContactName || (contactToRestore ? contactToRestore.name : null);
+      const restoreContactRole = savedContactRole || (contactToRestore ? contactToRestore.role : null);
+      
+      if (restoreContactId && restoreContactName) {
+        // Find the contact item
+        const contactItem = document.querySelector(`[data-contact-id="${restoreContactId}"]`);
+        
+        if (contactItem) {
+          console.log('Restoring conversation for:', restoreContactName, restoreContactId);
+          
+          // Restore conversation state
+          selectedContactId = restoreContactId;
+          selectedContactName = restoreContactName;
+          selectedContactRole = restoreContactRole || '';
+          
+          // Update localStorage if using template contact
+          if (!savedContactId && restoreContactId) {
+            localStorage.setItem('selectedContactId', restoreContactId);
+            localStorage.setItem('selectedContactName', restoreContactName);
+            localStorage.setItem('selectedContactRole', restoreContactRole || '');
+          }
+          
+          // Update UI elements
+          const selectedContactNameEl = document.getElementById('selectedContactName');
+          const selectedContactRoleEl = document.getElementById('selectedContactRole');
+          const noMessagesPlaceholder = document.getElementById('noMessagesPlaceholder');
+          const messagesList = document.getElementById('messagesList');
+          const messageInput = document.getElementById('messageInput');
+          const refreshMessages = document.getElementById('refreshMessages');
+          
+          if (selectedContactNameEl) selectedContactNameEl.textContent = restoreContactName;
+          if (selectedContactRoleEl) selectedContactRoleEl.textContent = restoreContactRole || '';
+          
+          // Hide placeholder immediately and show loading state
+          if (noMessagesPlaceholder) noMessagesPlaceholder.style.display = 'none';
+          if (messagesList) {
+            messagesList.style.display = 'block';
+            messagesList.innerHTML = '<div class="text-center py-3 text-muted"><small>Loading messages...</small></div>';
+          }
+          if (messageInput) messageInput.style.display = 'block';
+          if (refreshMessages) refreshMessages.style.display = 'block';
+          
+          // Show back button on mobile if needed
+          const backButton = document.getElementById('backToContacts');
+          if (backButton && window.innerWidth <= 768) {
+            backButton.style.display = 'block';
+          }
+          
+          // Ensure messages area is visible
+          const messagesArea = document.querySelector('.col-lg-8.col-md-7');
+          if (messagesArea) {
+            messagesArea.style.display = 'block';
+            messagesArea.style.visibility = 'visible';
+            messagesArea.style.opacity = '1';
+          }
+          
+          // On mobile, hide contacts list and show messages
+          if (window.innerWidth <= 768) {
+            const contactsArea = document.querySelector('.col-lg-4.col-md-5');
+            if (contactsArea) {
+              contactsArea.style.display = 'none';
+            }
+            if (messagesArea) {
+              messagesArea.classList.add('mobile-active');
+            }
+          }
+          
+          // Update active state
+          document.querySelectorAll('.contact-item').forEach(item => {
+            item.classList.remove('active');
+          });
+          contactItem.classList.add('active');
+          
+          // Load messages from database - force refresh to get latest data
+          console.log('Restoring conversation - will load messages for:', restoreContactId);
+          
+          // Clear any existing cache for this contact to force fresh fetch
+          if (messagesCache[restoreContactId]) {
+            delete messagesCache[restoreContactId];
+          }
+          
+          // Ensure isLoadingMessages is false before loading
+          isLoadingMessages = false;
+          
+          // Load messages with force refresh - small delay to ensure UI is fully ready
+          setTimeout(() => {
+            loadMessages(restoreContactId, true); // Force refresh to get from database
+            
+            // Also update last refresh time
+            lastRefreshTime[restoreContactId] = Date.now();
+            
+            // Reset restoring flag after a delay
+            setTimeout(() => {
+              isRestoring = false;
+            }, 1000);
+          }, 200);
+        } else {
+          console.log('Contact item not found in DOM:', restoreContactId);
+          // Contact not found - clear localStorage
+          localStorage.removeItem('selectedContactId');
+          localStorage.removeItem('selectedContactName');
+          localStorage.removeItem('selectedContactRole');
+          isRestoring = false;
+        }
+      } else {
+        console.log('No contact to restore - localStorage or template context');
+        isRestoring = false;
+      }
+    }
+    
+    // Try to restore immediately after a small delay to ensure DOM is ready
+    setTimeout(() => {
+      restoreConversation();
+    }, 300);
+    
+    // Also try after window load (in case DOM wasn't fully ready)
+    window.addEventListener('load', function() {
+      // Only restore if no contact is currently selected
+      if (!selectedContactId) {
+        console.log('Window loaded, attempting to restore conversation...');
+        setTimeout(() => {
+          restoreConversation();
+        }, 100);
       }
     });
     

@@ -8318,6 +8318,41 @@ def employee_messages(request):
         -(x.get('latest_message_time') or timezone.now() - timezone.timedelta(days=365)).timestamp() if x.get('latest_message_time') else 0  # Latest first
     ), reverse=True)
     
+    # Sort contacts: Recently messaged contacts at top, then alphabetically
+    # Contacts with messages (latest_message_time) come first, sorted by most recent
+    # Contacts without messages come after, sorted alphabetically
+    from datetime import datetime
+    from django.utils import timezone as django_timezone
+    
+    contacts_with_messages = []
+    contacts_without_messages = []
+    
+    for contact in contacts:
+        if contact.get('latest_message_time'):
+            contacts_with_messages.append(contact)
+        else:
+            contacts_without_messages.append(contact)
+    
+    # Sort contacts with messages by latest_message_time (most recent first)
+    # Handle timezone-aware and naive datetimes
+    def get_sort_time(contact):
+        msg_time = contact.get('latest_message_time')
+        if msg_time:
+            # If it's timezone-aware, use as is; if naive, assume UTC
+            if django_timezone.is_aware(msg_time):
+                return msg_time
+            else:
+                return django_timezone.make_aware(msg_time)
+        return django_timezone.make_aware(datetime.min)
+    
+    contacts_with_messages.sort(key=get_sort_time, reverse=True)
+    
+    # Sort contacts without messages alphabetically by name
+    contacts_without_messages.sort(key=lambda x: x.get('name', '').lower())
+    
+    # Combine: messages first, then no messages
+    sorted_contacts = contacts_with_messages + contacts_without_messages
+    
     # Show welcome message only on first visit after login
     show_welcome = False
     if current_user.is_authenticated:
@@ -8329,7 +8364,7 @@ def employee_messages(request):
             messages.success(request, f'Welcome back, {current_user.get_full_name() or current_user.username}! 👋')
     
     context = {
-        'contacts': contacts,
+        'contacts': sorted_contacts,  # Use sorted contacts
         'selected_contact_id': selected_contact_id,
         'employee_name': current_user.get_full_name() if current_user.is_authenticated else 'Guest',
         'current_user_employee': current_user_employee,
@@ -8357,10 +8392,10 @@ def employee_send_message(request):
             
             if user_id:
                 from django.contrib.auth import get_user_model
-                User = get_user_model()
+                UserModel = get_user_model()
                 try:
-                    user = User.objects.get(id=user_id)
-                except User.DoesNotExist:
+                    user = UserModel.objects.get(id=user_id)
+                except UserModel.DoesNotExist:
                     pass
         
         # If still no user, try to get from request.POST or use anonymous
@@ -8517,10 +8552,10 @@ def employee_get_messages(request):
             
             if user_id:
                 from django.contrib.auth import get_user_model
-                User = get_user_model()
+                UserModel = get_user_model()
                 try:
-                    user = User.objects.get(id=user_id)
-                except User.DoesNotExist:
+                    user = UserModel.objects.get(id=user_id)
+                except UserModel.DoesNotExist:
                     pass
         
         # Get current user's ID for receiver matching
