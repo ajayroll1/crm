@@ -6129,6 +6129,246 @@ def employee_backoffice(request):
     # Check if this is an AJAX request for table refresh
     is_ajax_get = request.headers.get('X-Requested-With') == 'XMLHttpRequest' and request.method == 'GET'
     
+    # Get assigned leads from website (assigned_to = current employee)
+    assigned_leads = []
+    try:
+        employee_obj = Employee.objects.get(email=request.user.email)
+        
+        # Get all assigned leads from all backoffice services
+        startup_assigned = StartupIndiaRegistration.objects.filter(assigned_to=employee_obj).order_by('-created_at')
+        for record in startup_assigned:
+            assigned_leads.append({
+                'id': record.id,
+                'service_type': 'startup',
+                'service_name': 'Start-up India Registration',
+                'legal_entity_name': record.legal_entity_name or 'N/A',
+                'entity_type': record.entity_type or 'N/A',
+                'industry_sector': record.industry_sector or 'N/A',
+                'email': record.email or 'N/A',
+                'status': record.status,
+                'status_display': record.get_status_display(),
+                'status_choices': StartupIndiaRegistration.STATUS_CHOICES,
+                'status_badge_class': record.get_status_badge_class() if hasattr(record, 'get_status_badge_class') else 'secondary',
+                'created_at': record.created_at,
+                'lead_source': getattr(record, 'lead_source', 'website'),
+                # Startup specific fields
+                'incorporation_date': record.incorporation_date,
+                'authorised_contact': record.authorised_contact or 'N/A',
+                'innovation_usp': record.innovation_usp or 'N/A',
+            })
+        
+        fssai_assigned = FSSAILicense.objects.filter(assigned_to=employee_obj).order_by('-created_at')
+        for record in fssai_assigned:
+            assigned_leads.append({
+                'id': record.id,
+                'service_type': 'fssai',
+                'service_name': 'Food Licensing (FSSAI)',
+                'legal_entity_name': record.business_brand_name or 'N/A',
+                'entity_type': record.licence_type or 'N/A',
+                'industry_sector': record.business_nature or 'N/A',
+                'email': 'N/A',
+                'status': record.status,
+                'status_display': record.get_status_display(),
+                'status_choices': FSSAILicense.STATUS_CHOICES,
+                'status_badge_class': record.get_status_badge_class() if hasattr(record, 'get_status_badge_class') else 'secondary',
+                'created_at': record.created_at,
+                'lead_source': getattr(record, 'lead_source', 'website'),
+                # FSSAI specific fields
+                'premises_address': record.premises_address or 'N/A',
+                'employees': record.employees or 'N/A',
+                'licence_tenure': record.licence_tenure or 'N/A',
+            })
+        
+        msme_assigned = MSMEUdyamRegistration.objects.filter(assigned_to=employee_obj).order_by('-created_at')
+        for record in msme_assigned:
+            assigned_leads.append({
+                'id': record.id,
+                'service_type': 'msme',
+                'service_name': 'MSME / Udyam Registration',
+                'legal_entity_name': record.entity_name or 'N/A',
+                'entity_type': record.organisation_type or 'N/A',
+                'industry_sector': 'N/A',
+                'email': 'N/A',
+                'status': record.status,
+                'status_display': record.get_status_display(),
+                'status_choices': MSMEUdyamRegistration.STATUS_CHOICES,
+                'status_badge_class': record.get_status_badge_class() if hasattr(record, 'get_status_badge_class') else 'secondary',
+                'created_at': record.created_at,
+                'lead_source': getattr(record, 'lead_source', 'website'),
+                # MSME specific fields
+                'annual_turnover': record.annual_turnover or 0,
+            })
+        
+        company_assigned = CompanyLLPRegistration.objects.filter(assigned_to=employee_obj).order_by('-created_at')
+        for record in company_assigned:
+            assigned_leads.append({
+                'id': record.id,
+                'service_type': 'company-llp',
+                'service_name': 'Company / LLP Registration',
+                'legal_entity_name': 'N/A',
+                'entity_type': record.entity_type or 'N/A',
+                'industry_sector': 'N/A',
+                'email': 'N/A',
+                'status': record.status,
+                'status_display': record.get_status_display(),
+                'status_choices': CompanyLLPRegistration.STATUS_CHOICES,
+                'status_badge_class': record.get_status_badge_class() if hasattr(record, 'get_status_badge_class') else 'secondary',
+                'created_at': record.created_at,
+                'lead_source': getattr(record, 'lead_source', 'website'),
+                # Company/LLP specific fields
+                'directors_partners': record.directors_partners or 'N/A',
+                'authorised_capital': record.authorised_capital or 0,
+            })
+        
+        fire_assigned = FirePollutionLicense.objects.filter(assigned_to=employee_obj).order_by('-created_at')
+        for record in fire_assigned:
+            assigned_leads.append({
+                'id': record.id,
+                'service_type': 'fire-pollution',
+                'service_name': 'Fire & Pollution Licences',
+                'legal_entity_name': 'N/A',
+                'entity_type': record.establishment_type or 'N/A',
+                'industry_sector': record.pollution_category or 'N/A',
+                'email': 'N/A',
+                'status': record.status,
+                'status_display': record.get_status_display(),
+                'status_choices': FirePollutionLicense.STATUS_CHOICES,
+                'status_badge_class': record.get_status_badge_class() if hasattr(record, 'get_status_badge_class') else 'secondary',
+                'created_at': record.created_at,
+                'lead_source': getattr(record, 'lead_source', 'website'),
+                # Fire/Pollution specific fields
+                'built_up_area': record.built_up_area or 'N/A',
+            })
+        
+        iso_assigned = ISOCertification.objects.filter(assigned_to=employee_obj).order_by('-created_at')
+        for record in iso_assigned:
+            assigned_leads.append({
+                'id': record.id,
+                'service_type': 'iso',
+                'service_name': 'ISO Certification',
+                'legal_entity_name': 'N/A',
+                'entity_type': record.standard or 'N/A',
+                'industry_sector': record.locations or 'N/A',
+                'email': 'N/A',
+                'status': record.status,
+                'status_display': record.get_status_display(),
+                'status_choices': ISOCertification.STATUS_CHOICES,
+                'status_badge_class': record.get_status_badge_class() if hasattr(record, 'get_status_badge_class') else 'secondary',
+                'created_at': record.created_at,
+                'lead_source': getattr(record, 'lead_source', 'website'),
+                # ISO specific fields
+                'employee_strength': record.employee_strength or 'N/A',
+            })
+        
+        trademark_assigned = TrademarkFiling.objects.filter(assigned_to=employee_obj).order_by('-created_at')
+        for record in trademark_assigned:
+            assigned_leads.append({
+                'id': record.id,
+                'service_type': 'trademark',
+                'service_name': 'Trademark Filing',
+                'legal_entity_name': record.brand_logo[:50] if record.brand_logo else 'N/A',
+                'entity_type': record.applicant_type or 'N/A',
+                'industry_sector': record.classes or 'N/A',
+                'email': 'N/A',
+                'status': record.status,
+                'status_display': record.get_status_display(),
+                'status_choices': TrademarkFiling.STATUS_CHOICES,
+                'status_badge_class': record.get_status_badge_class() if hasattr(record, 'get_status_badge_class') else 'secondary',
+                'created_at': record.created_at,
+                'lead_source': getattr(record, 'lead_source', 'website'),
+                # Trademark specific fields
+                'brand_logo': record.brand_logo or 'N/A',
+            })
+        
+        trademark_compliance_assigned = TrademarkFilingCompliance.objects.filter(assigned_to=employee_obj).order_by('-created_at')
+        for record in trademark_compliance_assigned:
+            assigned_leads.append({
+                'id': record.id,
+                'service_type': 'trademark-compliance',
+                'service_name': 'Trademark Filing + Compliance',
+                'legal_entity_name': record.existing_tm_numbers[:50] if record.existing_tm_numbers else 'N/A',
+                'entity_type': 'N/A',
+                'industry_sector': record.portfolio_size or 'N/A',
+                'email': 'N/A',
+                'status': record.status,
+                'status_display': record.get_status_display(),
+                'status_choices': TrademarkFilingCompliance.STATUS_CHOICES,
+                'status_badge_class': record.get_status_badge_class() if hasattr(record, 'get_status_badge_class') else 'secondary',
+                'created_at': record.created_at,
+                'lead_source': getattr(record, 'lead_source', 'website'),
+                # Trademark Compliance specific fields
+                'existing_tm_numbers': record.existing_tm_numbers or 'N/A',
+                'watch_scope': record.watch_scope or 'N/A',
+            })
+        
+        trademark_instant_assigned = TrademarkFilingInstant.objects.filter(assigned_to=employee_obj).order_by('-created_at')
+        for record in trademark_instant_assigned:
+            assigned_leads.append({
+                'id': record.id,
+                'service_type': 'trademark-instant',
+                'service_name': 'Trademark Filing (Instant)',
+                'legal_entity_name': record.urgency_reason[:50] if record.urgency_reason else 'N/A',
+                'entity_type': record.filing_window or 'N/A',
+                'industry_sector': record.contact_mobile or 'N/A',
+                'email': 'N/A',
+                'status': record.status,
+                'status_display': record.get_status_display(),
+                'status_choices': TrademarkFilingInstant.STATUS_CHOICES,
+                'status_badge_class': record.get_status_badge_class() if hasattr(record, 'get_status_badge_class') else 'secondary',
+                'created_at': record.created_at,
+                'lead_source': getattr(record, 'lead_source', 'website'),
+                # Trademark Instant specific fields
+                'urgency_reason': record.urgency_reason or 'N/A',
+                'contact_mobile': record.contact_mobile or 'N/A',
+            })
+        
+        address_change_assigned = CompanyAddressChange.objects.filter(assigned_to=employee_obj).order_by('-created_at')
+        for record in address_change_assigned:
+            assigned_leads.append({
+                'id': record.id,
+                'service_type': 'address-change',
+                'service_name': 'Company Address Change',
+                'legal_entity_name': 'N/A',
+                'entity_type': record.entity_type or 'N/A',
+                'industry_sector': record.shift_type or 'N/A',
+                'email': 'N/A',
+                'status': record.status,
+                'status_display': record.get_status_display(),
+                'status_choices': CompanyAddressChange.STATUS_CHOICES,
+                'status_badge_class': record.get_status_badge_class() if hasattr(record, 'get_status_badge_class') else 'secondary',
+                'created_at': record.created_at,
+                'lead_source': getattr(record, 'lead_source', 'website'),
+                # Address Change specific fields
+                'effective_date': record.effective_date,
+            })
+        
+        moa_assigned = MOAAlteration.objects.filter(assigned_to=employee_obj).order_by('-created_at')
+        for record in moa_assigned:
+            assigned_leads.append({
+                'id': record.id,
+                'service_type': 'moa-alteration',
+                'service_name': 'MOA Alteration',
+                'legal_entity_name': record.proposed_object_name[:50] if record.proposed_object_name else 'N/A',
+                'entity_type': record.alteration_type or 'N/A',
+                'industry_sector': 'N/A',
+                'email': 'N/A',
+                'status': record.status,
+                'status_display': record.get_status_display(),
+                'status_choices': MOAAlteration.STATUS_CHOICES,
+                'status_badge_class': record.get_status_badge_class() if hasattr(record, 'get_status_badge_class') else 'secondary',
+                'created_at': record.created_at,
+                'lead_source': getattr(record, 'lead_source', 'website'),
+                # MOA Alteration specific fields
+                'proposed_object_name': record.proposed_object_name or 'N/A',
+                'effective_date': record.effective_date,
+            })
+        
+        # Sort all assigned leads by created_at (newest first)
+        assigned_leads.sort(key=lambda x: x['created_at'], reverse=True)
+        
+    except Employee.DoesNotExist:
+        assigned_leads = []
+    
     context = {
         'backoffice_services': backoffice_services,
         'highlights': highlights,
@@ -6165,8 +6405,147 @@ def employee_backoffice(request):
         'moa_alteration_form': moa_alteration_form,
         'moa_alterations': moa_alterations,
         'moa_alteration_status_choices': MOAAlteration.STATUS_CHOICES,
+        'assigned_leads': assigned_leads,
     }
     return render(request, 'employee/backoffice.html', context)
+
+
+@login_required
+def get_lead_details(request):
+    """Get lead details by service type and record ID"""
+    if request.method == 'GET':
+        try:
+            service_type = request.GET.get('service_type')
+            record_id = request.GET.get('record_id')
+            
+            if not service_type or not record_id:
+                return JsonResponse({'success': False, 'error': 'Missing service_type or record_id'}, status=400)
+            
+            # Get current employee
+            try:
+                employee_obj = Employee.objects.get(email=request.user.email)
+            except Employee.DoesNotExist:
+                return JsonResponse({'success': False, 'error': 'Employee not found'}, status=403)
+            
+            # Map service types to models
+            service_models = {
+                'startup': StartupIndiaRegistration,
+                'fssai': FSSAILicense,
+                'msme': MSMEUdyamRegistration,
+                'company-llp': CompanyLLPRegistration,
+                'fire-pollution': FirePollutionLicense,
+                'iso': ISOCertification,
+                'trademark': TrademarkFiling,
+                'trademark-compliance': TrademarkFilingCompliance,
+                'trademark-instant': TrademarkFilingInstant,
+                'address-change': CompanyAddressChange,
+                'moa-alteration': MOAAlteration,
+            }
+            
+            if service_type not in service_models:
+                return JsonResponse({'success': False, 'error': 'Invalid service type'}, status=400)
+            
+            model_class = service_models[service_type]
+            
+            # Get record - check if assigned to current employee
+            try:
+                record = model_class.objects.get(id=record_id, assigned_to=employee_obj)
+            except model_class.DoesNotExist:
+                return JsonResponse({'success': False, 'error': f'No {model_class.__name__} matches the given query or not assigned to you'}, status=404)
+            
+            # Build response data based on service type
+            data = {
+                'success': True,
+                'id': record.id,
+                'service_type': service_type,
+                'status': record.status,
+                'status_display': record.get_status_display(),
+                'status_badge_class': record.get_status_badge_class() if hasattr(record, 'get_status_badge_class') else 'secondary',
+                'created_at': record.created_at.strftime('%d %b %Y, %I:%M %p') if record.created_at else 'N/A',
+                'lead_source': getattr(record, 'lead_source', 'website'),
+            }
+            
+            # Add service-specific fields
+            if service_type == 'startup':
+                data.update({
+                    'legal_entity_name': record.legal_entity_name or 'N/A',
+                    'incorporation_date': record.incorporation_date.strftime('%d %b %Y') if record.incorporation_date else 'N/A',
+                    'entity_type': record.entity_type or 'N/A',
+                    'industry_sector': record.industry_sector or 'N/A',
+                    'authorised_contact': record.authorised_contact or 'N/A',
+                    'email': record.email or 'N/A',
+                    'innovation_usp': record.innovation_usp or 'N/A',
+                })
+            elif service_type == 'fssai':
+                data.update({
+                    'business_brand_name': record.business_brand_name or 'N/A',
+                    'licence_type': record.licence_type or 'N/A',
+                    'business_nature': record.business_nature or 'N/A',
+                    'premises_address': record.premises_address or 'N/A',
+                    'employees': record.employees or 'N/A',
+                    'licence_tenure': record.licence_tenure or 'N/A',
+                })
+            elif service_type == 'msme':
+                data.update({
+                    'entity_name': record.entity_name or 'N/A',
+                    'organisation_type': record.organisation_type or 'N/A',
+                    'annual_turnover': str(record.annual_turnover or 0),
+                })
+            elif service_type == 'company-llp':
+                data.update({
+                    'entity_type': record.entity_type or 'N/A',
+                    'directors_partners': record.directors_partners or 'N/A',
+                    'authorised_capital': str(record.authorised_capital or 0),
+                })
+            elif service_type == 'fire-pollution':
+                data.update({
+                    'establishment_type': record.establishment_type or 'N/A',
+                    'built_up_area': record.built_up_area or 'N/A',
+                    'pollution_category': record.pollution_category or 'N/A',
+                })
+            elif service_type == 'iso':
+                data.update({
+                    'standard': record.standard or 'N/A',
+                    'locations': record.locations or 'N/A',
+                    'employee_strength': record.employee_strength or 'N/A',
+                })
+            elif service_type == 'trademark':
+                data.update({
+                    'brand_logo': record.brand_logo or 'N/A',
+                    'applicant_type': record.applicant_type or 'N/A',
+                    'classes': record.classes or 'N/A',
+                })
+            elif service_type == 'trademark-compliance':
+                data.update({
+                    'existing_tm_numbers': record.existing_tm_numbers or 'N/A',
+                    'portfolio_size': record.portfolio_size or 'N/A',
+                    'watch_scope': record.watch_scope or 'N/A',
+                })
+            elif service_type == 'trademark-instant':
+                data.update({
+                    'urgency_reason': record.urgency_reason or 'N/A',
+                    'filing_window': record.filing_window or 'N/A',
+                    'contact_mobile': record.contact_mobile or 'N/A',
+                })
+            elif service_type == 'address-change':
+                data.update({
+                    'entity_type': record.entity_type or 'N/A',
+                    'shift_type': record.shift_type or 'N/A',
+                    'effective_date': record.effective_date.strftime('%d %b %Y') if record.effective_date else 'N/A',
+                })
+            elif service_type == 'moa-alteration':
+                data.update({
+                    'alteration_type': record.alteration_type or 'N/A',
+                    'proposed_object_name': record.proposed_object_name or 'N/A',
+                    'effective_date': record.effective_date.strftime('%d %b %Y') if record.effective_date else 'N/A',
+                })
+            
+            return JsonResponse(data)
+            
+        except Exception as e:
+            return JsonResponse({'success': False, 'error': str(e)}, status=500)
+    
+    return JsonResponse({'success': False, 'error': 'Invalid request method'}, status=405)
 
 
 @login_required
@@ -6175,7 +6554,14 @@ def employee_backoffice(request):
 def update_startup_status(request, record_id):
     """Update status of Start-up India Registration record via AJAX."""
     try:
-        record = get_object_or_404(StartupIndiaRegistration, id=record_id, user=request.user)
+        # Get employee
+        try:
+            employee_obj = Employee.objects.get(email=request.user.email)
+        except Employee.DoesNotExist:
+            return JsonResponse({'success': False, 'error': 'Employee not found'}, status=403)
+        
+        # Get record - check if assigned to employee
+        record = get_object_or_404(StartupIndiaRegistration, id=record_id, assigned_to=employee_obj)
         new_status = request.POST.get('status')
         
         if new_status not in dict(StartupIndiaRegistration.STATUS_CHOICES):
@@ -6199,7 +6585,14 @@ def update_startup_status(request, record_id):
 def update_fssai_status(request, record_id):
     """Update status of FSSAI License record via AJAX."""
     try:
-        record = get_object_or_404(FSSAILicense, id=record_id, user=request.user)
+        # Get employee
+        try:
+            employee_obj = Employee.objects.get(email=request.user.email)
+        except Employee.DoesNotExist:
+            return JsonResponse({'success': False, 'error': 'Employee not found'}, status=403)
+        
+        # Get record - check if assigned to employee
+        record = get_object_or_404(FSSAILicense, id=record_id, assigned_to=employee_obj)
         new_status = request.POST.get('status')
         
         if new_status not in dict(FSSAILicense.STATUS_CHOICES):
@@ -6223,7 +6616,14 @@ def update_fssai_status(request, record_id):
 def update_msme_status(request, record_id):
     """Update status of MSME / Udyam Registration record via AJAX."""
     try:
-        record = get_object_or_404(MSMEUdyamRegistration, id=record_id, user=request.user)
+        # Get employee
+        try:
+            employee_obj = Employee.objects.get(email=request.user.email)
+        except Employee.DoesNotExist:
+            return JsonResponse({'success': False, 'error': 'Employee not found'}, status=403)
+        
+        # Get record - check if assigned to employee
+        record = get_object_or_404(MSMEUdyamRegistration, id=record_id, assigned_to=employee_obj)
         new_status = request.POST.get('status')
 
         if new_status not in dict(MSMEUdyamRegistration.STATUS_CHOICES):
@@ -6247,7 +6647,14 @@ def update_msme_status(request, record_id):
 def update_company_llp_status(request, record_id):
     """Update status of Company / LLP Registration record via AJAX."""
     try:
-        record = get_object_or_404(CompanyLLPRegistration, id=record_id, user=request.user)
+        # Get employee
+        try:
+            employee_obj = Employee.objects.get(email=request.user.email)
+        except Employee.DoesNotExist:
+            return JsonResponse({'success': False, 'error': 'Employee not found'}, status=403)
+        
+        # Get record - check if assigned to employee
+        record = get_object_or_404(CompanyLLPRegistration, id=record_id, assigned_to=employee_obj)
         new_status = request.POST.get('status')
 
         if new_status not in dict(CompanyLLPRegistration.STATUS_CHOICES):
@@ -6271,7 +6678,14 @@ def update_company_llp_status(request, record_id):
 def update_fire_pollution_status(request, record_id):
     """Update status of Fire & Pollution Licence record via AJAX."""
     try:
-        record = get_object_or_404(FirePollutionLicense, id=record_id, user=request.user)
+        # Get employee
+        try:
+            employee_obj = Employee.objects.get(email=request.user.email)
+        except Employee.DoesNotExist:
+            return JsonResponse({'success': False, 'error': 'Employee not found'}, status=403)
+        
+        # Get record - check if assigned to employee
+        record = get_object_or_404(FirePollutionLicense, id=record_id, assigned_to=employee_obj)
         new_status = request.POST.get('status')
 
         if new_status not in dict(FirePollutionLicense.STATUS_CHOICES):
@@ -6295,7 +6709,14 @@ def update_fire_pollution_status(request, record_id):
 def update_iso_status(request, record_id):
     """Update status of ISO Certification record via AJAX."""
     try:
-        record = get_object_or_404(ISOCertification, id=record_id, user=request.user)
+        # Get employee
+        try:
+            employee_obj = Employee.objects.get(email=request.user.email)
+        except Employee.DoesNotExist:
+            return JsonResponse({'success': False, 'error': 'Employee not found'}, status=403)
+        
+        # Get record - check if assigned to employee
+        record = get_object_or_404(ISOCertification, id=record_id, assigned_to=employee_obj)
         new_status = request.POST.get('status')
         
         if new_status not in dict(ISOCertification.STATUS_CHOICES):
@@ -6319,7 +6740,14 @@ def update_iso_status(request, record_id):
 def update_trademark_status(request, record_id):
     """Update status of Trademark Filing record via AJAX."""
     try:
-        record = get_object_or_404(TrademarkFiling, id=record_id, user=request.user)
+        # Get employee
+        try:
+            employee_obj = Employee.objects.get(email=request.user.email)
+        except Employee.DoesNotExist:
+            return JsonResponse({'success': False, 'error': 'Employee not found'}, status=403)
+        
+        # Get record - check if assigned to employee
+        record = get_object_or_404(TrademarkFiling, id=record_id, assigned_to=employee_obj)
         new_status = request.POST.get('status')
         
         if new_status not in dict(TrademarkFiling.STATUS_CHOICES):
@@ -6343,7 +6771,14 @@ def update_trademark_status(request, record_id):
 def update_trademark_compliance_status(request, record_id):
     """Update status of Trademark Filing + Compliance record via AJAX."""
     try:
-        record = get_object_or_404(TrademarkFilingCompliance, id=record_id, user=request.user)
+        # Get employee
+        try:
+            employee_obj = Employee.objects.get(email=request.user.email)
+        except Employee.DoesNotExist:
+            return JsonResponse({'success': False, 'error': 'Employee not found'}, status=403)
+        
+        # Get record - check if assigned to employee
+        record = get_object_or_404(TrademarkFilingCompliance, id=record_id, assigned_to=employee_obj)
         new_status = request.POST.get('status')
         
         if new_status not in dict(TrademarkFilingCompliance.STATUS_CHOICES):
@@ -6367,7 +6802,14 @@ def update_trademark_compliance_status(request, record_id):
 def update_trademark_instant_status(request, record_id):
     """Update status of Trademark Filing (Instant Process) record via AJAX."""
     try:
-        record = get_object_or_404(TrademarkFilingInstant, id=record_id, user=request.user)
+        # Get employee
+        try:
+            employee_obj = Employee.objects.get(email=request.user.email)
+        except Employee.DoesNotExist:
+            return JsonResponse({'success': False, 'error': 'Employee not found'}, status=403)
+        
+        # Get record - check if assigned to employee
+        record = get_object_or_404(TrademarkFilingInstant, id=record_id, assigned_to=employee_obj)
         new_status = request.POST.get('status')
         
         if new_status not in dict(TrademarkFilingInstant.STATUS_CHOICES):
@@ -6391,7 +6833,14 @@ def update_trademark_instant_status(request, record_id):
 def update_address_change_status(request, record_id):
     """Update status of Company Address Change record via AJAX."""
     try:
-        record = get_object_or_404(CompanyAddressChange, id=record_id, user=request.user)
+        # Get employee
+        try:
+            employee_obj = Employee.objects.get(email=request.user.email)
+        except Employee.DoesNotExist:
+            return JsonResponse({'success': False, 'error': 'Employee not found'}, status=403)
+        
+        # Get record - check if assigned to employee
+        record = get_object_or_404(CompanyAddressChange, id=record_id, assigned_to=employee_obj)
         new_status = request.POST.get('status')
         
         if new_status not in dict(CompanyAddressChange.STATUS_CHOICES):
@@ -6415,7 +6864,14 @@ def update_address_change_status(request, record_id):
 def update_moa_alteration_status(request, record_id):
     """Update status of MOA Alteration record via AJAX."""
     try:
-        record = get_object_or_404(MOAAlteration, id=record_id, user=request.user)
+        # Get employee
+        try:
+            employee_obj = Employee.objects.get(email=request.user.email)
+        except Employee.DoesNotExist:
+            return JsonResponse({'success': False, 'error': 'Employee not found'}, status=403)
+        
+        # Get record - check if assigned to employee
+        record = get_object_or_404(MOAAlteration, id=record_id, assigned_to=employee_obj)
         new_status = request.POST.get('status')
         
         if new_status not in dict(MOAAlteration.STATUS_CHOICES):

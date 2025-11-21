@@ -350,9 +350,9 @@
                                 <div class="mb-2">
                                   <small class="text-muted d-block">Assigned To:</small>
                                   {% if record.assigned_to %}
-                                    <span class="badge bg-success">{{ record.assigned_to.get_full_name }}</span>
+                                    <span class="badge bg-success assigned-badge" data-service="{{ service_id }}" data-record="{{ record.id }}">{{ record.assigned_to.get_full_name }}</span>
                                   {% else %}
-                                    <span class="badge bg-secondary">Unassigned</span>
+                                    <span class="badge bg-secondary assigned-badge" data-service="{{ service_id }}" data-record="{{ record.id }}">Unassigned</span>
                                   {% endif %}
                                 </div>
                                 <div class="mb-2">
@@ -360,9 +360,9 @@
                                   <small>{{ record.created_at|date:"d M Y" }}</small>
                                 </div>
                                 <div>
-                                  <button type="button" class="btn btn-sm btn-primary assign-btn" data-bs-toggle="modal" data-bs-target="#assignModal{{ service_id }}{{ record.id }}">
+                                  <button type="button" class="btn btn-sm btn-primary assign-btn" data-bs-toggle="modal" data-bs-target="#assignModal{{ service_id }}{{ record.id }}" data-service="{{ service_id }}" data-record="{{ record.id }}">
                                     <i class="bi bi-person-plus"></i>
-                                    {% if record.assigned_to %}Change Employee{% else %}Assign{% endif %}
+                                    <span class="assign-label">{% if record.assigned_to %}Change Employee{% else %}Assign{% endif %}</span>
                                   </button>
                                 </div>
                               </div>
@@ -504,16 +504,16 @@
                                 <td><span class="badge bg-info">{{ record.lead_source|default:"website" }}</span></td>
                                 <td>
                                   {% if record.assigned_to %}
-                                    <span class="badge bg-success">{{ record.assigned_to.get_full_name }}</span>
+                                    <span class="badge bg-success assigned-badge" data-service="{{ service_id }}" data-record="{{ record.id }}">{{ record.assigned_to.get_full_name }}</span>
                                   {% else %}
-                                    <span class="badge bg-secondary">Unassigned</span>
+                                    <span class="badge bg-secondary assigned-badge" data-service="{{ service_id }}" data-record="{{ record.id }}">Unassigned</span>
                                   {% endif %}
                                 </td>
                                 <td class="text-nowrap">{{ record.created_at|date:"d M Y" }}</td>
                                 <td class="text-nowrap">
-                                  <button type="button" class="btn btn-sm btn-primary assign-btn" data-bs-toggle="modal" data-bs-target="#assignModal{{ service_id }}{{ record.id }}">
+                                  <button type="button" class="btn btn-sm btn-primary assign-btn" data-bs-toggle="modal" data-bs-target="#assignModal{{ service_id }}{{ record.id }}" data-service="{{ service_id }}" data-record="{{ record.id }}">
                                     <i class="bi bi-person-plus"></i>
-                                    <span class="d-none d-md-inline">
+                                    <span class="assign-label d-none d-md-inline">
                                       {% if record.assigned_to %}Change Employee{% else %}Assign{% endif %}
                                     </span>
                                   </button>

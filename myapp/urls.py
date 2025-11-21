@@ -78,6 +78,7 @@ urlpatterns =[
   path('employee/backoffice/trademark-instant/<int:record_id>/update-status/',views.update_trademark_instant_status,name='update_trademark_instant_status'),
   path('employee/backoffice/address-change/<int:record_id>/update-status/',views.update_address_change_status,name='update_address_change_status'),
   path('employee/backoffice/moa-alteration/<int:record_id>/update-status/',views.update_moa_alteration_status,name='update_moa_alteration_status'),
+  path('employee/backoffice/get-lead-details/',views.get_lead_details,name='get_lead_details'),
   path('employee/in-out/',views.employee_in_out,name='employee_in_out'),
   path('employee/attendance/check-in/',views.employee_attendance_check_in,name='employee_attendance_check_in'),
   path('employee/attendance/check-out/',views.employee_attendance_check_out,name='employee_attendance_check_out'),
