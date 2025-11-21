@@ -5456,6 +5456,68 @@ def employee_accounts(request):
         bookkeeping_total_count = 0
         tds_total_count = 0
 
+    website_leads = []
+
+    def add_lead(record, service_key, service_label, entity_name, type_label):
+        website_leads.append({
+            'id': record.id,
+            'service_key': service_key,
+            'service_label': service_label,
+            'entity_name': entity_name or '—',
+            'type_label': type_label or '—',
+            'status_key': record.status,
+            'status_display': record.get_status_display(),
+            'created_at': record.created_at,
+            'modal_id': f'{service_key}LeadModal{record.id}',
+        })
+
+    for record in roc_clients_website:
+        add_lead(
+            record,
+            'roc',
+            'ROC Compliance',
+            record.company_name,
+            record.compliance_period or record.financial_year,
+        )
+
+    for record in gst_clients_website:
+        add_lead(
+            record,
+            'gst',
+            'GST Filing',
+            record.gstin,
+            record.return_type,
+        )
+
+    for record in itr_clients_website:
+        add_lead(
+            record,
+            'itr',
+            'ITR Filing',
+            record.taxpayer_name,
+            record.return_form,
+        )
+
+    for record in bookkeeping_clients_website:
+        add_lead(
+            record,
+            'bookkeeping',
+            'Accounts & Bookkeeping',
+            record.prepared_by,
+            record.closing_date.strftime('%d %b %Y') if record.closing_date else 'Daily Close',
+        )
+
+    for record in tds_clients_website:
+        add_lead(
+            record,
+            'tds',
+            'TDS Compliance',
+            record.deductor_tan,
+            record.section,
+        )
+
+    website_leads.sort(key=lambda lead: lead['created_at'], reverse=True)
+
     context = {
         'roc_required_docs': roc_required_docs,
         'gst_return_types': gst_return_types,
@@ -5487,6 +5549,7 @@ def employee_accounts(request):
         'itr_count': itr_total_count,
         'bookkeeping_count': bookkeeping_total_count,
         'tds_count': tds_total_count,
+        'website_leads': website_leads,
     }
     return render(request, 'employee/accounts.html', context)
 

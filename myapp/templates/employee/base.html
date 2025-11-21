@@ -811,6 +811,11 @@
             return;
           }
           
+          const disableAjax = link.dataset.noAjax === 'true';
+          if (disableAjax) {
+            return;
+          }
+          
           link.addEventListener('click', function(e) {
             // Prevent default navigation and stop propagation
             e.preventDefault();
