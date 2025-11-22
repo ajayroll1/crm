@@ -2676,6 +2676,13 @@ def invoices(request):
         pending_balance = invoice.total - invoice.amount_received
         if pending_balance < Decimal('0.00'):
             pending_balance = Decimal('0.00')
+        
+        # Auto-update status if it doesn't match the calculated status
+        calculated_status = invoice.calculate_status()
+        if invoice.status != calculated_status and invoice.status != 'Cancelled':
+            invoice.status = calculated_status
+            invoice.save(update_fields=['status', 'updated_at'])
+        
         invoice_data.append({
             'id': invoice.id,
             'invoice_number': invoice.invoice_number,

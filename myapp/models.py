@@ -340,6 +340,28 @@ class Invoice(models.Model):
         """Calculate pending balance (Total - Amount Received)"""
         pending = float(self.total) - float(self.amount_received)
         return max(0, pending)
+    
+    def calculate_status(self):
+        """Calculate status based on pending balance"""
+        if self.status == 'Cancelled':
+            return 'Cancelled'
+        
+        pending = self.get_pending_balance()
+        if pending <= 0:
+            return 'Paid'
+        elif self.amount_received > 0:
+            return 'Partial'
+        else:
+            return 'Unpaid'
+    
+    def save(self, *args, **kwargs):
+        """Auto-update status based on pending balance before saving"""
+        # Only auto-update if status is not Cancelled
+        if self.status != 'Cancelled':
+            calculated_status = self.calculate_status()
+            if self.status != calculated_status:
+                self.status = calculated_status
+        super().save(*args, **kwargs)
 
 
 class ClientOnboarding(models.Model):
