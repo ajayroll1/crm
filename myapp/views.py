@@ -2113,6 +2113,390 @@ def accounts(request):
 
 
 @login_required
+def clients(request):
+    """Clients page - displays client accounts and onboarding information"""
+    from django.core.paginator import Paginator
+    from django.db.models import Sum, Q
+    from decimal import Decimal
+    
+    # CLIENT ACCOUNTS SECTION
+    # Search functionality for client accounts
+    search_query = request.GET.get('search', '').strip()
+    status_filter = request.GET.get('status_filter', '').strip()
+    
+    # Get all clients from ClientOnboarding
+    clients_onboarding = ClientOnboarding.objects.all().order_by('-created_at')
+    
+    # Apply search filter for client accounts
+    clients_for_accounts = clients_onboarding
+    if search_query:
+        clients_for_accounts = clients_onboarding.filter(
+            Q(client_name__icontains=search_query) |
+            Q(company_name__icontains=search_query) |
+            Q(client_email__icontains=search_query) |
+            Q(client_phone__icontains=search_query) |
+            Q(project_name__icontains=search_query)
+        )
+    
+    # Prepare client accounts data
+    client_accounts = []
+    for client in clients_for_accounts:
+        # Get all quotes for this client (match by client_name)
+        client_quotes = Quote.objects.filter(client_name__iexact=client.client_name)
+        
+        # Calculate financial metrics
+        total_quoted = client_quotes.aggregate(total=Sum('total'))['total'] or Decimal('0')
+        
+        # Amount invoiced = sum of accepted quotes
+        amount_invoiced = client_quotes.filter(status='Accepted').aggregate(
+            total=Sum('total')
+        )['total'] or Decimal('0')
+        
+        # If no quotes, use project_cost from ClientOnboarding
+        if total_quoted == 0 and client.project_cost:
+            total_quoted = client.project_cost
+            # If status is active or completed, consider it as invoiced
+            if client.status in ['active', 'completed']:
+                amount_invoiced = client.project_cost
+        
+        # Amount received - check Invoice model
+        amount_received = Decimal('0')
+        invoices = Invoice.objects.filter(client_name__iexact=client.client_name)
+        if invoices.exists():
+            amount_received = invoices.aggregate(total=Sum('amount_received'))['total'] or Decimal('0')
+        elif client.status == 'completed':
+            amount_received = amount_invoiced  # Assume full payment for completed projects
+        
+        # Outstanding = Invoiced - Received
+        outstanding = amount_invoiced - amount_received
+        
+        # Get last payment date
+        last_payment = None
+        if invoices.exists():
+            last_invoice = invoices.order_by('-updated_at').first()
+            if last_invoice and last_invoice.updated_at:
+                last_payment = last_invoice.updated_at.date()
+        elif client.status == 'completed' and client.updated_at:
+            last_payment = client.updated_at.date()
+        
+        # Get status for display
+        if outstanding == 0 and amount_invoiced > 0:
+            payment_status = 'Paid'  # Paid
+            status_badge = 'bg-success'
+        elif amount_received > 0 and outstanding > 0:
+            payment_status = 'Partially Paid'  # Partially Paid
+            status_badge = 'bg-warning text-dark'
+        elif amount_invoiced > 0:
+            payment_status = 'Unpaid'  # Unpaid
+            status_badge = 'bg-danger'
+        else:
+            payment_status = 'Pending'  # Pending
+            status_badge = 'bg-secondary'
+        
+        client_accounts.append({
+            'id': client.id,
+            'client_name': client.client_name,
+            'company_name': client.company_name,
+            'email': client.client_email,
+            'phone': client.client_phone,
+            'total_quoted': total_quoted,
+            'amount_invoiced': amount_invoiced,
+            'amount_received': amount_received,
+            'outstanding': outstanding,
+            'last_payment': last_payment,
+            'status': payment_status,
+            'status_badge': status_badge,
+            'project_name': client.project_name,
+            'project_cost': client.project_cost,
+            'project_status': client.status,
+            'assigned_engineer': client.assigned_engineer,
+            'start_date': client.start_date,
+        })
+    
+    # Apply status filter
+    if status_filter:
+        client_accounts = [acc for acc in client_accounts if acc['status'] == status_filter]
+    
+    # Pagination for client accounts
+    clients_page_num = request.GET.get('page', 1)
+    clients_paginator = Paginator(client_accounts, 10)
+    try:
+        clients_page = clients_paginator.page(clients_page_num)
+    except PageNotAnInteger:
+        clients_page = clients_paginator.page(1)
+    except EmptyPage:
+        clients_page = clients_paginator.page(clients_paginator.num_pages)
+    
+    # ONBOARDING CLIENT SECTION - Handle POST for creating onboarding
+    if request.method == 'POST' and 'onboard_submit' in request.POST:
+        try:
+            client_name = request.POST.get('client_name', '').strip()
+            project_name = request.POST.get('project_name', '').strip()
+            project_duration = request.POST.get('project_duration', '').strip()
+            project_cost = request.POST.get('project_cost', '').strip()
+            assigned_engineer = request.POST.get('assigned_engineer', '').strip()
+            
+            if not client_name or not project_name or not project_duration or not project_cost or not assigned_engineer:
+                messages.error(request, 'Please fill in all required fields!')
+                return redirect('clients')
+            
+            # Parse start_date if provided
+            start_date = None
+            start_date_str = request.POST.get('start_date', '').strip()
+            if start_date_str:
+                try:
+                    from django.utils.dateparse import parse_date
+                    start_date = parse_date(start_date_str)
+                except (ValueError, TypeError):
+                    start_date = None
+            
+            # Prepare optional fields
+            company_name = request.POST.get('company_name', '').strip() or None
+            client_email = request.POST.get('client_email', '').strip() or None
+            client_phone = request.POST.get('client_phone', '').strip() or None
+            project_description = request.POST.get('project_description', '').strip() or None
+            
+            # Create new onboarding
+            ClientOnboarding.objects.create(
+                client_name=client_name,
+                company_name=company_name,
+                client_email=client_email,
+                client_phone=client_phone,
+                project_name=project_name,
+                project_description=project_description,
+                project_duration=int(project_duration),
+                duration_unit=request.POST.get('duration_unit', 'months'),
+                project_cost=Decimal(str(project_cost)),
+                assigned_engineer=assigned_engineer,
+                start_date=start_date,
+                status=request.POST.get('status', 'active')
+            )
+            
+            messages.success(request, f'Client {client_name} onboarded successfully!')
+            return redirect('clients')
+        except Exception as e:
+            messages.error(request, f'Error onboarding client: {str(e)}')
+            return redirect('clients')
+    
+    # ONBOARDING CLIENT SECTION - Fetch Leads data
+    onboard_search_query = request.GET.get('onboard_search', '').strip()
+    source_filter = request.GET.get('source_filter', '').strip()
+    owner_filter = request.GET.get('owner_filter', '').strip()
+    
+    leads_list = Lead.objects.filter(is_active=True).order_by('-created_at')
+    
+    if onboard_search_query:
+        leads_list = leads_list.filter(
+            Q(name__icontains=onboard_search_query) |
+            Q(company__icontains=onboard_search_query) |
+            Q(email__icontains=onboard_search_query) |
+            Q(phone__icontains=onboard_search_query) |
+            Q(owner__icontains=onboard_search_query)
+        )
+    
+    # Apply filters
+    if source_filter:
+        leads_list = leads_list.filter(source=source_filter)
+    
+    if owner_filter:
+        leads_list = leads_list.filter(owner__icontains=owner_filter)
+    
+    # Get available clients from Leads (excluding already onboarded ones)
+    onboarded_client_names = set(ClientOnboarding.objects.values_list('client_name', flat=True).distinct())
+    
+    # Paginate leads (10 per page)
+    leads_paginator = Paginator(leads_list, 10)
+    leads_page_num = request.GET.get('leads_page', 1)
+    try:
+        leads_page = leads_paginator.page(leads_page_num)
+    except PageNotAnInteger:
+        leads_page = leads_paginator.page(1)
+    except EmptyPage:
+        leads_page = leads_paginator.page(leads_paginator.num_pages)
+    
+    # Add onboard status to each lead in the paginated page
+    for lead in leads_page:
+        lead.is_onboarded = lead.name in onboarded_client_names
+    leads_for_onboarding = Lead.objects.filter(
+        is_active=True
+    ).exclude(name__in=onboarded_client_names).order_by('name')
+    
+    available_clients = []
+    for lead in leads_for_onboarding:
+        available_clients.append((
+            lead.name,
+            lead.company or '',
+            lead.email or '',
+            lead.phone or ''
+        ))
+    
+    # Get all unique departments from Employee table
+    from myapp.models import Employee
+    departments = Employee.objects.filter(
+        status='active',
+        department__isnull=False
+    ).exclude(department='').values_list('department', flat=True).distinct().order_by('department')
+    
+    context = {
+        # Client Accounts
+        'clients': clients_page,
+        'search_query': search_query,
+        # Onboarding Client (Leads)
+        'leads': leads_page,
+        'onboard_search_query': onboard_search_query,
+        'available_clients': available_clients,
+        'departments': departments,
+    }
+    return render(request, 'dashboard/clients.html', context)
+
+
+@login_required
+def get_employees_by_department(request):
+    """Get employees by department via AJAX"""
+    from django.http import JsonResponse
+    
+    department = request.GET.get('department', '').strip()
+    
+    if not department:
+        return JsonResponse({'success': False, 'error': 'Department is required'})
+    
+    try:
+        from myapp.models import Employee
+        employees = Employee.objects.filter(
+            department__iexact=department,
+            status='active'
+        ).order_by('first_name', 'last_name')
+        
+        employees_list = []
+        for emp in employees:
+            emp_name = emp.get_full_name()
+            # Count assigned projects for this employee
+            project_count = ClientOnboarding.objects.filter(assigned_engineer__iexact=emp_name).count()
+            employees_list.append({
+                'id': emp.id,
+                'name': emp_name,
+                'designation': emp.designation or '',
+                'project_count': project_count
+            })
+        
+        return JsonResponse({
+            'success': True,
+            'employees': employees_list
+        })
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': str(e)})
+
+
+@login_required
+def get_project_details(request, client_id):
+    """Get project details for a client via AJAX"""
+    from django.http import JsonResponse
+    
+    try:
+        # Get ClientOnboarding record by client_id
+        onboarding = ClientOnboarding.objects.get(id=client_id)
+        
+        # Get status badge class
+        status_badge_classes = {
+            'active': 'bg-success',
+            'pending': 'bg-warning text-dark',
+            'on_hold': 'bg-info',
+            'completed': 'bg-secondary'
+        }
+        status_badge = status_badge_classes.get(onboarding.status, 'bg-secondary')
+        
+        # Get status display
+        status_display = onboarding.get_status_display()
+        
+        # Get duration unit display
+        duration_unit_map = {
+            'days': 'Days',
+            'weeks': 'Weeks',
+            'months': 'Months',
+            'years': 'Years'
+        }
+        duration_unit_display = duration_unit_map.get(onboarding.duration_unit, onboarding.duration_unit)
+        
+        # Format dates
+        start_date = onboarding.start_date.strftime('%d %b %Y') if onboarding.start_date else None
+        created_at = onboarding.created_at.strftime('%d %b %Y, %I:%M %p') if onboarding.created_at else None
+        updated_at = onboarding.updated_at.strftime('%d %b %Y, %I:%M %p') if onboarding.updated_at else None
+        
+        project_data = {
+            'client_name': onboarding.client_name,
+            'company_name': onboarding.company_name,
+            'client_email': onboarding.client_email,
+            'client_phone': onboarding.client_phone,
+            'project_name': onboarding.project_name,
+            'project_description': onboarding.project_description,
+            'project_cost': str(onboarding.project_cost),
+            'project_duration': onboarding.project_duration,
+            'duration_unit': duration_unit_display,
+            'assigned_engineer': onboarding.assigned_engineer,
+            'status': onboarding.status,
+            'status_display': status_display,
+            'status_badge': status_badge,
+            'start_date': start_date,
+            'created_at': created_at,
+            'updated_at': updated_at,
+        }
+        
+        return JsonResponse({
+            'success': True,
+            'project': project_data
+        })
+    except ClientOnboarding.DoesNotExist:
+        return JsonResponse({'success': False, 'error': 'Project not found'})
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': str(e)})
+
+
+@login_required
+@require_POST
+def update_lead_onboard_status(request):
+    """Update onboard status for a lead"""
+    from django.http import JsonResponse
+    
+    try:
+        lead_id = request.POST.get('lead_id')
+        lead_name = request.POST.get('lead_name')
+        status = request.POST.get('status')
+        
+        if not lead_id or not lead_name or not status:
+            return JsonResponse({'success': False, 'error': 'Missing required parameters'})
+        
+        lead = Lead.objects.get(id=lead_id, name=lead_name)
+        
+        if status == 'yes':
+            # Check if onboarding already exists
+            existing_onboarding = ClientOnboarding.objects.filter(client_name__iexact=lead_name).first()
+            if not existing_onboarding:
+                # Create a basic onboarding record
+                ClientOnboarding.objects.create(
+                    client_name=lead.name,
+                    company_name=lead.company,
+                    client_email=lead.email,
+                    client_phone=lead.phone,
+                    project_name=f"Project for {lead.name}",
+                    project_duration=1,
+                    duration_unit='months',
+                    project_cost=Decimal('0.00'),
+                    assigned_engineer='',
+                    status='pending'
+                )
+        else:
+            # Delete onboarding if exists
+            ClientOnboarding.objects.filter(client_name__iexact=lead_name).delete()
+        
+        return JsonResponse({'success': True, 'message': 'Onboard status updated successfully'})
+        
+    except Lead.DoesNotExist:
+        return JsonResponse({'success': False, 'error': 'Lead not found'})
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': str(e)})
+
+
+@login_required
 def invoices(request):
     """Invoice page - displays invoices based on accepted quotes and client onboarding"""
     from django.core.paginator import Paginator
@@ -9523,23 +9907,21 @@ def employee_quotes(request):
     quotes_list = Quote.objects.all().order_by('-created_at')
     onboardings_list = ClientOnboarding.objects.all().order_by('-created_at')
     
-    # Get available client names from Quote table (excluding already onboarded ones)
+    # Get available client names from Leads table (excluding already onboarded ones)
     onboarded_client_names = set(ClientOnboarding.objects.values_list('client_name', flat=True).distinct())
-    # Get unique clients from quotes (not yet onboarded)
-    # Use distinct() on client_name to get unique clients, then get their latest quote details
-    available_clients = []
-    unique_client_names = Quote.objects.exclude(client_name__in=onboarded_client_names).values_list('client_name', flat=True).distinct().order_by('client_name')
+    # Get clients from Leads (not yet onboarded)
+    leads_for_onboarding = Lead.objects.filter(
+        is_active=True
+    ).exclude(name__in=onboarded_client_names).order_by('name')
     
-    for client_name in unique_client_names:
-        # Get the most recent quote for this client to get company, email, phone
-        latest_quote = Quote.objects.filter(client_name=client_name).order_by('-created_at').first()
-        if latest_quote:
-            available_clients.append((
-                latest_quote.client_name,
-                latest_quote.company or '',
-                latest_quote.email or '',
-                latest_quote.phone or ''
-            ))
+    available_clients = []
+    for lead in leads_for_onboarding:
+        available_clients.append((
+            lead.name,
+            lead.company or '',
+            lead.email or '',
+            lead.phone or ''
+        ))
     
     # Get engineers from Employee table where department = "Engineering"
     # Include project count for each engineer
@@ -9602,6 +9984,278 @@ def employee_quotes(request):
     }
     
     return render(request, 'employee/quotes.html', context)
+
+
+@login_required
+def employee_clients(request):
+    """Employee portal clients page with onboarding and client section tabs"""
+    from django.core.paginator import Paginator
+    from django.db.models import Sum, Q
+    from decimal import Decimal
+    
+    # Handle Onboarding Creation
+    if request.method == 'POST' and 'onboard_submit' in request.POST:
+        try:
+            client_name = request.POST.get('client_name', '').strip()
+            project_name = request.POST.get('project_name', '').strip()
+            project_duration = request.POST.get('project_duration', '').strip()
+            project_cost = request.POST.get('project_cost', '').strip()
+            assigned_engineer = request.POST.get('assigned_engineer', '').strip()
+            
+            if not client_name or not project_name or not project_duration or not project_cost or not assigned_engineer:
+                messages.error(request, 'Please fill in all required fields!')
+                return redirect('employee_clients')
+            
+            # Parse start_date if provided
+            start_date = None
+            start_date_str = request.POST.get('start_date', '').strip()
+            if start_date_str:
+                try:
+                    from django.utils.dateparse import parse_date
+                    start_date = parse_date(start_date_str)
+                except (ValueError, TypeError):
+                    start_date = None
+            
+            # Prepare optional fields
+            company_name = request.POST.get('company_name', '').strip() or None
+            client_email = request.POST.get('client_email', '').strip() or None
+            client_phone = request.POST.get('client_phone', '').strip() or None
+            project_description = request.POST.get('project_description', '').strip() or None
+            
+            # Create new onboarding
+            onboard = ClientOnboarding.objects.create(
+                client_name=client_name,
+                company_name=company_name,
+                client_email=client_email,
+                client_phone=client_phone,
+                project_name=project_name,
+                project_description=project_description,
+                project_duration=int(project_duration),
+                duration_unit=request.POST.get('duration_unit', 'months'),
+                project_cost=Decimal(str(project_cost)),
+                assigned_engineer=assigned_engineer,
+                start_date=start_date,
+                status=request.POST.get('status', 'active')
+            )
+            
+            messages.success(request, f'Client {client_name} onboarded successfully!')
+            return redirect('employee_clients')
+        except Exception as e:
+            messages.error(request, f'Error onboarding client: {str(e)}')
+            return redirect('employee_clients')
+    
+    # ONBOARDING SECTION DATA
+    # Search functionality for onboardings
+    search_query = request.GET.get('onboard_search', '').strip()
+    onboardings_list = ClientOnboarding.objects.all().order_by('-created_at')
+    
+    if search_query:
+        onboardings_list = onboardings_list.filter(
+            Q(client_name__icontains=search_query) |
+            Q(company_name__icontains=search_query) |
+            Q(client_email__icontains=search_query) |
+            Q(client_phone__icontains=search_query) |
+            Q(project_name__icontains=search_query) |
+            Q(assigned_engineer__icontains=search_query)
+        )
+    
+    # Get onboarding status counts
+    onboarding_status_counts = {
+        'total': ClientOnboarding.objects.count(),
+        'active': ClientOnboarding.objects.filter(status='active').count(),
+        'pending': ClientOnboarding.objects.filter(status='pending').count(),
+        'on_hold': ClientOnboarding.objects.filter(status='on_hold').count(),
+        'completed': ClientOnboarding.objects.filter(status='completed').count(),
+    }
+    
+    # Filter onboardings by status for tabs
+    active_onboardings = onboardings_list.filter(status='active')
+    pending_onboardings = onboardings_list.filter(status='pending')
+    on_hold_onboardings = onboardings_list.filter(status='on_hold')
+    completed_onboardings = onboardings_list.filter(status='completed')
+    
+    # Paginate onboardings by status (10 per page)
+    active_paginator = Paginator(active_onboardings, 10)
+    pending_paginator = Paginator(pending_onboardings, 10)
+    on_hold_paginator = Paginator(on_hold_onboardings, 10)
+    completed_paginator = Paginator(completed_onboardings, 10)
+    
+    active_page = request.GET.get('active_page', 1)
+    pending_page = request.GET.get('pending_page', 1)
+    on_hold_page = request.GET.get('on_hold_page', 1)
+    completed_page = request.GET.get('completed_page', 1)
+    
+    try:
+        active_onboardings_paged = active_paginator.page(active_page)
+    except PageNotAnInteger:
+        active_onboardings_paged = active_paginator.page(1)
+    except EmptyPage:
+        active_onboardings_paged = active_paginator.page(active_paginator.num_pages)
+    
+    try:
+        pending_onboardings_paged = pending_paginator.page(pending_page)
+    except PageNotAnInteger:
+        pending_onboardings_paged = pending_paginator.page(1)
+    except EmptyPage:
+        pending_onboardings_paged = pending_paginator.page(pending_paginator.num_pages)
+    
+    try:
+        on_hold_onboardings_paged = on_hold_paginator.page(on_hold_page)
+    except PageNotAnInteger:
+        on_hold_onboardings_paged = on_hold_paginator.page(1)
+    except EmptyPage:
+        on_hold_onboardings_paged = on_hold_paginator.page(on_hold_paginator.num_pages)
+    
+    try:
+        completed_onboardings_paged = completed_paginator.page(completed_page)
+    except PageNotAnInteger:
+        completed_onboardings_paged = completed_paginator.page(1)
+    except EmptyPage:
+        completed_onboardings_paged = completed_paginator.page(completed_paginator.num_pages)
+    
+    # Get available client names from Leads table (excluding already onboarded ones)
+    onboarded_client_names = set(ClientOnboarding.objects.values_list('client_name', flat=True).distinct())
+    leads_for_onboarding = Lead.objects.filter(
+        is_active=True
+    ).exclude(name__in=onboarded_client_names).order_by('name')
+    
+    available_clients = []
+    for lead in leads_for_onboarding:
+        available_clients.append((
+            lead.name,
+            lead.company or '',
+            lead.email or '',
+            lead.phone or ''
+        ))
+    
+    # Get engineers from Employee table where department = "Engineering"
+    engineers = Employee.objects.filter(
+        department__iexact='Engineering',
+        status='active'
+    ).order_by('first_name', 'last_name')
+    
+    engineers_with_count = []
+    for engineer in engineers:
+        engineer_name = engineer.get_full_name()
+        project_count = ClientOnboarding.objects.filter(assigned_engineer__iexact=engineer_name).count()
+        engineers_with_count.append({
+            'id': engineer.id,
+            'name': engineer_name,
+            'designation': engineer.designation or '',
+            'project_count': project_count
+        })
+    
+    # CLIENT SECTION DATA (like accounts page)
+    # Get all clients from ClientOnboarding
+    clients_onboarding = ClientOnboarding.objects.all().order_by('-created_at')
+    
+    # Prepare client accounts data
+    client_accounts = []
+    for client in clients_onboarding:
+        # Get all quotes for this client (match by client_name)
+        client_quotes = Quote.objects.filter(client_name__iexact=client.client_name)
+        
+        # Calculate financial metrics
+        total_quoted = client_quotes.aggregate(total=Sum('total'))['total'] or Decimal('0')
+        
+        # Amount invoiced = sum of accepted quotes
+        amount_invoiced = client_quotes.filter(status='Accepted').aggregate(
+            total=Sum('total')
+        )['total'] or Decimal('0')
+        
+        # If no quotes, use project_cost from ClientOnboarding
+        if total_quoted == 0 and client.project_cost:
+            total_quoted = client.project_cost
+            # If status is active or completed, consider it as invoiced
+            if client.status in ['active', 'completed']:
+                amount_invoiced = client.project_cost
+        
+        # Amount received - check Invoice model
+        amount_received = Decimal('0')
+        invoices = Invoice.objects.filter(client_name__iexact=client.client_name)
+        if invoices.exists():
+            amount_received = invoices.aggregate(total=Sum('amount_received'))['total'] or Decimal('0')
+        elif client.status == 'completed':
+            amount_received = amount_invoiced  # Assume full payment for completed projects
+        
+        # Outstanding = Invoiced - Received
+        outstanding = amount_invoiced - amount_received
+        
+        # Get last payment date
+        last_payment = None
+        if invoices.exists():
+            last_invoice = invoices.order_by('-updated_at').first()
+            if last_invoice and last_invoice.updated_at:
+                last_payment = last_invoice.updated_at.date()
+        elif client.status == 'completed' and client.updated_at:
+            last_payment = client.updated_at.date()
+        
+        # Get status for display
+        if outstanding == 0 and amount_invoiced > 0:
+            payment_status = 'Paid'  # Paid
+            status_badge = 'bg-success'
+        elif amount_received > 0 and outstanding > 0:
+            payment_status = 'Partially Paid'  # Partially Paid
+            status_badge = 'bg-warning text-dark'
+        elif amount_invoiced > 0:
+            payment_status = 'Unpaid'  # Unpaid
+            status_badge = 'bg-danger'
+        else:
+            payment_status = 'Pending'  # Pending
+            status_badge = 'bg-secondary'
+        
+        client_accounts.append({
+            'id': client.id,
+            'client_name': client.client_name,
+            'company_name': client.company_name,
+            'email': client.client_email,
+            'phone': client.client_phone,
+            'total_quoted': total_quoted,
+            'amount_invoiced': amount_invoiced,
+            'amount_received': amount_received,
+            'outstanding': outstanding,
+            'last_payment': last_payment,
+            'status': payment_status,
+            'status_badge': status_badge,
+            'project_name': client.project_name,
+            'project_cost': client.project_cost,
+        })
+    
+    # Search for client section
+    client_search_query = request.GET.get('client_search', '').strip()
+    if client_search_query:
+        client_accounts = [acc for acc in client_accounts if 
+                          client_search_query.lower() in acc['client_name'].lower() or
+                          (acc['company_name'] and client_search_query.lower() in acc['company_name'].lower()) or
+                          (acc['email'] and client_search_query.lower() in acc['email'].lower()) or
+                          (acc['phone'] and client_search_query.lower() in acc['phone'].lower())]
+    
+    # Pagination for clients
+    clients_page_num = request.GET.get('client_page', 1)
+    clients_paginator = Paginator(client_accounts, 10)
+    try:
+        clients_page = clients_paginator.page(clients_page_num)
+    except PageNotAnInteger:
+        clients_page = clients_paginator.page(1)
+    except EmptyPage:
+        clients_page = clients_paginator.page(clients_paginator.num_pages)
+    
+    context = {
+        # Onboarding section
+        'active_onboardings': active_onboardings_paged,
+        'pending_onboardings': pending_onboardings_paged,
+        'on_hold_onboardings': on_hold_onboardings_paged,
+        'completed_onboardings': completed_onboardings_paged,
+        'onboarding_status_counts': onboarding_status_counts,
+        'onboard_search_query': search_query,
+        'available_clients': available_clients,
+        'engineers': engineers_with_count,
+        # Client section
+        'client_accounts': clients_page,
+        'client_search_query': client_search_query,
+    }
+    
+    return render(request, 'employee/clients.html', context)
 
 
 @login_required

@@ -96,7 +96,6 @@
     {% endif %}
     
     <!-- Sales Section -->
-    {% if employee_department|default:''|lower != 'engineering' and employee_department|default:''|lower != 'accounts' and employee_department|default:''|lower != 'backoffice' and employee_department|default:''|lower != 'sales' %}
     <div class="nav-section">
       <h3 class="nav-section-title">SALES</h3>
       <ul class="nav-list">
@@ -114,7 +113,6 @@
         </li>
       </ul>
     </div>
-    {% endif %}
     
     <!-- Attendance Section -->
     <div class="nav-section">

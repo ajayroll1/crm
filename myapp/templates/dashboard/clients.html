@@ -1,0 +1,870 @@
+{% extends "dashboard/dashboard_base.html" %}
+{% load humanize %}
+{% block title %}Clients - Sujata Associates{% endblock %}
+
+{% block content %}
+<div class="dashboard-header">
+  <h1>Clients</h1>
+  <p class="text-muted">Client receivables and account details</p>
+</div>
+
+<style>
+  .nav-tabs .nav-link { color: #000 !important; }
+  .nav-tabs .nav-link.active { color: #000 !important; }
+  .nav-tabs .nav-link:hover { color: #fff !important; background-color: var(--primary-color) !important; }
+  table .btn { padding: .25rem .5rem; }
+  td:last-child { width: 120px; }
+  .table-responsive { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  .clients-table { width: 100%; }
+  @media (min-width: 992px) and (max-width: 1399px) {
+    .clients-table { font-size: .9rem; }
+    .clients-table th,
+    .clients-table td { white-space: normal; padding: .5rem .65rem; }
+    .clients-table { min-width: 980px; }
+  }
+  @media (min-width: 1400px) {
+    .clients-table th,
+    .clients-table td { white-space: nowrap; }
+    .clients-table { min-width: 1100px; }
+  }
+  @media (max-width: 768px) {
+    .clients-table { border: 0; }
+    .clients-table thead { display: none; }
+    .clients-table tbody tr { display: block; margin: 0 0 1rem 0; border: 1px solid #eee; border-radius: 10px; background: #fff; overflow: hidden; }
+    .clients-table tbody tr td { display: flex; flex-direction: column; align-items: flex-start; gap: .35rem; padding: .75rem 1rem; border-bottom: 1px solid #f1f1f1; }
+    .clients-table tbody tr td:last-child { border-bottom: 0; }
+    .clients-table tbody tr td::before { content: attr(data-label); font-weight: 600; color: #666; text-transform: uppercase; font-size: .75rem; letter-spacing: .02em; }
+    .clients-table tbody tr td .badge { align-self: flex-start; }
+    .clients-table tbody tr td .d-flex { width: 100%; flex-wrap: wrap; gap: .5rem; }
+    .clients-table tbody tr td .d-flex .btn { flex: 0 0 auto; }
+    .clients-table .d-flex { justify-content: flex-start !important; }
+  }
+</style>
+
+<!-- Messages Display -->
+{% if messages %}
+  <div class="messages-container mb-3">
+    {% for message in messages %}
+      <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+        {{ message }}
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+      </div>
+    {% endfor %}
+  </div>
+{% endif %}
+
+<!-- Main Tabs -->
+<ul class="nav nav-tabs mb-4" id="clientsTabs" role="tablist">
+  <li class="nav-item" role="presentation">
+    <button class="nav-link active" id="onboarding-tab" data-bs-toggle="tab" data-bs-target="#onboarding" type="button" role="tab">
+      Client
+    </button>
+  </li>
+  <li class="nav-item" role="presentation">
+    <button class="nav-link" id="client-accounts-tab" data-bs-toggle="tab" data-bs-target="#client-accounts" type="button" role="tab">
+      Onboarding Client
+    </button>
+  </li>
+</ul>
+
+<div class="tab-content" id="clientsTabsContent">
+  <!-- Onboarding Tab -->
+  <div class="tab-pane fade show active" id="onboarding" role="tabpanel">
+    <div class="card">
+      <div class="card-header d-flex align-items-center justify-content-between">
+        <div>
+          <h5 class="mb-0">Client Accounts</h5>
+          <small class="fw-bold text-dark">Total: {{ clients.paginator.count|default:0 }} client{{ clients.paginator.count|pluralize }}</small>
+        </div>
+        <div class="d-flex gap-2">
+          <form method="GET" action="{% url 'clients' %}" class="d-flex">
+            <input type="hidden" name="tab" value="accounts">
+            <input type="search" class="form-control form-control-sm" style="max-width: 240px;" name="search" placeholder="Search client, email, invoice..." value="{{ search_query|default:'' }}">
+            <button type="submit" class="btn btn-sm btn-outline-primary ms-2"><i class="bi bi-search"></i></button>
+          </form>
+          {% if search_query %}
+            <a href="{% url 'clients' %}" class="btn btn-sm btn-outline-secondary">Clear</a>
+          {% endif %}
+        </div>
+      </div>
+      
+      <!-- Filter Section -->
+      <div class="card-body border-bottom">
+        <form method="GET" action="{% url 'clients' %}" class="row g-3 align-items-end">
+          <input type="hidden" name="tab" value="accounts">
+          <input type="hidden" name="search" value="{{ search_query|default:'' }}">
+          <div class="col-12 col-md-3">
+            <label class="form-label">Filter by Status</label>
+            <select class="form-select form-select-sm" name="status_filter" onchange="this.form.submit()">
+              <option value="">All Status</option>
+              <option value="Paid" {% if request.GET.status_filter == 'Paid' %}selected{% endif %}>Paid</option>
+              <option value="Partially Paid" {% if request.GET.status_filter == 'Partially Paid' %}selected{% endif %}>Partially Paid</option>
+              <option value="Unpaid" {% if request.GET.status_filter == 'Unpaid' %}selected{% endif %}>Unpaid</option>
+              <option value="Pending" {% if request.GET.status_filter == 'Pending' %}selected{% endif %}>Pending</option>
+            </select>
+          </div>
+          <div class="col-12 col-md-3">
+            <label class="form-label">&nbsp;</label>
+            <a href="{% url 'clients' %}?tab=accounts" class="btn btn-sm btn-outline-secondary w-100">Clear Filters</a>
+          </div>
+        </form>
+      </div>
+      <div class="card-body p-0">
+        <div class="table-responsive">
+          <table class="table table-hover align-middle mb-0 clients-table">
+            <thead class="table-light">
+              <tr>
+                <th>Client</th>
+                <th>Email</th>
+                <th>Phone</th>
+                <th>Status</th>
+                <th>Payment</th>
+                <th>Project</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for client in clients %}
+              <tr>
+                <td data-label="Client">
+                  {{ client.client_name }}
+                  {% if client.company_name %}
+                    <br><small class="text-muted">{{ client.company_name }}</small>
+                  {% endif %}
+                </td>
+                <td data-label="Email">{{ client.email|default:"-" }}</td>
+                <td data-label="Phone">{{ client.phone|default:"-" }}</td>
+                <td data-label="Status">
+                  <span class="badge {{ client.status_badge }}">{{ client.status }}</span>
+                </td>
+                <td data-label="Payment">
+                  <button type="button" class="btn btn-sm btn-outline-primary" 
+                          onclick="showPaymentDetails({{ client.id }}, '{{ client.client_name|escapejs }}', {{ client.total_quoted }}, {{ client.amount_invoiced }}, {{ client.amount_received }}, {{ client.outstanding }}, '{{ client.last_payment|date:"d M Y"|default:"-" }}')"
+                          title="View Payment Details">
+                    <i class="bi bi-cash-coin"></i>
+                  </button>
+                </td>
+                <td data-label="Project">
+                  <button type="button" class="btn btn-sm btn-outline-info" 
+                          onclick="showProjectDetails({{ client.id }})"
+                          title="View Project Details">
+                    <i class="bi bi-folder"></i>
+                  </button>
+                </td>
+              </tr>
+              {% empty %}
+              <tr>
+                <td colspan="6" class="text-center text-muted py-4">No clients found</td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+      <div class="card-footer d-flex justify-content-between align-items-center">
+        <div class="small text-muted">
+          Showing {{ clients.start_index|default:1 }}–{{ clients.end_index|default:clients|length }} of {{ clients.paginator.count|default:clients|length }}
+        </div>
+        <nav>
+          <ul class="pagination pagination-sm mb-0">
+            {% if clients.has_previous %}
+              <li class="page-item"><a class="page-link" href="?page={{ clients.previous_page_number }}{% if search_query %}&search={{ search_query }}{% endif %}">Prev</a></li>
+            {% else %}
+              <li class="page-item disabled"><span class="page-link">Prev</span></li>
+            {% endif %}
+            
+            {% for num in clients.paginator.page_range %}
+              {% if clients.number == num %}
+                <li class="page-item active"><span class="page-link">{{ num }}</span></li>
+              {% elif num > clients.number|add:'-3' and num < clients.number|add:'3' %}
+                <li class="page-item"><a class="page-link" href="?page={{ num }}{% if search_query %}&search={{ search_query }}{% endif %}">{{ num }}</a></li>
+              {% endif %}
+            {% endfor %}
+            
+            {% if clients.has_next %}
+              <li class="page-item"><a class="page-link" href="?page={{ clients.next_page_number }}{% if search_query %}&search={{ search_query }}{% endif %}">Next</a></li>
+            {% else %}
+              <li class="page-item disabled"><span class="page-link">Next</span></li>
+            {% endif %}
+          </ul>
+        </nav>
+      </div>
+    </div>
+  </div>
+
+  <!-- Onboarding Client Tab -->
+  <div class="tab-pane fade" id="client-accounts" role="tabpanel">
+    <div class="dashboard-header mb-4">
+      <h2>Leads</h2>
+      <p class="text-muted">View and manage all leads</p>
+    </div>
+
+    <!-- Search Section -->
+    <div class="card mb-4">
+      <div class="card-body">
+        <form method="GET" action="{% url 'clients' %}" class="row g-3 align-items-end">
+          <input type="hidden" name="tab" value="client-accounts">
+          <div class="col-12 col-md-10">
+            <label for="onboard_search" class="form-label">
+              <i class="bi bi-search me-1"></i>Search
+            </label>
+            <input 
+              type="text" 
+              class="form-control" 
+              id="onboard_search" 
+              name="onboard_search" 
+              placeholder="Search by client name, company, email, phone, or owner..."
+              value="{{ onboard_search_query|default:'' }}"
+              maxlength="200"
+              autocomplete="off"
+            >
+          </div>
+          <div class="col-12 col-md-2">
+            <label class="form-label d-none d-md-block">&nbsp;</label>
+            <button type="submit" class="btn btn-primary w-100">
+              <i class="bi bi-search me-1 d-none d-md-inline"></i>
+              <span class="d-md-none">Search</span>
+              <span class="d-none d-md-inline">Search</span>
+            </button>
+          </div>
+        </form>
+        {% if onboard_search_query %}
+          <div class="mt-3 d-flex flex-wrap align-items-center gap-2">
+            <span class="badge bg-secondary">
+              Search: "{{ onboard_search_query }}"
+              <a href="{% url 'clients' %}?tab=client-accounts" class="text-white ms-2" style="text-decoration: none;">×</a>
+            </span>
+            <a href="{% url 'clients' %}?tab=client-accounts" class="btn btn-sm btn-outline-secondary">Clear All</a>
+          </div>
+        {% endif %}
+      </div>
+    </div>
+
+    <!-- Filter Section -->
+    <div class="card mb-3">
+      <div class="card-body">
+        <form method="GET" action="{% url 'clients' %}" class="row g-3 align-items-end">
+          <input type="hidden" name="tab" value="client-accounts">
+          <input type="hidden" name="onboard_search" value="{{ onboard_search_query|default:'' }}">
+          <div class="col-12 col-md-3">
+            <label class="form-label">Filter by Source</label>
+            <select class="form-select" name="source_filter" onchange="this.form.submit()">
+              <option value="">All Sources</option>
+              <option value="Website" {% if request.GET.source_filter == 'Website' %}selected{% endif %}>Website</option>
+              <option value="Referral" {% if request.GET.source_filter == 'Referral' %}selected{% endif %}>Referral</option>
+              <option value="Cold Call" {% if request.GET.source_filter == 'Cold Call' %}selected{% endif %}>Cold Call</option>
+              <option value="Social" {% if request.GET.source_filter == 'Social' %}selected{% endif %}>Social Media</option>
+              <option value="Event" {% if request.GET.source_filter == 'Event' %}selected{% endif %}>Event</option>
+              <option value="Other" {% if request.GET.source_filter == 'Other' %}selected{% endif %}>Other</option>
+            </select>
+          </div>
+          <div class="col-12 col-md-3">
+            <label class="form-label">Filter by Owner</label>
+            <input type="text" class="form-control" name="owner_filter" value="{{ request.GET.owner_filter|default:'' }}" placeholder="Filter by owner...">
+          </div>
+          <div class="col-12 col-md-3">
+            <label class="form-label">&nbsp;</label>
+            <button type="submit" class="btn btn-outline-primary w-100">Apply Filter</button>
+          </div>
+          <div class="col-12 col-md-3">
+            <label class="form-label">&nbsp;</label>
+            <a href="{% url 'clients' %}?tab=client-accounts" class="btn btn-outline-secondary w-100">Clear Filters</a>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- Leads Table -->
+    <div class="card">
+      <div class="card-body">
+              <div class="table-responsive">
+                <table class="table table-hover table-striped">
+                  <thead>
+                    <tr>
+                <th>Name</th>
+                      <th>Company</th>
+                <th>Email</th>
+                <th>Phone</th>
+                <th>Owner</th>
+                <th>Onboard</th>
+                <th>Source</th>
+                <th>Created At</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+              {% for lead in leads %}
+                <tr>
+                  <td>{{ lead.name }}</td>
+                  <td>{{ lead.company|default:"-" }}</td>
+                  <td>{{ lead.email|default:"-" }}</td>
+                  <td>{{ lead.phone|default:"-" }}</td>
+                  <td>{{ lead.owner }}</td>
+                  <td>
+                    <select class="form-select form-select-sm onboard-status-select" 
+                            data-lead-id="{{ lead.id }}" 
+                            data-lead-name="{{ lead.name }}"
+                            style="min-width: 80px;">
+                      <option value="no" {% if not lead.is_onboarded %}selected{% endif %}>No</option>
+                      <option value="yes" {% if lead.is_onboarded %}selected{% endif %}>Yes</option>
+                    </select>
+                        </td>
+                  <td>{{ lead.get_source_display }}</td>
+                  <td>{{ lead.created_at|date:"d M Y" }}</td>
+                </tr>
+              {% empty %}
+                <tr>
+                  <td colspan="8" class="text-center text-muted py-4">No leads found</td>
+                      </tr>
+                    {% endfor %}
+                  </tbody>
+                </table>
+              </div>
+        
+        <!-- Pagination -->
+        {% if leads.has_other_pages %}
+          <nav aria-label="Leads pagination" class="mt-3">
+                  <ul class="pagination justify-content-center">
+              {% if leads.has_previous %}
+                <li class="page-item"><a class="page-link" href="?onboard_search={{ onboard_search_query }}&leads_page={{ leads.previous_page_number }}&tab=client-accounts">Previous</a></li>
+                    {% endif %}
+              {% for num in leads.paginator.page_range %}
+                {% if leads.number == num %}
+                        <li class="page-item active"><span class="page-link">{{ num }}</span></li>
+                      {% else %}
+                  <li class="page-item"><a class="page-link" href="?onboard_search={{ onboard_search_query }}&leads_page={{ num }}&tab=client-accounts">{{ num }}</a></li>
+                      {% endif %}
+                    {% endfor %}
+              {% if leads.has_next %}
+                <li class="page-item"><a class="page-link" href="?onboard_search={{ onboard_search_query }}&leads_page={{ leads.next_page_number }}&tab=client-accounts">Next</a></li>
+                    {% endif %}
+                  </ul>
+                </nav>
+              {% endif %}
+              </div>
+          </div>
+
+    <!-- Create Onboarding Form -->
+    <div class="card mt-4">
+      <div class="card-header">
+        <h5 class="mb-0">Create New Onboarding</h5>
+              </div>
+      <div class="card-body">
+        <form id="onboard-form" method="post" action="{% url 'clients' %}">
+          {% csrf_token %}
+          
+          <div class="row mb-3">
+            <div class="col-12 col-md-6">
+              <label class="form-label">Client Name <span class="text-danger">*</span></label>
+              <select class="form-select" name="client_name" id="onboard_client_name" required onchange="fillClientDetails(this)">
+                <option value="">Select Client</option>
+                {% for client in available_clients %}
+                  <option value="{{ client.0 }}" 
+                          data-company="{{ client.1|default:'' }}" 
+                          data-email="{{ client.2|default:'' }}" 
+                          data-phone="{{ client.3|default:'' }}">
+                    {{ client.0 }}{% if client.1 %} - {{ client.1 }}{% endif %}
+                  </option>
+                    {% endfor %}
+              </select>
+              {% if not available_clients %}
+                <small class="text-muted">No available clients from leads. All clients are already onboarded.</small>
+              {% endif %}
+            </div>
+            <div class="col-12 col-md-6">
+              <label class="form-label">Company Name</label>
+              <input type="text" class="form-control" name="company_name" id="onboard_company_name">
+              </div>
+          </div>
+
+          <div class="row mb-3">
+            <div class="col-12 col-md-6">
+              <label class="form-label">Email</label>
+              <input type="email" class="form-control" name="client_email" id="onboard_client_email">
+              </div>
+            <div class="col-12 col-md-6">
+              <label class="form-label">Phone</label>
+              <input type="tel" class="form-control" name="client_phone" id="onboard_client_phone">
+              </div>
+          </div>
+
+          <div class="row mb-3">
+            <div class="col-12">
+              <label class="form-label">Project Name <span class="text-danger">*</span></label>
+              <input type="text" class="form-control" name="project_name" required>
+              </div>
+          </div>
+          
+          <div class="row mb-3">
+            <div class="col-12">
+              <label class="form-label">Project Description</label>
+              <textarea class="form-control" name="project_description" rows="3"></textarea>
+  </div>
+</div>
+
+        <div class="row mb-3">
+            <div class="col-12 col-md-4">
+              <label class="form-label">Duration <span class="text-danger">*</span></label>
+              <input type="number" class="form-control" name="project_duration" required min="1">
+        </div>
+            <div class="col-12 col-md-4">
+              <label class="form-label">Duration Unit</label>
+              <select class="form-select" name="duration_unit">
+                <option value="days">Days</option>
+                <option value="weeks">Weeks</option>
+                <option value="months" selected>Months</option>
+                <option value="years">Years</option>
+              </select>
+        </div>
+            <div class="col-12 col-md-4">
+              <label class="form-label">Project Cost <span class="text-danger">*</span></label>
+              <input type="number" class="form-control" name="project_cost" required step="0.01" min="0">
+        </div>
+        </div>
+          
+        <div class="row mb-3">
+            <div class="col-12 col-md-6">
+              <label class="form-label">Choose Department <span class="text-danger">*</span></label>
+              <select class="form-select" id="department_select" required onchange="loadEmployeesByDepartment(this.value)">
+                <option value="">Select Department</option>
+                {% for dept in departments %}
+                  <option value="{{ dept }}">{{ dept }}</option>
+                {% endfor %}
+              </select>
+              <small class="text-muted">Select a department to see employees</small>
+        </div>
+            <div class="col-12 col-md-6">
+              <label class="form-label">Assigned Employee <span class="text-danger">*</span></label>
+              <select class="form-select" name="assigned_engineer" id="assigned_engineer" required disabled>
+                <option value="">First select a department</option>
+              </select>
+              <small class="text-muted" id="employee_help_text">Please select a department first</small>
+        </div>
+            <div class="col-12 col-md-6">
+              <label class="form-label">Start Date</label>
+              <input type="date" class="form-control" name="start_date">
+        </div>
+        </div>
+          
+        <div class="row mb-3">
+            <div class="col-12 col-md-6">
+              <label class="form-label">Status</label>
+              <select class="form-select" name="status">
+                <option value="active" selected>Active</option>
+                <option value="pending">Pending</option>
+                <option value="on_hold">On Hold</option>
+                <option value="completed">Completed</option>
+              </select>
+        </div>
+      </div>
+          
+          <button type="submit" name="onboard_submit" class="btn btn-primary">
+            <i class="bi bi-save"></i> Save Onboarding
+          </button>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Payment Details Modal -->
+<div class="modal fade" id="paymentDetailsModal" tabindex="-1" aria-labelledby="paymentDetailsModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="paymentDetailsModalLabel">
+          <i class="bi bi-cash-coin me-2"></i>Payment Details
+        </h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <div class="mb-3">
+          <strong>Client Name:</strong>
+          <p class="mb-0" id="payment-client-name">-</p>
+        </div>
+        <hr>
+        <div class="row mb-3">
+          <div class="col-6">
+            <strong>Total Quoted:</strong>
+          </div>
+          <div class="col-6 text-end">
+            <span id="payment-total-quoted" class="fw-semibold">-</span>
+          </div>
+        </div>
+        <div class="row mb-3">
+          <div class="col-6">
+            <strong>Amount Invoiced:</strong>
+          </div>
+          <div class="col-6 text-end">
+            <span id="payment-amount-invoiced" class="fw-semibold">-</span>
+          </div>
+        </div>
+        <div class="row mb-3">
+          <div class="col-6">
+            <strong>Amount Received:</strong>
+          </div>
+          <div class="col-6 text-end">
+            <span id="payment-amount-received" class="fw-semibold text-success">-</span>
+          </div>
+        </div>
+        <div class="row mb-3">
+          <div class="col-6">
+            <strong>Outstanding:</strong>
+          </div>
+          <div class="col-6 text-end">
+            <span id="payment-outstanding" class="fw-semibold">-</span>
+          </div>
+        </div>
+        <hr>
+        <div class="row">
+          <div class="col-6">
+            <strong>Last Payment:</strong>
+          </div>
+          <div class="col-6 text-end">
+            <span id="payment-last-payment">-</span>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Project Details Modal -->
+<div class="modal fade" id="projectDetailsModal" tabindex="-1" aria-labelledby="projectDetailsModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-lg modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="projectDetailsModalLabel">
+          <i class="bi bi-folder me-2"></i>Project Details
+        </h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body" id="project-details-content">
+        <div class="text-center py-4">
+          <div class="spinner-border text-primary" role="status">
+            <span class="visually-hidden">Loading...</span>
+        </div>
+          <p class="mt-2">Loading project details...</p>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+// Helper function to get cookie
+function getCookie(name) {
+  let cookieValue = null;
+  if (document.cookie && document.cookie !== '') {
+    const cookies = document.cookie.split(';');
+    for (let i = 0; i < cookies.length; i++) {
+      const cookie = cookies[i].trim();
+      if (cookie.substring(0, name.length + 1) === (name + '=')) {
+        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+        break;
+      }
+    }
+  }
+  return cookieValue;
+}
+
+// Handle tab switching from URL parameter
+document.addEventListener('DOMContentLoaded', function() {
+  const urlParams = new URLSearchParams(window.location.search);
+  const tab = urlParams.get('tab');
+  
+  if (tab === 'client-accounts') {
+    // Switch to Onboarding Client tab
+    const onboardingClientTab = document.getElementById('client-accounts-tab');
+    const onboardingTab = document.getElementById('onboarding-tab');
+    const onboardingContent = document.getElementById('onboarding');
+    const clientAccountsContent = document.getElementById('client-accounts');
+    
+    if (onboardingClientTab && onboardingTab && onboardingContent && clientAccountsContent) {
+      onboardingTab.classList.remove('active');
+      onboardingContent.classList.remove('show', 'active');
+      onboardingClientTab.classList.add('active');
+      clientAccountsContent.classList.add('show', 'active');
+    }
+  }
+  
+  // Handle onboard status dropdown change
+  const onboardSelects = document.querySelectorAll('.onboard-status-select');
+  
+  onboardSelects.forEach(function(select) {
+    // Store original value
+    select.setAttribute('data-original-value', select.value);
+    
+    select.addEventListener('change', function() {
+      const leadId = this.getAttribute('data-lead-id');
+      const leadName = this.getAttribute('data-lead-name');
+      const newStatus = this.value;
+      const originalValue = this.getAttribute('data-original-value');
+      
+      // Disable dropdown while updating
+      this.disabled = true;
+      
+      // Get CSRF token
+      const csrftoken = document.querySelector('[name=csrfmiddlewaretoken]')?.value || 
+                       getCookie('csrftoken');
+      
+      // Make AJAX request
+      const formData = new FormData();
+      formData.append('lead_id', leadId);
+      formData.append('lead_name', leadName);
+      formData.append('status', newStatus);
+      
+      fetch('{% url "update_lead_onboard_status" %}', {
+        method: 'POST',
+        body: formData,
+        headers: {
+          'X-CSRFToken': csrftoken
+        }
+      })
+      .then(response => response.json())
+      .then(data => {
+        if (data.success) {
+          // Update the original value attribute
+          this.setAttribute('data-original-value', newStatus);
+          // Reload page to reflect changes
+          window.location.reload();
+        } else {
+          // Revert to original value on error
+          this.value = originalValue;
+          alert('Error: ' + (data.error || 'Failed to update onboard status'));
+          this.disabled = false;
+        }
+      })
+      .catch(error => {
+        console.error('Error:', error);
+        this.value = originalValue;
+        this.disabled = false;
+        alert('Error updating onboard status. Please try again.');
+      });
+    });
+  });
+});
+
+  // Load employees by department
+function loadEmployeesByDepartment(department) {
+  const employeeSelect = document.getElementById('assigned_engineer');
+  const helpText = document.getElementById('employee_help_text');
+  const departmentSelect = document.getElementById('department_select');
+  
+  if (!department) {
+    employeeSelect.innerHTML = '<option value="">First select a department</option>';
+    employeeSelect.disabled = true;
+    employeeSelect.removeAttribute('required');
+    helpText.textContent = 'Please select a department first';
+    return;
+  }
+  
+  // Show loading state
+  employeeSelect.innerHTML = '<option value="">Loading employees...</option>';
+  employeeSelect.disabled = true;
+  helpText.textContent = 'Loading employees...';
+  
+  // Fetch employees from server
+  fetch(`{% url "get_employees_by_department" %}?department=${encodeURIComponent(department)}`)
+    .then(response => response.json())
+    .then(data => {
+      if (data.success && data.employees.length > 0) {
+        employeeSelect.innerHTML = '<option value="">Select Employee</option>';
+        data.employees.forEach(function(emp) {
+          const option = document.createElement('option');
+          option.value = emp.name;
+          const projectText = emp.project_count === 1 ? 'project' : 'projects';
+          option.textContent = `${emp.name}${emp.designation ? ' (' + emp.designation + ')' : ''} - ${emp.project_count} ${projectText}`;
+          employeeSelect.appendChild(option);
+        });
+        employeeSelect.disabled = false;
+        employeeSelect.setAttribute('required', 'required');
+        helpText.textContent = `Found ${data.employees.length} employee(s) in ${department}`;
+      } else {
+        employeeSelect.innerHTML = '<option value="">No employees found</option>';
+        employeeSelect.disabled = true;
+        employeeSelect.removeAttribute('required');
+        helpText.textContent = `No active employees found in ${department} department`;
+      }
+    })
+    .catch(error => {
+      console.error('Error loading employees:', error);
+      employeeSelect.innerHTML = '<option value="">Error loading employees</option>';
+      employeeSelect.disabled = true;
+      employeeSelect.removeAttribute('required');
+      helpText.textContent = 'Error loading employees. Please try again.';
+    });
+}
+
+// Show payment details in modal
+function showPaymentDetails(clientId, clientName, totalQuoted, amountInvoiced, amountReceived, outstanding, lastPayment) {
+  document.getElementById('payment-client-name').textContent = clientName;
+  document.getElementById('payment-total-quoted').textContent = '₹ ' + parseFloat(totalQuoted).toLocaleString('en-IN', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+  document.getElementById('payment-amount-invoiced').textContent = '₹ ' + parseFloat(amountInvoiced).toLocaleString('en-IN', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+  document.getElementById('payment-amount-received').textContent = '₹ ' + parseFloat(amountReceived).toLocaleString('en-IN', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+  
+  const outstandingElement = document.getElementById('payment-outstanding');
+  outstandingElement.textContent = '₹ ' + parseFloat(outstanding).toLocaleString('en-IN', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+  if (parseFloat(outstanding) > 0) {
+    outstandingElement.className = 'fw-semibold text-danger';
+  } else {
+    outstandingElement.className = 'fw-semibold text-success';
+  }
+  
+  document.getElementById('payment-last-payment').textContent = lastPayment || '-';
+  
+  const modal = new bootstrap.Modal(document.getElementById('paymentDetailsModal'));
+  modal.show();
+}
+
+// Show project details in modal
+function showProjectDetails(clientId) {
+  const modal = new bootstrap.Modal(document.getElementById('projectDetailsModal'));
+  const contentDiv = document.getElementById('project-details-content');
+  
+  // Show loading state
+  contentDiv.innerHTML = `
+    <div class="text-center py-4">
+      <div class="spinner-border text-primary" role="status">
+        <span class="visually-hidden">Loading...</span>
+      </div>
+      <p class="mt-2">Loading project details...</p>
+    </div>
+  `;
+  
+      modal.show();
+  
+  // Fetch project details
+  fetch(`/clients/get-project-details/${clientId}/`)
+    .then(response => response.json())
+    .then(data => {
+      if (data.success) {
+        const project = data.project;
+        contentDiv.innerHTML = `
+          <div class="mb-3">
+            <strong>Client Name:</strong>
+            <p class="mb-0">${project.client_name || '-'}</p>
+          </div>
+          ${project.company_name ? `
+          <div class="mb-3">
+            <strong>Company Name:</strong>
+            <p class="mb-0">${project.company_name}</p>
+          </div>
+          ` : ''}
+          <hr>
+          <div class="mb-3">
+            <strong>Project Name:</strong>
+            <p class="mb-0">${project.project_name || '-'}</p>
+          </div>
+          ${project.project_description ? `
+          <div class="mb-3">
+            <strong>Project Description:</strong>
+            <p class="mb-0">${project.project_description}</p>
+          </div>
+          ` : ''}
+          <div class="row mb-3">
+            <div class="col-md-6">
+              <strong>Project Cost:</strong>
+              <p class="mb-0">₹ ${parseFloat(project.project_cost || 0).toLocaleString('en-IN', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</p>
+            </div>
+            <div class="col-md-6">
+              <strong>Duration:</strong>
+              <p class="mb-0">${project.project_duration || '-'} ${project.duration_unit || ''}</p>
+            </div>
+          </div>
+          <div class="row mb-3">
+            <div class="col-md-6">
+              <strong>Assigned Engineer:</strong>
+              <p class="mb-0">${project.assigned_engineer || '-'}</p>
+            </div>
+            <div class="col-md-6">
+              <strong>Status:</strong>
+              <p class="mb-0">
+                <span class="badge ${project.status_badge || 'bg-secondary'}">${project.status_display || '-'}</span>
+              </p>
+            </div>
+          </div>
+          ${project.start_date ? `
+          <div class="mb-3">
+            <strong>Start Date:</strong>
+            <p class="mb-0">${project.start_date}</p>
+          </div>
+          ` : ''}
+          ${project.client_email ? `
+          <div class="mb-3">
+            <strong>Client Email:</strong>
+            <p class="mb-0">${project.client_email}</p>
+          </div>
+          ` : ''}
+          ${project.client_phone ? `
+          <div class="mb-3">
+            <strong>Client Phone:</strong>
+            <p class="mb-0">${project.client_phone}</p>
+          </div>
+          ` : ''}
+          <hr>
+          <div class="row">
+            <div class="col-md-6">
+              <strong>Created At:</strong>
+              <p class="mb-0">${project.created_at || '-'}</p>
+            </div>
+            <div class="col-md-6">
+              <strong>Last Updated:</strong>
+              <p class="mb-0">${project.updated_at || '-'}</p>
+            </div>
+          </div>
+        `;
+      } else {
+        contentDiv.innerHTML = `
+          <div class="alert alert-danger">
+            <i class="bi bi-exclamation-triangle me-2"></i>
+            ${data.error || 'Error loading project details'}
+          </div>
+        `;
+      }
+    })
+    .catch(error => {
+      console.error('Error fetching project details:', error);
+      contentDiv.innerHTML = `
+        <div class="alert alert-danger">
+          <i class="bi bi-exclamation-triangle me-2"></i>
+          Error loading project details. Please try again.
+        </div>
+      `;
+    });
+}
+
+// Auto-fill client details when client is selected from dropdown
+function fillClientDetails(selectElement) {
+  const selectedOption = selectElement.options[selectElement.selectedIndex];
+  if (selectedOption && selectedOption.value) {
+    // Get data attributes from selected option
+    const company = selectedOption.getAttribute('data-company') || '';
+    const email = selectedOption.getAttribute('data-email') || '';
+    const phone = selectedOption.getAttribute('data-phone') || '';
+    
+    // Fill the form fields
+    const companyField = document.getElementById('onboard_company_name');
+    const emailField = document.getElementById('onboard_client_email');
+    const phoneField = document.getElementById('onboard_client_phone');
+    
+    if (companyField) companyField.value = company;
+    if (emailField) emailField.value = email;
+    if (phoneField) phoneField.value = phone;
+  } else {
+    // Clear fields if no client is selected
+    const companyField = document.getElementById('onboard_company_name');
+    const emailField = document.getElementById('onboard_client_email');
+    const phoneField = document.getElementById('onboard_client_phone');
+    
+    if (companyField) companyField.value = '';
+    if (emailField) emailField.value = '';
+    if (phoneField) phoneField.value = '';
+  }
+}
+</script>
+{% endblock %}

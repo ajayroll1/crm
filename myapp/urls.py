@@ -37,6 +37,10 @@ urlpatterns =[
   path('invoices/<str:invoice_type>/<int:invoice_id>/delete/',views.invoice_delete,name='invoice_delete'),
   path('invoices/<int:invoice_id>/pay-due/', views.invoice_pay_due, name='invoice_pay_due'),
   path('quotes/',views.quotes,name='quotes'),
+  path('clients/',views.clients,name='clients'),
+  path('clients/update-lead-onboard-status/',views.update_lead_onboard_status,name='update_lead_onboard_status'),
+  path('clients/get-employees-by-department/',views.get_employees_by_department,name='get_employees_by_department'),
+  path('clients/get-project-details/<int:client_id>/',views.get_project_details,name='get_project_details'),
   path('employees/',views.employees,name='employees'),
   path('employees/<int:employee_id>/view/',views.employee_view,name='employee_view'),
   path('employees/<int:employee_id>/delete/',views.employee_delete,name='employee_delete'),
@@ -94,6 +98,7 @@ urlpatterns =[
   path('employee/quotes/<int:quote_id>/delete/',views.employee_quote_delete,name='employee_quote_delete'),
   path('employee/quotes/onboard/<int:onboard_id>/view/',views.employee_onboard_view,name='employee_onboard_view'),
   path('employee/quotes/onboard/<int:onboard_id>/delete/',views.employee_onboard_delete,name='employee_onboard_delete'),
+  path('employee/clients/',views.employee_clients,name='employee_clients'),
   
   # Personal Section URLs
   path('employee/profile/',views.employee_profile,name='employee_profile'),

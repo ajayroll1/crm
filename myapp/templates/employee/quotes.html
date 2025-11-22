@@ -420,9 +420,433 @@
 
   <!-- Onboarding Tab -->
   <div class="tab-pane fade" id="onboard" role="tabpanel">
+    <div class="dashboard-header mb-4">
+      <h1>Client Onboarding</h1>
+      <p class="text-muted">View and manage all client onboarding projects</p>
+    </div>
+
+    <!-- Statistics Cards -->
+    <div class="row mb-4">
+      <div class="col-6 col-md-3 mb-3 mb-md-0">
+        <div class="card text-center">
+          <div class="card-body">
+            <h5 class="card-title text-primary">{{ onboarding_status_counts.total|default:0 }}</h5>
+            <p class="card-text text-muted mb-0" style="font-size: 0.875rem;">Total Onboarding</p>
+          </div>
+        </div>
+      </div>
+      <div class="col-6 col-md-3 mb-3 mb-md-0">
+        <div class="card text-center">
+          <div class="card-body">
+            <h5 class="card-title text-success">{{ onboarding_status_counts.active|default:0 }}</h5>
+            <p class="card-text text-muted mb-0" style="font-size: 0.875rem;">Active</p>
+          </div>
+        </div>
+      </div>
+      <div class="col-6 col-md-3 mb-3 mb-md-0">
+        <div class="card text-center">
+          <div class="card-body">
+            <h5 class="card-title text-warning">{{ onboarding_status_counts.pending|default:0 }}</h5>
+            <p class="card-text text-muted mb-0" style="font-size: 0.875rem;">Pending</p>
+          </div>
+        </div>
+      </div>
+      <div class="col-6 col-md-3 mb-3 mb-md-0">
+        <div class="card text-center">
+          <div class="card-body">
+            <h5 class="card-title text-info">{{ onboarding_status_counts.on_hold|default:0 }}</h5>
+            <p class="card-text text-muted mb-0" style="font-size: 0.875rem;">On Hold</p>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="row mb-4">
+      <div class="col-6 col-md-3 mb-3 mb-md-0">
+        <div class="card text-center">
+          <div class="card-body">
+            <h5 class="card-title text-secondary">{{ onboarding_status_counts.completed|default:0 }}</h5>
+            <p class="card-text text-muted mb-0" style="font-size: 0.875rem;">Completed</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Search Section -->
+    <div class="card mb-4">
+      <div class="card-body">
+        <form method="GET" action="{% url 'employee_quotes' %}" class="row g-3 align-items-end">
+          <input type="hidden" name="onboard_page" value="1">
+          <div class="col-12 col-md-10">
+            <label for="onboard_search" class="form-label">
+              <i class="bi bi-search me-1"></i>Search
+            </label>
+            <input 
+              type="text" 
+              class="form-control" 
+              id="onboard_search" 
+              name="onboard_search" 
+              placeholder="Search by client name, company, email, phone, project name, or assigned engineer..."
+              value="{{ onboard_search_query|default:'' }}"
+              maxlength="200"
+              autocomplete="off"
+            >
+          </div>
+          <div class="col-12 col-md-2">
+            <label class="form-label d-none d-md-block">&nbsp;</label>
+            <button type="submit" class="btn btn-primary w-100">
+              <i class="bi bi-search me-1 d-none d-md-inline"></i>
+              <span class="d-md-none">Search</span>
+              <span class="d-none d-md-inline">Search</span>
+            </button>
+          </div>
+        </form>
+        {% if onboard_search_query %}
+          <div class="mt-3 d-flex flex-wrap align-items-center gap-2">
+            <span class="badge bg-secondary">
+              Search: "{{ onboard_search_query }}"
+              <a href="{% url 'employee_quotes' %}" class="text-white ms-2" style="text-decoration: none;">×</a>
+            </span>
+            <a href="{% url 'employee_quotes' %}" class="btn btn-sm btn-outline-secondary">Clear All</a>
+          </div>
+        {% endif %}
+      </div>
+    </div>
+
+    <!-- Tabs Section -->
     <div class="card">
       <div class="card-header">
-        <h5 class="mb-0">Client Onboarding</h5>
+        <ul class="nav nav-tabs card-header-tabs" id="onboardingTabs" role="tablist">
+          <li class="nav-item" role="presentation">
+            <button 
+              class="nav-link active" 
+              id="active-tab" 
+              data-bs-toggle="tab" 
+              data-bs-target="#active-onboardings" 
+              type="button" 
+              role="tab"
+            >
+              <i class="bi bi-check-circle me-2"></i>Active
+              {% if onboarding_status_counts.active %}
+                <span class="badge bg-success ms-2">{{ onboarding_status_counts.active }}</span>
+              {% endif %}
+            </button>
+          </li>
+          <li class="nav-item" role="presentation">
+            <button 
+              class="nav-link" 
+              id="pending-tab" 
+              data-bs-toggle="tab" 
+              data-bs-target="#pending-onboardings" 
+              type="button" 
+              role="tab"
+            >
+              <i class="bi bi-clock me-2"></i>Pending
+              {% if onboarding_status_counts.pending %}
+                <span class="badge bg-warning ms-2">{{ onboarding_status_counts.pending }}</span>
+              {% endif %}
+            </button>
+          </li>
+          <li class="nav-item" role="presentation">
+            <button 
+              class="nav-link" 
+              id="onhold-tab" 
+              data-bs-toggle="tab" 
+              data-bs-target="#onhold-onboardings" 
+              type="button" 
+              role="tab"
+            >
+              <i class="bi bi-pause-circle me-2"></i>On Hold
+              {% if onboarding_status_counts.on_hold %}
+                <span class="badge bg-info ms-2">{{ onboarding_status_counts.on_hold }}</span>
+              {% endif %}
+            </button>
+          </li>
+          <li class="nav-item" role="presentation">
+            <button 
+              class="nav-link" 
+              id="completed-tab" 
+              data-bs-toggle="tab" 
+              data-bs-target="#completed-onboardings" 
+              type="button" 
+              role="tab"
+            >
+              <i class="bi bi-check2-circle me-2"></i>Completed
+              {% if onboarding_status_counts.completed %}
+                <span class="badge bg-secondary ms-2">{{ onboarding_status_counts.completed }}</span>
+              {% endif %}
+            </button>
+          </li>
+        </ul>
+      </div>
+      <div class="card-body">
+        <div class="tab-content" id="onboardingTabsContent">
+          <!-- Active Onboardings Tab -->
+          <div class="tab-pane fade show active" id="active-onboardings" role="tabpanel">
+            {% if active_onboardings %}
+              <div class="table-responsive">
+                <table class="table table-hover table-striped">
+                  <thead>
+                    <tr>
+                      <th>Client Name</th>
+                      <th>Company</th>
+                      <th>Project Name</th>
+                      <th>Assigned Engineer</th>
+                      <th>Project Cost</th>
+                      <th>Start Date</th>
+                      <th>Status</th>
+                      <th>Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {% for onboard in active_onboardings %}
+                      <tr>
+                        <td>{{ onboard.client_name }}</td>
+                        <td>{{ onboard.company_name|default:"-" }}</td>
+                        <td>{{ onboard.project_name }}</td>
+                        <td>{{ onboard.assigned_engineer }}</td>
+                        <td>₹{{ onboard.project_cost }}</td>
+                        <td>{{ onboard.start_date|date:"d M Y"|default:"-" }}</td>
+                        <td><span class="badge {{ onboard.get_status_badge_class }}">{{ onboard.get_status_display }}</span></td>
+                        <td>
+                          <button type="button" class="btn btn-sm btn-outline-primary" onclick="viewOnboard({{ onboard.id }})" title="View">
+                            <i class="bi bi-eye"></i>
+                          </button>
+                        </td>
+                      </tr>
+                    {% endfor %}
+                  </tbody>
+                </table>
+              </div>
+              <!-- Pagination -->
+              {% if active_onboardings.has_other_pages %}
+                <nav aria-label="Active onboardings pagination">
+                  <ul class="pagination justify-content-center">
+                    {% if active_onboardings.has_previous %}
+                      <li class="page-item"><a class="page-link" href="?onboard_search={{ onboard_search_query }}&active_page={{ active_onboardings.previous_page_number }}">Previous</a></li>
+                    {% endif %}
+                    {% for num in active_onboardings.paginator.page_range %}
+                      {% if active_onboardings.number == num %}
+                        <li class="page-item active"><span class="page-link">{{ num }}</span></li>
+                      {% else %}
+                        <li class="page-item"><a class="page-link" href="?onboard_search={{ onboard_search_query }}&active_page={{ num }}">{{ num }}</a></li>
+                      {% endif %}
+                    {% endfor %}
+                    {% if active_onboardings.has_next %}
+                      <li class="page-item"><a class="page-link" href="?onboard_search={{ onboard_search_query }}&active_page={{ active_onboardings.next_page_number }}">Next</a></li>
+                    {% endif %}
+                  </ul>
+                </nav>
+              {% endif %}
+            {% else %}
+              <div class="text-center text-muted py-5">
+                <i class="bi bi-inbox fs-1 d-block mb-3"></i>
+                <p>No active onboarding projects found.</p>
+              </div>
+            {% endif %}
+          </div>
+
+          <!-- Pending Onboardings Tab -->
+          <div class="tab-pane fade" id="pending-onboardings" role="tabpanel">
+            {% if pending_onboardings %}
+              <div class="table-responsive">
+                <table class="table table-hover table-striped">
+                  <thead>
+                    <tr>
+                      <th>Client Name</th>
+                      <th>Company</th>
+                      <th>Project Name</th>
+                      <th>Assigned Engineer</th>
+                      <th>Project Cost</th>
+                      <th>Start Date</th>
+                      <th>Status</th>
+                      <th>Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {% for onboard in pending_onboardings %}
+                      <tr>
+                        <td>{{ onboard.client_name }}</td>
+                        <td>{{ onboard.company_name|default:"-" }}</td>
+                        <td>{{ onboard.project_name }}</td>
+                        <td>{{ onboard.assigned_engineer }}</td>
+                        <td>₹{{ onboard.project_cost }}</td>
+                        <td>{{ onboard.start_date|date:"d M Y"|default:"-" }}</td>
+                        <td><span class="badge {{ onboard.get_status_badge_class }}">{{ onboard.get_status_display }}</span></td>
+                        <td>
+                          <button type="button" class="btn btn-sm btn-outline-primary" onclick="viewOnboard({{ onboard.id }})" title="View">
+                            <i class="bi bi-eye"></i>
+                          </button>
+                        </td>
+                      </tr>
+                    {% endfor %}
+                  </tbody>
+                </table>
+              </div>
+              <!-- Pagination -->
+              {% if pending_onboardings.has_other_pages %}
+                <nav aria-label="Pending onboardings pagination">
+                  <ul class="pagination justify-content-center">
+                    {% if pending_onboardings.has_previous %}
+                      <li class="page-item"><a class="page-link" href="?onboard_search={{ onboard_search_query }}&pending_page={{ pending_onboardings.previous_page_number }}">Previous</a></li>
+                    {% endif %}
+                    {% for num in pending_onboardings.paginator.page_range %}
+                      {% if pending_onboardings.number == num %}
+                        <li class="page-item active"><span class="page-link">{{ num }}</span></li>
+                      {% else %}
+                        <li class="page-item"><a class="page-link" href="?onboard_search={{ onboard_search_query }}&pending_page={{ num }}">{{ num }}</a></li>
+                      {% endif %}
+                    {% endfor %}
+                    {% if pending_onboardings.has_next %}
+                      <li class="page-item"><a class="page-link" href="?onboard_search={{ onboard_search_query }}&pending_page={{ pending_onboardings.next_page_number }}">Next</a></li>
+                    {% endif %}
+                  </ul>
+                </nav>
+              {% endif %}
+            {% else %}
+              <div class="text-center text-muted py-5">
+                <i class="bi bi-inbox fs-1 d-block mb-3"></i>
+                <p>No pending onboarding projects found.</p>
+              </div>
+            {% endif %}
+          </div>
+
+          <!-- On Hold Onboardings Tab -->
+          <div class="tab-pane fade" id="onhold-onboardings" role="tabpanel">
+            {% if on_hold_onboardings %}
+              <div class="table-responsive">
+                <table class="table table-hover table-striped">
+                  <thead>
+                    <tr>
+                      <th>Client Name</th>
+                      <th>Company</th>
+                      <th>Project Name</th>
+                      <th>Assigned Engineer</th>
+                      <th>Project Cost</th>
+                      <th>Start Date</th>
+                      <th>Status</th>
+                      <th>Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {% for onboard in on_hold_onboardings %}
+                      <tr>
+                        <td>{{ onboard.client_name }}</td>
+                        <td>{{ onboard.company_name|default:"-" }}</td>
+                        <td>{{ onboard.project_name }}</td>
+                        <td>{{ onboard.assigned_engineer }}</td>
+                        <td>₹{{ onboard.project_cost }}</td>
+                        <td>{{ onboard.start_date|date:"d M Y"|default:"-" }}</td>
+                        <td><span class="badge {{ onboard.get_status_badge_class }}">{{ onboard.get_status_display }}</span></td>
+                        <td>
+                          <button type="button" class="btn btn-sm btn-outline-primary" onclick="viewOnboard({{ onboard.id }})" title="View">
+                            <i class="bi bi-eye"></i>
+                          </button>
+                        </td>
+                      </tr>
+                    {% endfor %}
+                  </tbody>
+                </table>
+              </div>
+              <!-- Pagination -->
+              {% if on_hold_onboardings.has_other_pages %}
+                <nav aria-label="On hold onboardings pagination">
+                  <ul class="pagination justify-content-center">
+                    {% if on_hold_onboardings.has_previous %}
+                      <li class="page-item"><a class="page-link" href="?onboard_search={{ onboard_search_query }}&on_hold_page={{ on_hold_onboardings.previous_page_number }}">Previous</a></li>
+                    {% endif %}
+                    {% for num in on_hold_onboardings.paginator.page_range %}
+                      {% if on_hold_onboardings.number == num %}
+                        <li class="page-item active"><span class="page-link">{{ num }}</span></li>
+                      {% else %}
+                        <li class="page-item"><a class="page-link" href="?onboard_search={{ onboard_search_query }}&on_hold_page={{ num }}">{{ num }}</a></li>
+                      {% endif %}
+                    {% endfor %}
+                    {% if on_hold_onboardings.has_next %}
+                      <li class="page-item"><a class="page-link" href="?onboard_search={{ onboard_search_query }}&on_hold_page={{ on_hold_onboardings.next_page_number }}">Next</a></li>
+                    {% endif %}
+                  </ul>
+                </nav>
+              {% endif %}
+            {% else %}
+              <div class="text-center text-muted py-5">
+                <i class="bi bi-inbox fs-1 d-block mb-3"></i>
+                <p>No on hold onboarding projects found.</p>
+              </div>
+            {% endif %}
+          </div>
+
+          <!-- Completed Onboardings Tab -->
+          <div class="tab-pane fade" id="completed-onboardings" role="tabpanel">
+            {% if completed_onboardings %}
+              <div class="table-responsive">
+                <table class="table table-hover table-striped">
+                  <thead>
+                    <tr>
+                      <th>Client Name</th>
+                      <th>Company</th>
+                      <th>Project Name</th>
+                      <th>Assigned Engineer</th>
+                      <th>Project Cost</th>
+                      <th>Start Date</th>
+                      <th>Status</th>
+                      <th>Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {% for onboard in completed_onboardings %}
+                      <tr>
+                        <td>{{ onboard.client_name }}</td>
+                        <td>{{ onboard.company_name|default:"-" }}</td>
+                        <td>{{ onboard.project_name }}</td>
+                        <td>{{ onboard.assigned_engineer }}</td>
+                        <td>₹{{ onboard.project_cost }}</td>
+                        <td>{{ onboard.start_date|date:"d M Y"|default:"-" }}</td>
+                        <td><span class="badge {{ onboard.get_status_badge_class }}">{{ onboard.get_status_display }}</span></td>
+                        <td>
+                          <button type="button" class="btn btn-sm btn-outline-primary" onclick="viewOnboard({{ onboard.id }})" title="View">
+                            <i class="bi bi-eye"></i>
+                          </button>
+                        </td>
+                      </tr>
+                    {% endfor %}
+                  </tbody>
+                </table>
+              </div>
+              <!-- Pagination -->
+              {% if completed_onboardings.has_other_pages %}
+                <nav aria-label="Completed onboardings pagination">
+                  <ul class="pagination justify-content-center">
+                    {% if completed_onboardings.has_previous %}
+                      <li class="page-item"><a class="page-link" href="?onboard_search={{ onboard_search_query }}&completed_page={{ completed_onboardings.previous_page_number }}">Previous</a></li>
+                    {% endif %}
+                    {% for num in completed_onboardings.paginator.page_range %}
+                      {% if completed_onboardings.number == num %}
+                        <li class="page-item active"><span class="page-link">{{ num }}</span></li>
+                      {% else %}
+                        <li class="page-item"><a class="page-link" href="?onboard_search={{ onboard_search_query }}&completed_page={{ num }}">{{ num }}</a></li>
+                      {% endif %}
+                    {% endfor %}
+                    {% if completed_onboardings.has_next %}
+                      <li class="page-item"><a class="page-link" href="?onboard_search={{ onboard_search_query }}&completed_page={{ completed_onboardings.next_page_number }}">Next</a></li>
+                    {% endif %}
+                  </ul>
+                </nav>
+              {% endif %}
+            {% else %}
+              <div class="text-center text-muted py-5">
+                <i class="bi bi-inbox fs-1 d-block mb-3"></i>
+                <p>No completed onboarding projects found.</p>
+              </div>
+            {% endif %}
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Create Onboarding Form -->
+    <div class="card mt-4">
+      <div class="card-header">
+        <h5 class="mb-0">Create New Onboarding</h5>
       </div>
       <div class="card-body">
         <form id="onboard-form" method="post" action="{% url 'employee_quotes' %}">
@@ -443,7 +867,7 @@
                 {% endfor %}
               </select>
               {% if not available_clients %}
-                <small class="text-muted">No available clients from quotes. All clients are already onboarded.</small>
+                <small class="text-muted">No available clients from leads. All clients are already onboarded.</small>
               {% endif %}
             </div>
             <div class="col-12 col-md-6">
