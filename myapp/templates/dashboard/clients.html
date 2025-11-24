@@ -38,6 +38,83 @@
     .clients-table tbody tr td .d-flex { width: 100%; flex-wrap: wrap; gap: .5rem; }
     .clients-table tbody tr td .d-flex .btn { flex: 0 0 auto; }
     .clients-table .d-flex { justify-content: flex-start !important; }
+    
+    /* Onboarding Client Section - Filters Menu */
+    #client-accounts .card-header {
+      padding: 0.75rem 1rem;
+    }
+    #client-accounts .collapse {
+      border-top: 1px solid #dee2e6;
+    }
+    #client-accounts .card-body .row.g-3 > [class*="col-"] {
+      padding-left: 0;
+      padding-right: 0;
+      margin-bottom: 1rem;
+    }
+    #client-accounts .card-body .row.g-3 > [class*="col-"]:last-child {
+      margin-bottom: 0;
+    }
+    
+    /* Onboarding Client Section - Table as Cards */
+    #client-accounts .table.table-hover.table-striped { 
+      border: 0; 
+    }
+    #client-accounts .table.table-hover.table-striped thead { 
+      display: none; 
+    }
+    #client-accounts .table.table-hover.table-striped tbody tr { 
+      display: block; 
+      margin: 0 0 1rem 0; 
+      border: 1px solid #eee; 
+      border-radius: 10px; 
+      background: #fff; 
+      overflow: hidden; 
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    #client-accounts .table.table-hover.table-striped tbody tr td { 
+      display: flex; 
+      flex-direction: column; 
+      align-items: flex-start; 
+      gap: .35rem; 
+      padding: .75rem 1rem; 
+      border-bottom: 1px solid #f1f1f1; 
+      text-align: left !important;
+    }
+    #client-accounts .table.table-hover.table-striped tbody tr td:last-child { 
+      border-bottom: 0; 
+    }
+    #client-accounts .table.table-hover.table-striped tbody tr td::before { 
+      content: attr(data-label); 
+      font-weight: 600; 
+      color: #666; 
+      text-transform: uppercase; 
+      font-size: .75rem; 
+      letter-spacing: .02em; 
+      margin-bottom: 0.25rem;
+    }
+    #client-accounts .table.table-hover.table-striped tbody tr td .form-select { 
+      width: 100%;
+      min-width: 100%;
+      font-size: 0.875rem;
+    }
+    
+    /* Search Section Mobile */
+    #client-accounts .card-body .row.g-3.align-items-end {
+      margin: 0;
+    }
+    #client-accounts input[type="text"] {
+      font-size: 0.9rem;
+    }
+    
+    /* Pagination Mobile */
+    #client-accounts .pagination {
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+    #client-accounts .pagination .page-link {
+      padding: 0.375rem 0.5rem;
+      font-size: 0.875rem;
+    }
   }
 </style>
 
@@ -241,35 +318,43 @@
 
     <!-- Filter Section -->
     <div class="card mb-3">
-      <div class="card-body">
-        <form method="GET" action="{% url 'clients' %}" class="row g-3 align-items-end">
-          <input type="hidden" name="tab" value="client-accounts">
-          <input type="hidden" name="onboard_search" value="{{ onboard_search_query|default:'' }}">
-          <div class="col-12 col-md-3">
-            <label class="form-label">Filter by Source</label>
-            <select class="form-select" name="source_filter" onchange="this.form.submit()">
-              <option value="">All Sources</option>
-              <option value="Website" {% if request.GET.source_filter == 'Website' %}selected{% endif %}>Website</option>
-              <option value="Referral" {% if request.GET.source_filter == 'Referral' %}selected{% endif %}>Referral</option>
-              <option value="Cold Call" {% if request.GET.source_filter == 'Cold Call' %}selected{% endif %}>Cold Call</option>
-              <option value="Social" {% if request.GET.source_filter == 'Social' %}selected{% endif %}>Social Media</option>
-              <option value="Event" {% if request.GET.source_filter == 'Event' %}selected{% endif %}>Event</option>
-              <option value="Other" {% if request.GET.source_filter == 'Other' %}selected{% endif %}>Other</option>
-            </select>
-          </div>
-          <div class="col-12 col-md-3">
-            <label class="form-label">Filter by Owner</label>
-            <input type="text" class="form-control" name="owner_filter" value="{{ request.GET.owner_filter|default:'' }}" placeholder="Filter by owner...">
-          </div>
-          <div class="col-12 col-md-3">
-            <label class="form-label">&nbsp;</label>
-            <button type="submit" class="btn btn-outline-primary w-100">Apply Filter</button>
-          </div>
-          <div class="col-12 col-md-3">
-            <label class="form-label">&nbsp;</label>
-            <a href="{% url 'clients' %}?tab=client-accounts" class="btn btn-outline-secondary w-100">Clear Filters</a>
-          </div>
-        </form>
+      <div class="card-header d-flex justify-content-between align-items-center">
+        <h6 class="mb-0">Filters</h6>
+        <button class="btn btn-sm btn-outline-primary d-md-none" type="button" data-bs-toggle="collapse" data-bs-target="#filterCollapse" aria-expanded="false" aria-controls="filterCollapse">
+          <i class="bi bi-funnel"></i> <span class="filter-toggle-text">Show Filters</span>
+        </button>
+      </div>
+      <div class="collapse d-md-block" id="filterCollapse">
+        <div class="card-body">
+          <form method="GET" action="{% url 'clients' %}" class="row g-3 align-items-end">
+            <input type="hidden" name="tab" value="client-accounts">
+            <input type="hidden" name="onboard_search" value="{{ onboard_search_query|default:'' }}">
+            <div class="col-12 col-md-3">
+              <label class="form-label">Filter by Source</label>
+              <select class="form-select" name="source_filter" onchange="this.form.submit()">
+                <option value="">All Sources</option>
+                <option value="Website" {% if request.GET.source_filter == 'Website' %}selected{% endif %}>Website</option>
+                <option value="Referral" {% if request.GET.source_filter == 'Referral' %}selected{% endif %}>Referral</option>
+                <option value="Cold Call" {% if request.GET.source_filter == 'Cold Call' %}selected{% endif %}>Cold Call</option>
+                <option value="Social" {% if request.GET.source_filter == 'Social' %}selected{% endif %}>Social Media</option>
+                <option value="Event" {% if request.GET.source_filter == 'Event' %}selected{% endif %}>Event</option>
+                <option value="Other" {% if request.GET.source_filter == 'Other' %}selected{% endif %}>Other</option>
+              </select>
+            </div>
+            <div class="col-12 col-md-3">
+              <label class="form-label">Filter by Owner</label>
+              <input type="text" class="form-control" name="owner_filter" value="{{ request.GET.owner_filter|default:'' }}" placeholder="Filter by owner...">
+            </div>
+            <div class="col-12 col-md-3">
+              <label class="form-label">&nbsp;</label>
+              <button type="submit" class="btn btn-outline-primary w-100">Apply Filter</button>
+            </div>
+            <div class="col-12 col-md-3">
+              <label class="form-label">&nbsp;</label>
+              <a href="{% url 'clients' %}?tab=client-accounts" class="btn btn-outline-secondary w-100">Clear Filters</a>
+            </div>
+          </form>
+        </div>
       </div>
     </div>
 
@@ -293,12 +378,12 @@
                   <tbody>
               {% for lead in leads %}
                 <tr>
-                  <td>{{ lead.name }}</td>
-                  <td>{{ lead.company|default:"-" }}</td>
-                  <td>{{ lead.email|default:"-" }}</td>
-                  <td>{{ lead.phone|default:"-" }}</td>
-                  <td>{{ lead.owner }}</td>
-                  <td>
+                  <td data-label="Name">{{ lead.name }}</td>
+                  <td data-label="Company">{{ lead.company|default:"-" }}</td>
+                  <td data-label="Email">{{ lead.email|default:"-" }}</td>
+                  <td data-label="Phone">{{ lead.phone|default:"-" }}</td>
+                  <td data-label="Owner">{{ lead.owner }}</td>
+                  <td data-label="Onboard">
                     <select class="form-select form-select-sm onboard-status-select" 
                             data-lead-id="{{ lead.id }}" 
                             data-lead-name="{{ lead.name }}"
@@ -307,8 +392,8 @@
                       <option value="yes" {% if lead.is_onboarded %}selected{% endif %}>Yes</option>
                     </select>
                         </td>
-                  <td>{{ lead.get_source_display }}</td>
-                  <td>{{ lead.created_at|date:"d M Y" }}</td>
+                  <td data-label="Source">{{ lead.get_source_display }}</td>
+                  <td data-label="Created At">{{ lead.created_at|date:"d M Y" }}</td>
                 </tr>
               {% empty %}
                 <tr>
@@ -590,6 +675,21 @@ document.addEventListener('DOMContentLoaded', function() {
       onboardingClientTab.classList.add('active');
       clientAccountsContent.classList.add('show', 'active');
     }
+  }
+  
+  // Handle filter collapse toggle button text
+  const filterCollapse = document.getElementById('filterCollapse');
+  const filterToggleBtn = document.querySelector('[data-bs-target="#filterCollapse"]');
+  const filterToggleText = filterToggleBtn ? filterToggleBtn.querySelector('.filter-toggle-text') : null;
+  
+  if (filterCollapse && filterToggleBtn && filterToggleText) {
+    filterCollapse.addEventListener('show.bs.collapse', function() {
+      filterToggleText.textContent = 'Hide Filters';
+    });
+    
+    filterCollapse.addEventListener('hide.bs.collapse', function() {
+      filterToggleText.textContent = 'Show Filters';
+    });
   }
   
   // Handle onboard status dropdown change

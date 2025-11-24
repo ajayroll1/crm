@@ -2505,9 +2505,21 @@ def invoices(request):
     from datetime import datetime, date
     import json
     
-    # Handle POST request for creating new invoice
+    # Handle POST request for creating new invoice or updating existing invoice
     if request.method == 'POST':
         try:
+            # Check if this is an update request
+            invoice_id = request.POST.get('invoice_id')
+            is_update = invoice_id and invoice_id.strip()
+            invoice = None
+            
+            if is_update:
+                try:
+                    invoice = Invoice.objects.get(id=int(invoice_id))
+                except (Invoice.DoesNotExist, ValueError):
+                    messages.error(request, 'Invoice not found for update.')
+                    return redirect('invoices')
+            
             # Get client information
             client_name = request.POST.get('client_name', '').strip()
             if not client_name:
@@ -2540,8 +2552,9 @@ def invoices(request):
             if not invoice_number:
                 invoice_number = generate_invoice_number_for_date(invoice_date)
             
-            # Check if invoice number already exists
-            if Invoice.objects.filter(invoice_number=invoice_number).exists():
+            # Check if invoice number already exists (skip check if updating same invoice)
+            existing_invoice = Invoice.objects.filter(invoice_number=invoice_number).first()
+            if existing_invoice and (not is_update or existing_invoice.id != invoice.id):
                 messages.error(request, f'Invoice number {invoice_number} already exists. Please use a different number.')
                 return redirect('invoices')
             
@@ -2596,27 +2609,52 @@ def invoices(request):
             notes = request.POST.get('notes', '').strip() or None
             terms = request.POST.get('terms', '').strip() or None
             
-            # Create Invoice object
-            invoice = Invoice.objects.create(
-                client_name=client_name,
-                company=company,
-                email=email,
-                phone=phone,
-                invoice_number=invoice_number,
-                invoice_date=invoice_date,
-                owner=owner,
-                status=payment_status,
-                currency=currency,
-                subtotal=subtotal,
-                discount=discount,
-                gst_percent=gst_percent,
-                gst_amount=gst_amount,
-                total=total,
-                amount_received=amount_received,
-                notes=notes,
-                terms=terms,
-                items=items,
-            )
+            # Update existing invoice or create new one
+            if is_update and invoice:
+                # Update existing invoice
+                invoice.client_name = client_name
+                invoice.company = company
+                invoice.email = email
+                invoice.phone = phone
+                invoice.invoice_number = invoice_number
+                invoice.invoice_date = invoice_date
+                invoice.owner = owner
+                invoice.status = payment_status
+                invoice.currency = currency
+                invoice.subtotal = subtotal
+                invoice.discount = discount
+                invoice.gst_percent = gst_percent
+                invoice.gst_amount = gst_amount
+                invoice.total = total
+                invoice.amount_received = amount_received
+                invoice.notes = notes
+                invoice.terms = terms
+                invoice.items = items
+                invoice.save()
+                messages.success(request, f'Invoice {invoice_number} updated successfully!')
+            else:
+                # Create new Invoice object
+                invoice = Invoice.objects.create(
+                    client_name=client_name,
+                    company=company,
+                    email=email,
+                    phone=phone,
+                    invoice_number=invoice_number,
+                    invoice_date=invoice_date,
+                    owner=owner,
+                    status=payment_status,
+                    currency=currency,
+                    subtotal=subtotal,
+                    discount=discount,
+                    gst_percent=gst_percent,
+                    gst_amount=gst_amount,
+                    total=total,
+                    amount_received=amount_received,
+                    notes=notes,
+                    terms=terms,
+                    items=items,
+                )
+                messages.success(request, f'Invoice {invoice_number} created successfully!')
             
             # If payment status is Paid, try to create/update ClientOnboarding record
             if payment_status == 'Paid':
@@ -2645,7 +2683,6 @@ def invoices(request):
                     client_onboard.status = 'completed'
                     client_onboard.save()
             
-            messages.success(request, f'Invoice {invoice_number} created successfully!')
             return redirect('invoices')
             
         except Exception as e:
@@ -2811,6 +2848,37 @@ def invoices(request):
     today = timezone.localdate()
     suggested_invoice_number = generate_invoice_number_for_date(today)
     
+    # Handle edit invoice
+    edit_invoice_id = request.GET.get('edit_invoice')
+    edit_invoice = None
+    if edit_invoice_id:
+        try:
+            edit_invoice_obj = Invoice.objects.get(id=int(edit_invoice_id))
+            edit_invoice = {
+                'id': edit_invoice_obj.id,
+                'client_name': edit_invoice_obj.client_name,
+                'company': edit_invoice_obj.company or '',
+                'email': edit_invoice_obj.email or '',
+                'phone': edit_invoice_obj.phone or '',
+                'invoice_number': edit_invoice_obj.invoice_number,
+                'invoice_date': edit_invoice_obj.invoice_date.isoformat() if edit_invoice_obj.invoice_date else today.isoformat(),
+                'owner': edit_invoice_obj.owner or '',
+                'currency': edit_invoice_obj.currency,
+                'subtotal': float(edit_invoice_obj.subtotal),
+                'discount': float(edit_invoice_obj.discount),
+                'apply_gst': 'yes' if edit_invoice_obj.gst_percent > 0 else 'no',
+                'gst_percent': float(edit_invoice_obj.gst_percent),
+                'gst_amount': float(edit_invoice_obj.gst_amount),
+                'total': float(edit_invoice_obj.total),
+                'amount_received': float(edit_invoice_obj.amount_received),
+                'status': edit_invoice_obj.status,
+                'notes': edit_invoice_obj.notes or '',
+                'terms': edit_invoice_obj.terms or '',
+                'items': edit_invoice_obj.items if isinstance(edit_invoice_obj.items, list) else [],
+            }
+        except (Invoice.DoesNotExist, ValueError, TypeError):
+            edit_invoice = None
+    
     context = {
         'invoices': invoices_page,
         'search_query': search_query,
@@ -2823,6 +2891,7 @@ def invoices(request):
         'company_profile': COMPANY_PROFILE,
         'selected_invoice': selected_invoice,
         'today_iso': today.isoformat(),
+        'edit_invoice': edit_invoice,
     }
     return render(request, 'dashboard/invoices.html', context)
 
@@ -2834,9 +2903,8 @@ def invoice_edit(request, invoice_type, invoice_id):
         # For Invoice model, redirect to invoices page with edit capability
         try:
             invoice = Invoice.objects.get(id=invoice_id)
-            # TODO: Implement invoice edit functionality
-            messages.info(request, f'To edit invoice {invoice.invoice_number}, please use the invoice edit feature.')
-            return redirect('invoices')
+            # Redirect to invoices page with edit_invoice parameter to open edit form
+            return redirect(f"{reverse('invoices')}?edit_invoice={invoice_id}#create-invoice")
         except Invoice.DoesNotExist:
             messages.error(request, 'Invoice not found.')
             return redirect('invoices')
@@ -3135,6 +3203,7 @@ def invoice_detail(request, invoice_id):
         'status': invoice.status,
         'status_badge': invoice.get_status_badge_class(),
         'invoice_date': invoice.invoice_date.strftime('%b %d, %Y') if invoice.invoice_date else '',
+        'invoice_date_iso': invoice.invoice_date.isoformat() if invoice.invoice_date else '',
         'owner': invoice.owner,
         'currency': invoice.currency,
         'created_at': invoice.created_at.strftime('%b %d, %Y %H:%M'),

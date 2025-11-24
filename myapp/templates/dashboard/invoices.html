@@ -213,11 +213,14 @@
                               title="Print">
                         <i class="bi bi-printer"></i>
                       </button>
-                      <a href="{% url 'invoice_edit' 'invoice' invoice.id %}"
-                         class="btn btn-sm btn-outline-primary"
-                         title="Edit">
+                      <button type="button"
+                              class="btn btn-sm btn-outline-primary invoice-edit-btn"
+                              data-invoice-id="{{ invoice.id }}"
+                              data-invoice-number="{{ invoice.invoice_number }}"
+                              title="Edit Invoice"
+                              onclick="return false;">
                         <i class="bi bi-pencil"></i>
-                      </a>
+                      </button>
                       <form method="post"
                             action="{% url 'invoice_delete' 'invoice' invoice.id %}"
                             class="d-inline"
@@ -465,11 +468,18 @@
             {% endif %}
 
             <h5 class="mb-4">
-              <i class="bi bi-file-earmark-plus me-2"></i>Create New Invoice
+              {% if edit_invoice %}
+                <i class="bi bi-pencil me-2"></i>Edit Invoice {{ edit_invoice.invoice_number }}
+              {% else %}
+                <i class="bi bi-file-earmark-plus me-2"></i>Create New Invoice
+              {% endif %}
             </h5>
             
             <form method="POST" action="{% url 'invoices' %}" id="createInvoiceForm" novalidate onsubmit="return validateClientForm()">
               {% csrf_token %}
+              {% if edit_invoice %}
+                <input type="hidden" name="invoice_id" value="{{ edit_invoice.id }}">
+              {% endif %}
               <input type="hidden" id="client_name" name="client_name">
               
               <div class="row mb-4">
@@ -673,8 +683,8 @@
               
               <div class="d-flex justify-content-end gap-2">
                 <button type="button" class="btn btn-secondary" onclick="resetForm()">Reset</button>
-                <button type="submit" class="btn btn-primary">
-                  <i class="bi bi-save me-1"></i>Create Invoice
+                <button type="submit" class="btn btn-primary" id="submitInvoiceBtn">
+                  <i class="bi bi-save me-1"></i><span id="submitBtnText">Create Invoice</span>
                 </button>
               </div>
             </form>
@@ -923,6 +933,9 @@
 {% if selected_invoice %}
   {{ selected_invoice|json_script:"selectedInvoiceData" }}
 {% endif %}
+{% if edit_invoice %}
+  {{ edit_invoice|json_script:"editInvoiceData" }}
+{% endif %}
 {% if company_profile.logo_path %}
   <div id="companyLogoUrl" data-logo-url="{% static company_profile.logo_path %}"></div>
 {% else %}
@@ -999,6 +1012,144 @@
       activateCreateTab();
       scrollToCreateTab();
     }
+    
+    // Handle edit invoice - pre-fill form
+    const editInvoiceDataEl = document.getElementById('editInvoiceData');
+    if (editInvoiceDataEl) {
+      const editInvoiceData = JSON.parse(editInvoiceDataEl.textContent);
+      if (editInvoiceData) {
+      activateCreateTab();
+      scrollToCreateTab();
+      
+      // Set client information
+      if (editInvoiceData.client_name) {
+        // Check if client exists in dropdown
+        const existingClientSelect = document.getElementById('existing_client');
+        const newClientNameInput = document.getElementById('new_client_name');
+        const clientOption = document.getElementById('client_option');
+        
+        if (existingClientSelect) {
+          let found = false;
+          for (let option of existingClientSelect.options) {
+            if (option.value === editInvoiceData.client_name) {
+              found = true;
+              break;
+            }
+          }
+          
+          if (found) {
+            // Use existing client
+            if (clientOption) clientOption.value = 'existing';
+            if (clientOption) clientOption.dispatchEvent(new Event('change'));
+            setTimeout(() => {
+              if (existingClientSelect) existingClientSelect.value = editInvoiceData.client_name;
+              if (existingClientSelect) existingClientSelect.dispatchEvent(new Event('change'));
+            }, 100);
+          } else {
+            // Use new client
+            if (clientOption) clientOption.value = 'new';
+            if (clientOption) clientOption.dispatchEvent(new Event('change'));
+            setTimeout(() => {
+              if (newClientNameInput) newClientNameInput.value = editInvoiceData.client_name;
+              const clientNameHidden = document.getElementById('client_name');
+              if (clientNameHidden) clientNameHidden.value = editInvoiceData.client_name;
+            }, 100);
+          }
+        }
+        
+        // Set company, email, phone
+        const companyInput = document.getElementById('company');
+        const emailInput = document.getElementById('email');
+        const phoneInput = document.getElementById('phone');
+        if (companyInput) companyInput.value = editInvoiceData.company || '';
+        if (emailInput) emailInput.value = editInvoiceData.email || '';
+        if (phoneInput) phoneInput.value = editInvoiceData.phone || '';
+      }
+      
+      // Set invoice details
+      const invoiceNumberInput = document.getElementById('invoice_number');
+      const invoiceDateInput = document.getElementById('invoice_date');
+      const ownerInput = document.getElementById('owner');
+      const currencySelect = document.getElementById('currency');
+      
+      if (invoiceNumberInput) invoiceNumberInput.value = editInvoiceData.invoice_number || '';
+      if (invoiceDateInput) invoiceDateInput.value = editInvoiceData.invoice_date || today;
+      if (ownerInput) ownerInput.value = editInvoiceData.owner || '';
+      if (currencySelect) currencySelect.value = editInvoiceData.currency || 'INR';
+      
+      // Set amounts
+      const subtotalInput = document.getElementById('subtotal');
+      const discountInput = document.getElementById('discount');
+      const totalInput = document.getElementById('total');
+      const amountReceivedInput = document.getElementById('amount_received');
+      
+      if (subtotalInput) subtotalInput.value = editInvoiceData.subtotal || '0';
+      if (discountInput) discountInput.value = editInvoiceData.discount || '0';
+      if (totalInput) totalInput.value = editInvoiceData.total || '0';
+      if (amountReceivedInput) amountReceivedInput.value = editInvoiceData.amount_received || '0';
+      
+      // Set GST
+      const applyGstCheckbox = document.getElementById('apply_gst');
+      const gstPercentInput = document.getElementById('gst_percent');
+      if (applyGstCheckbox) {
+        applyGstCheckbox.checked = editInvoiceData.apply_gst === 'yes';
+        applyGstCheckbox.dispatchEvent(new Event('change'));
+      }
+      if (gstPercentInput && editInvoiceData.gst_percent) {
+        gstPercentInput.value = editInvoiceData.gst_percent;
+      }
+      
+      // Set status
+      const statusSelect = document.getElementById('status');
+      if (statusSelect) statusSelect.value = editInvoiceData.status || 'Unpaid';
+      
+      // Set notes and terms
+      const notesInput = document.getElementById('notes');
+      const termsInput = document.getElementById('terms');
+      if (notesInput) notesInput.value = editInvoiceData.notes || '';
+      if (termsInput) termsInput.value = editInvoiceData.terms || '';
+      
+      // Set items
+      if (editInvoiceData.items && editInvoiceData.items.length > 0) {
+        // Clear existing items first
+        const itemsContainer = document.getElementById('items-container');
+        if (itemsContainer) {
+          const itemRows = itemsContainer.querySelectorAll('.item-row');
+          itemRows.forEach(row => {
+            const removeBtn = row.querySelector('.remove-item-btn');
+            if (removeBtn) removeBtn.click();
+          });
+        }
+        
+        // Add items
+        setTimeout(() => {
+          editInvoiceData.items.forEach((item, index) => {
+            const addItemBtn = document.querySelector('.add-item-btn');
+            if (addItemBtn) {
+              addItemBtn.click();
+              setTimeout(() => {
+                const itemRows = document.querySelectorAll('.item-row');
+                const lastRow = itemRows[itemRows.length - 1];
+                if (lastRow) {
+                  const descInput = lastRow.querySelector('input[name*="[description]"]');
+                  const qtyInput = lastRow.querySelector('input[name*="[quantity]"]');
+                  const priceInput = lastRow.querySelector('input[name*="[price]"]');
+                  
+                  if (descInput) descInput.value = item.description || '';
+                  if (qtyInput) qtyInput.value = item.quantity || '1';
+                  if (priceInput) priceInput.value = item.price || '0';
+                  
+                  // Trigger calculation
+                  if (priceInput) priceInput.dispatchEvent(new Event('input'));
+                }
+              }, 100);
+            }
+          });
+        }, 200);
+      }
+      }
+    }
+    
     const invoiceDateField = document.getElementById('invoice_date');
     if (invoiceDateField && !invoiceDateField.value) {
       invoiceDateField.value = today;
@@ -1323,6 +1474,25 @@
     window.resetForm = function() {
       if (confirm('Are you sure you want to reset the form? All entered data will be lost.')) {
         document.getElementById('createInvoiceForm').reset();
+        
+        // Remove invoice_id field if exists (exit edit mode)
+        const invoiceIdField = document.querySelector('input[name="invoice_id"]');
+        if (invoiceIdField) {
+          invoiceIdField.remove();
+        }
+        
+        // Reset submit button text
+        const submitBtnText = document.getElementById('submitBtnText');
+        if (submitBtnText) {
+          submitBtnText.textContent = 'Create Invoice';
+        }
+        
+        // Reset heading
+        const heading = document.querySelector('#create-invoice h5');
+        if (heading) {
+          heading.innerHTML = '<i class="bi bi-file-earmark-plus me-2"></i>Create New Invoice';
+        }
+        
         // Reset to single item
         const items = document.querySelectorAll('.invoice-item');
         for (let i = 1; i < items.length; i++) {
@@ -1734,6 +1904,306 @@
           this.disabled = false;
         }
       });
+    });
+    
+    // Handle edit invoice button clicks
+    const editButtons = document.querySelectorAll('.invoice-edit-btn');
+    editButtons.forEach(button => {
+      button.addEventListener('click', async function(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        e.stopImmediatePropagation();
+        
+        const invoiceId = this.dataset.invoiceId;
+        if (!invoiceId) {
+          console.error('Invoice ID not found');
+          return false;
+        }
+        
+        console.log('Edit button clicked for invoice:', invoiceId);
+        
+        // Show loading state
+        const originalHtml = this.innerHTML;
+        this.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>';
+        this.disabled = true;
+        
+        try {
+          // Fetch invoice data
+          const detailUrlTemplate = document.querySelector('.invoice-view-btn')?.dataset.detailUrlTemplate;
+          if (!detailUrlTemplate) {
+            alert('Unable to load invoice details.');
+            return;
+          }
+          
+          const detailUrl = detailUrlTemplate.replace('0', invoiceId);
+          const response = await fetch(detailUrl, {
+            headers: { 'X-Requested-With': 'XMLHttpRequest' }
+          });
+          if (!response.ok) {
+            const errorText = await response.text();
+            console.error('Failed to fetch invoice:', response.status, errorText);
+            throw new Error('Failed to fetch invoice details');
+          }
+          
+          const invoiceData = await response.json();
+          if (!invoiceData || !invoiceData.invoice_number) {
+            console.error('Invalid invoice data:', invoiceData);
+            throw new Error('Invalid invoice data received');
+          }
+          
+          console.log('Invoice data loaded:', invoiceData);
+          
+          // Open Create Invoice tab
+          activateCreateTab();
+          scrollToCreateTab();
+          
+          // Wait for tab to be visible
+          setTimeout(() => {
+            // Update heading
+            const heading = document.querySelector('#create-invoice h5');
+            if (heading) {
+              heading.innerHTML = `<i class="bi bi-pencil me-2"></i>Edit Invoice ${invoiceData.invoice_number || ''}`;
+            }
+            
+            // Update submit button
+            const submitBtnText = document.getElementById('submitBtnText');
+            if (submitBtnText) {
+              submitBtnText.textContent = 'Update Invoice';
+            }
+            
+            // Add hidden invoice_id field if not exists
+            let invoiceIdField = document.querySelector('input[name="invoice_id"]');
+            if (!invoiceIdField) {
+              invoiceIdField = document.createElement('input');
+              invoiceIdField.type = 'hidden';
+              invoiceIdField.name = 'invoice_id';
+              invoiceIdField.value = invoiceId;
+              document.getElementById('createInvoiceForm').appendChild(invoiceIdField);
+            } else {
+              invoiceIdField.value = invoiceId;
+            }
+            
+            // Pre-fill client information
+            if (invoiceData.client_name) {
+              const clientOption = document.getElementById('client_option');
+              const existingClientSelect = document.getElementById('existing_client');
+              const newClientNameInput = document.getElementById('new_client_name');
+              const clientNameHidden = document.getElementById('client_name');
+              
+              // Check if client exists in dropdown
+              let clientExists = false;
+              if (existingClientSelect) {
+                for (let option of existingClientSelect.options) {
+                  if (option.value === invoiceData.client_name) {
+                    clientExists = true;
+                    break;
+                  }
+                }
+              }
+              
+              if (clientExists && existingClientSelect) {
+                // Use existing client
+                if (clientOption) clientOption.value = 'existing';
+                if (clientOption) clientOption.dispatchEvent(new Event('change'));
+                setTimeout(() => {
+                  if (existingClientSelect) {
+                    existingClientSelect.value = invoiceData.client_name;
+                    existingClientSelect.dispatchEvent(new Event('change'));
+                  }
+                }, 100);
+              } else {
+                // Use new client
+                if (clientOption) clientOption.value = 'new';
+                if (clientOption) clientOption.dispatchEvent(new Event('change'));
+                setTimeout(() => {
+                  if (newClientNameInput) newClientNameInput.value = invoiceData.client_name || '';
+                  if (clientNameHidden) clientNameHidden.value = invoiceData.client_name || '';
+                }, 100);
+              }
+              
+              // Set company, email, phone
+              const companyInput = document.getElementById('company');
+              const emailInput = document.getElementById('email');
+              const phoneInput = document.getElementById('phone');
+              if (companyInput) companyInput.value = invoiceData.company || '';
+              if (emailInput) emailInput.value = invoiceData.email || '';
+              if (phoneInput) phoneInput.value = invoiceData.phone || '';
+            }
+            
+            // Pre-fill invoice details
+            const invoiceNumberInput = document.getElementById('invoice_number');
+            const invoiceDateInput = document.getElementById('invoice_date');
+            const ownerInput = document.getElementById('owner');
+            const currencySelect = document.getElementById('currency');
+            
+            if (invoiceNumberInput) invoiceNumberInput.value = invoiceData.invoice_number || '';
+            // Use ISO date if available, otherwise try to parse formatted date
+            if (invoiceDateInput) {
+              let invoiceDateValue = today;
+              if (invoiceData.invoice_date_iso) {
+                invoiceDateValue = invoiceData.invoice_date_iso;
+              } else if (invoiceData.invoice_date) {
+                // Try to parse the formatted date string (e.g., "Nov 22, 2025")
+                try {
+                  const dateObj = new Date(invoiceData.invoice_date);
+                  if (!isNaN(dateObj.getTime())) {
+                    invoiceDateValue = dateObj.toISOString().split('T')[0];
+                  }
+                } catch (e) {
+                  console.warn('Could not parse invoice date:', invoiceData.invoice_date);
+                }
+              }
+              invoiceDateInput.value = invoiceDateValue;
+            }
+            if (ownerInput) ownerInput.value = invoiceData.owner || '';
+            if (currencySelect) currencySelect.value = invoiceData.currency || 'INR';
+            
+            // Pre-fill amounts
+            const subtotalInput = document.getElementById('subtotal');
+            const discountInput = document.getElementById('discount');
+            const totalInput = document.getElementById('total');
+            const amountReceivedInput = document.getElementById('amount_received');
+            
+            if (subtotalInput) subtotalInput.value = invoiceData.subtotal || '0';
+            if (discountInput) discountInput.value = invoiceData.discount || '0';
+            if (totalInput) totalInput.value = invoiceData.total || '0';
+            if (amountReceivedInput) amountReceivedInput.value = invoiceData.amount_received || '0';
+            
+            // Pre-fill GST
+            const applyGstCheckbox = document.getElementById('apply_gst');
+            const gstPercentInput = document.getElementById('gst_percent');
+            if (applyGstCheckbox) {
+              const hasGst = invoiceData.gst_percent && parseFloat(invoiceData.gst_percent) > 0;
+              applyGstCheckbox.checked = hasGst;
+              applyGstCheckbox.dispatchEvent(new Event('change'));
+            }
+            if (gstPercentInput && invoiceData.gst_percent) {
+              gstPercentInput.value = invoiceData.gst_percent;
+            }
+            
+            // Pre-fill status
+            const statusSelect = document.getElementById('status');
+            if (statusSelect) statusSelect.value = invoiceData.status || 'Unpaid';
+            
+            // Pre-fill notes and terms
+            const notesInput = document.getElementById('notes');
+            const termsInput = document.getElementById('terms');
+            if (notesInput) notesInput.value = invoiceData.notes || '';
+            if (termsInput) termsInput.value = invoiceData.terms || '';
+            
+            // Pre-fill items
+            if (invoiceData.items && invoiceData.items.length > 0) {
+              console.log('Pre-filling items:', invoiceData.items);
+              
+              // Clear existing items first (except the first one if it's the only one)
+              const invoiceItemsContainer = document.getElementById('invoice-items');
+              if (invoiceItemsContainer) {
+                const existingItems = invoiceItemsContainer.querySelectorAll('.invoice-item');
+                // Remove all items except the first one
+                for (let i = existingItems.length - 1; i > 0; i--) {
+                  existingItems[i].remove();
+                }
+                
+                // Clear the first item's inputs
+                const firstItem = existingItems[0];
+                if (firstItem) {
+                  const firstDesc = firstItem.querySelector('.item-description');
+                  const firstQty = firstItem.querySelector('.item-quantity');
+                  const firstPrice = firstItem.querySelector('.item-price');
+                  if (firstDesc) firstDesc.value = '';
+                  if (firstQty) firstQty.value = '1';
+                  if (firstPrice) firstPrice.value = '0';
+                }
+              }
+              
+              // Wait a bit, then fill items
+              setTimeout(() => {
+                invoiceData.items.forEach((item, index) => {
+                  setTimeout(() => {
+                    const invoiceItemsContainer = document.getElementById('invoice-items');
+                    if (!invoiceItemsContainer) {
+                      console.error('Invoice items container not found');
+                      return;
+                    }
+                    
+                    const allItems = invoiceItemsContainer.querySelectorAll('.invoice-item');
+                    let currentItem = allItems[index];
+                    
+                    // If item doesn't exist, add a new one
+                    if (!currentItem && index > 0) {
+                      const addItemBtn = document.getElementById('add-item-btn');
+                      if (addItemBtn) {
+                        addItemBtn.click();
+                        // Wait for item to be added
+                        setTimeout(() => {
+                          const updatedItems = invoiceItemsContainer.querySelectorAll('.invoice-item');
+                          currentItem = updatedItems[updatedItems.length - 1];
+                          fillItemData(currentItem, item, index);
+                        }, 100);
+                      }
+                    } else if (currentItem) {
+                      // Item exists, fill it directly
+                      fillItemData(currentItem, item, index);
+                    }
+                  }, index * 150);
+                });
+              }, 200);
+              
+              // Helper function to fill item data
+              function fillItemData(itemElement, itemData, itemIndex) {
+                if (!itemElement) {
+                  console.error('Item element not found for index', itemIndex);
+                  return;
+                }
+                
+                // Find inputs using class names (more reliable)
+                const descInput = itemElement.querySelector('.item-description');
+                const qtyInput = itemElement.querySelector('.item-quantity');
+                const priceInput = itemElement.querySelector('.item-price');
+                
+                console.log('Filling item', itemIndex, ':', {
+                  description: itemData.description,
+                  quantity: itemData.quantity,
+                  price: itemData.unit_price || itemData.price,
+                  found: {
+                    desc: !!descInput,
+                    qty: !!qtyInput,
+                    price: !!priceInput
+                  }
+                });
+                
+                if (descInput) {
+                  descInput.value = itemData.description || '';
+                  descInput.dispatchEvent(new Event('input', { bubbles: true }));
+                  console.log('Set description to:', descInput.value);
+                } else {
+                  console.error('Description input not found in item', itemIndex);
+                }
+                
+                if (qtyInput) {
+                  qtyInput.value = itemData.quantity || '1';
+                  qtyInput.dispatchEvent(new Event('input', { bubbles: true }));
+                }
+                
+                // invoice_detail returns unit_price, not price
+                if (priceInput) {
+                  priceInput.value = itemData.unit_price || itemData.price || '0';
+                  priceInput.dispatchEvent(new Event('input', { bubbles: true }));
+                }
+              }
+            }
+          }, 200);
+          
+        } catch (error) {
+          console.error('Error loading invoice for edit:', error);
+          alert('Unable to load invoice details. Please try again.');
+        } finally {
+          this.innerHTML = originalHtml;
+          this.disabled = false;
+        }
+        
+        return false;
+      }, false); // Use capture phase to ensure it runs first
     });
   });
 </script>
