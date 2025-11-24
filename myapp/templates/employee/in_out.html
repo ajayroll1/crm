@@ -1156,25 +1156,38 @@
     });
   }
   
+  function isSecureCameraContext() {
+    return window.isSecureContext ||
+      window.location.protocol === 'https:' ||
+      window.location.hostname === 'localhost' ||
+      window.location.hostname === '127.0.0.1';
+  }
+
+  function canAccessCamera() {
+    return isSecureCameraContext() &&
+      navigator.mediaDevices &&
+      typeof navigator.mediaDevices.getUserMedia === 'function';
+  }
+
+  function stopCameraStream() {
+    if (currentStream) {
+      currentStream.getTracks().forEach(track => track.stop());
+      currentStream = null;
+    }
+  }
+
   // Start camera
   function startCamera(type) {
     currentCameraType = type;
     const preview = document.getElementById(type + 'CameraPreview');
     const captureBtn = document.getElementById(type + 'CaptureBtn');
-    
-    // Check if getUserMedia is available (requires HTTPS or localhost)
-    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-      const isSecure = window.location.protocol === 'https:' || 
-                      window.location.hostname === 'localhost' || 
-                      window.location.hostname === '127.0.0.1';
-      
-      if (!isSecure) {
-        alert('Camera access requires HTTPS connection.\n\nPlease access this page using HTTPS (https://) instead of HTTP (http://).\n\nYou can upload a photo using the "Upload Photo" button instead.');
-        return;
-      } else {
-        alert('Camera access is not available in your browser. Please use the "Upload Photo" button to upload a photo.');
-        return;
-      }
+
+    // Detect insecure origins and immediately switch to fallback uploader
+    if (!canAccessCamera()) {
+      const message = 'Camera access needs a secure (HTTPS) connection. Please continue with the upload option.';
+      showFileInputFallback(type, message);
+      captureBtn.disabled = true;
+      return;
     }
     
     navigator.mediaDevices.getUserMedia({ 
@@ -1208,25 +1221,36 @@
       } else if (err.name === 'NotReadableError' || err.name === 'TrackStartError') {
         errorMessage = 'Camera is already in use by another application.';
       }
-      
-      alert(errorMessage + '\n\nYou can use the "Upload Photo" button to upload a photo instead.');
+      showFileInputFallback(type, errorMessage + ' Please use the upload option instead.');
+      captureBtn.disabled = true;
     });
   }
   
   // Show file input for photo upload
-  function showFileInputFallback(type) {
+  function showFileInputFallback(type, message = null) {
     const preview = document.getElementById(type + 'CameraPreview');
     const photoData = document.getElementById(type + 'PhotoData');
     const captureBtn = document.getElementById(type + 'CaptureBtn');
     const retakeBtn = document.getElementById(type + 'RetakeBtn');
+
+    if (photoData) {
+      photoData.value = '';
+    }
     
     preview.innerHTML = `
       <div class="camera-placeholder">
+        ${message ? `<div class="alert alert-warning py-2 mb-3">${message}</div>` : ''}
         <i class="bi bi-upload display-1 text-muted"></i>
         <p class="text-muted mb-3">Upload a photo:</p>
         <input type="file" accept="image/*" capture="environment" class="form-control" id="${type}FileInput" onchange="handleFileUpload('${type}', this.files[0])">
       </div>
     `;
+    if (captureBtn) {
+      captureBtn.disabled = true;
+    }
+    if (retakeBtn) {
+      retakeBtn.disabled = true;
+    }
   }
   
   // Handle file upload
@@ -1297,10 +1321,7 @@
       preview.appendChild(img);
       
       // Stop camera
-      if (currentStream) {
-        currentStream.getTracks().forEach(track => track.stop());
-        currentStream = null;
-      }
+      stopCameraStream();
       
       captureBtn.disabled = true;
       retakeBtn.disabled = false;
@@ -1315,10 +1336,7 @@
     const photoData = document.getElementById(type + 'PhotoData');
     
     // Stop any active camera stream
-    if (currentStream) {
-      currentStream.getTracks().forEach(track => track.stop());
-      currentStream = null;
-    }
+    stopCameraStream();
     
     preview.innerHTML = `
       <div class="camera-placeholder">
@@ -1331,8 +1349,13 @@
     captureBtn.disabled = true;
     retakeBtn.disabled = true;
     
-    // Try to start camera, but if not available, user can use Upload Photo button
-    startCamera(type);
+    // Try to start camera when secure; otherwise stay on upload fallback
+    if (canAccessCamera()) {
+      startCamera(type);
+    } else {
+      const message = 'Camera requires HTTPS. Continue by uploading a photo.';
+      showFileInputFallback(type, message);
+    }
   }
   
   // Submit check-in
