@@ -83,6 +83,7 @@
                 <th>Phone</th>
                 <th>Company</th>
                 <th>Owner</th>
+                <th>Status</th>
                 <th>Priority</th>
                 <th>Next Action</th>
                 <th>Due</th>
@@ -97,6 +98,9 @@
                 <td data-label="Phone">{{ lead.phone|default:"-" }}</td>
                 <td data-label="Company">{{ lead.company|default:"-" }}</td>
                 <td data-label="Owner">{{ lead.owner }}</td>
+                <td data-label="Status">
+                  <span class="badge {{ lead.conversion_badge|default:'bg-secondary' }}">{{ lead.conversion_status|default:"Pending" }}</span>
+                </td>
                 <td data-label="Priority">
                   <span class="badge {{ lead.get_priority_badge_class }}">{{ lead.priority }}</span>
                 </td>

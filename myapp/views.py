@@ -13,6 +13,7 @@ from django.db.models import Q, Count, Sum
 from django.utils import timezone
 from django.urls import reverse
 from datetime import datetime, date
+from collections import defaultdict
 from decimal import Decimal, InvalidOperation, ROUND_HALF_UP
 import json
 import os
@@ -1632,6 +1633,34 @@ def leads(request):
     paginator = Paginator(leads_list, 10)  # Show 10 leads per page
     page_number = request.GET.get('page')
     leads = paginator.get_page(page_number)
+
+    # Determine conversion status by cross-checking ClientOnboarding records
+    def normalize_email(value):
+        return value.strip().lower() if value else ''
+
+    def normalize_phone(value):
+        if not value:
+            return ''
+        return re.sub(r'\D+', '', value)
+
+    client_contacts = list(ClientOnboarding.objects.all().values('client_email', 'client_phone', 'client_name'))
+    client_emails = {normalize_email(item['client_email']) for item in client_contacts if item['client_email']}
+    client_phones = {normalize_phone(item['client_phone']) for item in client_contacts if item['client_phone']}
+    client_names = {normalize_email(item['client_name']) for item in client_contacts if item['client_name']}
+
+    for lead in leads:
+        email_key = normalize_email(lead.email)
+        phone_key = normalize_phone(lead.phone)
+        name_key = normalize_email(lead.name)
+
+        converted = any([
+            email_key and email_key in client_emails,
+            phone_key and phone_key in client_phones,
+            name_key and name_key in client_names
+        ])
+
+        lead.conversion_status = 'Converted' if converted else 'Pending'
+        lead.conversion_badge = 'bg-success' if converted else 'bg-secondary'
     
     # Handle form submission
     if request.method == 'POST':
@@ -4509,8 +4538,379 @@ def leave(request):
 
 @login_required
 def reports(request):
-    return render(request, 'dashboard/reports.html')
-    
+    """
+    Departmental report showing project & lead distribution per employee.
+    Includes month and department filters plus responsive summary cards.
+    """
+    # Restrict to admin/staff similar to main dashboard
+    try:
+        employee = Employee.objects.get(email=request.user.email)
+        if employee.role != 'Admin':
+            messages.warning(request, 'You do not have permission to access this page.')
+            return redirect('employee_dashboard')
+    except Employee.DoesNotExist:
+        if not request.user.is_staff:
+            messages.warning(request, 'You do not have permission to access this page.')
+            return redirect('employee_dashboard')
+
+    tracked_departments = ['Sales', 'Engineering', 'Accounts', 'Back Office']
+    department_alias_map = {
+        'sales': 'Sales',
+        'salesteam': 'Sales',
+        'businessdevelopment': 'Sales',
+        'engineering': 'Engineering',
+        'engineer': 'Engineering',
+        'tech': 'Engineering',
+        'technology': 'Engineering',
+        'development': 'Engineering',
+        'accounts': 'Accounts',
+        'account': 'Accounts',
+        'accounting': 'Accounts',
+        'finance': 'Accounts',
+        'backoffice': 'Back Office',
+        'backofficeteam': 'Back Office',
+        'backofficeops': 'Back Office',
+        'backofficeoperations': 'Back Office',
+        'backoffice-support': 'Back Office'
+    }
+
+    def canonical_department(raw_value):
+        if not raw_value:
+            return None
+        normalized = ''.join(raw_value.lower().split())
+        for needle, label in department_alias_map.items():
+            if needle in normalized:
+                return label
+        return None
+
+    def normalize_key(value):
+        return value.strip().lower() if value else ''
+
+    def employee_keys(emp):
+        keys = set()
+        full_name = (emp.get_full_name() or '').strip()
+        if full_name:
+            keys.add(normalize_key(full_name))
+        if emp.first_name:
+            keys.add(normalize_key(emp.first_name))
+        if emp.emp_code:
+            keys.add(normalize_key(emp.emp_code))
+        if emp.email:
+            keys.add(normalize_key(emp.email))
+        if emp.work_email:
+            keys.add(normalize_key(emp.work_email))
+        return {k for k in keys if k}
+
+    def normalize_lead_status_key(value):
+        if not value:
+            return 'unspecified'
+        lowered = value.strip().lower()
+        if lowered in ('med', 'medium'):
+            return 'medium'
+        if lowered in ('high', 'low'):
+            return lowered
+        return lowered
+
+    def lead_status_label(key):
+        return {
+            'high': 'High Priority',
+            'medium': 'Medium Priority',
+            'low': 'Low Priority',
+            'unspecified': 'Unspecified'
+        }.get(key, key.replace('_', ' ').title())
+
+    def normalize_project_status_key(value):
+        if not value:
+            return 'unspecified'
+        lowered = value.strip().lower()
+        mapping = {
+            'active': 'active',
+            'in_progress': 'active',
+            'inprogress': 'active',
+            'pending': 'pending',
+            'on_hold': 'on_hold',
+            'onhold': 'on_hold',
+            'completed': 'completed',
+            'complete': 'completed',
+        }
+        return mapping.get(lowered, lowered)
+
+    def project_status_label(key):
+        return {
+            'active': 'Active',
+            'pending': 'Pending',
+            'on_hold': 'On Hold',
+            'completed': 'Completed',
+            'unspecified': 'Unspecified'
+        }.get(key, key.replace('_', ' ').title())
+
+    # Filters
+    department_param = request.GET.get('department', 'all').strip()
+    selected_department = canonical_department(department_param) if department_param.lower() != 'all' else 'all'
+    if not selected_department:
+        selected_department = 'all'
+    selected_department_label = selected_department if selected_department != 'all' else 'All Departments'
+
+    month_param_raw = request.GET.get('month', '').strip()
+    month_input_value = ''
+    showing_all_time = False
+    now = timezone.now()
+
+    if month_param_raw.lower() == 'all':
+        start_date = None
+        end_date = None
+        month_label = 'All Time'
+        showing_all_time = True
+    else:
+        if not month_param_raw:
+            year = now.year
+            month = now.month
+        else:
+            try:
+                year, month = map(int, month_param_raw.split('-'))
+            except ValueError:
+                year = now.year
+                month = now.month
+        start_date = date(year, month, 1)
+        last_day = calendar.monthrange(year, month)[1]
+        end_date = date(year, month, last_day)
+        month_label = start_date.strftime('%B %Y')
+        month_input_value = f"{year:04d}-{month:02d}"
+
+    filters_active = bool(request.GET)
+
+    # Aggregate leads and projects
+    lead_filters = Q(is_active=True)
+    if start_date and end_date:
+        lead_filters &= Q(created_at__date__gte=start_date, created_at__date__lte=end_date)
+
+    project_filters = Q()
+    if start_date and end_date:
+        project_filters &= Q(created_at__date__gte=start_date, created_at__date__lte=end_date)
+
+    lead_status_counts = defaultdict(lambda: defaultdict(int))
+    lead_total_counts = defaultdict(int)
+    lead_status_display = {}
+    priority_totals = defaultdict(int)
+
+    # First, count all leads by priority for sales card (including those without owner)
+    for row in Lead.objects.filter(lead_filters).values('priority').annotate(total=Count('id')):
+        status_key = normalize_lead_status_key(row['priority'])
+        priority_totals[status_key] += row['total']
+        lead_status_display.setdefault(status_key, lead_status_label(status_key))
+
+    # Then, count leads by owner for employee assignment breakdown
+    for row in Lead.objects.filter(lead_filters).values('owner', 'priority').annotate(total=Count('id')):
+        owner_key = normalize_key(row['owner'])
+        if not owner_key:
+            continue
+        status_key = normalize_lead_status_key(row['priority'])
+        lead_status_counts[owner_key][status_key] += row['total']
+        lead_total_counts[owner_key] += row['total']
+        lead_status_display.setdefault(status_key, lead_status_label(status_key))
+
+    project_status_counts = defaultdict(lambda: defaultdict(int))
+    project_total_counts = defaultdict(int)
+    project_status_display = {}
+
+    for row in ClientOnboarding.objects.filter(project_filters).values('assigned_engineer', 'status').annotate(total=Count('id')):
+        engineer_key = normalize_key(row['assigned_engineer'])
+        if not engineer_key:
+            continue
+        status_key = normalize_project_status_key(row['status'])
+        project_status_counts[engineer_key][status_key] += row['total']
+        project_total_counts[engineer_key] += row['total']
+        project_status_display.setdefault(status_key, project_status_label(status_key))
+
+    dept_summary = {
+        dept: {
+            'total_projects': 0,
+            'completed_projects': 0,
+            'pending_projects': 0,
+            'total_leads': 0,
+        } for dept in tracked_departments
+    }
+
+    employee_rows = []
+
+    employees_qs = Employee.objects.all().order_by('first_name', 'last_name')
+
+    for emp in employees_qs:
+        dept_name = canonical_department(emp.department)
+        if dept_name not in tracked_departments:
+            continue
+
+        keys = employee_keys(emp)
+        project_by_status = defaultdict(int)
+        project_total = 0
+        for key in keys:
+            for status_key, count in project_status_counts.get(key, {}).items():
+                project_by_status[status_key] += count
+                project_total += count
+
+        lead_by_status = defaultdict(int)
+        lead_total = 0
+        for key in keys:
+            for status_key, count in lead_status_counts.get(key, {}).items():
+                lead_by_status[status_key] += count
+                lead_total += count
+
+        completed_count = project_by_status.get('completed', 0)
+        pending_count = max(project_total - completed_count, 0)
+
+        dept_summary[dept_name]['total_projects'] += project_total
+        dept_summary[dept_name]['completed_projects'] += completed_count
+        dept_summary[dept_name]['pending_projects'] += pending_count
+        dept_summary[dept_name]['total_leads'] += lead_total
+        if dept_name == 'Sales':
+            dept_summary[dept_name]['leads_high'] = dept_summary[dept_name].get('leads_high', 0) + lead_by_status.get('high', 0)
+            dept_summary[dept_name]['leads_medium'] = dept_summary[dept_name].get('leads_medium', 0) + lead_by_status.get('medium', 0)
+            dept_summary[dept_name]['leads_low'] = dept_summary[dept_name].get('leads_low', 0) + lead_by_status.get('low', 0) + lead_by_status.get('unspecified', 0)
+
+        employee_rows.append({
+            'id': emp.id,
+            'name': emp.get_full_name() or emp.first_name or 'Unnamed',
+            'designation': emp.designation or '',
+            'department': dept_name,
+            'projects_total': project_total,
+            'projects_completed': completed_count,
+            'projects_pending': pending_count,
+            'projects_by_status': dict(project_by_status),
+            'leads_total': lead_total,
+            'leads_by_status': dict(lead_by_status),
+        })
+
+    # Determine column orders
+    project_status_base = ['active', 'pending', 'on_hold', 'completed']
+    lead_status_base = ['high', 'medium', 'low']
+
+    project_status_order = project_status_base[:]
+    for counts in project_status_counts.values():
+        for status_key in counts.keys():
+            if status_key not in project_status_order:
+                project_status_order.append(status_key)
+
+    lead_status_order = lead_status_base[:]
+    for counts in lead_status_counts.values():
+        for status_key in counts.keys():
+            if status_key not in lead_status_order:
+                lead_status_order.append(status_key)
+
+    for status in project_status_order:
+        project_status_display.setdefault(status, project_status_label(status))
+    for status in lead_status_order:
+        lead_status_display.setdefault(status, lead_status_label(status))
+
+    project_status_headers = [
+        {'key': status, 'label': project_status_display[status]}
+        for status in project_status_order
+    ]
+    lead_status_headers = [
+        {'key': status, 'label': lead_status_display[status]}
+        for status in lead_status_order
+    ]
+
+    # Add ordered counts for template consumption
+    for row in employee_rows:
+        row['project_status_counts'] = [
+            {'key': header['key'], 'count': row['projects_by_status'].get(header['key'], 0)}
+            for header in project_status_headers
+        ]
+        row['lead_status_counts'] = [
+            {'key': header['key'], 'count': row['leads_by_status'].get(header['key'], 0)}
+            for header in lead_status_headers
+        ]
+
+    if selected_department != 'all':
+        filtered_rows = [row for row in employee_rows if row['department'] == selected_department]
+    else:
+        filtered_rows = employee_rows
+
+    employee_reports = sorted(
+        filtered_rows,
+        key=lambda r: (-r['projects_total'], -r['leads_total'], r['name'].lower())
+    )
+
+    # Override Sales summary with overall lead totals - using same query as leads page
+    # This ensures sales card shows exact same count as leads page (no date filter)
+    sales_summary = dept_summary.get('Sales')
+    if sales_summary is not None:
+        # Use exact same query as leads page: Lead.objects.filter(is_active=True)
+        # NO date filter - show all active leads like leads page does
+        all_leads_queryset = Lead.objects.filter(is_active=True)
+        sales_total_leads = all_leads_queryset.count()
+        sales_summary['total_leads'] = sales_total_leads
+        
+        # Count by priority from the same queryset (using exact priority values from model)
+        sales_summary['leads_high'] = all_leads_queryset.filter(priority='High').count()
+        sales_summary['leads_medium'] = all_leads_queryset.filter(priority='Med').count()
+        # Low and any other/unspecified priorities
+        low_count = all_leads_queryset.filter(priority='Low').count()
+        # Count any leads that don't have standard priority values
+        other_count = all_leads_queryset.exclude(priority__in=['High', 'Med', 'Low']).count()
+        sales_summary['leads_low'] = low_count + other_count
+
+    modal_leads_queryset = Lead.objects.filter(is_active=True).order_by('-created_at')
+    modal_leads = []
+    for lead in modal_leads_queryset:
+        modal_leads.append({
+            'id': lead.id,
+            'name': lead.name,
+            'email': lead.email or '-',
+            'phone': lead.phone or '-',
+            'company': lead.company or '-',
+            'owner': lead.owner or '-',
+            'priority': lead.priority,
+            'source': lead.source,
+            'next_action': lead.next_action or '-',
+            'due_date': lead.due_date.strftime('%d-%b-%Y') if lead.due_date else '-',
+            'created_at_display': lead.created_at.strftime('%d-%b-%Y %H:%M') if lead.created_at else '-',
+            'created_month': lead.created_at.strftime('%Y-%m') if lead.created_at else '',
+            'created_year': lead.created_at.strftime('%Y') if lead.created_at else '',
+        })
+
+    department_cards = []
+    for dept in tracked_departments:
+        summary = dept_summary[dept]
+        high_leads = summary.get('leads_high', 0)
+        medium_leads = summary.get('leads_medium', 0)
+        low_leads = summary.get('leads_low', 0)
+        other_leads = summary['total_leads'] - high_leads - medium_leads - low_leads
+        lead_breakdown = {
+            'high': high_leads,
+            'medium': medium_leads,
+            'other': other_leads if other_leads > 0 else 0
+        }
+        department_cards.append({
+            'name': dept,
+            'total_projects': summary['total_projects'],
+            'completed_projects': summary['completed_projects'],
+            'pending_projects': summary['pending_projects'],
+            'total_leads': summary['total_leads'],
+            'lead_breakdown': lead_breakdown,
+            'is_active': selected_department == dept,
+        })
+
+    context = {
+        'department_choices': [{'value': 'all', 'label': 'All Departments'}] + [
+            {'value': dept, 'label': dept} for dept in tracked_departments
+        ],
+        'selected_department_value': selected_department,
+        'selected_department_label': selected_department_label,
+        'month_input_value': month_input_value,
+        'selected_month_label': month_label,
+        'showing_all_time': showing_all_time,
+        'filters_active': filters_active,
+        'department_cards': department_cards,
+        'employee_reports': employee_reports,
+        'project_status_headers': project_status_headers,
+        'lead_status_headers': lead_status_headers,
+        'results_count': len(employee_reports),
+        'modal_leads': modal_leads,
+    }
+
+    return render(request, 'dashboard/reports.html', context)
+
 
 @login_required
 def settings_view(request):

@@ -95,6 +95,7 @@
     </div>
     {% endif %}
     
+    {% if employee_department|default:''|lower != 'engineering' %}
     <!-- Sales Section -->
     <div class="nav-section">
       <h3 class="nav-section-title">SALES</h3>
@@ -113,6 +114,7 @@
         </li>
       </ul>
     </div>
+    {% endif %}
     
     <!-- Attendance Section -->
     <div class="nav-section">

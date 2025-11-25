@@ -635,13 +635,14 @@
         const navLinks = document.querySelectorAll('.sidebar .nav-link');
         navLinks.forEach(link => {
           link.addEventListener('click', function(e) {
-            // Check if this is In/Out or Leave Requests link
+            // Check if this is In/Out, Leave Requests, or Reports link
             const href = this.getAttribute('href');
             const isInOutLink = href && (href.includes('in-out') || href.includes('in_out'));
             const isLeaveLink = href && (href.includes('leaves') || href.includes('leave'));
+            const isReportsLink = href && href.includes('reports');
             
-            // Handle AJAX navigation for In/Out and Leave Requests
-            if (isInOutLink || isLeaveLink) {
+            // Handle AJAX navigation for selected sections
+            if (isInOutLink || isLeaveLink || isReportsLink) {
               e.preventDefault();
               
               // Show loading indicator
@@ -766,8 +767,9 @@
         const currentPath = window.location.pathname;
         const isInOutLink = currentPath.includes('in-out') || currentPath.includes('in_out');
         const isLeaveLink = currentPath.includes('leaves') || currentPath.includes('leave');
+        const isReportsLink = currentPath.includes('reports');
         
-        if (isInOutLink || isLeaveLink) {
+        if (isInOutLink || isLeaveLink || isReportsLink) {
           const mainContent = document.querySelector('.main-content');
           if (mainContent) {
             mainContent.classList.add('loading');

@@ -1,252 +1,287 @@
-{% extends "dashboard/dashboard_base.html"%}
+{% extends "dashboard/dashboard_base.html" %}
 {% block title %}Reports - Sujata Associates{% endblock %}
 
 {% block content %}
-<div class="dashboard-header">
-  <h1><i class="bi bi-graph-up"></i> Company Reports & Analytics</h1>
-  <p class="text-muted">Comprehensive business intelligence and financial insights</p>
+<div class="reports-header d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3">
+  <div>
+    <h1 class="mb-1">Department Performance Reports</h1>
+    <p class="text-muted mb-0">
+      Showing <strong>{{ selected_month_label }}</strong> · <strong>{{ selected_department_label }}</strong>
+      {% if showing_all_time %}
+        <span class="badge bg-secondary ms-1">All Time</span>
+      {% endif %}
+    </p>
+  </div>
+  {% if not showing_all_time %}
+    <span class="text-muted small">Data limited to selected month</span>
+  {% endif %}
 </div>
 
-<!-- Filter Section -->
-<div class="filter-section mb-4">
-  <div class="card">
+<!-- Filters -->
+<form method="get" class="card report-filter-card mb-4">
     <div class="card-body">
-      <div class="row align-items-center">
-        <div class="col-12 col-md-3">
-          <label class="form-label">Date Range</label>
-          <select class="form-select" id="dateRange">
-            <option value="current_month">Current Month</option>
-            <option value="last_month">Last Month</option>
-            <option value="current_quarter">Current Quarter</option>
-            <option value="last_quarter">Last Quarter</option>
-            <option value="current_year" selected>Current Year</option>
-            <option value="last_year">Last Year</option>
-            <option value="custom">Custom Range</option>
+    <div class="row g-3">
+      <div class="col-12 col-md-4">
+        <label class="form-label">Department</label>
+        <select name="department" class="form-select">
+          {% for option in department_choices %}
+            <option value="{{ option.value }}" {% if option.value == selected_department_value %}selected{% endif %}>
+              {{ option.label }}
+            </option>
+          {% endfor %}
           </select>
         </div>
-        <div class="col-12 col-md-3">
-          <label class="form-label">From Date</label>
-          <input type="date" class="form-control" id="fromDate" value="2024-01-01">
+      <div class="col-12 col-md-4">
+        <label class="form-label">Month</label>
+        <input type="month"
+               name="month"
+               class="form-control"
+               value="{{ month_input_value }}"
+               {% if showing_all_time %}placeholder="All Time"{% endif %}>
+        {% if showing_all_time %}
+          <small class="text-muted d-block mt-1">Currently showing all available history</small>
+        {% endif %}
         </div>
-        <div class="col-12 col-md-3">
-          <label class="form-label">To Date</label>
-          <input type="date" class="form-control" id="toDate" value="2024-12-31">
-        </div>
-        <div class="col-12 col-md-3">
-          <label class="form-label">&nbsp;</label>
-          <div class="d-flex flex-column flex-md-row gap-2">
-            <button class="btn btn-primary" onclick="applyFilters()">
+      <div class="col-12 col-md-4 d-flex align-items-end">
+        <div class="w-100 d-grid gap-2">
+          <button type="submit" class="btn btn-primary">
               <i class="bi bi-funnel"></i> Apply Filters
             </button>
-            <button class="btn btn-outline-secondary" onclick="exportReport()">
-              <i class="bi bi-download"></i> Export
-            </button>
+          <div class="d-flex flex-wrap gap-2">
+            <a href="?department={{ selected_department_value }}&month=all"
+               class="btn btn-outline-secondary flex-fill {% if showing_all_time %}disabled-link{% endif %}">
+              Show All Time
+            </a>
+            <a href="{% url 'reports' %}" class="btn btn-link flex-fill text-decoration-none">Reset</a>
           </div>
         </div>
       </div>
     </div>
   </div>
-</div>
+</form>
 
-<!-- Key Metrics Cards -->
-<div class="metrics-row">
-  <div class="metric-card">
-    <div class="metric-title">Total Projects</div>
-    <div class="metric-value">45</div>
-    <div class="metric-subtitle">
-      <span class="text-success">32 Completed</span> | 
-      <span class="text-warning">8 Pending</span> | 
-      <span class="text-info">5 Upcoming</span>
+<!-- Department summary cards -->
+<div class="department-summary-grid mb-4">
+  {% for card in department_cards %}
+    <div class="summary-card {% if card.is_active %}active{% endif %} summary-card-{{ card.name|slugify }} {% if card.name == 'Sales' %}sales-card-clickable{% endif %}" 
+         {% if card.name == 'Sales' %}data-bs-toggle="modal" data-bs-target="#leadsModal" style="cursor: pointer;"{% endif %}>
+      <div class="summary-card-header d-flex justify-content-between align-items-center">
+        <div>
+          <p class="summary-label mb-1 text-uppercase">Department</p>
+          <h3 class="summary-title mb-0">{{ card.name }}</h3>
     </div>
+        <span class="badge bg-light text-dark">
+          {% if card.name == 'Sales' %}
+            {{ card.total_leads }} Leads
+          {% else %}
+            {{ card.total_projects }} Projects
+          {% endif %}
+        </span>
   </div>
-  
-  <div class="metric-card">
-    <div class="metric-title">Total Revenue</div>
-    <div class="metric-value">₹24,50,000</div>
-    <div class="metric-subtitle">
-      <i class="bi bi-arrow-up text-success"></i> 15.2% from last year
+      <div class="summary-body">
+        {% if card.name == 'Sales' %}
+          <div>
+            <small class="text-muted">High Priority</small>
+            <div class="metric-sm text-danger">{{ card.lead_breakdown.high }}</div>
     </div>
+          <div>
+            <small class="text-muted">Medium Priority</small>
+            <div class="metric-sm text-warning">{{ card.lead_breakdown.medium }}</div>
   </div>
-  
-  <div class="metric-card">
-    <div class="metric-title">Total Expenses</div>
-    <div class="metric-value">₹18,50,000</div>
-    <div class="metric-subtitle">
-      <i class="bi bi-arrow-up text-warning"></i> 8.7% from last year
+          <div>
+            <small class="text-muted">Low / Other</small>
+            <div class="metric-sm text-success">{{ card.lead_breakdown.other }}</div>
     </div>
+        {% else %}
+          <div>
+            <small class="text-muted">Total Projects</small>
+            <div class="metric-lg">{{ card.total_projects }}</div>
   </div>
-  
-  <div class="metric-card">
-    <div class="metric-title">Net Profit</div>
-    <div class="metric-value">₹6,00,000</div>
-    <div class="metric-subtitle">
-      <i class="bi bi-percent"></i> 24.5% Profit Margin
+          <div>
+            <small class="text-muted">Completed</small>
+            <div class="metric-sm text-success">{{ card.completed_projects }}</div>
     </div>
+          <div>
+            <small class="text-muted">Pending / Active</small>
+            <div class="metric-sm text-warning">{{ card.pending_projects }}</div>
   </div>
+        {% endif %}
 </div>
-
-<!-- Charts Row -->
-<div class="charts-row">
-  <!-- Revenue vs Expenses Chart -->
-  <div class="chart-card">
-    <h3><i class="bi bi-bar-chart"></i> Revenue vs Expenses</h3>
-    <div class="chart-container-mobile">
-      <canvas id="revenueExpensesChart"></canvas>
+    </div>
+  {% endfor %}
+  </div>
+  
+<!-- Detailed table -->
+<div class="card report-table-card">
+  <div class="card-header d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-2">
+    <div>
+      <h5 class="mb-0">Employee Assignment Breakdown</h5>
+      <small class="text-muted">Projects & leads mapped via owners and assigned engineers</small>
+    </div>
+    <span class="badge bg-primary-subtle text-primary">{{ results_count }} employees</span>
+  </div>
+  <div class="card-body p-0">
+    {% if employee_reports %}
+      <div class="table-responsive report-table-wrapper">
+        <table class="table table-hover align-middle mb-0">
+          <thead>
+            <tr>
+              <th>Employee</th>
+              <th class="text-center">Projects (Total)</th>
+              {% for header in project_status_headers %}
+                <th class="text-center">Projects · {{ header.label }}</th>
+              {% endfor %}
+              <th class="text-center">Leads (Total)</th>
+              {% for header in lead_status_headers %}
+                <th class="text-center">Leads · {{ header.label }}</th>
+              {% endfor %}
+            </tr>
+          </thead>
+          <tbody>
+            {% for row in employee_reports %}
+              <tr>
+                <td>
+                  <div class="employee-name fw-semibold">{{ row.name }}</div>
+                  <div class="employee-meta text-muted small">
+                    {{ row.department }}
+                    {% if row.designation %} · {{ row.designation }}{% endif %}
+</div>
+                </td>
+                <td class="text-center fw-semibold">{{ row.projects_total }}</td>
+                {% for status in row.project_status_counts %}
+                  <td class="text-center">{{ status.count }}</td>
+                {% endfor %}
+                <td class="text-center fw-semibold">{{ row.leads_total }}</td>
+                {% for status in row.lead_status_counts %}
+                  <td class="text-center">{{ status.count }}</td>
+                {% endfor %}
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+        </div>
+    {% else %}
+      <div class="empty-state text-center py-5">
+        <i class="bi bi-clipboard-x fs-1 text-muted d-block mb-2"></i>
+        <p class="mb-0 text-muted">No records found for the selected filters.</p>
+        </div>
+    {% endif %}
     </div>
   </div>
   
-  <!-- Project Status Distribution -->
-  <div class="chart-card">
-    <h3><i class="bi bi-pie-chart"></i> Project Status Distribution</h3>
-    <div class="chart-container-mobile">
-      <canvas id="projectStatusChart"></canvas>
-    </div>
-  </div>
-</div>
+<style>
+.reports-header h1 {
+  font-size: 1.75rem;
+  font-weight: 600;
+  color: var(--primary-color);
+}
 
-<!-- Department & Expense Analysis -->
-<div class="charts-row">
-  <!-- Department Expenses -->
-  <div class="chart-card">
-    <h3><i class="bi bi-building"></i> Department-wise Expenses</h3>
-    <div class="department-expenses">
-      <div class="expense-item">
-        <div class="expense-header">
-          <span class="expense-name">IT Department</span>
-          <span class="expense-amount">₹4,50,000</span>
-        </div>
-        <div class="expense-bar">
-          <div class="expense-fill" style="width: 24.3%; background: linear-gradient(90deg, #3498db, #2c3e50);"></div>
-        </div>
-        <div class="expense-percentage">24.3%</div>
-      </div>
-      <div class="expense-item">
-        <div class="expense-header">
-          <span class="expense-name">Sales & Marketing</span>
-          <span class="expense-amount">₹3,80,000</span>
-        </div>
-        <div class="expense-bar">
-          <div class="expense-fill" style="width: 20.5%; background: linear-gradient(90deg, #3498db, #2c3e50);"></div>
-        </div>
-        <div class="expense-percentage">20.5%</div>
-      </div>
-      <div class="expense-item">
-        <div class="expense-header">
-          <span class="expense-name">Human Resources</span>
-          <span class="expense-amount">₹3,20,000</span>
-        </div>
-        <div class="expense-bar">
-          <div class="expense-fill" style="width: 17.3%; background: linear-gradient(90deg, #3498db, #2c3e50);"></div>
-        </div>
-        <div class="expense-percentage">17.3%</div>
-      </div>
-      <div class="expense-item">
-        <div class="expense-header">
-          <span class="expense-name">Operations</span>
-          <span class="expense-amount">₹2,80,000</span>
-        </div>
-        <div class="expense-bar">
-          <div class="expense-fill" style="width: 15.1%; background: linear-gradient(90deg, #3498db, #2c3e50);"></div>
-        </div>
-        <div class="expense-percentage">15.1%</div>
-      </div>
-      <div class="expense-item">
-        <div class="expense-header">
-          <span class="expense-name">Finance</span>
-          <span class="expense-amount">₹2,20,000</span>
-        </div>
-        <div class="expense-bar">
-          <div class="expense-fill" style="width: 11.9%; background: linear-gradient(90deg, #3498db, #2c3e50);"></div>
-        </div>
-        <div class="expense-percentage">11.9%</div>
-      </div>
-      <div class="expense-item">
-        <div class="expense-header">
-          <span class="expense-name">Administration</span>
-          <span class="expense-amount">₹2,00,000</span>
-        </div>
-        <div class="expense-bar">
-          <div class="expense-fill" style="width: 10.8%; background: linear-gradient(90deg, #3498db, #2c3e50);"></div>
-        </div>
-        <div class="expense-percentage">10.8%</div>
-      </div>
-    </div>
-  </div>
-  
-  <!-- Expense Categories -->
-  <div class="chart-card">
-    <h3><i class="bi bi-tags"></i> Expense Categories</h3>
-    <div class="chart-container-mobile">
-      <canvas id="expenseCategoriesChart"></canvas>
-    </div>
-  </div>
-</div>
+.report-filter-card {
+  border: none;
+  box-shadow: 0 4px 18px rgba(0, 0, 0, 0.05);
+}
 
-<!-- Top Projects & Employee Performance -->
-<div class="charts-row">
-  <!-- Top Performing Projects -->
-  <div class="chart-card">
-    <h3><i class="bi bi-trophy"></i> Top Performing Projects</h3>
-    <div class="projects-list">
-      <div class="project-item">
-        <div class="project-info">
-          <div class="project-name">E-commerce Platform</div>
-          <div class="project-status status-completed">Completed</div>
-        </div>
-        <div class="project-metrics">
-          <div class="metric">
-            <span class="metric-label">Revenue</span>
-            <span class="metric-value">₹4,50,000</span>
-          </div>
-          <div class="metric">
-            <span class="metric-label">Profit</span>
-            <span class="metric-value text-success">₹1,80,000</span>
-          </div>
-        </div>
-      </div>
-      <div class="project-item">
-        <div class="project-info">
-          <div class="project-name">Mobile App Development</div>
-          <div class="project-status status-completed">Completed</div>
-        </div>
-        <div class="project-metrics">
-          <div class="metric">
-            <span class="metric-label">Revenue</span>
-            <span class="metric-value">₹3,80,000</span>
-          </div>
-          <div class="metric">
-            <span class="metric-label">Profit</span>
-            <span class="metric-value text-success">₹1,52,000</span>
-          </div>
-        </div>
-      </div>
-      <div class="project-item">
-        <div class="project-info">
-          <div class="project-name">Website Redesign</div>
-          <div class="project-status status-in-progress">In Progress</div>
-        </div>
-        <div class="project-metrics">
-          <div class="metric">
-            <span class="metric-label">Revenue</span>
-            <span class="metric-value">₹3,20,000</span>
-          </div>
-          <div class="metric">
-            <span class="metric-label">Profit</span>
-            <span class="metric-value text-success">₹1,28,000</span>
-          </div>
-        </div>
-      </div>
-      <div class="project-item">
-        <div class="project-info">
-          <div class="project-name">CRM System</div>
-          <div class="project-status status-completed">Completed</div>
-        </div>
-        <div class="project-metrics">
-          <div class="metric">
-            <span class="metric-label">Revenue</span>
-            <span class="metric-value">₹2,80,000</span>
-          </div>
-          <div class="metric">
+.department-summary-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 1rem;
+}
+
+.summary-card {
+  border: 1px solid #e9ecef;
+  border-radius: 12px;
+  padding: 1.25rem;
+  background: var(--card-bg);
+  transition: box-shadow 0.2s ease;
+}
+
+.summary-card.active {
+  border-color: var(--secondary-color);
+  box-shadow: 0 8px 24px rgba(52, 152, 219, 0.15);
+}
+
+.sales-card-clickable {
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.sales-card-clickable:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(52, 152, 219, 0.2);
+}
+
+.summary-card-header .summary-label {
+  letter-spacing: 0.1em;
+  font-size: 0.7rem;
+}
+
+.summary-card .summary-body {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  margin-top: 1rem;
+}
+
+.metric-lg {
+  font-size: 2rem;
+  font-weight: 700;
+  color: var(--primary-color);
+}
+
+.metric-sm {
+  font-size: 1.25rem;
+  font-weight: 600;
+}
+
+.report-table-wrapper {
+  border-radius: 0 0 16px 16px;
+  overflow-x: auto;
+}
+
+.report-table-wrapper table {
+  min-width: 900px;
+}
+
+.employee-name {
+  font-size: 1rem;
+}
+
+.employee-meta {
+  font-size: 0.85rem;
+}
+
+.empty-state {
+  background: #f8f9fa;
+  border-radius: 0 0 16px 16px;
+}
+
+.disabled-link {
+  pointer-events: none;
+  opacity: 0.65;
+}
+
+@media (max-width: 768px) {
+  .report-filter-card .row {
+    flex-direction: column;
+  }
+
+  .department-summary-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .summary-card .summary-body {
+    flex-direction: column;
+    gap: 0.75rem;
+    align-items: flex-start;
+  }
+
+  .report-table-wrapper table {
+    font-size: 0.85rem;
+  }
+
+  .reports-header h1 {
+    font-size: 1.3rem;
+  }
+}
             <span class="metric-label">Profit</span>
             <span class="metric-value text-success">₹1,12,000</span>
           </div>
@@ -1230,5 +1265,74 @@ document.getElementById('dateRange').addEventListener('change', function() {
       break;
   }
 });
+
 </script>
+
+<!-- Leads Modal -->
+<div class="modal fade" id="leadsModal" tabindex="-1" aria-labelledby="leadsModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-xl modal-dialog-scrollable">
+    <div class="modal-content">
+      <div class="modal-header bg-primary text-white">
+        <h5 class="modal-title" id="leadsModalLabel">
+          <i class="bi bi-people-fill me-2"></i>All Leads ({{ modal_leads|length }})
+        </h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <div class="table-responsive">
+          <table class="table table-hover table-striped">
+            <thead class="table-light">
+              <tr>
+                <th>Name</th>
+                <th>Email</th>
+                <th>Phone</th>
+                <th>Company</th>
+                <th>Owner</th>
+                <th>Priority</th>
+                <th>Source</th>
+                <th>Next Action</th>
+                <th>Due Date</th>
+                <th>Created At</th>
+              </tr>
+            </thead>
+            <tbody id="leadsTableBody">
+              {% if modal_leads %}
+                {% for lead in modal_leads %}
+                  <tr>
+                    <td>{{ lead.name }}</td>
+                    <td>{{ lead.email }}</td>
+                    <td>{{ lead.phone }}</td>
+                    <td>{{ lead.company }}</td>
+                    <td>{{ lead.owner }}</td>
+                    <td>
+                      <span class="badge 
+                        {% if lead.priority == 'High' %}bg-danger
+                        {% elif lead.priority == 'Med' %}bg-warning text-dark
+                        {% elif lead.priority == 'Low' %}bg-success
+                        {% else %}bg-secondary{% endif %}">
+                        {{ lead.priority }}
+                      </span>
+                    </td>
+                    <td>{{ lead.source }}</td>
+                    <td>{{ lead.next_action }}</td>
+                    <td>{{ lead.due_date }}</td>
+                    <td>{{ lead.created_at_display }}</td>
+                  </tr>
+                {% endfor %}
+              {% else %}
+                <tr>
+                  <td colspan="10" class="text-center py-4 text-muted">No leads found</td>
+                </tr>
+              {% endif %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 {% endblock %}
