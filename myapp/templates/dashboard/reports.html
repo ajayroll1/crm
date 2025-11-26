@@ -63,8 +63,8 @@
 <!-- Department summary cards -->
 <div class="department-summary-grid mb-4">
   {% for card in department_cards %}
-    <div class="summary-card {% if card.is_active %}active{% endif %} summary-card-{{ card.name|slugify }} {% if card.name == 'Sales' %}sales-card-clickable{% endif %}" 
-         {% if card.name == 'Sales' %}data-bs-toggle="modal" data-bs-target="#leadsModal" style="cursor: pointer;"{% endif %}>
+    <div class="summary-card {% if card.is_active %}active{% endif %} summary-card-{{ card.name|slugify }} {% if card.name == 'Sales' %}sales-card-clickable{% elif card.name == 'Engineering' %}engineering-card-clickable{% elif card.name == 'Accounts' %}accounts-card-clickable{% elif card.name == 'Back Office' %}backoffice-card-clickable{% endif %}" 
+         {% if card.name == 'Sales' %}data-bs-toggle="modal" data-bs-target="#leadsModal" style="cursor: pointer;"{% elif card.name == 'Engineering' %}data-bs-toggle="modal" data-bs-target="#engineeringModal" style="cursor: pointer;"{% elif card.name == 'Accounts' %}data-bs-toggle="modal" data-bs-target="#accountsModal" style="cursor: pointer;"{% elif card.name == 'Back Office' %}data-bs-toggle="modal" data-bs-target="#backofficeModal" style="cursor: pointer;"{% endif %}>
       <div class="summary-card-header d-flex justify-content-between align-items-center">
         <div>
           <p class="summary-label mb-1 text-uppercase">Department</p>
@@ -113,17 +113,72 @@
   
 <!-- Detailed table -->
 <div class="card report-table-card">
-  <div class="card-header d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-2">
-    <div>
-      <h5 class="mb-0">Employee Assignment Breakdown</h5>
-      <small class="text-muted">Projects & leads mapped via owners and assigned engineers</small>
+  <div class="card-header">
+    <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-2 mb-3">
+      <div>
+        <h5 class="mb-0">Employee Assignment Breakdown</h5>
+        <small class="text-muted">Projects & leads mapped via owners and assigned engineers</small>
+      </div>
+      <span class="badge bg-primary-subtle text-primary" id="employeeCountBadge">{{ results_count }} employees</span>
     </div>
-    <span class="badge bg-primary-subtle text-primary">{{ results_count }} employees</span>
+    
+    <!-- Search and Filter Controls -->
+    <div class="row g-2 mb-2">
+      <div class="col-12 col-md-3">
+        <div class="input-group">
+          <span class="input-group-text bg-white">
+            <i class="bi bi-search text-muted"></i>
+          </span>
+          <input type="text" 
+                 class="form-control" 
+                 id="employeeSearchInput" 
+                 placeholder="Search employee name, department...">
+        </div>
+      </div>
+      <div class="col-12 col-md-2">
+        <select class="form-select form-select-sm" id="departmentFilter">
+          <option value="">All Departments</option>
+          {% for dept in department_choices %}
+            {% if dept.value != 'all' %}
+              <option value="{{ dept.value|lower }}" {% if dept.value == selected_department_value %}selected{% endif %}>{{ dept.label }}</option>
+            {% endif %}
+          {% endfor %}
+        </select>
+      </div>
+      <div class="col-12 col-md-2">
+        <select class="form-select form-select-sm" id="statusFilter">
+          <option value="">All Status</option>
+          <option value="pending">Pending</option>
+          <option value="completed">Completed</option>
+        </select>
+      </div>
+      <div class="col-12 col-md-2">
+        <input type="month" 
+               class="form-control form-control-sm" 
+               id="monthFilter"
+               value="{{ month_input_value }}">
+      </div>
+      <div class="col-12 col-md-2">
+        <input type="date" 
+               class="form-control form-control-sm" 
+               id="dayFilter"
+               value="{{ day_input_value }}"
+               placeholder="Select day">
+      </div>
+      <div class="col-12 col-md-1">
+        <button type="button" 
+                class="btn btn-sm btn-outline-secondary w-100" 
+                id="clearFiltersBtn"
+                title="Clear all filters">
+          <i class="bi bi-x-circle"></i> Clear
+        </button>
+      </div>
+    </div>
   </div>
   <div class="card-body p-0">
     {% if employee_reports %}
       <div class="table-responsive report-table-wrapper">
-        <table class="table table-hover align-middle mb-0">
+        <table class="table table-hover align-middle mb-0" id="employeeTable">
           <thead>
             <tr>
               <th>Employee</th>
@@ -137,15 +192,20 @@
               {% endfor %}
             </tr>
           </thead>
-          <tbody>
+          <tbody id="employeeTableBody">
             {% for row in employee_reports %}
-              <tr>
+              <tr data-employee-name="{{ row.name|lower }}" 
+                  data-department="{{ row.department|lower }}"
+                  data-designation="{{ row.designation|lower }}"
+                  data-projects-pending="{{ row.projects_pending }}"
+                  data-projects-completed="{{ row.projects_completed }}"
+                  data-projects-total="{{ row.projects_total }}">
                 <td>
                   <div class="employee-name fw-semibold">{{ row.name }}</div>
                   <div class="employee-meta text-muted small">
                     {{ row.department }}
                     {% if row.designation %} · {{ row.designation }}{% endif %}
-</div>
+                  </div>
                 </td>
                 <td class="text-center fw-semibold">{{ row.projects_total }}</td>
                 {% for status in row.project_status_counts %}
@@ -164,7 +224,7 @@
       <div class="empty-state text-center py-5">
         <i class="bi bi-clipboard-x fs-1 text-muted d-block mb-2"></i>
         <p class="mb-0 text-muted">No records found for the selected filters.</p>
-        </div>
+      </div>
     {% endif %}
     </div>
   </div>
@@ -209,6 +269,142 @@
   box-shadow: 0 8px 24px rgba(52, 152, 219, 0.2);
 }
 
+.engineering-card-clickable {
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.engineering-card-clickable:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(52, 152, 219, 0.2);
+}
+
+.accounts-card-clickable {
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.accounts-card-clickable:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(40, 167, 69, 0.2);
+}
+
+.backoffice-card-clickable {
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.backoffice-card-clickable:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(52, 152, 219, 0.2);
+}
+
+/* Back Office Modal Table Scrollable Styles */
+.backoffice-employees-table-wrapper,
+.backoffice-projects-table-wrapper {
+  max-height: none;
+  overflow-y: visible;
+}
+
+.backoffice-employees-table-wrapper.scrollable,
+.backoffice-projects-table-wrapper.scrollable {
+  max-height: 400px;
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
+.backoffice-employees-table-wrapper.scrollable table,
+.backoffice-projects-table-wrapper.scrollable table {
+  margin-bottom: 0;
+}
+
+/* Mobile Card Styles */
+.backoffice-employees-cards-wrapper,
+.backoffice-projects-cards-wrapper {
+  max-height: 500px;
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
+.employee-card-item .card,
+.project-card-item .card {
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  border-left: 3px solid var(--primary-color, #3498db);
+}
+
+.employee-card-item .card:hover,
+.project-card-item .card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.employee-card-item .card-body,
+.project-card-item .card-body {
+  padding: 1rem;
+}
+
+@media (max-width: 767.98px) {
+  .backoffice-employees-cards-wrapper,
+  .backoffice-projects-cards-wrapper {
+    max-height: 400px;
+  }
+  
+  .employee-card-item .card-title,
+  .project-card-item .card-title {
+    font-size: 1rem;
+  }
+}
+
+/* Accounts Modal Mobile Card Styles */
+.accounts-mobile-cards {
+  max-height: 500px;
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
+.accounts-mobile-cards .card {
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  border-left: 3px solid #28a745;
+}
+
+.accounts-mobile-cards .card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.accounts-mobile-cards .card-body {
+  padding: 1rem;
+}
+
+.accounts-projects-mobile-cards {
+  max-height: 400px;
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
+.accounts-projects-mobile-cards .card {
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  border-left: 3px solid #007bff;
+}
+
+.accounts-projects-mobile-cards .card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.accounts-projects-mobile-cards .card-body {
+  padding: 1rem;
+}
+
+@media (max-width: 575.98px) {
+  .accounts-mobile-cards,
+  .accounts-projects-mobile-cards {
+    max-height: 400px;
+  }
+  
+  .accounts-mobile-cards .card-title,
+  .accounts-projects-mobile-cards .card-title {
+    font-size: 0.95rem;
+  }
+}
+
 .summary-card-header .summary-label {
   letter-spacing: 0.1em;
   font-size: 0.7rem;
@@ -241,12 +437,193 @@
   min-width: 900px;
 }
 
+/* Mobile Card View Styles */
+.employee-cards-mobile {
+  padding: 0.5rem;
+}
+
+.employee-card-mobile {
+  border: 1px solid #e9ecef;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.employee-card-mobile:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
+}
+
+.employee-card-mobile .card-body {
+  padding: 1rem;
+}
+
+.employee-card-mobile .card-title {
+  font-size: 1rem;
+  color: var(--primary-color);
+}
+
+.employee-card-mobile .card-subtitle {
+  font-size: 0.85rem;
+}
+
+.employee-card-mobile h6 {
+  font-size: 0.9rem;
+  font-weight: 600;
+  margin-bottom: 0.5rem;
+}
+
+.employee-card-mobile .bg-light {
+  background-color: #f8f9fa !important;
+  border: 1px solid #e9ecef;
+}
+
+.employee-card-mobile small {
+  font-size: 0.75rem;
+}
+
+@media (max-width: 767.98px) {
+  .employee-cards-mobile {
+    display: block !important;
+  }
+  
+  .report-table-wrapper {
+    display: none !important;
+  }
+  
+  .engineering-projects-cards-mobile {
+    display: block !important;
+  }
+  
+  .engineering-projects-cards-mobile + .table-responsive {
+    display: none !important;
+  }
+}
+
+/* Engineering Project Cards Mobile Styles */
+.engineering-project-card-mobile {
+  border: 1px solid #e9ecef;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.engineering-project-card-mobile:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
+}
+
+.engineering-project-card-mobile .card-body {
+  padding: 1rem;
+}
+
+.engineering-project-card-mobile .card-title {
+  font-size: 1rem;
+  color: var(--primary-color);
+  margin-bottom: 0.5rem;
+}
+
+.engineering-project-card-mobile .card-subtitle {
+  font-size: 0.85rem;
+}
+
+.engineering-project-card-mobile .bg-light {
+  background-color: #f8f9fa !important;
+  border: 1px solid #e9ecef;
+}
+
+.engineering-project-card-mobile small {
+  font-size: 0.75rem;
+  display: block;
+  margin-bottom: 0.25rem;
+}
+
 .employee-name {
   font-size: 1rem;
 }
 
 .employee-meta {
   font-size: 0.85rem;
+}
+
+/* Table Filter Styles */
+.report-table-card .card-header {
+  background: #f8f9fa;
+  border-bottom: 1px solid #dee2e6;
+}
+
+/* Mobile Lead Cards Styles */
+.lead-card {
+  border: 1px solid #dee2e6;
+  border-radius: 8px;
+  transition: box-shadow 0.2s ease;
+}
+
+.lead-card:hover {
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.lead-card .card-body {
+  padding: 1rem;
+}
+
+.lead-card .card-title {
+  color: #212529;
+  font-size: 1rem;
+}
+
+.lead-card .lead-details {
+  font-size: 0.9rem;
+}
+
+.lead-card .lead-details small {
+  font-size: 0.75rem;
+  font-weight: 500;
+}
+
+.lead-card .lead-details .fw-semibold {
+  font-weight: 600;
+  color: #495057;
+  word-break: break-word;
+}
+
+.lead-card .badge {
+  font-size: 0.7rem;
+  padding: 0.35em 0.65em;
+}
+
+/* Ensure cards are properly hidden on desktop */
+@media (min-width: 768px) {
+  #leadsCardsContainer {
+    display: none !important;
+  }
+}
+
+/* Hide cards on mobile, show table */
+@media (max-width: 767px) {
+  #leadsCardsContainer {
+    display: none !important;
+  }
+}
+
+.report-table-card .input-group-text {
+  border-right: none;
+}
+
+.report-table-card .form-control:focus,
+.report-table-card .form-select:focus {
+  border-color: var(--secondary-color);
+  box-shadow: 0 0 0 0.2rem rgba(52, 152, 219, 0.25);
+}
+
+.report-table-card #employeeSearchInput {
+  border-left: none;
+}
+
+.report-table-card .form-select-sm,
+.report-table-card .form-control-sm {
+  font-size: 0.875rem;
+  padding: 0.375rem 0.5rem;
 }
 
 .empty-state {
@@ -1272,13 +1649,30 @@ document.getElementById('dateRange').addEventListener('change', function() {
 <div class="modal fade" id="leadsModal" tabindex="-1" aria-labelledby="leadsModalLabel" aria-hidden="true">
   <div class="modal-dialog modal-xl modal-dialog-scrollable">
     <div class="modal-content">
-      <div class="modal-header bg-primary text-white">
-        <h5 class="modal-title" id="leadsModalLabel">
-          <i class="bi bi-people-fill me-2"></i>All Leads ({{ modal_leads|length }})
+      <div class="modal-header bg-primary text-white d-flex justify-content-between align-items-center">
+        <h5 class="modal-title mb-0" id="leadsModalLabel">
+          <i class="bi bi-people-fill me-2"></i>All Leads (<span id="leadsCount">{{ modal_leads|length }}</span>)
         </h5>
-        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+        <div class="d-flex gap-2 align-items-center">
+          <button class="btn btn-light btn-sm" id="openSearchBtn" type="button" title="Search" onclick="return false;">
+            <i class="bi bi-search"></i>
+          </button>
+          <button class="btn btn-light btn-sm" id="openFilterBtn" type="button">
+            <i class="bi bi-funnel"></i> Filter
+          </button>
+          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
       </div>
       <div class="modal-body">
+        <div class="mb-3" id="searchContainer" style="display: none;">
+          <div class="input-group">
+            <input type="text" class="form-control" id="leadsSearchInput" placeholder="Search by name, email, phone, company, owner...">
+            <button class="btn btn-outline-secondary" type="button" id="clearSearchBtn">
+              <i class="bi bi-x"></i>
+            </button>
+          </div>
+        </div>
+        <!-- Table View (Desktop & Mobile) -->
         <div class="table-responsive">
           <table class="table table-hover table-striped">
             <thead class="table-light">
@@ -1288,6 +1682,7 @@ document.getElementById('dateRange').addEventListener('change', function() {
                 <th>Phone</th>
                 <th>Company</th>
                 <th>Owner</th>
+                <th>Status</th>
                 <th>Priority</th>
                 <th>Source</th>
                 <th>Next Action</th>
@@ -1298,12 +1693,15 @@ document.getElementById('dateRange').addEventListener('change', function() {
             <tbody id="leadsTableBody">
               {% if modal_leads %}
                 {% for lead in modal_leads %}
-                  <tr>
+                  <tr data-month="{{ lead.created_month }}" data-year="{{ lead.created_year }}" data-status="{{ lead.status }}" data-priority="{{ lead.priority }}" data-source="{{ lead.source }}">
                     <td>{{ lead.name }}</td>
                     <td>{{ lead.email }}</td>
                     <td>{{ lead.phone }}</td>
                     <td>{{ lead.company }}</td>
                     <td>{{ lead.owner }}</td>
+                    <td>
+                      <span class="badge {{ lead.status_badge }}">{{ lead.status }}</span>
+                    </td>
                     <td>
                       <span class="badge 
                         {% if lead.priority == 'High' %}bg-danger
@@ -1321,7 +1719,647 @@ document.getElementById('dateRange').addEventListener('change', function() {
                 {% endfor %}
               {% else %}
                 <tr>
-                  <td colspan="10" class="text-center py-4 text-muted">No leads found</td>
+                  <td colspan="11" class="text-center py-4 text-muted">No leads found</td>
+                </tr>
+              {% endif %}
+            </tbody>
+          </table>
+        </div>
+        
+        <!-- Mobile Cards View -->
+        <div class="d-md-none" id="leadsCardsContainer">
+          {% if modal_leads %}
+            {% for lead in modal_leads %}
+              <div class="card mb-3 lead-card" data-month="{{ lead.created_month }}" data-year="{{ lead.created_year }}" data-status="{{ lead.status }}" data-priority="{{ lead.priority }}" data-source="{{ lead.source }}">
+                <div class="card-body">
+                  <div class="d-flex justify-content-between align-items-start mb-2">
+                    <h6 class="card-title mb-0 fw-bold">{{ lead.name }}</h6>
+                    <div class="d-flex gap-1">
+                      <span class="badge {{ lead.status_badge }}">{{ lead.status }}</span>
+                      <span class="badge 
+                        {% if lead.priority == 'High' %}bg-danger
+                        {% elif lead.priority == 'Med' %}bg-warning text-dark
+                        {% elif lead.priority == 'Low' %}bg-success
+                        {% else %}bg-secondary{% endif %}">
+                        {{ lead.priority }}
+                      </span>
+                    </div>
+                  </div>
+                  <div class="lead-details">
+                    {% if lead.email and lead.email != '-' %}
+                    <div class="mb-2">
+                      <small class="text-muted"><i class="bi bi-envelope"></i> Email:</small>
+                      <div class="fw-semibold">{{ lead.email }}</div>
+                    </div>
+                    {% endif %}
+                    {% if lead.phone and lead.phone != '-' %}
+                    <div class="mb-2">
+                      <small class="text-muted"><i class="bi bi-telephone"></i> Phone:</small>
+                      <div class="fw-semibold">{{ lead.phone }}</div>
+                    </div>
+                    {% endif %}
+                    {% if lead.company and lead.company != '-' %}
+                    <div class="mb-2">
+                      <small class="text-muted"><i class="bi bi-building"></i> Company:</small>
+                      <div class="fw-semibold">{{ lead.company }}</div>
+                    </div>
+                    {% endif %}
+                    {% if lead.owner and lead.owner != '-' %}
+                    <div class="mb-2">
+                      <small class="text-muted"><i class="bi bi-person"></i> Owner:</small>
+                      <div class="fw-semibold">{{ lead.owner|truncatewords:10 }}</div>
+                    </div>
+                    {% endif %}
+                    <div class="row g-2 mt-2">
+                      <div class="col-6">
+                        <small class="text-muted d-block">Source</small>
+                        <span class="badge bg-info">{{ lead.source }}</span>
+                      </div>
+                      {% if lead.next_action and lead.next_action != '-' %}
+                      <div class="col-6">
+                        <small class="text-muted d-block">Next Action</small>
+                        <span class="badge bg-primary">{{ lead.next_action }}</span>
+                      </div>
+                      {% endif %}
+                    </div>
+                    {% if lead.due_date and lead.due_date != '-' %}
+                    <div class="mt-2">
+                      <small class="text-muted"><i class="bi bi-calendar"></i> Due Date:</small>
+                      <div class="fw-semibold">{{ lead.due_date }}</div>
+                    </div>
+                    {% endif %}
+                    {% if lead.created_at_display and lead.created_at_display != '-' %}
+                    <div class="mt-2">
+                      <small class="text-muted"><i class="bi bi-clock"></i> Created:</small>
+                      <div class="text-muted small">{{ lead.created_at_display }}</div>
+                    </div>
+                    {% endif %}
+                  </div>
+                </div>
+              </div>
+            {% endfor %}
+          {% else %}
+            <div class="text-center py-4 text-muted">
+              <i class="bi bi-inbox fs-1 d-block mb-2"></i>
+              No leads found
+            </div>
+          {% endif %}
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Leads Filter Modal -->
+<div class="modal fade" id="leadsFilterModal" tabindex="-1" aria-labelledby="leadsFilterModalLabel" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="leadsFilterModalLabel">
+          <i class="bi bi-funnel"></i> Filter Leads
+        </h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <form id="leadsFilterForm">
+        <div class="modal-body">
+          <div class="row">
+            <div class="col-md-6 mb-3">
+              <label class="form-label">Filter by Month</label>
+              <input type="month" name="filter_month" id="filter_month" class="form-control">
+            </div>
+            <div class="col-md-6 mb-3">
+              <label class="form-label">Filter by Year</label>
+              <input type="number" name="filter_year" id="filter_year" class="form-control" min="2000" max="2100" placeholder="e.g. 2025">
+            </div>
+          </div>
+          <div class="row">
+            <div class="col-md-6 mb-3">
+              <label class="form-label">Filter by Status</label>
+              <select name="filter_status" id="filter_status" class="form-select">
+                <option value="">All Status</option>
+                <option value="Pending">Pending</option>
+                <option value="Converted">Converted</option>
+              </select>
+            </div>
+            <div class="col-md-6 mb-3">
+              <label class="form-label">Filter by Priority</label>
+              <select name="filter_priority" id="filter_priority" class="form-select">
+                <option value="">All Priority</option>
+                <option value="High">High</option>
+                <option value="Med">Medium</option>
+                <option value="Low">Low</option>
+              </select>
+            </div>
+          </div>
+          <div class="row">
+            <div class="col-md-12 mb-3">
+              <label class="form-label">Filter by Source</label>
+              <select name="filter_source" id="filter_source" class="form-select">
+                <option value="">All Source</option>
+                <option value="Website">Website</option>
+                <option value="Referral">Referral</option>
+                <option value="Cold Call">Cold Call</option>
+                <option value="Social">Social Media</option>
+                <option value="Event">Event</option>
+                <option value="Other">Other</option>
+              </select>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-outline-secondary" id="resetLeadsFilter">Reset</button>
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+          <button type="submit" class="btn btn-primary">Apply Filter</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  const filterForm = document.getElementById('leadsFilterForm');
+  const resetBtn = document.getElementById('resetLeadsFilter');
+  const openFilterBtn = document.getElementById('openFilterBtn');
+  const openSearchBtn = document.getElementById('openSearchBtn');
+  const searchContainer = document.getElementById('searchContainer');
+  const leadsSearchInput = document.getElementById('leadsSearchInput');
+  const clearSearchBtn = document.getElementById('clearSearchBtn');
+  const leadsTableBody = document.getElementById('leadsTableBody');
+  const leadsCount = document.getElementById('leadsCount');
+  const leadsFilterModal = document.getElementById('leadsFilterModal');
+  
+  function updateLeadsCount() {
+    if (!leadsCount) return;
+    
+    let count = 0;
+    
+    // Count visible table rows (desktop)
+    if (leadsTableBody) {
+      const visibleRows = Array.from(leadsTableBody.querySelectorAll('tr')).filter(row => row.style.display !== 'none');
+      count = visibleRows.length;
+    }
+    
+    // Count visible cards (mobile)
+    const leadsCardsContainer = document.getElementById('leadsCardsContainer');
+    if (leadsCardsContainer) {
+      const visibleCards = Array.from(leadsCardsContainer.querySelectorAll('.lead-card')).filter(card => card.style.display !== 'none');
+      if (visibleCards.length > 0) {
+        count = visibleCards.length;
+      }
+    }
+    
+    leadsCount.textContent = count;
+  }
+  
+  function performSearch() {
+    // Re-apply all filters including search
+    applyFilters();
+  }
+  
+  function applyFilters() {
+    const month = document.getElementById('filter_month')?.value || '';
+    const status = document.getElementById('filter_status')?.value || '';
+    const year = document.getElementById('filter_year')?.value || '';
+    const priority = document.getElementById('filter_priority')?.value || '';
+    const source = document.getElementById('filter_source')?.value || '';
+    const searchTerm = leadsSearchInput ? leadsSearchInput.value.toLowerCase().trim() : '';
+    
+    let visibleCount = 0;
+    
+    // Filter table rows (desktop)
+    if (leadsTableBody) {
+      const rows = leadsTableBody.querySelectorAll('tr');
+      rows.forEach(row => {
+        let show = true;
+        const rowMonth = row.getAttribute('data-month');
+        const rowYear = row.getAttribute('data-year');
+        const rowStatus = row.getAttribute('data-status');
+        const rowPriority = row.getAttribute('data-priority');
+        const rowSource = row.getAttribute('data-source');
+        
+        if (month && rowMonth !== month) {
+          show = false;
+        }
+        if (status && rowStatus !== status) {
+          show = false;
+        }
+        if (year && rowYear !== year) {
+          show = false;
+        }
+        if (priority && rowPriority !== priority) {
+          show = false;
+        }
+        if (source && rowSource !== source) {
+          show = false;
+        }
+        
+        // Also check search term
+        if (show && searchTerm) {
+          const rowText = row.textContent.toLowerCase();
+          if (!rowText.includes(searchTerm)) {
+            show = false;
+          }
+        }
+        
+        row.style.display = show ? '' : 'none';
+        if (show) visibleCount++;
+      });
+    }
+    
+    // Filter cards (mobile)
+    const leadsCardsContainer = document.getElementById('leadsCardsContainer');
+    if (leadsCardsContainer) {
+      const cards = leadsCardsContainer.querySelectorAll('.lead-card');
+      cards.forEach(card => {
+        let show = true;
+        const cardMonth = card.getAttribute('data-month');
+        const cardYear = card.getAttribute('data-year');
+        const cardStatus = card.getAttribute('data-status');
+        const cardPriority = card.getAttribute('data-priority');
+        const cardSource = card.getAttribute('data-source');
+        
+        if (month && cardMonth !== month) {
+          show = false;
+        }
+        if (status && cardStatus !== status) {
+          show = false;
+        }
+        if (year && cardYear !== year) {
+          show = false;
+        }
+        if (priority && cardPriority !== priority) {
+          show = false;
+        }
+        if (source && cardSource !== source) {
+          show = false;
+        }
+        
+        // Also check search term
+        if (show && searchTerm) {
+          const cardText = card.textContent.toLowerCase();
+          if (!cardText.includes(searchTerm)) {
+            show = false;
+          }
+        }
+        
+        card.style.display = show ? '' : 'none';
+        if (show) visibleCount++;
+      });
+    }
+    
+    updateLeadsCount();
+  }
+  
+  // Open filter modal
+  if (openFilterBtn && leadsFilterModal) {
+    openFilterBtn.addEventListener('click', function(e) {
+      e.preventDefault();
+      e.stopPropagation();
+      
+      // Check if filter modal instance exists
+      let filterModal = bootstrap.Modal.getInstance(leadsFilterModal);
+      
+      if (!filterModal) {
+        // Create new modal instance
+        filterModal = new bootstrap.Modal(leadsFilterModal, {
+          backdrop: true,
+          keyboard: true
+        });
+      }
+      
+      // Show the filter modal (it will appear on top of leads modal)
+      filterModal.show();
+    });
+  }
+  
+  if (filterForm) {
+    filterForm.addEventListener('submit', function(e) {
+      e.preventDefault();
+      applyFilters();
+      const filterModal = bootstrap.Modal.getInstance(leadsFilterModal);
+      if (filterModal) {
+        filterModal.hide();
+      }
+    });
+  }
+  
+  // When filter modal closes, ensure leads modal backdrop is restored
+  if (leadsFilterModal) {
+    leadsFilterModal.addEventListener('hidden.bs.modal', function() {
+      // Ensure leads modal backdrop is still there
+      const leadsModalEl = document.getElementById('leadsModal');
+      if (leadsModalEl && document.querySelector('.modal-backdrop')) {
+        // Leads modal should still be open
+        document.body.classList.add('modal-open');
+      }
+    });
+  }
+  
+  if (resetBtn) {
+    resetBtn.addEventListener('click', function() {
+      document.getElementById('filter_month').value = '';
+      document.getElementById('filter_status').value = '';
+      document.getElementById('filter_year').value = '';
+      document.getElementById('filter_priority').value = '';
+      document.getElementById('filter_source').value = '';
+      
+      // Reset table rows (desktop)
+      if (leadsTableBody) {
+        const rows = leadsTableBody.querySelectorAll('tr');
+        rows.forEach(row => {
+          row.style.display = '';
+        });
+      }
+      
+      // Reset cards (mobile)
+      const leadsCardsContainer = document.getElementById('leadsCardsContainer');
+      if (leadsCardsContainer) {
+        const cards = leadsCardsContainer.querySelectorAll('.lead-card');
+        cards.forEach(card => {
+          card.style.display = '';
+        });
+      }
+      
+      updateLeadsCount();
+    });
+  }
+  
+  // Search functionality
+  if (openSearchBtn && searchContainer) {
+    // Remove any existing event listeners by cloning
+    const newSearchBtn = openSearchBtn.cloneNode(true);
+    openSearchBtn.parentNode.replaceChild(newSearchBtn, openSearchBtn);
+    
+    // Get the new button reference
+    const searchBtn = document.getElementById('openSearchBtn');
+    
+    searchBtn.addEventListener('click', function(e) {
+      e.preventDefault();
+      e.stopPropagation();
+      
+      // Check current visibility using computed style
+      const computedStyle = window.getComputedStyle(searchContainer);
+      const isCurrentlyVisible = computedStyle.display !== 'none';
+      
+      // Toggle search container visibility
+      if (!isCurrentlyVisible) {
+        // Show search container
+        searchContainer.style.display = 'block';
+        // Focus on input after a small delay to ensure it's visible
+        setTimeout(function() {
+          if (leadsSearchInput) {
+            leadsSearchInput.focus();
+          }
+        }, 100);
+      } else {
+        // Hide search container
+        searchContainer.style.display = 'none';
+        if (leadsSearchInput) {
+          leadsSearchInput.value = '';
+          performSearch();
+        }
+      }
+    });
+  }
+  
+  if (leadsSearchInput) {
+    leadsSearchInput.addEventListener('input', function() {
+      performSearch();
+    });
+    leadsSearchInput.addEventListener('keyup', function(e) {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        performSearch();
+      } else {
+        performSearch();
+      }
+    });
+  }
+  
+  if (clearSearchBtn) {
+    clearSearchBtn.addEventListener('click', function(e) {
+      e.preventDefault();
+      if (leadsSearchInput) {
+        leadsSearchInput.value = '';
+        performSearch();
+      }
+    });
+  }
+  
+  // Initialize count on load
+  updateLeadsCount();
+});
+</script>
+
+<!-- Engineering Modal -->
+<div class="modal fade" id="engineeringModal" tabindex="-1" aria-labelledby="engineeringModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-xl modal-dialog-scrollable">
+    <div class="modal-content">
+      <div class="modal-header bg-primary text-white">
+        <h5 class="modal-title" id="engineeringModalLabel">
+          <i class="bi bi-gear-fill me-2"></i>Engineering Department Overview
+        </h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <!-- Summary Cards -->
+        <div class="row mb-4">
+          <div class="col-md-4">
+            <div class="card border-primary">
+              <div class="card-body">
+                <h6 class="text-muted mb-3 text-center">Total Engineers ({{ engineering_employees_count }})</h6>
+                <div class="engineer-list" style="max-height: 200px; overflow-y: auto;">
+                  {% if engineering_employees_with_projects %}
+                    {% for emp in engineering_employees_with_projects %}
+                      <div class="d-flex justify-content-between align-items-center mb-2 pb-2 border-bottom">
+                        <div>
+                          <strong class="d-block">{{ emp.name }}</strong>
+                          {% if emp.designation %}
+                            <small class="text-muted">{{ emp.designation }}</small>
+                          {% endif %}
+                        </div>
+                        <div class="text-end">
+                          {% if emp.has_projects %}
+                            <span class="badge bg-success">{{ emp.project_count }} Project{{ emp.project_count|pluralize }}</span>
+                          {% else %}
+                            <span class="badge bg-secondary">Not Assigned</span>
+                          {% endif %}
+                        </div>
+                      </div>
+                    {% endfor %}
+                  {% else %}
+                    <p class="text-center text-muted mb-0">No engineers found</p>
+                  {% endif %}
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="col-md-4">
+            <div class="card border-success">
+              <div class="card-body text-center">
+                <h6 class="text-muted mb-2">Completed Projects</h6>
+                <h2 class="mb-0 text-success">{{ engineering_completed_projects }}</h2>
+              </div>
+            </div>
+          </div>
+          <div class="col-md-4">
+            <div class="card border-info">
+              <div class="card-body text-center">
+                <h6 class="text-muted mb-2">Assigned Projects</h6>
+                <h2 class="mb-0 text-info">{{ engineering_total_projects }}</h2>
+                <button type="button" class="btn btn-sm btn-outline-primary mt-2" data-bs-toggle="modal" data-bs-target="#projectNamesModal">
+                  <i class="bi bi-eye"></i> View Project Names
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Projects Table -->
+        <!-- Mobile Card View -->
+        <div class="d-md-none engineering-projects-cards-mobile mb-3">
+          {% if engineering_projects %}
+            {% for project in engineering_projects %}
+              <div class="card mb-3 engineering-project-card-mobile">
+                <div class="card-body">
+                  <div class="d-flex justify-content-between align-items-start mb-3">
+                    <div class="flex-grow-1">
+                      <h6 class="card-title mb-1 fw-bold text-primary">{{ project.project_name }}</h6>
+                      <p class="card-subtitle text-muted small mb-0">
+                        <i class="bi bi-person-fill me-1"></i>{{ project.client_name }}
+                      </p>
+                    </div>
+                    <span class="badge 
+                      {% if project.status == 'completed' %}bg-success
+                      {% elif project.status == 'active' %}bg-primary
+                      {% elif project.status == 'pending' %}bg-warning text-dark
+                      {% elif project.status == 'on_hold' %}bg-danger
+                      {% else %}bg-secondary{% endif %}">
+                      {{ project.status_display }}
+                    </span>
+                  </div>
+                  
+                  <div class="row g-2 mb-3">
+                    <div class="col-6">
+                      <div class="bg-light p-2 rounded">
+                        <small class="text-muted d-block">Assigned Engineer</small>
+                        <strong class="d-block">
+                          {% if project.assigned_engineer %}
+                            {{ project.assigned_engineer }}
+                          {% else %}
+                            <span class="text-muted">Not Assigned</span>
+                          {% endif %}
+                        </strong>
+                      </div>
+                    </div>
+                    <div class="col-6">
+                      <div class="bg-light p-2 rounded">
+                        <small class="text-muted d-block">Project Cost</small>
+                        <strong class="text-success">₹{{ project.project_cost|floatformat:2 }}</strong>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <div class="row g-2 mb-3">
+                    <div class="col-6">
+                      <div class="bg-light p-2 rounded">
+                        <small class="text-muted d-block">Start Date</small>
+                        <strong>{{ project.start_date }}</strong>
+                      </div>
+                    </div>
+                    <div class="col-6">
+                      <div class="bg-light p-2 rounded">
+                        <small class="text-muted d-block">Created At</small>
+                        <strong>{{ project.created_at_display }}</strong>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <div class="d-grid">
+                    <button type="button" class="btn btn-sm btn-outline-primary view-project-btn" 
+                            data-project-name="{{ project.project_name }}"
+                            data-client-name="{{ project.client_name }}"
+                            data-assigned-engineer="{{ project.assigned_engineer }}"
+                            data-status="{{ project.status_display }}"
+                            data-project-cost="₹{{ project.project_cost|floatformat:2 }}"
+                            data-start-date="{{ project.start_date }}"
+                            data-created-at="{{ project.created_at_display }}">
+                      <i class="bi bi-eye me-1"></i>View Details
+                    </button>
+                  </div>
+                </div>
+              </div>
+            {% endfor %}
+          {% else %}
+            <div class="text-center py-4 text-muted">
+              <i class="bi bi-folder-x fs-1 d-block mb-2"></i>
+              <p class="mb-0">No projects found</p>
+            </div>
+          {% endif %}
+        </div>
+        
+        <!-- Desktop Table View -->
+        <div class="table-responsive d-none d-md-block">
+          <table class="table table-hover table-striped">
+            <thead class="table-light">
+              <tr>
+                <th>Project Name</th>
+                <th>Client Name</th>
+                <th>Assigned Engineer</th>
+                <th>Status</th>
+                <th>Project Cost</th>
+                <th>Start Date</th>
+                <th>Created At</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody id="engineeringProjectsTableBody">
+              {% if engineering_projects %}
+                {% for project in engineering_projects %}
+                  <tr>
+                    <td>{{ project.project_name }}</td>
+                    <td>{{ project.client_name }}</td>
+                    <td>
+                      {% if project.assigned_engineer %}
+                        {{ project.assigned_engineer }}
+                      {% else %}
+                        <span class="text-muted">Not Assigned</span>
+                      {% endif %}
+                    </td>
+                    <td>
+                      <span class="badge 
+                        {% if project.status == 'completed' %}bg-success
+                        {% elif project.status == 'active' %}bg-primary
+                        {% elif project.status == 'pending' %}bg-warning text-dark
+                        {% elif project.status == 'on_hold' %}bg-danger
+                        {% else %}bg-secondary{% endif %}">
+                        {{ project.status_display }}
+                      </span>
+                    </td>
+                    <td>₹{{ project.project_cost|floatformat:2 }}</td>
+                    <td>{{ project.start_date }}</td>
+                    <td>{{ project.created_at_display }}</td>
+                    <td>
+                      <button type="button" class="btn btn-sm btn-outline-primary view-project-btn" 
+                              data-project-name="{{ project.project_name }}"
+                              data-client-name="{{ project.client_name }}"
+                              data-assigned-engineer="{{ project.assigned_engineer }}"
+                              data-status="{{ project.status_display }}"
+                              data-project-cost="₹{{ project.project_cost|floatformat:2 }}"
+                              data-start-date="{{ project.start_date }}"
+                              data-created-at="{{ project.created_at_display }}">
+                        <i class="bi bi-eye"></i> View
+                      </button>
+                    </td>
+                  </tr>
+                {% endfor %}
+              {% else %}
+                <tr>
+                  <td colspan="8" class="text-center py-4 text-muted">No projects found</td>
                 </tr>
               {% endif %}
             </tbody>
@@ -1334,5 +2372,1069 @@ document.getElementById('dateRange').addEventListener('change', function() {
     </div>
   </div>
 </div>
+
+<!-- Back Office Modal -->
+<div class="modal fade" id="backofficeModal" tabindex="-1" aria-labelledby="backofficeModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-xl modal-dialog-scrollable">
+    <div class="modal-content">
+      <div class="modal-header bg-primary text-white">
+        <h5 class="modal-title" id="backofficeModalLabel">
+          <i class="bi bi-briefcase-fill me-2"></i>Back Office Department Overview
+        </h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <!-- Summary Cards -->
+        <div class="row mb-4">
+          <div class="col-md-4">
+            <div class="card border-primary">
+              <div class="card-body text-center">
+                <h6 class="text-muted mb-2">Total Employees</h6>
+                <h2 class="mb-0 text-primary">{{ backoffice_employees_count }}</h2>
+              </div>
+            </div>
+          </div>
+          <div class="col-md-4">
+            <div class="card border-success">
+              <div class="card-body text-center">
+                <h6 class="text-muted mb-2">Completed Projects</h6>
+                <h2 class="mb-0 text-success">{{ backoffice_completed_projects }}</h2>
+              </div>
+            </div>
+          </div>
+          <div class="col-md-4">
+            <div class="card border-info">
+              <div class="card-body text-center">
+                <h6 class="text-muted mb-2">Total Projects</h6>
+                <h2 class="mb-0 text-info">{{ backoffice_total_projects }}</h2>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Employees List with Completed Projects -->
+        <div class="card mb-4">
+          <div class="card-header bg-light d-flex justify-content-between align-items-center flex-wrap">
+            <h5 class="mb-0">
+              <i class="bi bi-people-fill me-2"></i>Employees & Completed Projects
+            </h5>
+            <div class="input-group mt-2 mt-md-0" style="max-width: 300px;">
+              <span class="input-group-text bg-white">
+                <i class="bi bi-search"></i>
+              </span>
+              <input type="text" class="form-control" id="backofficeEmployeesSearch" placeholder="Search employees...">
+            </div>
+          </div>
+          <div class="card-body">
+            {% if backoffice_employees %}
+              <!-- Desktop Table View -->
+              <div class="table-responsive backoffice-employees-table-wrapper d-none d-md-block">
+                <table class="table table-hover">
+                  <thead class="table-light">
+                    <tr>
+                      <th>Employee Name</th>
+                      <th>Designation</th>
+                      <th>Total Projects</th>
+                      <th>Completed Projects</th>
+                      <th>Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody id="backofficeEmployeesTableBody">
+                    {% for emp in backoffice_employees %}
+                      <tr>
+                        <td>
+                          <strong>{{ emp.name }}</strong>
+                          {% if emp.email %}
+                            <br><small class="text-muted">{{ emp.email }}</small>
+                          {% endif %}
+                        </td>
+                        <td>{{ emp.designation|default:"-" }}</td>
+                        <td>
+                          <span class="badge bg-info">{{ emp.projects_total }}</span>
+                        </td>
+                        <td>
+                          <span class="badge bg-success">{{ emp.projects_completed }}</span>
+                        </td>
+                        <td>
+                          {% if emp.employee_projects %}
+                            <button type="button" class="btn btn-sm btn-outline-primary view-employee-projects-btn" 
+                                    data-employee-name="{{ emp.name }}"
+                                    data-employee-id="{{ emp.id }}"
+                                    data-projects='{{ emp.employee_projects_json|safe }}'>
+                              <i class="bi bi-eye"></i> View Projects
+                            </button>
+                          {% else %}
+                            <span class="text-muted">No projects</span>
+                          {% endif %}
+                        </td>
+                      </tr>
+                    {% endfor %}
+                  </tbody>
+                </table>
+              </div>
+              
+              <!-- Mobile Card View -->
+              <div class="backoffice-employees-cards-wrapper d-md-none">
+                <div id="backofficeEmployeesCardsContainer" class="row g-3">
+                  {% for emp in backoffice_employees %}
+                    <div class="col-12 employee-card-item" 
+                         data-name="{{ emp.name|lower }}"
+                         data-designation="{{ emp.designation|default:''|lower }}"
+                         data-email="{{ emp.email|default:''|lower }}">
+                      <div class="card shadow-sm border">
+                        <div class="card-body">
+                          <div class="d-flex justify-content-between align-items-start mb-2">
+                            <div class="flex-grow-1">
+                              <h6 class="card-title mb-1 fw-bold">{{ emp.name }}</h6>
+                              {% if emp.email %}
+                                <small class="text-muted d-block">{{ emp.email }}</small>
+                              {% endif %}
+                              {% if emp.designation %}
+                                <small class="text-muted d-block mt-1">
+                                  <i class="bi bi-briefcase me-1"></i>{{ emp.designation }}
+                                </small>
+                              {% endif %}
+                            </div>
+                          </div>
+                          <div class="row g-2 mt-3">
+                            <div class="col-6">
+                              <div class="text-center p-2 bg-light rounded">
+                                <small class="text-muted d-block">Total Projects</small>
+                                <span class="badge bg-info fs-6">{{ emp.projects_total }}</span>
+                              </div>
+                            </div>
+                            <div class="col-6">
+                              <div class="text-center p-2 bg-light rounded">
+                                <small class="text-muted d-block">Completed</small>
+                                <span class="badge bg-success fs-6">{{ emp.projects_completed }}</span>
+                              </div>
+                            </div>
+                          </div>
+                          <div class="mt-3">
+                            {% if emp.employee_projects %}
+                              <button type="button" class="btn btn-sm btn-outline-primary w-100 view-employee-projects-btn" 
+                                      data-employee-name="{{ emp.name }}"
+                                      data-employee-id="{{ emp.id }}"
+                                      data-projects='{{ emp.employee_projects_json|safe }}'>
+                                <i class="bi bi-eye"></i> View Projects
+                              </button>
+                            {% else %}
+                              <span class="text-muted d-block text-center">No projects</span>
+                            {% endif %}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  {% endfor %}
+                </div>
+              </div>
+            {% else %}
+              <div class="text-center py-4 text-muted">
+                <i class="bi bi-people fs-1 d-block mb-2"></i>
+                <p class="mb-0">No employees found in Back Office department</p>
+              </div>
+            {% endif %}
+          </div>
+        </div>
+
+        <!-- All Projects Table -->
+        <div class="card">
+          <div class="card-header bg-light d-flex justify-content-between align-items-center flex-wrap">
+            <h5 class="mb-0">
+              <i class="bi bi-list-check me-2"></i>All Projects
+            </h5>
+            <div class="input-group mt-2 mt-md-0" style="max-width: 300px;">
+              <span class="input-group-text bg-white">
+                <i class="bi bi-search"></i>
+              </span>
+              <input type="text" class="form-control" id="backofficeProjectsSearch" placeholder="Search projects...">
+            </div>
+          </div>
+          <div class="card-body">
+            {% if backoffice_projects %}
+              <!-- Desktop Table View -->
+              <div class="table-responsive backoffice-projects-table-wrapper d-none d-md-block">
+                <table class="table table-hover table-striped">
+                  <thead class="table-light">
+                    <tr>
+                      <th>Project Name</th>
+                      <th>Client Name</th>
+                      <th>Assigned Employee</th>
+                      <th>Status</th>
+                      <th>Project Cost</th>
+                      <th>Start Date</th>
+                      <th>Created At</th>
+                      <th>Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody id="backofficeProjectsTableBody">
+                    {% for project in backoffice_projects %}
+                      <tr>
+                        <td>{{ project.project_name }}</td>
+                        <td>{{ project.client_name }}</td>
+                        <td>{{ project.assigned_engineer }}</td>
+                        <td>
+                          <span class="badge 
+                            {% if project.status == 'completed' %}bg-success
+                            {% elif project.status == 'active' %}bg-primary
+                            {% elif project.status == 'pending' %}bg-warning text-dark
+                            {% elif project.status == 'on_hold' %}bg-danger
+                            {% else %}bg-secondary{% endif %}">
+                            {{ project.status_display }}
+                          </span>
+                        </td>
+                        <td>₹{{ project.project_cost|floatformat:2 }}</td>
+                        <td>{{ project.start_date }}</td>
+                        <td>{{ project.created_at_display }}</td>
+                        <td>
+                          <button type="button" class="btn btn-sm btn-outline-primary view-project-btn" 
+                                  data-project-name="{{ project.project_name }}"
+                                  data-client-name="{{ project.client_name }}"
+                                  data-assigned-engineer="{{ project.assigned_engineer }}"
+                                  data-status="{{ project.status_display }}"
+                                  data-project-cost="₹{{ project.project_cost|floatformat:2 }}"
+                                  data-start-date="{{ project.start_date }}"
+                                  data-created-at="{{ project.created_at_display }}">
+                            <i class="bi bi-eye"></i> View
+                          </button>
+                        </td>
+                      </tr>
+                    {% endfor %}
+                  </tbody>
+                </table>
+              </div>
+              
+              <!-- Mobile Card View -->
+              <div class="backoffice-projects-cards-wrapper d-md-none">
+                <div id="backofficeProjectsCardsContainer" class="row g-3">
+                  {% for project in backoffice_projects %}
+                    <div class="col-12 project-card-item"
+                         data-project-name="{{ project.project_name|lower }}"
+                         data-client-name="{{ project.client_name|lower }}"
+                         data-assigned-employee="{{ project.assigned_engineer|lower }}"
+                         data-status="{{ project.status_display|lower }}">
+                      <div class="card shadow-sm border">
+                        <div class="card-body">
+                          <div class="d-flex justify-content-between align-items-start mb-2">
+                            <div class="flex-grow-1">
+                              <h6 class="card-title mb-1 fw-bold">{{ project.project_name }}</h6>
+                              <small class="text-muted d-block">
+                                <i class="bi bi-building me-1"></i>{{ project.client_name }}
+                              </small>
+                            </div>
+                            <span class="badge 
+                              {% if project.status == 'completed' %}bg-success
+                              {% elif project.status == 'active' %}bg-primary
+                              {% elif project.status == 'pending' %}bg-warning text-dark
+                              {% elif project.status == 'on_hold' %}bg-danger
+                              {% else %}bg-secondary{% endif %}">
+                              {{ project.status_display }}
+                            </span>
+                          </div>
+                          <div class="row g-2 mt-2">
+                            <div class="col-6">
+                              <small class="text-muted d-block">Assigned To</small>
+                              <span class="d-block">{{ project.assigned_engineer|default:"Not Assigned" }}</span>
+                            </div>
+                            <div class="col-6">
+                              <small class="text-muted d-block">Project Cost</small>
+                              <span class="d-block fw-bold text-primary">₹{{ project.project_cost|floatformat:2 }}</span>
+                            </div>
+                          </div>
+                          <div class="row g-2 mt-2">
+                            <div class="col-6">
+                              <small class="text-muted d-block">Start Date</small>
+                              <span class="d-block">{{ project.start_date|default:"-" }}</span>
+                            </div>
+                            <div class="col-6">
+                              <small class="text-muted d-block">Created At</small>
+                              <span class="d-block">{{ project.created_at_display|default:"-" }}</span>
+                            </div>
+                          </div>
+                          <div class="mt-3">
+                            <button type="button" class="btn btn-sm btn-outline-primary w-100 view-project-btn" 
+                                    data-project-name="{{ project.project_name }}"
+                                    data-client-name="{{ project.client_name }}"
+                                    data-assigned-engineer="{{ project.assigned_engineer }}"
+                                    data-status="{{ project.status_display }}"
+                                    data-project-cost="₹{{ project.project_cost|floatformat:2 }}"
+                                    data-start-date="{{ project.start_date }}"
+                                    data-created-at="{{ project.created_at_display }}">
+                              <i class="bi bi-eye"></i> View Details
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  {% endfor %}
+                </div>
+              </div>
+            {% else %}
+              <div class="text-center py-4 text-muted">
+                <i class="bi bi-folder-x fs-1 d-block mb-2"></i>
+                <p class="mb-0">No projects found</p>
+              </div>
+            {% endif %}
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Employee Projects Modal -->
+<div class="modal fade" id="employeeProjectsModal" tabindex="-1" aria-labelledby="employeeProjectsModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-lg modal-dialog-scrollable">
+    <div class="modal-content">
+      <div class="modal-header bg-info text-white">
+        <h5 class="modal-title" id="employeeProjectsModalLabel">
+          <i class="bi bi-person-badge me-2"></i>Projects for <span id="employeeNameDisplay"></span>
+        </h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <div class="table-responsive">
+          <table class="table table-hover">
+            <thead class="table-light">
+              <tr>
+                <th>Project Name</th>
+                <th>Client Name</th>
+                <th>Status</th>
+                <th>Project Cost</th>
+                <th>Start Date</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody id="employeeProjectsTableBody">
+              <!-- Projects will be populated by JavaScript -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Project Names Modal -->
+<div class="modal fade" id="projectNamesModal" tabindex="-1" aria-labelledby="projectNamesModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered modal-lg">
+    <div class="modal-content">
+      <div class="modal-header bg-primary text-white">
+        <h5 class="modal-title" id="projectNamesModalLabel">
+          <i class="bi bi-list-ul me-2"></i>All Project Names ({{ engineering_total_projects }})
+        </h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        {% if engineering_projects %}
+          <ul class="list-group">
+            {% for project in engineering_projects %}
+              <li class="list-group-item d-flex justify-content-between align-items-center">
+                <span><strong>{{ project.project_name }}</strong> - {{ project.client_name }}</span>
+                <span class="badge 
+                  {% if project.status == 'completed' %}bg-success
+                  {% elif project.status == 'active' %}bg-primary
+                  {% elif project.status == 'pending' %}bg-warning text-dark
+                  {% elif project.status == 'on_hold' %}bg-danger
+                  {% else %}bg-secondary{% endif %}">
+                  {{ project.status_display }}
+                </span>
+              </li>
+            {% endfor %}
+          </ul>
+        {% else %}
+          <p class="text-center text-muted py-4">No projects found</p>
+        {% endif %}
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Project Details Modal -->
+<div class="modal fade" id="projectDetailsModal" tabindex="-1" aria-labelledby="projectDetailsModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header bg-info text-white">
+        <h5 class="modal-title" id="projectDetailsModalLabel">
+          <i class="bi bi-folder-fill me-2"></i>Project Details
+        </h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <div class="mb-3">
+          <strong>Project Name:</strong>
+          <p id="modal-project-name" class="mb-0"></p>
+        </div>
+        <div class="mb-3">
+          <strong>Client Name:</strong>
+          <p id="modal-client-name" class="mb-0"></p>
+        </div>
+        <div class="mb-3">
+          <strong>Assigned Engineer:</strong>
+          <p id="modal-assigned-engineer" class="mb-0"></p>
+        </div>
+        <div class="mb-3">
+          <strong>Status:</strong>
+          <p id="modal-status" class="mb-0"></p>
+        </div>
+        <div class="mb-3">
+          <strong>Project Cost:</strong>
+          <p id="modal-project-cost" class="mb-0"></p>
+        </div>
+        <div class="mb-3">
+          <strong>Start Date:</strong>
+          <p id="modal-start-date" class="mb-0"></p>
+        </div>
+        <div class="mb-3">
+          <strong>Created At:</strong>
+          <p id="modal-created-at" class="mb-0"></p>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+// Handle project view button clicks
+document.addEventListener('DOMContentLoaded', function() {
+  const viewProjectButtons = document.querySelectorAll('.view-project-btn');
+  const projectDetailsModal = new bootstrap.Modal(document.getElementById('projectDetailsModal'));
+  
+  viewProjectButtons.forEach(button => {
+    button.addEventListener('click', function() {
+      document.getElementById('modal-project-name').textContent = this.getAttribute('data-project-name');
+      document.getElementById('modal-client-name').textContent = this.getAttribute('data-client-name');
+      document.getElementById('modal-assigned-engineer').textContent = this.getAttribute('data-assigned-engineer');
+      document.getElementById('modal-status').textContent = this.getAttribute('data-status');
+      document.getElementById('modal-project-cost').textContent = this.getAttribute('data-project-cost');
+      document.getElementById('modal-start-date').textContent = this.getAttribute('data-start-date');
+      document.getElementById('modal-created-at').textContent = this.getAttribute('data-created-at');
+      projectDetailsModal.show();
+    });
+  });
+
+  // Handle Back Office employee projects view button
+  document.querySelectorAll('.view-employee-projects-btn').forEach(button => {
+    button.addEventListener('click', function() {
+      const employeeName = this.getAttribute('data-employee-name');
+      const projectsJson = this.getAttribute('data-projects');
+      const projects = JSON.parse(projectsJson);
+      
+      // Update modal title
+      document.getElementById('employeeNameDisplay').textContent = employeeName;
+      
+      // Clear and populate projects table
+      const tbody = document.getElementById('employeeProjectsTableBody');
+      tbody.innerHTML = '';
+      
+      if (projects && projects.length > 0) {
+        projects.forEach(project => {
+          const row = document.createElement('tr');
+          
+          // Status badge class
+          let statusBadgeClass = 'bg-secondary';
+          if (project.status === 'completed') statusBadgeClass = 'bg-success';
+          else if (project.status === 'active') statusBadgeClass = 'bg-primary';
+          else if (project.status === 'pending') statusBadgeClass = 'bg-warning text-dark';
+          else if (project.status === 'on_hold') statusBadgeClass = 'bg-danger';
+          
+          row.innerHTML = `
+            <td><strong>${project.project_name || '-'}</strong></td>
+            <td>${project.client_name || '-'}</td>
+            <td><span class="badge ${statusBadgeClass}">${project.status_display || project.status || '-'}</span></td>
+            <td>₹${parseFloat(project.project_cost || 0).toFixed(2)}</td>
+            <td>${project.start_date || '-'}</td>
+            <td>
+              <button type="button" class="btn btn-sm btn-outline-primary view-project-btn" 
+                      data-project-name="${project.project_name || ''}"
+                      data-client-name="${project.client_name || ''}"
+                      data-assigned-engineer="${project.assigned_engineer || ''}"
+                      data-status="${project.status_display || project.status || ''}"
+                      data-project-cost="₹${parseFloat(project.project_cost || 0).toFixed(2)}"
+                      data-start-date="${project.start_date || '-'}"
+                      data-created-at="${project.created_at_display || '-'}">
+                <i class="bi bi-eye"></i> View
+              </button>
+            </td>
+          `;
+          tbody.appendChild(row);
+        });
+        
+        // Re-attach event listeners to new view buttons
+        tbody.querySelectorAll('.view-project-btn').forEach(btn => {
+          btn.addEventListener('click', function() {
+            const projectDetailsModal = new bootstrap.Modal(document.getElementById('projectDetailsModal'));
+            document.getElementById('modal-project-name').textContent = this.getAttribute('data-project-name');
+            document.getElementById('modal-client-name').textContent = this.getAttribute('data-client-name');
+            document.getElementById('modal-assigned-engineer').textContent = this.getAttribute('data-assigned-engineer');
+            document.getElementById('modal-status').textContent = this.getAttribute('data-status');
+            document.getElementById('modal-project-cost').textContent = this.getAttribute('data-project-cost');
+            document.getElementById('modal-start-date').textContent = this.getAttribute('data-start-date');
+            document.getElementById('modal-created-at').textContent = this.getAttribute('data-created-at');
+            projectDetailsModal.show();
+          });
+        });
+      } else {
+        tbody.innerHTML = '<tr><td colspan="6" class="text-center py-4 text-muted">No projects found</td></tr>';
+      }
+      
+      // Show the modal
+      const employeeProjectsModal = new bootstrap.Modal(document.getElementById('employeeProjectsModal'));
+      employeeProjectsModal.show();
+    });
+  });
+
+  // Employee Assignment Breakdown Table Filtering
+  const employeeTableBody = document.getElementById('employeeTableBody');
+  const employeeSearchInput = document.getElementById('employeeSearchInput');
+  const departmentFilter = document.getElementById('departmentFilter');
+  const statusFilter = document.getElementById('statusFilter');
+  const monthFilter = document.getElementById('monthFilter');
+  const dayFilter = document.getElementById('dayFilter');
+  const clearFiltersBtn = document.getElementById('clearFiltersBtn');
+  const employeeCountBadge = document.getElementById('employeeCountBadge');
+
+  const employeeCardsMobile = document.getElementById('employeeCardsMobile');
+  
+  if (employeeTableBody || employeeCardsMobile) {
+    function filterEmployeeTable() {
+      const searchTerm = (employeeSearchInput?.value || '').toLowerCase().trim();
+      const departmentValue = (departmentFilter?.value || '').toLowerCase();
+      const statusValue = (statusFilter?.value || '').toLowerCase();
+      const monthValue = monthFilter?.value || '';
+      const dayValue = dayFilter?.value || '';
+
+      // Filter table rows (desktop)
+      const rows = employeeTableBody ? employeeTableBody.querySelectorAll('tr') : [];
+      let visibleCount = 0;
+
+      rows.forEach(row => {
+        const employeeName = (row.getAttribute('data-employee-name') || '').toLowerCase();
+        const department = (row.getAttribute('data-department') || '').toLowerCase();
+        const designation = (row.getAttribute('data-designation') || '').toLowerCase();
+        const projectsPending = parseInt(row.getAttribute('data-projects-pending') || '0');
+        const projectsCompleted = parseInt(row.getAttribute('data-projects-completed') || '0');
+        const projectsTotal = parseInt(row.getAttribute('data-projects-total') || '0');
+
+        // Search filter
+        let matchesSearch = true;
+        if (searchTerm) {
+          matchesSearch = employeeName.includes(searchTerm) || 
+                         department.includes(searchTerm) || 
+                         designation.includes(searchTerm);
+        }
+
+        // Department filter
+        let matchesDepartment = true;
+        if (departmentValue) {
+          // Normalize both values for comparison (remove spaces, handle variations)
+          const normalizedRowDept = department.replace(/\s+/g, '').toLowerCase();
+          const normalizedFilterDept = departmentValue.replace(/\s+/g, '').toLowerCase();
+          matchesDepartment = normalizedRowDept === normalizedFilterDept || 
+                             department.includes(departmentValue) || 
+                             departmentValue.includes(department);
+        }
+
+        // Status filter
+        let matchesStatus = true;
+        if (statusValue === 'pending') {
+          matchesStatus = projectsPending > 0;
+        } else if (statusValue === 'completed') {
+          matchesStatus = projectsCompleted > 0;
+        }
+
+        // Month and day filters are handled server-side, so we show all rows here
+        // They will be filtered when the page reloads
+
+        if (matchesSearch && matchesDepartment && matchesStatus) {
+          row.style.display = '';
+          visibleCount++;
+        } else {
+          row.style.display = 'none';
+        }
+      });
+
+      // Filter mobile cards
+      const cards = employeeCardsMobile ? employeeCardsMobile.querySelectorAll('.employee-card-mobile') : [];
+      cards.forEach(card => {
+        const employeeName = (card.getAttribute('data-employee-name') || '').toLowerCase();
+        const department = (card.getAttribute('data-department') || '').toLowerCase();
+        const designation = (card.getAttribute('data-designation') || '').toLowerCase();
+        const projectsPending = parseInt(card.getAttribute('data-projects-pending') || '0');
+        const projectsCompleted = parseInt(card.getAttribute('data-projects-completed') || '0');
+        const projectsTotal = parseInt(card.getAttribute('data-projects-total') || '0');
+
+        // Search filter
+        let matchesSearch = true;
+        if (searchTerm) {
+          matchesSearch = employeeName.includes(searchTerm) || 
+                         department.includes(searchTerm) || 
+                         designation.includes(searchTerm);
+        }
+
+        // Department filter
+        let matchesDepartment = true;
+        if (departmentValue) {
+          const normalizedRowDept = department.replace(/\s+/g, '').toLowerCase();
+          const normalizedFilterDept = departmentValue.replace(/\s+/g, '').toLowerCase();
+          matchesDepartment = normalizedRowDept === normalizedFilterDept || 
+                             department.includes(departmentValue) || 
+                             departmentValue.includes(department);
+        }
+
+        // Status filter
+        let matchesStatus = true;
+        if (statusValue === 'pending') {
+          matchesStatus = projectsPending > 0;
+        } else if (statusValue === 'completed') {
+          matchesStatus = projectsCompleted > 0;
+        }
+
+        if (matchesSearch && matchesDepartment && matchesStatus) {
+          card.style.display = '';
+          visibleCount++;
+        } else {
+          card.style.display = 'none';
+        }
+      });
+
+      // Update employee count badge
+      if (employeeCountBadge) {
+        employeeCountBadge.textContent = `${visibleCount} employees`;
+      }
+    }
+
+    // Add event listeners
+    if (employeeSearchInput) {
+      employeeSearchInput.addEventListener('input', filterEmployeeTable);
+    }
+    if (departmentFilter) {
+      departmentFilter.addEventListener('change', filterEmployeeTable);
+    }
+    if (statusFilter) {
+      statusFilter.addEventListener('change', filterEmployeeTable);
+    }
+    if (monthFilter) {
+      monthFilter.addEventListener('change', function() {
+        // When month changes, reload page with new month filter
+        const url = new URL(window.location);
+        if (this.value) {
+          url.searchParams.set('month', this.value);
+        } else {
+          url.searchParams.delete('month');
+        }
+        // Clear day filter when month changes
+        url.searchParams.delete('day');
+        window.location.href = url.toString();
+      });
+    }
+    if (dayFilter) {
+      dayFilter.addEventListener('change', function() {
+        // When day changes, reload page with new day filter
+        const url = new URL(window.location);
+        if (this.value) {
+          url.searchParams.set('day', this.value);
+        } else {
+          url.searchParams.delete('day');
+        }
+        window.location.href = url.toString();
+      });
+    }
+    if (clearFiltersBtn) {
+      clearFiltersBtn.addEventListener('click', function() {
+        // Clear client-side filters
+        if (employeeSearchInput) employeeSearchInput.value = '';
+        if (departmentFilter) departmentFilter.value = '';
+        if (statusFilter) statusFilter.value = '';
+        
+        // Check if month or day filters are set (server-side filters)
+        const hasServerFilters = (monthFilter && monthFilter.value) || (dayFilter && dayFilter.value);
+        
+        // Clear month and day filters
+        if (monthFilter) monthFilter.value = '';
+        if (dayFilter) dayFilter.value = '';
+        
+        // Apply client-side filtering immediately
+        filterEmployeeTable();
+        
+        // If server-side filters were active, reload page to clear them
+        if (hasServerFilters) {
+          const url = new URL(window.location);
+          url.searchParams.delete('month');
+          url.searchParams.delete('day');
+          // Keep department filter in URL if it was set from main filter
+          // Only remove it if we're clearing everything
+          window.location.href = url.toString();
+        }
+      });
+    }
+
+    // Set initial filter values from URL parameters
+    const urlParams = new URLSearchParams(window.location.search);
+    const urlDepartment = urlParams.get('department');
+    if (urlDepartment && departmentFilter) {
+      // Find matching option (case-insensitive)
+      const options = departmentFilter.querySelectorAll('option');
+      for (let option of options) {
+        if (option.value.toLowerCase() === urlDepartment.toLowerCase() || 
+            option.value.toLowerCase() === urlDepartment.toLowerCase().replace(/\s+/g, '')) {
+          departmentFilter.value = option.value;
+          break;
+        }
+      }
+    }
+
+    // Initial filter (in case page loads with filters)
+    filterEmployeeTable();
+  }
+
+  // Back Office Modal - Table Scrollable and Search Functionality
+  const backofficeModal = document.getElementById('backofficeModal');
+  if (backofficeModal) {
+    backofficeModal.addEventListener('shown.bs.modal', function() {
+      // Function to make table scrollable if rows > 3
+      function makeTableScrollable(tableWrapper, tbody) {
+        if (!tableWrapper || !tbody) return;
+        const rows = Array.from(tbody.querySelectorAll('tr')).filter(row => {
+          return row.style.display !== 'none' && !row.querySelector('td[colspan]');
+        });
+        if (rows.length > 3) {
+          tableWrapper.classList.add('scrollable');
+        } else {
+          tableWrapper.classList.remove('scrollable');
+        }
+      }
+
+      // Employees table
+      const employeesTableBody = document.getElementById('backofficeEmployeesTableBody');
+      const employeesTableWrapper = document.querySelector('.backoffice-employees-table-wrapper');
+      const employeesSearchInput = document.getElementById('backofficeEmployeesSearch');
+
+      if (employeesTableBody && employeesTableWrapper) {
+        // Make scrollable initially
+        makeTableScrollable(employeesTableWrapper, employeesTableBody);
+
+        // Search functionality for employees (table and cards)
+        if (employeesSearchInput) {
+          employeesSearchInput.addEventListener('input', function() {
+            const searchTerm = this.value.toLowerCase().trim();
+            
+            // Search in table (desktop)
+            if (employeesTableBody) {
+              const rows = employeesTableBody.querySelectorAll('tr');
+              rows.forEach(row => {
+                const name = (row.querySelector('td:first-child')?.textContent || '').toLowerCase();
+                const designation = (row.querySelector('td:nth-child(2)')?.textContent || '').toLowerCase();
+                const email = (row.querySelector('td:first-child small')?.textContent || '').toLowerCase();
+                
+                if (searchTerm === '' || name.includes(searchTerm) || designation.includes(searchTerm) || email.includes(searchTerm)) {
+                  row.style.display = '';
+                } else {
+                  row.style.display = 'none';
+                }
+              });
+              makeTableScrollable(employeesTableWrapper, employeesTableBody);
+            }
+            
+            // Search in cards (mobile)
+            const employeeCards = document.querySelectorAll('.employee-card-item');
+            employeeCards.forEach(card => {
+              const name = card.getAttribute('data-name') || '';
+              const designation = card.getAttribute('data-designation') || '';
+              const email = card.getAttribute('data-email') || '';
+              
+              if (searchTerm === '' || name.includes(searchTerm) || designation.includes(searchTerm) || email.includes(searchTerm)) {
+                card.style.display = '';
+              } else {
+                card.style.display = 'none';
+              }
+            });
+          });
+        }
+      }
+
+      // Projects table
+      const projectsTableBody = document.getElementById('backofficeProjectsTableBody');
+      const projectsTableWrapper = document.querySelector('.backoffice-projects-table-wrapper');
+      const projectsSearchInput = document.getElementById('backofficeProjectsSearch');
+
+      if (projectsTableBody && projectsTableWrapper) {
+        // Make scrollable initially
+        makeTableScrollable(projectsTableWrapper, projectsTableBody);
+
+        // Search functionality for projects (table and cards)
+        if (projectsSearchInput) {
+          projectsSearchInput.addEventListener('input', function() {
+            const searchTerm = this.value.toLowerCase().trim();
+            
+            // Search in table (desktop)
+            if (projectsTableBody) {
+              const rows = projectsTableBody.querySelectorAll('tr');
+              rows.forEach(row => {
+                const projectName = (row.querySelector('td:first-child')?.textContent || '').toLowerCase();
+                const clientName = (row.querySelector('td:nth-child(2)')?.textContent || '').toLowerCase();
+                const assignedEmployee = (row.querySelector('td:nth-child(3)')?.textContent || '').toLowerCase();
+                const status = (row.querySelector('td:nth-child(4)')?.textContent || '').toLowerCase();
+                
+                if (searchTerm === '' || projectName.includes(searchTerm) || clientName.includes(searchTerm) || 
+                    assignedEmployee.includes(searchTerm) || status.includes(searchTerm)) {
+                  row.style.display = '';
+                } else {
+                  row.style.display = 'none';
+                }
+              });
+              makeTableScrollable(projectsTableWrapper, projectsTableBody);
+            }
+            
+            // Search in cards (mobile)
+            const projectCards = document.querySelectorAll('.project-card-item');
+            projectCards.forEach(card => {
+              const projectName = card.getAttribute('data-project-name') || '';
+              const clientName = card.getAttribute('data-client-name') || '';
+              const assignedEmployee = card.getAttribute('data-assigned-employee') || '';
+              const status = card.getAttribute('data-status') || '';
+              
+              if (searchTerm === '' || projectName.includes(searchTerm) || clientName.includes(searchTerm) || 
+                  assignedEmployee.includes(searchTerm) || status.includes(searchTerm)) {
+                card.style.display = '';
+              } else {
+                card.style.display = 'none';
+              }
+            });
+          });
+        }
+      }
+    });
+  }
+});
+</script>
+
+<!-- Accounts Team Modal -->
+<div class="modal fade" id="accountsModal" tabindex="-1" aria-labelledby="accountsModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-xl modal-dialog-scrollable">
+    <div class="modal-content">
+      <div class="modal-header bg-success text-white">
+        <h5 class="modal-title" id="accountsModalLabel">
+          <i class="bi bi-people-fill me-2"></i>Accounts Team Employees ({{ accounts_employees|length }})
+        </h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        {% if accounts_employees %}
+          <!-- Desktop Table View -->
+          <div class="table-responsive d-none d-md-block">
+            <table class="table table-hover table-striped">
+              <thead class="table-light">
+                <tr>
+                  <th>Employee Name</th>
+                  <th>Designation</th>
+                  <th class="text-center">Projects (Total)</th>
+                  <th class="text-center">Leads (Total)</th>
+                  <th class="text-center">Action</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for emp in accounts_employees %}
+                  <tr>
+                    <td>
+                      <strong>{{ emp.name }}</strong>
+                      {% if emp.email %}
+                        <br><small class="text-muted">{{ emp.email }}</small>
+                      {% endif %}
+                    </td>
+                    <td>{{ emp.designation|default:"-" }}</td>
+                    <td class="text-center">
+                      <span class="badge bg-primary fs-6">{{ emp.projects_total }}</span>
+                    </td>
+                    <td class="text-center">
+                      <span class="badge bg-info fs-6">{{ emp.leads_total }}</span>
+                    </td>
+                    <td class="text-center">
+                      <button type="button" class="btn btn-sm btn-outline-primary view-projects-btn" 
+                              data-employee-id="{{ emp.id }}"
+                              data-employee-name="{{ emp.name }}"
+                              data-bs-toggle="modal" 
+                              data-bs-target="#projectsModal{{ emp.id }}">
+                        <i class="bi bi-eye me-1"></i>View More
+                      </button>
+                    </td>
+                  </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+          
+          <!-- Mobile Card View -->
+          <div class="d-md-none accounts-mobile-cards">
+            {% for emp in accounts_employees %}
+              <div class="card mb-3 shadow-sm">
+                <div class="card-body">
+                  <div class="d-flex justify-content-between align-items-start mb-2">
+                    <div>
+                      <h6 class="card-title mb-1 fw-bold">{{ emp.name }}</h6>
+                      {% if emp.email %}
+                        <small class="text-muted d-block">{{ emp.email }}</small>
+                      {% endif %}
+                      {% if emp.designation %}
+                        <small class="text-muted d-block mt-1">
+                          <i class="bi bi-briefcase me-1"></i>{{ emp.designation }}
+                        </small>
+                      {% endif %}
+                    </div>
+                  </div>
+                  <div class="row g-2 mt-3">
+                    <div class="col-6">
+                      <div class="text-center p-2 bg-light rounded">
+                        <small class="text-muted d-block">Projects</small>
+                        <span class="badge bg-primary fs-6">{{ emp.projects_total }}</span>
+                      </div>
+                    </div>
+                    <div class="col-6">
+                      <div class="text-center p-2 bg-light rounded">
+                        <small class="text-muted d-block">Leads</small>
+                        <span class="badge bg-info fs-6">{{ emp.leads_total }}</span>
+                      </div>
+                    </div>
+                  </div>
+                  <div class="mt-3">
+                    <button type="button" class="btn btn-sm btn-outline-primary w-100 view-projects-btn" 
+                            data-employee-id="{{ emp.id }}"
+                            data-employee-name="{{ emp.name }}"
+                            data-bs-toggle="modal" 
+                            data-bs-target="#projectsModal{{ emp.id }}">
+                      <i class="bi bi-eye me-1"></i>View More
+                    </button>
+                  </div>
+                </div>
+              </div>
+            {% endfor %}
+          </div>
+        {% else %}
+          <div class="text-center py-4 text-muted">
+            <i class="bi bi-clipboard-x fs-1 d-block mb-2"></i>
+            <p class="mb-0">No Accounts team employees found</p>
+          </div>
+        {% endif %}
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Project Details Modals for each employee -->
+{% for emp in accounts_employees %}
+<div class="modal fade" id="projectsModal{{ emp.id }}" tabindex="-1" aria-labelledby="projectsModalLabel{{ emp.id }}" aria-hidden="true">
+  <div class="modal-dialog modal-lg modal-dialog-scrollable">
+    <div class="modal-content">
+      <div class="modal-header bg-primary text-white">
+        <h5 class="modal-title" id="projectsModalLabel{{ emp.id }}">
+          <i class="bi bi-folder-fill me-2"></i>Projects - {{ emp.name }}
+        </h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        {% if emp.employee_projects %}
+          <!-- Desktop Table View -->
+          <div class="table-responsive d-none d-md-block">
+            <table class="table table-hover">
+              <thead class="table-light">
+                <tr>
+                  <th>Project Name</th>
+                  <th>Client Name</th>
+                  <th>Status</th>
+                  <th>Cost</th>
+                  <th>Created At</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for project in emp.employee_projects %}
+                  <tr>
+                    <td><strong>{{ project.project_name }}</strong></td>
+                    <td>{{ project.client_name }}</td>
+                    <td>
+                      <span class="badge 
+                        {% if project.status == 'completed' %}bg-success
+                        {% elif project.status == 'active' %}bg-primary
+                        {% elif project.status == 'pending' %}bg-warning text-dark
+                        {% elif project.status == 'on_hold' %}bg-secondary
+                        {% else %}bg-secondary{% endif %}">
+                        {{ project.status|title }}
+                      </span>
+                    </td>
+                    <td>₹{{ project.project_cost|floatformat:2 }}</td>
+                    <td>{{ project.created_at }}</td>
+                  </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+          
+          <!-- Mobile Card View -->
+          <div class="d-md-none accounts-projects-mobile-cards">
+            {% for project in emp.employee_projects %}
+              <div class="card mb-3 shadow-sm">
+                <div class="card-body">
+                  <div class="d-flex justify-content-between align-items-start mb-2">
+                    <div class="flex-grow-1">
+                      <h6 class="card-title mb-1 fw-bold">{{ project.project_name }}</h6>
+                      <small class="text-muted d-block">
+                        <i class="bi bi-person me-1"></i>{{ project.client_name }}
+                      </small>
+                    </div>
+                    <span class="badge 
+                      {% if project.status == 'completed' %}bg-success
+                      {% elif project.status == 'active' %}bg-primary
+                      {% elif project.status == 'pending' %}bg-warning text-dark
+                      {% elif project.status == 'on_hold' %}bg-secondary
+                      {% else %}bg-secondary{% endif %}">
+                      {{ project.status|title }}
+                    </span>
+                  </div>
+                  <div class="row g-2 mt-3">
+                    <div class="col-6">
+                      <div class="p-2 bg-light rounded">
+                        <small class="text-muted d-block">Cost</small>
+                        <strong class="text-primary">₹{{ project.project_cost|floatformat:2 }}</strong>
+                      </div>
+                    </div>
+                    <div class="col-6">
+                      <div class="p-2 bg-light rounded">
+                        <small class="text-muted d-block">Created</small>
+                        <strong class="text-muted">{{ project.created_at }}</strong>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            {% endfor %}
+          </div>
+        {% else %}
+          <div class="text-center py-4 text-muted">
+            <i class="bi bi-folder-x fs-1 d-block mb-2"></i>
+            <p class="mb-0">No projects found for this employee</p>
+          </div>
+        {% endif %}
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+      </div>
+    </div>
+  </div>
+</div>
+{% endfor %}
 
 {% endblock %}

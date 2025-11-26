@@ -4652,30 +4652,48 @@ def reports(request):
     selected_department_label = selected_department if selected_department != 'all' else 'All Departments'
 
     month_param_raw = request.GET.get('month', '').strip()
+    day_param_raw = request.GET.get('day', '').strip()
     month_input_value = ''
+    day_input_value = ''
     showing_all_time = False
     now = timezone.now()
 
-    if month_param_raw.lower() == 'all':
-        start_date = None
-        end_date = None
-        month_label = 'All Time'
-        showing_all_time = True
+    # Check if day filter is provided
+    if day_param_raw:
+        try:
+            selected_date = datetime.strptime(day_param_raw, '%Y-%m-%d').date()
+            start_date = selected_date
+            end_date = selected_date
+            month_label = selected_date.strftime('%d %B %Y')
+            month_input_value = selected_date.strftime('%Y-%m')
+            day_input_value = day_param_raw
+        except ValueError:
+            day_param_raw = ''
+            selected_date = None
     else:
-        if not month_param_raw:
-            year = now.year
-            month = now.month
+        selected_date = None
+
+    if not selected_date:
+        if month_param_raw.lower() == 'all':
+            start_date = None
+            end_date = None
+            month_label = 'All Time'
+            showing_all_time = True
         else:
-            try:
-                year, month = map(int, month_param_raw.split('-'))
-            except ValueError:
+            if not month_param_raw:
                 year = now.year
                 month = now.month
-        start_date = date(year, month, 1)
-        last_day = calendar.monthrange(year, month)[1]
-        end_date = date(year, month, last_day)
-        month_label = start_date.strftime('%B %Y')
-        month_input_value = f"{year:04d}-{month:02d}"
+            else:
+                try:
+                    year, month = map(int, month_param_raw.split('-'))
+                except ValueError:
+                    year = now.year
+                    month = now.month
+            start_date = date(year, month, 1)
+            last_day = calendar.monthrange(year, month)[1]
+            end_date = date(year, month, last_day)
+            month_label = start_date.strftime('%B %Y')
+            month_input_value = f"{year:04d}-{month:02d}"
 
     filters_active = bool(request.GET)
 
@@ -4851,8 +4869,36 @@ def reports(request):
         sales_summary['leads_low'] = low_count + other_count
 
     modal_leads_queryset = Lead.objects.filter(is_active=True).order_by('-created_at')
+    
+    # Determine conversion status by cross-checking ClientOnboarding records
+    def normalize_email(value):
+        return value.strip().lower() if value else ''
+
+    def normalize_phone(value):
+        if not value:
+            return ''
+        return re.sub(r'\D+', '', value)
+
+    client_contacts = list(ClientOnboarding.objects.all().values('client_email', 'client_phone', 'client_name'))
+    client_emails = {normalize_email(item['client_email']) for item in client_contacts if item['client_email']}
+    client_phones = {normalize_phone(item['client_phone']) for item in client_contacts if item['client_phone']}
+    client_names = {normalize_email(item['client_name']) for item in client_contacts if item['client_name']}
+    
     modal_leads = []
     for lead in modal_leads_queryset:
+        email_key = normalize_email(lead.email)
+        phone_key = normalize_phone(lead.phone)
+        name_key = normalize_email(lead.name)
+
+        converted = any([
+            email_key and email_key in client_emails,
+            phone_key and phone_key in client_phones,
+            name_key and name_key in client_names
+        ])
+
+        conversion_status = 'Converted' if converted else 'Pending'
+        conversion_badge = 'bg-success' if converted else 'bg-secondary'
+        
         modal_leads.append({
             'id': lead.id,
             'name': lead.name,
@@ -4862,12 +4908,168 @@ def reports(request):
             'owner': lead.owner or '-',
             'priority': lead.priority,
             'source': lead.source,
+            'status': conversion_status,
+            'status_badge': conversion_badge,
             'next_action': lead.next_action or '-',
             'due_date': lead.due_date.strftime('%d-%b-%Y') if lead.due_date else '-',
             'created_at_display': lead.created_at.strftime('%d-%b-%Y %H:%M') if lead.created_at else '-',
             'created_month': lead.created_at.strftime('%Y-%m') if lead.created_at else '',
             'created_year': lead.created_at.strftime('%Y') if lead.created_at else '',
         })
+
+    # Engineering department data for modal
+    # Get all Engineering employees using the same logic as main reports
+    engineering_employees_list = []
+    for emp in employees_qs:
+        dept_name = canonical_department(emp.department)
+        if dept_name == 'Engineering':
+            engineering_employees_list.append(emp)
+    
+    # Get all projects and match them to Engineering employees using same logic as main reports
+    engineering_projects = []
+    engineering_employee_keys = set()
+    engineering_employee_name_map = {}  # Map normalized keys to actual employee names
+    engineering_employee_project_map = {}  # Map employee to their projects
+    
+    for emp in engineering_employees_list:
+        keys = employee_keys(emp)
+        engineering_employee_keys.update(keys)
+        emp_name = emp.get_full_name() or emp.first_name or 'Unknown'
+        # Store mapping for display
+        for key in keys:
+            if key:
+                engineering_employee_name_map[key] = emp_name
+                engineering_employee_project_map[key] = {
+                    'name': emp_name,
+                    'designation': emp.designation or '',
+                    'projects': []
+                }
+    
+    # Get all projects (without date filter for modal)
+    all_projects = ClientOnboarding.objects.all().order_by('-created_at')
+    for project in all_projects:
+        assigned_engineer_normalized = normalize_key(project.assigned_engineer)
+        # Match using the same logic as main reports
+        if assigned_engineer_normalized and assigned_engineer_normalized in engineering_employee_keys:
+            project_data = {
+                'id': project.id,
+                'project_name': project.project_name,
+                'client_name': project.client_name,
+                'assigned_engineer': project.assigned_engineer,
+                'status': project.status,
+                'status_display': project.get_status_display(),
+                'project_cost': project.project_cost,
+                'start_date': project.start_date.strftime('%d-%b-%Y') if project.start_date else '-',
+                'created_at_display': project.created_at.strftime('%d-%b-%Y %H:%M') if project.created_at else '-',
+            }
+            engineering_projects.append(project_data)
+            # Add to employee's project list
+            if assigned_engineer_normalized in engineering_employee_project_map:
+                engineering_employee_project_map[assigned_engineer_normalized]['projects'].append(project_data)
+    
+    # Create list of engineering employees with their project status
+    engineering_employees_with_projects = []
+    for emp in engineering_employees_list:
+        emp_name = emp.get_full_name() or emp.first_name or 'Unknown'
+        keys = employee_keys(emp)
+        has_projects = False
+        unique_projects = set()  # Use set to avoid duplicate counting
+        
+        for key in keys:
+            if key and key in engineering_employee_project_map:
+                projects = engineering_employee_project_map[key]['projects']
+                if projects:
+                    has_projects = True
+                    # Add project IDs to set to avoid duplicates
+                    for proj in projects:
+                        unique_projects.add(proj['id'])
+        
+        engineering_employees_with_projects.append({
+            'name': emp_name,
+            'designation': emp.designation or '',
+            'has_projects': has_projects,
+            'project_count': len(unique_projects),
+            'status': 'Assigned' if has_projects else 'Not Assigned'
+        })
+    
+    total_engineering_employees = len(engineering_employees_list)
+    total_assigned_projects = len(engineering_projects)
+    completed_projects_count = sum(1 for p in engineering_projects if p['status'] == 'completed')
+
+    # Back Office department data for modal
+    backoffice_employees = Employee.objects.filter(
+        department__icontains='backoffice'
+    ) | Employee.objects.filter(
+        department__icontains='back office'
+    ) | Employee.objects.filter(
+        department__icontains='backofficeops'
+    ) | Employee.objects.filter(
+        department__icontains='backofficeoperations'
+    ) | Employee.objects.filter(
+        department__icontains='backoffice-support'
+    )
+    # Normalize department names
+    backoffice_employees_list = []
+    for emp in backoffice_employees:
+        dept_name = canonical_department(emp.department)
+        if dept_name == 'Back Office':
+            backoffice_employees_list.append(emp)
+    
+    # Get all projects assigned to Back Office employees
+    backoffice_projects = []
+    backoffice_employee_names = {emp.get_full_name() or emp.first_name or '' for emp in backoffice_employees_list}
+    backoffice_employee_names.update({emp.first_name or '' for emp in backoffice_employees_list if emp.first_name})
+    backoffice_employee_names.update({emp.emp_code or '' for emp in backoffice_employees_list if emp.emp_code})
+    backoffice_employee_names.update({emp.email or '' for emp in backoffice_employees_list if emp.email})
+    backoffice_employee_names.update({emp.work_email or '' for emp in backoffice_employees_list if emp.work_email})
+    backoffice_employee_names = {name.lower().strip() for name in backoffice_employee_names if name}
+    
+    all_projects_backoffice = ClientOnboarding.objects.all()
+    for project in all_projects_backoffice:
+        assigned_engineer_normalized = normalize_key(project.assigned_engineer)
+        if assigned_engineer_normalized in backoffice_employee_names:
+            backoffice_projects.append({
+                'id': project.id,
+                'project_name': project.project_name,
+                'client_name': project.client_name,
+                'assigned_engineer': project.assigned_engineer,
+                'status': project.status,
+                'status_display': project.get_status_display(),
+                'project_cost': project.project_cost,
+                'start_date': project.start_date.strftime('%d-%b-%Y') if project.start_date else '-',
+                'created_at_display': project.created_at.strftime('%d-%b-%Y %H:%M') if project.created_at else '-',
+            })
+    
+    # Prepare Back Office employees data with completed projects count
+    backoffice_employees_data = []
+    for emp in backoffice_employees_list:
+        keys = employee_keys(emp)
+        employee_projects_list = []
+        completed_count = 0
+        
+        # Get projects for this employee
+        for project in backoffice_projects:
+            assigned_engineer_normalized = normalize_key(project['assigned_engineer'])
+            # Check if assigned engineer matches any of the employee's keys
+            if assigned_engineer_normalized in keys:
+                employee_projects_list.append(project)
+                if project['status'] == 'completed':
+                    completed_count += 1
+        
+        backoffice_employees_data.append({
+            'id': emp.id,
+            'name': emp.get_full_name() or emp.first_name or 'Unnamed',
+            'designation': emp.designation or '',
+            'email': emp.email or '',
+            'projects_total': len(employee_projects_list),
+            'projects_completed': completed_count,
+            'employee_projects': employee_projects_list,
+            'employee_projects_json': json.dumps(employee_projects_list),
+        })
+    
+    total_backoffice_employees = len(backoffice_employees_list)
+    total_backoffice_projects = len(backoffice_projects)
+    total_backoffice_completed = sum(1 for p in backoffice_projects if p['status'] == 'completed')
 
     department_cards = []
     for dept in tracked_departments:
@@ -4891,6 +5093,91 @@ def reports(request):
             'is_active': selected_department == dept,
         })
 
+    # Prepare Accounts team employee data for modal
+    accounts_employees_list = []
+    accounts_employees_qs = Employee.objects.all()
+    for emp in accounts_employees_qs:
+        dept_name = canonical_department(emp.department)
+        if dept_name == 'Accounts':
+            accounts_employees_list.append(emp)
+    
+    # Get all projects assigned to Accounts employees
+    accounts_projects = []
+    accounts_employee_names = {emp.get_full_name() or emp.first_name or '' for emp in accounts_employees_list}
+    accounts_employee_names.update({emp.first_name or '' for emp in accounts_employees_list if emp.first_name})
+    accounts_employee_names.update({emp.emp_code or '' for emp in accounts_employees_list if emp.emp_code})
+    accounts_employee_names.update({emp.email or '' for emp in accounts_employees_list if emp.email})
+    accounts_employee_names.update({emp.work_email or '' for emp in accounts_employees_list if emp.work_email})
+    accounts_employee_names = {name.lower().strip() for name in accounts_employee_names if name}
+    
+    all_projects_accounts = ClientOnboarding.objects.all()
+    for project in all_projects_accounts:
+        assigned_engineer_normalized = normalize_key(project.assigned_engineer)
+        if assigned_engineer_normalized in accounts_employee_names:
+            accounts_projects.append({
+                'id': project.id,
+                'project_name': project.project_name,
+                'client_name': project.client_name,
+                'assigned_engineer': project.assigned_engineer,
+                'status': project.status,
+                'status_display': project.get_status_display(),
+                'project_cost': float(project.project_cost) if project.project_cost else 0,
+                'start_date': project.start_date.strftime('%d-%b-%Y') if project.start_date else '-',
+                'created_at': project.created_at.strftime('%d-%b-%Y') if project.created_at else '-',
+                'created_at_display': project.created_at.strftime('%d-%b-%Y %H:%M') if project.created_at else '-',
+            })
+    
+    accounts_employees_data = []
+    for emp in accounts_employees_list:
+        keys = employee_keys(emp)
+        project_by_status = defaultdict(int)
+        project_total = 0
+        for key in keys:
+            for status_key, count in project_status_counts.get(key, {}).items():
+                project_by_status[status_key] += count
+                project_total += count
+        
+        lead_by_status = defaultdict(int)
+        lead_total = 0
+        for key in keys:
+            for status_key, count in lead_status_counts.get(key, {}).items():
+                lead_by_status[status_key] += count
+                lead_total += count
+        
+        # Get actual projects for this employee
+        employee_projects_list = []
+        for project in accounts_projects:
+            assigned_engineer_normalized = normalize_key(project['assigned_engineer'])
+            emp_name_normalized = normalize_key(emp.get_full_name() or emp.first_name or '')
+            emp_first_name_normalized = normalize_key(emp.first_name or '')
+            emp_code_normalized = normalize_key(emp.emp_code or '')
+            emp_email_normalized = normalize_key(emp.email or '')
+            
+            if (assigned_engineer_normalized == emp_name_normalized or 
+                assigned_engineer_normalized == emp_first_name_normalized or
+                assigned_engineer_normalized == emp_code_normalized or
+                assigned_engineer_normalized == emp_email_normalized):
+                employee_projects_list.append({
+                    'id': project['id'],
+                    'project_name': project['project_name'],
+                    'client_name': project['client_name'],
+                    'status': project['status'],
+                    'project_cost': project['project_cost'],
+                    'created_at': project['created_at'],
+                })
+        
+        accounts_employees_data.append({
+            'id': emp.id,
+            'name': emp.get_full_name() or emp.first_name or 'Unnamed',
+            'designation': emp.designation or '',
+            'email': emp.email or '',
+            'projects_total': project_total,
+            'projects_by_status': dict(project_by_status),
+            'leads_total': lead_total,
+            'leads_by_status': dict(lead_by_status),
+            'employee_projects': employee_projects_list[:10],  # Limit to 10 projects
+        })
+
     context = {
         'department_choices': [{'value': 'all', 'label': 'All Departments'}] + [
             {'value': dept, 'label': dept} for dept in tracked_departments
@@ -4898,6 +5185,7 @@ def reports(request):
         'selected_department_value': selected_department,
         'selected_department_label': selected_department_label,
         'month_input_value': month_input_value,
+        'day_input_value': day_input_value,
         'selected_month_label': month_label,
         'showing_all_time': showing_all_time,
         'filters_active': filters_active,
@@ -4907,6 +5195,17 @@ def reports(request):
         'lead_status_headers': lead_status_headers,
         'results_count': len(employee_reports),
         'modal_leads': modal_leads,
+        'accounts_employees': accounts_employees_data,
+        'engineering_employees_count': total_engineering_employees,
+        'engineering_completed_projects': completed_projects_count,
+        'engineering_total_projects': total_assigned_projects,
+        'engineering_projects': engineering_projects,
+        'engineering_employees_with_projects': engineering_employees_with_projects,
+        'backoffice_employees_count': total_backoffice_employees,
+        'backoffice_completed_projects': total_backoffice_completed,
+        'backoffice_total_projects': total_backoffice_projects,
+        'backoffice_employees': backoffice_employees_data,
+        'backoffice_projects': backoffice_projects,
     }
 
     return render(request, 'dashboard/reports.html', context)
