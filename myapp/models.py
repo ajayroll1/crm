@@ -452,6 +452,12 @@ class ROCComplianceRecord(models.Model):
         verbose_name="Assigned To"
     )
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='pending', verbose_name="Status")
+    # Applicant/User Information
+    applicant_name = models.CharField(max_length=255, verbose_name="Applicant Name", blank=True, null=True)
+    applicant_phone = models.CharField(max_length=20, verbose_name="Phone Number", blank=True, null=True)
+    applicant_whatsapp = models.CharField(max_length=20, verbose_name="WhatsApp Number", blank=True, null=True)
+    applicant_email = models.EmailField(verbose_name="Email", blank=True, null=True)
+    applicant_address = models.TextField(verbose_name="Address", blank=True, null=True)
     company_name = models.CharField(max_length=255)
     cin_llpin = models.CharField(max_length=25, verbose_name="CIN / LLPIN")
     financial_year = models.CharField(max_length=20)
@@ -510,6 +516,12 @@ class GSTFilingRecord(models.Model):
         verbose_name="Assigned To"
     )
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='pending', verbose_name="Status")
+    # Applicant/User Information
+    applicant_name = models.CharField(max_length=255, verbose_name="Applicant Name", blank=True, null=True)
+    applicant_phone = models.CharField(max_length=20, verbose_name="Phone Number", blank=True, null=True)
+    applicant_whatsapp = models.CharField(max_length=20, verbose_name="WhatsApp Number", blank=True, null=True)
+    applicant_email = models.EmailField(verbose_name="Email", blank=True, null=True)
+    applicant_address = models.TextField(verbose_name="Address", blank=True, null=True)
     gstin = models.CharField(max_length=15, verbose_name="GSTIN")
     return_period = models.CharField(max_length=7, help_text="YYYY-MM format")
     return_type = models.CharField(max_length=20)
@@ -568,6 +580,12 @@ class ITRFilingRecord(models.Model):
         verbose_name="Assigned To"
     )
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='pending', verbose_name="Status")
+    # Applicant/User Information
+    applicant_name = models.CharField(max_length=255, verbose_name="Applicant Name", blank=True, null=True)
+    applicant_phone = models.CharField(max_length=20, verbose_name="Phone Number", blank=True, null=True)
+    applicant_whatsapp = models.CharField(max_length=20, verbose_name="WhatsApp Number", blank=True, null=True)
+    applicant_email = models.EmailField(verbose_name="Email", blank=True, null=True)
+    applicant_address = models.TextField(verbose_name="Address", blank=True, null=True)
     taxpayer_name = models.CharField(max_length=255)
     pan = models.CharField(max_length=10)
     assessment_year = models.CharField(max_length=9)
@@ -626,6 +644,12 @@ class BookkeepingChecklistRecord(models.Model):
         verbose_name="Assigned To"
     )
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='pending', verbose_name="Status")
+    # Applicant/User Information
+    applicant_name = models.CharField(max_length=255, verbose_name="Applicant Name", blank=True, null=True)
+    applicant_phone = models.CharField(max_length=20, verbose_name="Phone Number", blank=True, null=True)
+    applicant_whatsapp = models.CharField(max_length=20, verbose_name="WhatsApp Number", blank=True, null=True)
+    applicant_email = models.EmailField(verbose_name="Email", blank=True, null=True)
+    applicant_address = models.TextField(verbose_name="Address", blank=True, null=True)
     closing_date = models.DateField(null=True, blank=True)
     prepared_by = models.CharField(max_length=255)
     cash_book_updated = models.BooleanField(default=False)
@@ -684,6 +708,12 @@ class TDSComplianceRecord(models.Model):
         verbose_name="Assigned To"
     )
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='pending', verbose_name="Status")
+    # Applicant/User Information
+    applicant_name = models.CharField(max_length=255, verbose_name="Applicant Name", blank=True, null=True)
+    applicant_phone = models.CharField(max_length=20, verbose_name="Phone Number", blank=True, null=True)
+    applicant_whatsapp = models.CharField(max_length=20, verbose_name="WhatsApp Number", blank=True, null=True)
+    applicant_email = models.EmailField(verbose_name="Email", blank=True, null=True)
+    applicant_address = models.TextField(verbose_name="Address", blank=True, null=True)
     deductor_tan = models.CharField(max_length=10, verbose_name="Deductor TAN")
     section = models.CharField(max_length=30)
     deduction_month = models.CharField(max_length=7, help_text="YYYY-MM format")
@@ -758,6 +788,12 @@ class StartupIndiaRegistration(models.Model):
         related_name='assigned_startup_records',
         verbose_name="Assigned To"
     )
+    # Applicant/User Information
+    applicant_name = models.CharField(max_length=255, verbose_name="Applicant Name", blank=True, null=True)
+    applicant_phone = models.CharField(max_length=20, verbose_name="Phone Number", blank=True, null=True)
+    applicant_whatsapp = models.CharField(max_length=20, verbose_name="WhatsApp Number", blank=True, null=True)
+    applicant_email = models.EmailField(verbose_name="Email", blank=True, null=True)
+    applicant_address = models.TextField(verbose_name="Address", blank=True, null=True)
     legal_entity_name = models.CharField(max_length=255, verbose_name="Legal Entity Name")
     incorporation_date = models.DateField(verbose_name="Incorporation Date", null=True, blank=True)
     entity_type = models.CharField(max_length=50, choices=ENTITY_TYPE_CHOICES, verbose_name="Entity Type")
@@ -838,6 +874,12 @@ class FSSAILicense(models.Model):
         related_name='assigned_fssai_records',
         verbose_name="Assigned To"
     )
+    # Applicant/User Information
+    applicant_name = models.CharField(max_length=255, verbose_name="Applicant Name", blank=True, null=True)
+    applicant_phone = models.CharField(max_length=20, verbose_name="Phone Number", blank=True, null=True)
+    applicant_whatsapp = models.CharField(max_length=20, verbose_name="WhatsApp Number", blank=True, null=True)
+    applicant_email = models.EmailField(verbose_name="Email", blank=True, null=True)
+    applicant_address = models.TextField(verbose_name="Address", blank=True, null=True)
     business_brand_name = models.CharField(max_length=255, verbose_name="Business / Brand Name")
     licence_type = models.CharField(max_length=50, choices=LICENCE_TYPE_CHOICES, verbose_name="Licence Type")
     business_nature = models.CharField(max_length=50, choices=BUSINESS_NATURE_CHOICES, verbose_name="Business Nature")
@@ -903,6 +945,12 @@ class MSMEUdyamRegistration(models.Model):
         related_name='assigned_msme_records',
         verbose_name="Assigned To"
     )
+    # Applicant/User Information
+    applicant_name = models.CharField(max_length=255, verbose_name="Applicant Name", blank=True, null=True)
+    applicant_phone = models.CharField(max_length=20, verbose_name="Phone Number", blank=True, null=True)
+    applicant_whatsapp = models.CharField(max_length=20, verbose_name="WhatsApp Number", blank=True, null=True)
+    applicant_email = models.EmailField(verbose_name="Email", blank=True, null=True)
+    applicant_address = models.TextField(verbose_name="Address", blank=True, null=True)
     entity_name = models.CharField(max_length=255, verbose_name="Entity Name")
     organisation_type = models.CharField(
         max_length=50,
@@ -979,6 +1027,12 @@ class CompanyLLPRegistration(models.Model):
         related_name='assigned_company_llp_records',
         verbose_name="Assigned To"
     )
+    # Applicant/User Information
+    applicant_name = models.CharField(max_length=255, verbose_name="Applicant Name", blank=True, null=True)
+    applicant_phone = models.CharField(max_length=20, verbose_name="Phone Number", blank=True, null=True)
+    applicant_whatsapp = models.CharField(max_length=20, verbose_name="WhatsApp Number", blank=True, null=True)
+    applicant_email = models.EmailField(verbose_name="Email", blank=True, null=True)
+    applicant_address = models.TextField(verbose_name="Address", blank=True, null=True)
     entity_type = models.CharField(max_length=50, choices=ENTITY_TYPE_CHOICES, verbose_name="Entity Type")
     directors_partners = models.PositiveIntegerField(verbose_name="Directors / Partners", default=1)
     proposed_names = models.TextField(verbose_name="Proposed Names (3)")
@@ -1050,6 +1104,12 @@ class FirePollutionLicense(models.Model):
         related_name='assigned_fire_pollution_records',
         verbose_name="Assigned To"
     )
+    # Applicant/User Information
+    applicant_name = models.CharField(max_length=255, verbose_name="Applicant Name", blank=True, null=True)
+    applicant_phone = models.CharField(max_length=20, verbose_name="Phone Number", blank=True, null=True)
+    applicant_whatsapp = models.CharField(max_length=20, verbose_name="WhatsApp Number", blank=True, null=True)
+    applicant_email = models.EmailField(verbose_name="Email", blank=True, null=True)
+    applicant_address = models.TextField(verbose_name="Address", blank=True, null=True)
     establishment_type = models.CharField(max_length=50, choices=ESTABLISHMENT_CHOICES, verbose_name="Establishment Type")
     built_up_area = models.PositiveIntegerField(verbose_name="Built-up Area (sq.ft)")
     pollution_category = models.CharField(max_length=20, choices=POLLUTION_CATEGORY_CHOICES, verbose_name="Pollution Category")
@@ -1112,6 +1172,12 @@ class ISOCertification(models.Model):
         related_name='assigned_iso_records',
         verbose_name="Assigned To"
     )
+    # Applicant/User Information
+    applicant_name = models.CharField(max_length=255, verbose_name="Applicant Name", blank=True, null=True)
+    applicant_phone = models.CharField(max_length=20, verbose_name="Phone Number", blank=True, null=True)
+    applicant_whatsapp = models.CharField(max_length=20, verbose_name="WhatsApp Number", blank=True, null=True)
+    applicant_email = models.EmailField(verbose_name="Email", blank=True, null=True)
+    applicant_address = models.TextField(verbose_name="Address", blank=True, null=True)
     standard = models.CharField(max_length=50, choices=STANDARD_CHOICES, verbose_name="Standard")
     locations = models.PositiveIntegerField(verbose_name="Locations", help_text="No. of sites", default=1)
     employee_strength = models.PositiveIntegerField(verbose_name="Employee Strength", null=True, blank=True)
@@ -1174,6 +1240,12 @@ class TrademarkFiling(models.Model):
         related_name='assigned_trademark_records',
         verbose_name="Assigned To"
     )
+    # Applicant/User Information
+    applicant_name = models.CharField(max_length=255, verbose_name="Applicant Name", blank=True, null=True)
+    applicant_phone = models.CharField(max_length=20, verbose_name="Phone Number", blank=True, null=True)
+    applicant_whatsapp = models.CharField(max_length=20, verbose_name="WhatsApp Number", blank=True, null=True)
+    applicant_email = models.EmailField(verbose_name="Email", blank=True, null=True)
+    applicant_address = models.TextField(verbose_name="Address", blank=True, null=True)
     brand_logo = models.TextField(verbose_name="Brand / Logo", help_text="Describe or attach logo")
     applicant_type = models.CharField(max_length=50, choices=APPLICANT_TYPE_CHOICES, verbose_name="Applicant Type")
     classes = models.CharField(max_length=200, verbose_name="Classes", help_text="e.g. 35, 42")
@@ -1235,6 +1307,12 @@ class TrademarkFilingCompliance(models.Model):
         related_name='assigned_trademark_compliance_records',
         verbose_name="Assigned To"
     )
+    # Applicant/User Information
+    applicant_name = models.CharField(max_length=255, verbose_name="Applicant Name", blank=True, null=True)
+    applicant_phone = models.CharField(max_length=20, verbose_name="Phone Number", blank=True, null=True)
+    applicant_whatsapp = models.CharField(max_length=20, verbose_name="WhatsApp Number", blank=True, null=True)
+    applicant_email = models.EmailField(verbose_name="Email", blank=True, null=True)
+    applicant_address = models.TextField(verbose_name="Address", blank=True, null=True)
     existing_tm_numbers = models.TextField(verbose_name="Existing TM Numbers", blank=True, help_text="If any")
     portfolio_size = models.PositiveIntegerField(verbose_name="Portfolio Size", null=True, blank=True)
     watch_scope = models.CharField(max_length=50, choices=WATCH_SCOPE_CHOICES, verbose_name="Watch Scope", blank=True)
@@ -1296,6 +1374,12 @@ class TrademarkFilingInstant(models.Model):
         related_name='assigned_trademark_instant_records',
         verbose_name="Assigned To"
     )
+    # Applicant/User Information
+    applicant_name = models.CharField(max_length=255, verbose_name="Applicant Name", blank=True, null=True)
+    applicant_phone = models.CharField(max_length=20, verbose_name="Phone Number", blank=True, null=True)
+    applicant_whatsapp = models.CharField(max_length=20, verbose_name="WhatsApp Number", blank=True, null=True)
+    applicant_email = models.EmailField(verbose_name="Email", blank=True, null=True)
+    applicant_address = models.TextField(verbose_name="Address", blank=True, null=True)
     urgency_reason = models.TextField(verbose_name="Urgency Reason", help_text="Launch / diligence / other")
     filing_window = models.CharField(max_length=50, choices=FILING_WINDOW_CHOICES, verbose_name="Filing Window", blank=True)
     contact_mobile = models.CharField(max_length=20, verbose_name="Contact Mobile", blank=True, help_text="+91XXXXXXXXXX")
@@ -1361,6 +1445,12 @@ class CompanyAddressChange(models.Model):
         related_name='assigned_address_change_records',
         verbose_name="Assigned To"
     )
+    # Applicant/User Information
+    applicant_name = models.CharField(max_length=255, verbose_name="Applicant Name", blank=True, null=True)
+    applicant_phone = models.CharField(max_length=20, verbose_name="Phone Number", blank=True, null=True)
+    applicant_whatsapp = models.CharField(max_length=20, verbose_name="WhatsApp Number", blank=True, null=True)
+    applicant_email = models.EmailField(verbose_name="Email", blank=True, null=True)
+    applicant_address = models.TextField(verbose_name="Address", blank=True, null=True)
     entity_type = models.CharField(max_length=50, choices=ENTITY_TYPE_CHOICES, verbose_name="Entity Type")
     shift_type = models.CharField(max_length=50, choices=SHIFT_TYPE_CHOICES, verbose_name="Type of Shift")
     effective_date = models.DateField(verbose_name="Effective Date", null=True, blank=True)
@@ -1422,6 +1512,12 @@ class MOAAlteration(models.Model):
         related_name='assigned_moa_alteration_records',
         verbose_name="Assigned To"
     )
+    # Applicant/User Information
+    applicant_name = models.CharField(max_length=255, verbose_name="Applicant Name", blank=True, null=True)
+    applicant_phone = models.CharField(max_length=20, verbose_name="Phone Number", blank=True, null=True)
+    applicant_whatsapp = models.CharField(max_length=20, verbose_name="WhatsApp Number", blank=True, null=True)
+    applicant_email = models.EmailField(verbose_name="Email", blank=True, null=True)
+    applicant_address = models.TextField(verbose_name="Address", blank=True, null=True)
     alteration_type = models.CharField(max_length=50, choices=ALTERATION_TYPE_CHOICES, verbose_name="Alteration Type")
     proposed_object_name = models.TextField(verbose_name="Proposed Object/Name", help_text="Draft text / options")
     effective_date = models.DateField(verbose_name="Effective Date", null=True, blank=True)

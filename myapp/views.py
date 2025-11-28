@@ -1137,11 +1137,47 @@ def service_forms(request):
           
           # Handle file uploads based on service type
           if form_name == 'roc':
+            # Save applicant information for ROC Compliance
+            applicant_name = request.POST.get('applicant_name', '').strip()
+            applicant_phone = request.POST.get('applicant_phone', '').strip()
+            applicant_whatsapp = request.POST.get('applicant_whatsapp', '').strip()
+            applicant_email = request.POST.get('applicant_email', '').strip()
+            applicant_address = request.POST.get('applicant_address', '').strip()
+            
+            if hasattr(record, 'applicant_name'):
+              record.applicant_name = applicant_name if applicant_name else None
+            if hasattr(record, 'applicant_phone'):
+              record.applicant_phone = applicant_phone if applicant_phone else None
+            if hasattr(record, 'applicant_whatsapp'):
+              record.applicant_whatsapp = applicant_whatsapp if applicant_whatsapp else None
+            if hasattr(record, 'applicant_email'):
+              record.applicant_email = applicant_email if applicant_email else None
+            if hasattr(record, 'applicant_address'):
+              record.applicant_address = applicant_address if applicant_address else None
+            
             uploaded_files = request.FILES.getlist('roc_documents')
             if uploaded_files:
               record.documents = _store_uploaded_files(uploaded_files, 'roc')
           
           elif form_name == 'gst':
+            # Save applicant information for GST Filing
+            applicant_name = request.POST.get('applicant_name', '').strip()
+            applicant_phone = request.POST.get('applicant_phone', '').strip()
+            applicant_whatsapp = request.POST.get('applicant_whatsapp', '').strip()
+            applicant_email = request.POST.get('applicant_email', '').strip()
+            applicant_address = request.POST.get('applicant_address', '').strip()
+            
+            if hasattr(record, 'applicant_name'):
+              record.applicant_name = applicant_name if applicant_name else None
+            if hasattr(record, 'applicant_phone'):
+              record.applicant_phone = applicant_phone if applicant_phone else None
+            if hasattr(record, 'applicant_whatsapp'):
+              record.applicant_whatsapp = applicant_whatsapp if applicant_whatsapp else None
+            if hasattr(record, 'applicant_email'):
+              record.applicant_email = applicant_email if applicant_email else None
+            if hasattr(record, 'applicant_address'):
+              record.applicant_address = applicant_address if applicant_address else None
+            
             files_map = {
               'outward_supplies': _store_uploaded_files(request.FILES.getlist('gst_outward_supplies'), 'gst/outward'),
               'input_tax_credit': _store_uploaded_files(request.FILES.getlist('gst_input_tax_credit'), 'gst/input-credit'),
@@ -1151,78 +1187,330 @@ def service_forms(request):
             record.data_files = {key: paths for key, paths in files_map.items() if paths}
           
           elif form_name == 'itr':
+            # Save applicant information for ITR Filing
+            applicant_name = request.POST.get('applicant_name', '').strip()
+            applicant_phone = request.POST.get('applicant_phone', '').strip()
+            applicant_whatsapp = request.POST.get('applicant_whatsapp', '').strip()
+            applicant_email = request.POST.get('applicant_email', '').strip()
+            applicant_address = request.POST.get('applicant_address', '').strip()
+            
+            if hasattr(record, 'applicant_name'):
+              record.applicant_name = applicant_name if applicant_name else None
+            if hasattr(record, 'applicant_phone'):
+              record.applicant_phone = applicant_phone if applicant_phone else None
+            if hasattr(record, 'applicant_whatsapp'):
+              record.applicant_whatsapp = applicant_whatsapp if applicant_whatsapp else None
+            if hasattr(record, 'applicant_email'):
+              record.applicant_email = applicant_email if applicant_email else None
+            if hasattr(record, 'applicant_address'):
+              record.applicant_address = applicant_address if applicant_address else None
+            
             uploaded_files = request.FILES.getlist('itr_documents')
             if uploaded_files:
               record.documents = _store_uploaded_files(uploaded_files, 'itr')
           
           elif form_name == 'bookkeeping':
+            # Save applicant information for Bookkeeping Checklist
+            applicant_name = request.POST.get('applicant_name', '').strip()
+            applicant_phone = request.POST.get('applicant_phone', '').strip()
+            applicant_whatsapp = request.POST.get('applicant_whatsapp', '').strip()
+            applicant_email = request.POST.get('applicant_email', '').strip()
+            applicant_address = request.POST.get('applicant_address', '').strip()
+            
+            if hasattr(record, 'applicant_name'):
+              record.applicant_name = applicant_name if applicant_name else None
+            if hasattr(record, 'applicant_phone'):
+              record.applicant_phone = applicant_phone if applicant_phone else None
+            if hasattr(record, 'applicant_whatsapp'):
+              record.applicant_whatsapp = applicant_whatsapp if applicant_whatsapp else None
+            if hasattr(record, 'applicant_email'):
+              record.applicant_email = applicant_email if applicant_email else None
+            if hasattr(record, 'applicant_address'):
+              record.applicant_address = applicant_address if applicant_address else None
+            
             uploaded_files = request.FILES.getlist('bookkeeping_documents')
             if uploaded_files:
               record.reconciliation_documents = _store_uploaded_files(uploaded_files, 'bookkeeping')
           
           elif form_name == 'tds':
+            # Save applicant information for TDS Compliance
+            applicant_name = request.POST.get('applicant_name', '').strip()
+            applicant_phone = request.POST.get('applicant_phone', '').strip()
+            applicant_whatsapp = request.POST.get('applicant_whatsapp', '').strip()
+            applicant_email = request.POST.get('applicant_email', '').strip()
+            applicant_address = request.POST.get('applicant_address', '').strip()
+            
+            if hasattr(record, 'applicant_name'):
+              record.applicant_name = applicant_name if applicant_name else None
+            if hasattr(record, 'applicant_phone'):
+              record.applicant_phone = applicant_phone if applicant_phone else None
+            if hasattr(record, 'applicant_whatsapp'):
+              record.applicant_whatsapp = applicant_whatsapp if applicant_whatsapp else None
+            if hasattr(record, 'applicant_email'):
+              record.applicant_email = applicant_email if applicant_email else None
+            if hasattr(record, 'applicant_address'):
+              record.applicant_address = applicant_address if applicant_address else None
+            
             uploaded_files = request.FILES.getlist('tds_proofs')
             if uploaded_files:
               record.proofs = _store_uploaded_files(uploaded_files, 'tds')
           
           elif form_name == 'startup_india':
+            # Save applicant information for Start-up India Registration
+            applicant_name = request.POST.get('applicant_name', '').strip()
+            applicant_phone = request.POST.get('applicant_phone', '').strip()
+            applicant_whatsapp = request.POST.get('applicant_whatsapp', '').strip()
+            applicant_email = request.POST.get('applicant_email', '').strip()
+            applicant_address = request.POST.get('applicant_address', '').strip()
+            
+            if hasattr(record, 'applicant_name'):
+              record.applicant_name = applicant_name if applicant_name else None
+            if hasattr(record, 'applicant_phone'):
+              record.applicant_phone = applicant_phone if applicant_phone else None
+            if hasattr(record, 'applicant_whatsapp'):
+              record.applicant_whatsapp = applicant_whatsapp if applicant_whatsapp else None
+            if hasattr(record, 'applicant_email'):
+              record.applicant_email = applicant_email if applicant_email else None
+            if hasattr(record, 'applicant_address'):
+              record.applicant_address = applicant_address if applicant_address else None
+            
             uploaded_files = request.FILES.getlist('startup_documents')
             if uploaded_files:
               record.documents = _store_uploaded_files(uploaded_files, 'startup_india')
             record.status = 'pending'
           
           elif form_name == 'fssai':
+            # Save applicant information for FSSAI License
+            applicant_name = request.POST.get('applicant_name', '').strip()
+            applicant_phone = request.POST.get('applicant_phone', '').strip()
+            applicant_whatsapp = request.POST.get('applicant_whatsapp', '').strip()
+            applicant_email = request.POST.get('applicant_email', '').strip()
+            applicant_address = request.POST.get('applicant_address', '').strip()
+            
+            if hasattr(record, 'applicant_name'):
+              record.applicant_name = applicant_name if applicant_name else None
+            if hasattr(record, 'applicant_phone'):
+              record.applicant_phone = applicant_phone if applicant_phone else None
+            if hasattr(record, 'applicant_whatsapp'):
+              record.applicant_whatsapp = applicant_whatsapp if applicant_whatsapp else None
+            if hasattr(record, 'applicant_email'):
+              record.applicant_email = applicant_email if applicant_email else None
+            if hasattr(record, 'applicant_address'):
+              record.applicant_address = applicant_address if applicant_address else None
+            
             uploaded_files = request.FILES.getlist('fssai_documents')
             if uploaded_files:
               record.documents = _store_uploaded_files(uploaded_files, 'fssai')
             record.status = 'pending'
           
           elif form_name == 'msme':
+            # Save applicant information for MSME Registration
+            applicant_name = request.POST.get('applicant_name', '').strip()
+            applicant_phone = request.POST.get('applicant_phone', '').strip()
+            applicant_whatsapp = request.POST.get('applicant_whatsapp', '').strip()
+            applicant_email = request.POST.get('applicant_email', '').strip()
+            applicant_address = request.POST.get('applicant_address', '').strip()
+            
+            if hasattr(record, 'applicant_name'):
+              record.applicant_name = applicant_name if applicant_name else None
+            if hasattr(record, 'applicant_phone'):
+              record.applicant_phone = applicant_phone if applicant_phone else None
+            if hasattr(record, 'applicant_whatsapp'):
+              record.applicant_whatsapp = applicant_whatsapp if applicant_whatsapp else None
+            if hasattr(record, 'applicant_email'):
+              record.applicant_email = applicant_email if applicant_email else None
+            if hasattr(record, 'applicant_address'):
+              record.applicant_address = applicant_address if applicant_address else None
+            
             record.status = 'pending'
           
           elif form_name == 'company_llp':
+            # Save applicant information for Company/LLP Registration
+            applicant_name = request.POST.get('applicant_name', '').strip()
+            applicant_phone = request.POST.get('applicant_phone', '').strip()
+            applicant_whatsapp = request.POST.get('applicant_whatsapp', '').strip()
+            applicant_email = request.POST.get('applicant_email', '').strip()
+            applicant_address = request.POST.get('applicant_address', '').strip()
+            
+            if hasattr(record, 'applicant_name'):
+              record.applicant_name = applicant_name if applicant_name else None
+            if hasattr(record, 'applicant_phone'):
+              record.applicant_phone = applicant_phone if applicant_phone else None
+            if hasattr(record, 'applicant_whatsapp'):
+              record.applicant_whatsapp = applicant_whatsapp if applicant_whatsapp else None
+            if hasattr(record, 'applicant_email'):
+              record.applicant_email = applicant_email if applicant_email else None
+            if hasattr(record, 'applicant_address'):
+              record.applicant_address = applicant_address if applicant_address else None
+            
             uploaded_files = request.FILES.getlist('company_documents')
             if uploaded_files:
               record.documents = _store_uploaded_files(uploaded_files, 'company_llp')
             record.status = 'pending'
           
           elif form_name == 'fire_pollution':
+            # Save applicant information for Fire & Pollution License
+            applicant_name = request.POST.get('applicant_name', '').strip()
+            applicant_phone = request.POST.get('applicant_phone', '').strip()
+            applicant_whatsapp = request.POST.get('applicant_whatsapp', '').strip()
+            applicant_email = request.POST.get('applicant_email', '').strip()
+            applicant_address = request.POST.get('applicant_address', '').strip()
+            
+            if hasattr(record, 'applicant_name'):
+              record.applicant_name = applicant_name if applicant_name else None
+            if hasattr(record, 'applicant_phone'):
+              record.applicant_phone = applicant_phone if applicant_phone else None
+            if hasattr(record, 'applicant_whatsapp'):
+              record.applicant_whatsapp = applicant_whatsapp if applicant_whatsapp else None
+            if hasattr(record, 'applicant_email'):
+              record.applicant_email = applicant_email if applicant_email else None
+            if hasattr(record, 'applicant_address'):
+              record.applicant_address = applicant_address if applicant_address else None
+            
             uploaded_files = request.FILES.getlist('fire_documents')
             if uploaded_files:
               record.documents = _store_uploaded_files(uploaded_files, 'fire_pollution')
             record.status = 'pending'
           
           elif form_name == 'iso':
+            # Save applicant information for ISO Certification
+            applicant_name = request.POST.get('applicant_name', '').strip()
+            applicant_phone = request.POST.get('applicant_phone', '').strip()
+            applicant_whatsapp = request.POST.get('applicant_whatsapp', '').strip()
+            applicant_email = request.POST.get('applicant_email', '').strip()
+            applicant_address = request.POST.get('applicant_address', '').strip()
+            
+            if hasattr(record, 'applicant_name'):
+              record.applicant_name = applicant_name if applicant_name else None
+            if hasattr(record, 'applicant_phone'):
+              record.applicant_phone = applicant_phone if applicant_phone else None
+            if hasattr(record, 'applicant_whatsapp'):
+              record.applicant_whatsapp = applicant_whatsapp if applicant_whatsapp else None
+            if hasattr(record, 'applicant_email'):
+              record.applicant_email = applicant_email if applicant_email else None
+            if hasattr(record, 'applicant_address'):
+              record.applicant_address = applicant_address if applicant_address else None
+            
             uploaded_files = request.FILES.getlist('iso_documents')
             if uploaded_files:
               record.documents = _store_uploaded_files(uploaded_files, 'iso')
             record.status = 'pending'
           
           elif form_name == 'trademark':
+            # Save applicant information for Trademark Filing
+            applicant_name = request.POST.get('applicant_name', '').strip()
+            applicant_phone = request.POST.get('applicant_phone', '').strip()
+            applicant_whatsapp = request.POST.get('applicant_whatsapp', '').strip()
+            applicant_email = request.POST.get('applicant_email', '').strip()
+            applicant_address = request.POST.get('applicant_address', '').strip()
+            
+            if hasattr(record, 'applicant_name'):
+              record.applicant_name = applicant_name if applicant_name else None
+            if hasattr(record, 'applicant_phone'):
+              record.applicant_phone = applicant_phone if applicant_phone else None
+            if hasattr(record, 'applicant_whatsapp'):
+              record.applicant_whatsapp = applicant_whatsapp if applicant_whatsapp else None
+            if hasattr(record, 'applicant_email'):
+              record.applicant_email = applicant_email if applicant_email else None
+            if hasattr(record, 'applicant_address'):
+              record.applicant_address = applicant_address if applicant_address else None
+            
             uploaded_files = request.FILES.getlist('trademark_documents')
             if uploaded_files:
               record.documents = _store_uploaded_files(uploaded_files, 'trademark')
             record.status = 'pending'
           
           elif form_name == 'trademark_compliance':
+            # Save applicant information for Trademark Filing + Compliance
+            applicant_name = request.POST.get('applicant_name', '').strip()
+            applicant_phone = request.POST.get('applicant_phone', '').strip()
+            applicant_whatsapp = request.POST.get('applicant_whatsapp', '').strip()
+            applicant_email = request.POST.get('applicant_email', '').strip()
+            applicant_address = request.POST.get('applicant_address', '').strip()
+            
+            if hasattr(record, 'applicant_name'):
+              record.applicant_name = applicant_name if applicant_name else None
+            if hasattr(record, 'applicant_phone'):
+              record.applicant_phone = applicant_phone if applicant_phone else None
+            if hasattr(record, 'applicant_whatsapp'):
+              record.applicant_whatsapp = applicant_whatsapp if applicant_whatsapp else None
+            if hasattr(record, 'applicant_email'):
+              record.applicant_email = applicant_email if applicant_email else None
+            if hasattr(record, 'applicant_address'):
+              record.applicant_address = applicant_address if applicant_address else None
+            
             uploaded_files = request.FILES.getlist('trademark_compliance_documents')
             if uploaded_files:
               record.documents = _store_uploaded_files(uploaded_files, 'trademark_compliance')
             record.status = 'pending'
           
           elif form_name == 'trademark_instant':
+            # Save applicant information for Trademark Filing (Instant)
+            applicant_name = request.POST.get('applicant_name', '').strip()
+            applicant_phone = request.POST.get('applicant_phone', '').strip()
+            applicant_whatsapp = request.POST.get('applicant_whatsapp', '').strip()
+            applicant_email = request.POST.get('applicant_email', '').strip()
+            applicant_address = request.POST.get('applicant_address', '').strip()
+            
+            if hasattr(record, 'applicant_name'):
+              record.applicant_name = applicant_name if applicant_name else None
+            if hasattr(record, 'applicant_phone'):
+              record.applicant_phone = applicant_phone if applicant_phone else None
+            if hasattr(record, 'applicant_whatsapp'):
+              record.applicant_whatsapp = applicant_whatsapp if applicant_whatsapp else None
+            if hasattr(record, 'applicant_email'):
+              record.applicant_email = applicant_email if applicant_email else None
+            if hasattr(record, 'applicant_address'):
+              record.applicant_address = applicant_address if applicant_address else None
+            
             uploaded_files = request.FILES.getlist('trademark_instant_documents')
             if uploaded_files:
               record.documents = _store_uploaded_files(uploaded_files, 'trademark_instant')
             record.status = 'pending'
           
           elif form_name == 'address_change':
+            # Save applicant information for Company Address Change
+            applicant_name = request.POST.get('applicant_name', '').strip()
+            applicant_phone = request.POST.get('applicant_phone', '').strip()
+            applicant_whatsapp = request.POST.get('applicant_whatsapp', '').strip()
+            applicant_email = request.POST.get('applicant_email', '').strip()
+            applicant_address = request.POST.get('applicant_address', '').strip()
+            
+            if hasattr(record, 'applicant_name'):
+              record.applicant_name = applicant_name if applicant_name else None
+            if hasattr(record, 'applicant_phone'):
+              record.applicant_phone = applicant_phone if applicant_phone else None
+            if hasattr(record, 'applicant_whatsapp'):
+              record.applicant_whatsapp = applicant_whatsapp if applicant_whatsapp else None
+            if hasattr(record, 'applicant_email'):
+              record.applicant_email = applicant_email if applicant_email else None
+            if hasattr(record, 'applicant_address'):
+              record.applicant_address = applicant_address if applicant_address else None
+            
             uploaded_files = request.FILES.getlist('address_change_documents')
             if uploaded_files:
               record.documents = _store_uploaded_files(uploaded_files, 'address_change')
             record.status = 'pending'
           
           elif form_name == 'moa_alteration':
+            # Save applicant information for MOA Alteration
+            applicant_name = request.POST.get('applicant_name', '').strip()
+            applicant_phone = request.POST.get('applicant_phone', '').strip()
+            applicant_whatsapp = request.POST.get('applicant_whatsapp', '').strip()
+            applicant_email = request.POST.get('applicant_email', '').strip()
+            applicant_address = request.POST.get('applicant_address', '').strip()
+            
+            if hasattr(record, 'applicant_name'):
+              record.applicant_name = applicant_name if applicant_name else None
+            if hasattr(record, 'applicant_phone'):
+              record.applicant_phone = applicant_phone if applicant_phone else None
+            if hasattr(record, 'applicant_whatsapp'):
+              record.applicant_whatsapp = applicant_whatsapp if applicant_whatsapp else None
+            if hasattr(record, 'applicant_email'):
+              record.applicant_email = applicant_email if applicant_email else None
+            if hasattr(record, 'applicant_address'):
+              record.applicant_address = applicant_address if applicant_address else None
+            
             uploaded_files = request.FILES.getlist('moa_alteration_documents')
             if uploaded_files:
               record.documents = _store_uploaded_files(uploaded_files, 'moa_alteration')
@@ -1378,6 +1666,60 @@ def assign_service_lead(request):
         'message': 'Lead assigned successfully',
         'assigned_to': record.assigned_to.get_full_name() if record.assigned_to else None
       })
+    except Exception as e:
+      return JsonResponse({'success': False, 'error': str(e)})
+  
+  return JsonResponse({'success': False, 'error': 'Invalid request method'})
+
+
+@login_required
+def delete_service_lead(request):
+  """Delete a service lead record"""
+  if request.method == 'POST':
+    try:
+      service_type = request.POST.get('service_type')
+      record_id = request.POST.get('record_id')
+      
+      # Map service types to models
+      service_models = {
+        'roc': ROCComplianceRecord,
+        'gst': GSTFilingRecord,
+        'itr': ITRFilingRecord,
+        'bookkeeping': BookkeepingChecklistRecord,
+        'tds': TDSComplianceRecord,
+        'startup': StartupIndiaRegistration,
+        'startup_india': StartupIndiaRegistration,
+        'fssai': FSSAILicense,
+        'msme': MSMEUdyamRegistration,
+        'company-llp': CompanyLLPRegistration,
+        'company_llp': CompanyLLPRegistration,
+        'fire-pollution': FirePollutionLicense,
+        'fire_pollution': FirePollutionLicense,
+        'iso': ISOCertification,
+        'trademark': TrademarkFiling,
+        'trademark-compliance': TrademarkFilingCompliance,
+        'trademark_compliance': TrademarkFilingCompliance,
+        'trademark-instant': TrademarkFilingInstant,
+        'trademark_instant': TrademarkFilingInstant,
+        'address-change': CompanyAddressChange,
+        'address_change': CompanyAddressChange,
+        'moa-alteration': MOAAlteration,
+        'moa_alteration': MOAAlteration,
+      }
+      
+      if service_type not in service_models:
+        return JsonResponse({'success': False, 'error': 'Invalid service type'})
+      
+      model_class = service_models[service_type]
+      record = model_class.objects.get(id=record_id)
+      record.delete()
+      
+      return JsonResponse({
+        'success': True,
+        'message': 'Record deleted successfully'
+      })
+    except model_class.DoesNotExist:
+      return JsonResponse({'success': False, 'error': 'Record not found'})
     except Exception as e:
       return JsonResponse({'success': False, 'error': str(e)})
   
