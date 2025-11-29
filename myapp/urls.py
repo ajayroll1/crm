@@ -2,7 +2,7 @@ from django.urls import path
 from .import views 
 
 urlpatterns =[
-  path('', views.home,name='home'),
+  path('', views.home, name='home'),
   path('login/',views.login_view,name='login'),
   path('about/',views.about,name='about'),
   path('services/',views.services,name='services'),
@@ -51,8 +51,10 @@ urlpatterns =[
   path('leave/',views.leave,name='leave'),
   path('dashboard/leaves/',views.dashboard_leaves,name='dashboard_leaves'),
   path('dashboard/leaves/<int:leave_id>/update-status/',views.leave_status_update,name='leave_status_update'),
+  path('dashboard/messages/',views.admin_messages,name='admin_messages'),
   path('reports/',views.reports,name='reports'),
   path('settings/',views.settings_view,name='settings'),
+  path('settings/change-password/',views.change_password_view,name='change_password'),
   path('logout/',views.logout_view,name='logout'),
   path('project-management/',views.project_management,name='project_management'),
   path('project-management/<int:onboard_id>/view/',views.project_onboard_view,name='project_onboard_view'),

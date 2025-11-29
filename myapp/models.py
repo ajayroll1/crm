@@ -1718,6 +1718,9 @@ class Employee(models.Model):
     paternity_leave = models.IntegerField(default=15, verbose_name="Paternity Leave Days")
     emergency_leave = models.IntegerField(default=3, verbose_name="Emergency Leave Days")
     
+    # Authentication
+    password = models.CharField(max_length=128, blank=True, null=True, verbose_name="Password", help_text="Hashed password. If set, user must login with password instead of phone.")
+    
     # Status
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='active')
     

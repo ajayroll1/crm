@@ -32,6 +32,7 @@
       <button class="list-group-item list-group-item-action" data-bs-toggle="list" data-bs-target="#organization" role="tab"><i class="bi bi-building me-2"></i> Organization</button>
       <button class="list-group-item list-group-item-action" data-bs-toggle="list" data-bs-target="#users" role="tab"><i class="bi bi-people me-2"></i> Users & Roles</button>
       <button class="list-group-item list-group-item-action" data-bs-toggle="list" data-bs-target="#security" role="tab"><i class="bi bi-shield-lock me-2"></i> Security</button>
+      <button class="list-group-item list-group-item-action" data-bs-toggle="list" data-bs-target="#changePassword" role="tab"><i class="bi bi-key me-2"></i> Change Password</button>
       <button class="list-group-item list-group-item-action" data-bs-toggle="list" data-bs-target="#notifications" role="tab"><i class="bi bi-bell me-2"></i> Notifications</button>
       <button class="list-group-item list-group-item-action" data-bs-toggle="list" data-bs-target="#integrations" role="tab"><i class="bi bi-plug me-2"></i> Integrations</button>
       <button class="list-group-item list-group-item-action" data-bs-toggle="list" data-bs-target="#audit" role="tab"><i class="bi bi-activity me-2"></i> Audit Logs</button>
@@ -236,6 +237,111 @@
       </div>
     </div>
 
+    <!-- Change Password -->
+    <div class="tab-pane fade" id="changePassword" role="tabpanel">
+      <div class="card">
+        <div class="card-header bg-white">
+          <span class="section-title">Change Password</span>
+          <p class="text-muted mb-0 small mt-1">Update your account password to keep your account secure</p>
+        </div>
+        <div class="card-body">
+          <form id="changePasswordForm">
+            {% csrf_token %}
+            <div class="row g-3">
+              <div class="col-12">
+                <label class="form-label">Current Password <span class="text-danger">*</span></label>
+                <div class="input-group">
+                  <input type="password" class="form-control" id="currentPassword" name="current_password" placeholder="Enter your current password" required>
+                  <button class="btn btn-outline-secondary" type="button" onclick="togglePassword('currentPassword')">
+                    <i class="bi bi-eye" id="currentPasswordIcon"></i>
+                  </button>
+                </div>
+                <div class="form-help">Enter your existing password to verify your identity</div>
+              </div>
+              <div class="col-12">
+                <label class="form-label">New Password <span class="text-danger">*</span></label>
+                <div class="input-group">
+                  <input type="password" class="form-control" id="newPassword" name="new_password" placeholder="Enter new password" required minlength="8">
+                  <button class="btn btn-outline-secondary" type="button" onclick="togglePassword('newPassword')">
+                    <i class="bi bi-eye" id="newPasswordIcon"></i>
+                  </button>
+                </div>
+                <div class="form-help">
+                  <small class="text-muted">
+                    <i class="bi bi-info-circle me-1"></i>
+                    Password must be at least 8 characters long and include a mix of letters, numbers, and special characters
+                  </small>
+                </div>
+                <div class="mt-2">
+                  <div class="progress" style="height: 4px;">
+                    <div class="progress-bar" id="passwordStrength" role="progressbar" style="width: 0%"></div>
+                  </div>
+                  <small class="text-muted" id="passwordStrengthText">Password strength: <span id="strengthLabel">-</span></small>
+                </div>
+              </div>
+              <div class="col-12">
+                <label class="form-label">Confirm New Password <span class="text-danger">*</span></label>
+                <div class="input-group">
+                  <input type="password" class="form-control" id="confirmPassword" name="confirm_password" placeholder="Re-enter new password" required minlength="8">
+                  <button class="btn btn-outline-secondary" type="button" onclick="togglePassword('confirmPassword')">
+                    <i class="bi bi-eye" id="confirmPasswordIcon"></i>
+                  </button>
+                </div>
+                <div class="form-help">Re-enter your new password to confirm</div>
+                <div id="passwordMatch" class="mt-2" style="display: none;">
+                  <small class="text-success"><i class="bi bi-check-circle me-1"></i>Passwords match</small>
+                </div>
+                <div id="passwordMismatch" class="mt-2" style="display: none;">
+                  <small class="text-danger"><i class="bi bi-x-circle me-1"></i>Passwords do not match</small>
+                </div>
+              </div>
+            </div>
+            <div class="mt-4 pt-3 border-top">
+              <div class="d-flex gap-2">
+                <button type="submit" class="btn btn-primary" id="submitPasswordBtn">
+                  <i class="bi bi-key me-2"></i>Update Password
+                </button>
+                <button type="button" class="btn btn-light" onclick="resetPasswordForm()">
+                  <i class="bi bi-arrow-counterclockwise me-2"></i>Reset
+                </button>
+              </div>
+            </div>
+          </form>
+        </div>
+      </div>
+      
+      <!-- Password Requirements Card -->
+      <div class="card mt-3">
+        <div class="card-header bg-white">
+          <span class="section-title">Password Requirements</span>
+        </div>
+        <div class="card-body">
+          <ul class="list-unstyled mb-0">
+            <li class="mb-2">
+              <i class="bi bi-check-circle text-success me-2"></i>
+              <small>Minimum 8 characters in length</small>
+            </li>
+            <li class="mb-2">
+              <i class="bi bi-check-circle text-success me-2"></i>
+              <small>At least one uppercase letter (A-Z)</small>
+            </li>
+            <li class="mb-2">
+              <i class="bi bi-check-circle text-success me-2"></i>
+              <small>At least one lowercase letter (a-z)</small>
+            </li>
+            <li class="mb-2">
+              <i class="bi bi-check-circle text-success me-2"></i>
+              <small>At least one number (0-9)</small>
+            </li>
+            <li class="mb-0">
+              <i class="bi bi-check-circle text-success me-2"></i>
+              <small>At least one special character (!@#$%^&*)</small>
+            </li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
     <!-- Notifications -->
     <div class="tab-pane fade" id="notifications" role="tabpanel">
       <div class="row g-3">
@@ -388,6 +494,207 @@
     if (t && t.id === 'darkModeSwitch') {
       document.body.classList.toggle('bg-dark');
       document.querySelectorAll('.card').forEach(c => c.classList.toggle('text-white'));
+    }
+  });
+
+  // Change Password functionality
+  function togglePassword(inputId) {
+    const input = document.getElementById(inputId);
+    const icon = document.getElementById(inputId + 'Icon');
+    
+    if (input.type === 'password') {
+      input.type = 'text';
+      icon.classList.remove('bi-eye');
+      icon.classList.add('bi-eye-slash');
+    } else {
+      input.type = 'password';
+      icon.classList.remove('bi-eye-slash');
+      icon.classList.add('bi-eye');
+    }
+  }
+
+  // Password strength checker
+  function checkPasswordStrength(password) {
+    let strength = 0;
+    let label = '';
+    let color = '';
+    
+    if (password.length >= 8) strength++;
+    if (password.length >= 12) strength++;
+    if (/[a-z]/.test(password)) strength++;
+    if (/[A-Z]/.test(password)) strength++;
+    if (/[0-9]/.test(password)) strength++;
+    if (/[^A-Za-z0-9]/.test(password)) strength++;
+    
+    if (strength <= 2) {
+      label = 'Weak';
+      color = 'bg-danger';
+    } else if (strength <= 4) {
+      label = 'Medium';
+      color = 'bg-warning';
+    } else {
+      label = 'Strong';
+      color = 'bg-success';
+    }
+    
+    const percentage = (strength / 6) * 100;
+    document.getElementById('passwordStrength').style.width = percentage + '%';
+    document.getElementById('passwordStrength').className = 'progress-bar ' + color;
+    document.getElementById('strengthLabel').textContent = label;
+  }
+
+  // Check password match
+  function checkPasswordMatch() {
+    const newPassword = document.getElementById('newPassword').value;
+    const confirmPassword = document.getElementById('confirmPassword').value;
+    const matchDiv = document.getElementById('passwordMatch');
+    const mismatchDiv = document.getElementById('passwordMismatch');
+    
+    if (confirmPassword.length === 0) {
+      matchDiv.style.display = 'none';
+      mismatchDiv.style.display = 'none';
+      return;
+    }
+    
+    if (newPassword === confirmPassword) {
+      matchDiv.style.display = 'block';
+      mismatchDiv.style.display = 'none';
+    } else {
+      matchDiv.style.display = 'none';
+      mismatchDiv.style.display = 'block';
+    }
+  }
+
+  // Reset password form
+  function resetPasswordForm() {
+    document.getElementById('changePasswordForm').reset();
+    document.getElementById('passwordStrength').style.width = '0%';
+    document.getElementById('strengthLabel').textContent = '-';
+    document.getElementById('passwordMatch').style.display = 'none';
+    document.getElementById('passwordMismatch').style.display = 'none';
+    
+    // Reset icons
+    ['currentPassword', 'newPassword', 'confirmPassword'].forEach(id => {
+      const icon = document.getElementById(id + 'Icon');
+      if (icon) {
+        icon.classList.remove('bi-eye-slash');
+        icon.classList.add('bi-eye');
+      }
+    });
+  }
+
+  // Event listeners for password fields
+  document.addEventListener('DOMContentLoaded', () => {
+    const newPasswordInput = document.getElementById('newPassword');
+    const confirmPasswordInput = document.getElementById('confirmPassword');
+    const changePasswordForm = document.getElementById('changePasswordForm');
+    
+    if (newPasswordInput) {
+      newPasswordInput.addEventListener('input', function() {
+        checkPasswordStrength(this.value);
+        checkPasswordMatch();
+      });
+    }
+    
+    if (confirmPasswordInput) {
+      confirmPasswordInput.addEventListener('input', checkPasswordMatch);
+    }
+    
+    if (changePasswordForm) {
+      changePasswordForm.addEventListener('submit', function(e) {
+        e.preventDefault();
+        
+        const currentPassword = document.getElementById('currentPassword').value;
+        const newPassword = document.getElementById('newPassword').value;
+        const confirmPassword = document.getElementById('confirmPassword').value;
+        
+        // Validation
+        if (!currentPassword || !newPassword || !confirmPassword) {
+          alert('Please fill in all fields');
+          return;
+        }
+        
+        if (newPassword.length < 8) {
+          alert('New password must be at least 8 characters long');
+          return;
+        }
+        
+        if (newPassword !== confirmPassword) {
+          alert('New password and confirm password do not match');
+          return;
+        }
+        
+        if (currentPassword === newPassword) {
+          alert('New password must be different from current password');
+          return;
+        }
+        
+        // Show loading state
+        const submitBtn = document.getElementById('submitPasswordBtn');
+        const originalText = submitBtn.innerHTML;
+        submitBtn.disabled = true;
+        submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Updating...';
+        
+        // Get CSRF token helper function
+        function getCookie(name) {
+          let cookieValue = null;
+          if (document.cookie && document.cookie !== '') {
+            const cookies = document.cookie.split(';');
+            for (let i = 0; i < cookies.length; i++) {
+              const cookie = cookies[i].trim();
+              if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                break;
+              }
+            }
+          }
+          return cookieValue;
+        }
+        
+        // Get CSRF token from form or cookie
+        const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]')?.value || getCookie('csrftoken');
+        
+        // Call change password API
+        const formData = new FormData();
+        formData.append('current_password', currentPassword);
+        formData.append('new_password', newPassword);
+        formData.append('confirm_password', confirmPassword);
+        if (csrfToken) {
+          formData.append('csrfmiddlewaretoken', csrfToken);
+        }
+        
+        fetch('{% url "change_password" %}', {
+          method: 'POST',
+          body: formData,
+          credentials: 'same-origin',
+          headers: {
+            'X-CSRFToken': csrfToken || ''
+          }
+        })
+          .then(response => {
+            if (!response.ok) {
+              throw new Error('Network response was not ok');
+            }
+            return response.json();
+          })
+          .then(data => {
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = originalText;
+            
+            if (data.success) {
+              alert('Password changed successfully!');
+              resetPasswordForm();
+            } else {
+              alert('Error: ' + (data.error || 'Failed to change password'));
+            }
+          })
+          .catch(error => {
+            console.error('Error:', error);
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = originalText;
+            alert('Error changing password. Please try again.');
+          });
+      });
     }
   });
   </script>

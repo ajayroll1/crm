@@ -1,0 +1,545 @@
+{% extends "dashboard/dashboard_base.html" %}
+{% load static %}
+
+{% block title %}Messages - Sujata Associates{% endblock %}
+
+{% block content %}
+<div class="container-fluid px-1 px-md-2 px-lg-3 py-3 py-md-4">
+  <div class="dashboard-header mb-3 mb-md-4">
+    <h1 class="h4 h3-md mb-2">Messages</h1>
+    <p class="text-muted small mb-0">Communicate with your team members</p>
+  </div>
+
+  <div class="row">
+    <!-- Contacts List -->
+    <div class="col-lg-4 col-md-5 mb-4">
+      <div class="card">
+        <div class="card-header d-flex justify-content-between align-items-center">
+          <h5 class="mb-0"><i class="bi bi-people me-2"></i>Contacts</h5>
+          <button class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#newMessageModal">
+            <i class="bi bi-plus-circle me-1"></i>New Message
+          </button>
+        </div>
+        <div class="card-body p-0">
+          <div class="input-group p-3 border-bottom">
+            <span class="input-group-text bg-light border-0">
+              <i class="bi bi-search"></i>
+            </span>
+            <input type="text" class="form-control border-0 bg-light" id="searchContacts" placeholder="Search contacts...">
+          </div>
+          <div class="contacts-list">
+            {% if contacts and contacts|length > 0 %}
+              {% for contact in contacts %}
+                <div class="contact-item p-3 border-bottom cursor-pointer {% if selected_contact_id == contact.id %}active{% endif %}" 
+                     onclick="selectContact('{{ contact.id }}', '{{ contact.name|escapejs }}', '{{ contact.role|escapejs }}', event)"
+                     data-contact-id="{{ contact.id }}">
+                  <div class="d-flex align-items-center">
+                    <div class="contact-avatar me-3">
+                      {% if contact.first_name %}{{ contact.first_name|first|upper }}{% else %}{{ contact.name|first|upper }}{% endif %}
+                    </div>
+                    <div class="flex-grow-1">
+                      <div class="fw-bold">{{ contact.name }}</div>
+                      <div class="small text-muted">
+                        {% if contact.designation %}{{ contact.designation }}{% endif %}
+                        {% if contact.department %} - {{ contact.department }}{% endif %}
+                        {% if not contact.designation and not contact.department %}{{ contact.role }}{% endif %}
+                      </div>
+                    </div>
+                    {% if contact.unread_count > 0 %}
+                      <span class="badge bg-primary rounded-pill unread-badge" 
+                            id="badge-{{ contact.id }}" 
+                            data-count="{{ contact.unread_count }}">{{ contact.unread_count }}</span>
+                    {% endif %}
+                  </div>
+                </div>
+              {% endfor %}
+            {% else %}
+              <div class="text-center py-5 text-muted">
+                <i class="bi bi-people display-4 d-block mb-3"></i>
+                <p>No contacts available</p>
+                <small class="text-muted">Total contacts: {{ contacts|length|default:0 }}</small>
+              </div>
+            {% endif %}
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Messages Area -->
+    <div class="col-lg-8 col-md-7 mb-4">
+      <div class="card">
+        <div class="card-header d-flex justify-content-between align-items-center" id="messageHeader">
+          <div class="d-flex align-items-center gap-2">
+            <button class="btn btn-sm btn-outline-secondary d-md-none" id="backToContacts" onclick="showContactsList()" style="display: none;">
+              <i class="bi bi-arrow-left"></i>
+            </button>
+            <div>
+              <h5 class="mb-0" id="selectedContactName">Select a contact to start messaging</h5>
+              <small class="text-muted" id="selectedContactRole"></small>
+            </div>
+          </div>
+          <div class="d-flex gap-2">
+            <button class="btn btn-sm btn-outline-secondary" id="refreshMessages" onclick="refreshMessages()" style="display: none;">
+              <i class="bi bi-arrow-clockwise"></i>
+            </button>
+          </div>
+        </div>
+        <div class="card-body p-0">
+          <!-- Messages Container -->
+          <div class="messages-container" id="messagesContainer" style="height: 500px; overflow-y: auto; padding: 1rem;">
+            <div class="text-center py-5 text-muted" id="noMessagesPlaceholder">
+              <i class="bi bi-chat-dots display-4 d-block mb-3"></i>
+              <p>Select a contact to view messages</p>
+            </div>
+            <div id="messagesList" style="display: none;"></div>
+          </div>
+          
+          <!-- Message Input -->
+          <div class="message-input p-3 border-top" id="messageInput" style="display: none;">
+            <!-- File Preview Area -->
+            <div id="filePreview" class="mb-2" style="display: none;">
+              <div class="d-flex align-items-center gap-2 p-2 bg-light rounded">
+                <span id="fileName" class="flex-grow-1"></span>
+                <button type="button" class="btn btn-sm btn-outline-danger" onclick="clearFilePreview()">
+                  <i class="bi bi-x"></i>
+                </button>
+              </div>
+            </div>
+            <form id="sendMessageForm" enctype="multipart/form-data">
+              <div class="input-group">
+                <!-- Hidden file inputs -->
+                <input type="file" id="imageInput" accept="image/*" style="display: none;" onchange="handleImageSelect(event)">
+                <input type="file" id="attachmentInput" accept="*/*" style="display: none;" onchange="handleAttachmentSelect(event)">
+                
+                <!-- Action buttons -->
+                <button type="button" class="btn btn-outline-secondary" onclick="document.getElementById('imageInput').click()" title="Attach Image">
+                  <i class="bi bi-image"></i>
+                </button>
+                <button type="button" class="btn btn-outline-secondary" onclick="document.getElementById('attachmentInput').click()" title="Attach File">
+                  <i class="bi bi-paperclip"></i>
+                </button>
+                
+                <input type="text" class="form-control" id="messageText" placeholder="Type your message...">
+                <button type="submit" class="btn btn-primary">
+                  <i class="bi bi-send"></i> Send
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- New Message Modal -->
+<div class="modal fade" id="newMessageModal" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">
+          <i class="bi bi-plus-circle me-2"></i>New Message
+        </h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <form id="newMessageForm">
+          <div class="mb-3">
+            <label class="form-label">To</label>
+            <select class="form-select" id="recipientSelect" required>
+              <option value="">Select recipient...</option>
+              {% if contacts and contacts|length > 0 %}
+                {% for contact in contacts %}
+                  <option value="{{ contact.id }}">
+                    {{ contact.first_name|default:contact.name }} {{ contact.last_name|default:"" }}
+                    {% if contact.designation %} - {{ contact.designation }}{% endif %}
+                    {% if contact.department %} ({{ contact.department }}){% endif %}
+                  </option>
+                {% endfor %}
+              {% else %}
+                <option value="" disabled>No contacts available (Contacts: {{ contacts|length|default:0 }})</option>
+              {% endif %}
+            </select>
+          </div>
+          <div class="mb-3">
+            <label class="form-label">Message</label>
+            <textarea class="form-control" id="newMessageText" rows="4" placeholder="Type your message..."></textarea>
+          </div>
+          <div class="mb-3">
+            <label class="form-label">Attachments (Optional)</label>
+            <div class="d-flex gap-2">
+              <input type="file" id="newMessageImage" accept="image/*" class="form-control form-control-sm">
+              <input type="file" id="newMessageAttachment" accept="*/*" class="form-control form-control-sm">
+            </div>
+            <small class="text-muted">You can attach an image or file</small>
+          </div>
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+        <button type="button" class="btn btn-primary" onclick="sendNewMessage()">
+          <i class="bi bi-send me-1"></i>Send Message
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<style>
+  .contact-item {
+    transition: background-color 0.2s;
+    cursor: pointer;
+  }
+  
+  .contact-item:hover {
+    background-color: #f8f9fa;
+  }
+  
+  .contact-item.active {
+    background-color: #e3f2fd;
+    border-left: 3px solid var(--primary-color);
+  }
+
+  .contacts-list {
+    max-height: calc(7 * 4.5rem);
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  @media (max-width: 768px) {
+    .contacts-list {
+      max-height: calc(7 * 4rem);
+    }
+  }
+  
+  .contact-avatar {
+    width: 45px;
+    height: 45px;
+    border-radius: 50%;
+    background: linear-gradient(45deg, var(--primary-color), var(--secondary-color));
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+    font-size: 1.1rem;
+  }
+  
+  .message-item {
+    margin-bottom: 0.5rem;
+    display: flex;
+    align-items: flex-end;
+    gap: 0.5rem;
+    width: 100%;
+    padding: 0.25rem 0.5rem;
+  }
+  
+  .message-item.sent {
+    flex-direction: row-reverse;
+    justify-content: flex-end;
+    margin-left: auto;
+  }
+  
+  .message-item.received {
+    justify-content: flex-start;
+    margin-right: auto;
+  }
+  
+  .message-bubble {
+    max-width: 70%;
+    min-width: 100px;
+    padding: 0.6rem 0.8rem;
+    border-radius: 7.5px;
+    word-wrap: break-word;
+    position: relative;
+    display: inline-block;
+  }
+  
+  .message-item.sent .message-bubble {
+    background: #dcf8c6;
+    color: #111;
+    border-bottom-right-radius: 2px;
+    box-shadow: 0 1px 0.5px rgba(0,0,0,0.13);
+    margin-left: auto;
+  }
+  
+  .message-item.received .message-bubble {
+    background: #ffffff;
+    color: #111;
+    border-bottom-left-radius: 2px;
+    box-shadow: 0 1px 0.5px rgba(0,0,0,0.13);
+    border: 1px solid #e5e5e5;
+    margin-right: auto;
+  }
+  
+  .messages-container {
+    background: #f8f9fa;
+  }
+  
+  .message-input {
+    background: white;
+  }
+  
+  .cursor-pointer {
+    cursor: pointer;
+  }
+</style>
+
+<script>
+  // Include the same JavaScript from employee/messages.html
+  // This will be the same functionality
+  let selectedContactId = null;
+  let selectedContactName = null;
+  let selectedContactRole = null;
+  
+  // Use the same employee_get_messages and employee_send_message URLs
+  // They work for both employee and admin
+  function selectContact(contactId, contactName, contactRole, event) {
+    selectedContactId = contactId;
+    selectedContactName = contactName;
+    selectedContactRole = contactRole;
+    
+    document.getElementById('selectedContactName').textContent = contactName;
+    document.getElementById('selectedContactRole').textContent = contactRole;
+    document.getElementById('noMessagesPlaceholder').style.display = 'none';
+    document.getElementById('messagesList').style.display = 'block';
+    document.getElementById('messageInput').style.display = 'block';
+    document.getElementById('refreshMessages').style.display = 'block';
+    
+    document.querySelectorAll('.contact-item').forEach(item => {
+      item.classList.remove('active');
+    });
+    
+    if (event && event.currentTarget) {
+      event.currentTarget.classList.add('active');
+    }
+    
+    loadMessages(contactId);
+  }
+  
+  function loadMessages(contactId) {
+    const messagesList = document.getElementById('messagesList');
+    messagesList.innerHTML = '<div class="text-center py-3 text-muted"><small>Loading messages...</small></div>';
+    
+    fetch(`{% url 'employee_get_messages' %}?receiver_id=${contactId}&limit=50`, {
+      credentials: 'include',
+      headers: { 'X-Requested-With': 'XMLHttpRequest' }
+    })
+      .then(response => response.json())
+      .then(data => {
+        if (data.success && data.messages && data.messages.length > 0) {
+          displayMessages(data.messages, contactId);
+        } else {
+          messagesList.innerHTML = '<div class="text-center py-5"><i class="bi bi-chat-dots display-4 text-muted d-block mb-3"></i><p class="text-muted mb-0">No conversation done yet</p></div>';
+        }
+      })
+      .catch(error => {
+        console.error('Error loading messages:', error);
+        messagesList.innerHTML = '<div class="text-center py-5"><i class="bi bi-chat-dots display-4 text-muted d-block mb-3"></i><p class="text-muted mb-0">No conversation done yet</p></div>';
+      });
+  }
+  
+  function displayMessages(messages, contactId) {
+    const messagesList = document.getElementById('messagesList');
+    let messagesHTML = '';
+    
+    messages.forEach(msg => {
+      const isSender = msg.is_sender === true || msg.is_sender === 'true';
+      const messageTime = new Date(msg.created_at);
+      const timeStr = messageTime.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true });
+      
+      let messageContent = '';
+      if (msg.image_url) {
+        messageContent += `<div class="message-image mb-2"><img src="${msg.image_url}" alt="Image" class="img-fluid rounded" style="max-width: 300px;"></div>`;
+      }
+      if (msg.attachment_url) {
+        messageContent += `<div class="message-attachment mb-2"><a href="${msg.attachment_url}" target="_blank" class="d-flex align-items-center gap-2 p-2 bg-light rounded text-decoration-none text-dark"><i class="bi bi-file-earmark"></i><span class="flex-grow-1">${msg.attachment_name || 'Download'}</span><i class="bi bi-download"></i></a></div>`;
+      }
+      if (msg.message) {
+        messageContent += `<div class="message-text">${escapeHtml(msg.message)}</div>`;
+      }
+      
+      messagesHTML += `
+        <div class="message-item ${isSender ? 'sent' : 'received'}">
+          <div class="message-bubble">
+            ${messageContent}
+            <div class="message-time">${timeStr}</div>
+          </div>
+        </div>
+      `;
+    });
+    
+    messagesList.innerHTML = messagesHTML;
+    setTimeout(() => {
+      document.getElementById('messagesContainer').scrollTop = document.getElementById('messagesContainer').scrollHeight;
+    }, 100);
+  }
+  
+  function escapeHtml(text) {
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+  }
+  
+  function refreshMessages() {
+    if (selectedContactId) {
+      loadMessages(selectedContactId);
+    }
+  }
+  
+  function sendNewMessage() {
+    const recipientId = document.getElementById('recipientSelect').value;
+    const messageText = document.getElementById('newMessageText').value;
+    
+    if (!recipientId || !messageText.trim()) {
+      alert('Please select a recipient and enter a message');
+      return;
+    }
+    
+    const formData = new FormData();
+    formData.append('receiver_id', recipientId);
+    formData.append('message', messageText);
+    
+    fetch('{% url "employee_send_message" %}', {
+      method: 'POST',
+      body: formData,
+      credentials: 'include',
+      headers: {
+        'X-CSRFToken': getCookie('csrftoken') || ''
+      }
+    })
+      .then(response => response.json())
+      .then(data => {
+        if (data.success) {
+          const modal = bootstrap.Modal.getInstance(document.getElementById('newMessageModal'));
+          modal.hide();
+          document.getElementById('newMessageForm').reset();
+          if (recipientId) {
+            const option = document.getElementById('recipientSelect').options[document.getElementById('recipientSelect').selectedIndex];
+            selectContact(recipientId, option.text.split(' - ')[0].trim(), 'Employee');
+          }
+        } else {
+          alert('Error: ' + (data.error || 'Failed to send message'));
+        }
+      })
+      .catch(error => {
+        console.error('Error:', error);
+        alert('Error sending message. Please try again.');
+      });
+  }
+  
+  function getCookie(name) {
+    const value = `; ${document.cookie}`;
+    const parts = value.split(`; ${name}=`);
+    if (parts.length === 2) return parts.pop().split(';').shift();
+  }
+  
+  let selectedImageFile = null;
+  let selectedAttachmentFile = null;
+  
+  function handleImageSelect(event) {
+    const file = event.target.files[0];
+    if (file) {
+      selectedImageFile = file;
+      document.getElementById('filePreview').style.display = 'block';
+      document.getElementById('fileName').innerHTML = `<i class="bi bi-image me-2"></i>${file.name}`;
+    }
+  }
+  
+  function handleAttachmentSelect(event) {
+    const file = event.target.files[0];
+    if (file) {
+      selectedAttachmentFile = file;
+      document.getElementById('filePreview').style.display = 'block';
+      document.getElementById('fileName').innerHTML = `<i class="bi bi-paperclip me-2"></i>${file.name}`;
+    }
+  }
+  
+  function clearFilePreview() {
+    selectedImageFile = null;
+    selectedAttachmentFile = null;
+    document.getElementById('imageInput').value = '';
+    document.getElementById('attachmentInput').value = '';
+    document.getElementById('filePreview').style.display = 'none';
+  }
+  
+  document.getElementById('sendMessageForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+    
+    if (!selectedContactId) {
+      alert('Please select a contact first');
+      return;
+    }
+    
+    const messageText = document.getElementById('messageText').value;
+    if (!messageText.trim() && !selectedImageFile && !selectedAttachmentFile) {
+      alert('Please enter a message or attach a file/image');
+      return;
+    }
+    
+    const formData = new FormData();
+    formData.append('receiver_id', selectedContactId);
+    if (messageText.trim()) {
+      formData.append('message', messageText);
+    }
+    if (selectedImageFile) {
+      formData.append('image', selectedImageFile);
+    }
+    if (selectedAttachmentFile) {
+      formData.append('attachment', selectedAttachmentFile);
+    }
+    
+    fetch('{% url "employee_send_message" %}', {
+      method: 'POST',
+      body: formData,
+      credentials: 'include',
+      headers: {
+        'X-CSRFToken': getCookie('csrftoken') || ''
+      }
+    })
+      .then(response => response.json())
+      .then(data => {
+        if (data.success) {
+          document.getElementById('messageText').value = '';
+          clearFilePreview();
+          if (data.message) {
+            displayMessages([data.message], selectedContactId);
+          }
+          setTimeout(() => {
+            loadMessages(selectedContactId);
+          }, 500);
+        } else {
+          alert('Error: ' + (data.error || 'Failed to send message'));
+        }
+      })
+      .catch(error => {
+        console.error('Error:', error);
+        alert('Error sending message. Please try again.');
+      });
+  });
+  
+  document.getElementById('searchContacts').addEventListener('input', function(e) {
+    const searchTerm = e.target.value.toLowerCase();
+    document.querySelectorAll('.contact-item').forEach(item => {
+      const contactText = item.textContent.toLowerCase();
+      if (contactText.includes(searchTerm)) {
+        item.style.display = '';
+      } else {
+        item.style.display = 'none';
+      }
+    });
+  });
+  
+  function showContactsList() {
+    const messagesArea = document.querySelector('.col-lg-8.col-md-7');
+    const contactsArea = document.querySelector('.col-lg-4.col-md-5');
+    
+    if (window.innerWidth <= 768) {
+      if (contactsArea) contactsArea.style.display = 'block';
+      if (messagesArea) messagesArea.style.display = 'none';
+      document.getElementById('backToContacts').style.display = 'none';
+    }
+  }
+</script>
+{% endblock %}
+

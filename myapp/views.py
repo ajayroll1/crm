@@ -289,18 +289,18 @@ def home(request):
   return render(request,'pages/homepage.html')
 
 def login_view(request):
-  """Login view - authenticate user with email (from Employee) and phone number (as password) and redirect based on role"""
+  """Login view - authenticate user with email and password/phone based on whether password is set"""
   if request.method == 'POST':
     email = request.POST.get('email', '').strip().lower()  # Convert to lowercase for case-insensitive matching
-    phone_number = request.POST.get('password', '').strip()  # Password field contains phone number
+    password_input = request.POST.get('password', '').strip()  # Can be password or phone number
     
     # Validate input
     if not email:
       messages.error(request, 'Please enter your email address.')
       return redirect('home')
     
-    if not phone_number:
-      messages.error(request, 'Please enter your phone number.')
+    if not password_input:
+      messages.error(request, 'Please enter your password or phone number.')
       return redirect('home')
     
     # Basic email format validation
@@ -318,23 +318,41 @@ def login_view(request):
       # If multiple employees found (shouldn't happen), get the first one
       employee = Employee.objects.filter(email__iexact=email).first()
     
-    # Check if employee phone number exists
-    if not employee.phone:
-      messages.error(request, 'Your account does not have a phone number registered. Please contact administrator.')
+    # Check if employee is active
+    if employee.status != 'active':
+      messages.error(request, 'Your account has been deactivated. Please contact administrator.')
       return redirect('home')
     
-    # Verify phone number matches
-    # Normalize phone numbers for comparison (remove spaces, dashes, etc.)
-    employee_phone = ''.join(filter(str.isdigit, employee.phone or ''))
-    input_phone = ''.join(filter(str.isdigit, phone_number))
-    
-    if not input_phone:
-      messages.error(request, 'Please enter a valid phone number.')
-      return redirect('home')
-    
-    if employee_phone != input_phone:
-      messages.error(request, 'Invalid phone number. Please check your phone number and try again.')
-      return redirect('home')
+    # Check if password is set in Employee model
+    if employee.password and employee.password.strip():
+      # Password is set - authenticate using password
+      from django.contrib.auth.hashers import check_password
+      if not check_password(password_input, employee.password):
+        messages.error(request, 'Invalid password. Please check your password and try again.')
+        return redirect('home')
+      # Password is correct, proceed with login
+      login_password = password_input
+    else:
+      # Password is not set - use phone number authentication (old method)
+      if not employee.phone:
+        messages.error(request, 'Your account does not have a phone number registered. Please contact administrator.')
+        return redirect('home')
+      
+      # Verify phone number matches
+      # Normalize phone numbers for comparison (remove spaces, dashes, etc.)
+      employee_phone = ''.join(filter(str.isdigit, employee.phone or ''))
+      input_phone = ''.join(filter(str.isdigit, password_input))
+      
+      if not input_phone:
+        messages.error(request, 'Please enter a valid phone number.')
+        return redirect('home')
+      
+      if employee_phone != input_phone:
+        messages.error(request, 'Invalid phone number. Please check your phone number and try again.')
+        return redirect('home')
+      
+      # Phone matches, use phone as login password
+      login_password = password_input
     
     # Check if employee is active
     if employee.status != 'active':
@@ -357,11 +375,11 @@ def login_view(request):
         counter += 1
       
       try:
-        # Create user with phone number as password
+        # Create user with login_password (can be phone or password)
         user = User.objects.create_user(
           username=username,
           email=employee.email,  # Use employee's email from database (original case)
-          password=phone_number,  # Use phone number as password
+          password=login_password,  # Use login_password (phone or password)
           first_name=employee.first_name,
           last_name=employee.last_name,
           is_staff=(employee.role == 'Admin')
@@ -377,7 +395,7 @@ def login_view(request):
       return redirect('home')
     
     # Authenticate user
-    authenticated_user = authenticate(request, username=user.username, password=phone_number)
+    authenticated_user = authenticate(request, username=user.username, password=login_password)
     
     if authenticated_user is not None:
       if authenticated_user.is_active:
@@ -429,11 +447,11 @@ def login_view(request):
         messages.error(request, 'Your account has been disabled.')
         return redirect('home')
     else:
-      # Authentication failed - update user password (phone might have changed)
+      # Authentication failed - update user password (phone/password might have changed)
       if user is not None:
-        user.set_password(phone_number)
+        user.set_password(login_password)
         user.save()
-        authenticated_user = authenticate(request, username=user.username, password=phone_number)
+        authenticated_user = authenticate(request, username=user.username, password=login_password)
         if authenticated_user:
           auth_login(request, authenticated_user)
           
@@ -5666,10 +5684,103 @@ def settings_view(request):
     'user_designation': user_designation,
     'user_role': user_role,
     'user_initials': user_initials,
-    'employee': employee,
   }
   
   return render(request, 'setting.html', context)
+
+@login_required
+def change_password_view(request):
+  """Change password view - updates employee password"""
+  if request.method == 'POST':
+    try:
+      user = request.user
+      user_email = getattr(user, 'email', '')
+      
+      # Get employee
+      employee = Employee.objects.filter(email__iexact=user_email).first()
+      
+      if not employee:
+        # Try by name
+        user_full_name = user.get_full_name() or user.username or ''
+        if user_full_name:
+          name_parts = user_full_name.strip().split(' ', 1)
+          first_name = name_parts[0] if name_parts else ''
+          last_name = name_parts[1] if len(name_parts) > 1 else ''
+          
+          if first_name and last_name:
+            employee = Employee.objects.filter(
+              first_name__iexact=first_name,
+              last_name__iexact=last_name
+            ).first()
+      
+      if not employee:
+        return JsonResponse({'success': False, 'error': 'Employee record not found. Please contact administrator.'})
+      
+      # Get form data
+      current_password = request.POST.get('current_password', '').strip()
+      new_password = request.POST.get('new_password', '').strip()
+      confirm_password = request.POST.get('confirm_password', '').strip()
+      
+      # Validation
+      if not current_password or not new_password or not confirm_password:
+        return JsonResponse({'success': False, 'error': 'All fields are required.'})
+      
+      if len(new_password) < 8:
+        return JsonResponse({'success': False, 'error': 'New password must be at least 8 characters long.'})
+      
+      if new_password != confirm_password:
+        return JsonResponse({'success': False, 'error': 'New password and confirm password do not match.'})
+      
+      # Check current password
+      from django.contrib.auth.hashers import check_password, make_password
+      
+      # Verify current password based on whether password is set or not
+      if employee.password and employee.password.strip():
+        # Password is set - verify using password
+        if not check_password(current_password, employee.password):
+          return JsonResponse({'success': False, 'error': 'Current password is incorrect.'})
+        
+        # Check if new password is same as current password
+        if check_password(new_password, employee.password):
+          return JsonResponse({'success': False, 'error': 'New password must be different from current password.'})
+      else:
+        # Password is not set - verify using phone number
+        if not employee.phone:
+          return JsonResponse({'success': False, 'error': 'Phone number not found. Please contact administrator.'})
+        
+        employee_phone = ''.join(filter(str.isdigit, employee.phone or ''))
+        input_phone = ''.join(filter(str.isdigit, current_password))
+        
+        if not input_phone:
+          return JsonResponse({'success': False, 'error': 'Please enter a valid phone number.'})
+        
+        if employee_phone != input_phone:
+          return JsonResponse({'success': False, 'error': 'Current phone number is incorrect.'})
+        
+        # Check if new password is same as phone (normalized)
+        normalized_new_password = ''.join(filter(str.isdigit, new_password))
+        if normalized_new_password == employee_phone:
+          return JsonResponse({'success': False, 'error': 'New password cannot be the same as your phone number.'})
+      
+      # Hash and save new password
+      employee.password = make_password(new_password)
+      employee.save()
+      
+      # Also update User model password for consistency
+      if user:
+        user.set_password(new_password)
+        user.save()
+      
+      return JsonResponse({'success': True, 'message': 'Password changed successfully!'}, status=200)
+      
+    except Exception as e:
+      import traceback
+      error_msg = str(e)
+      print(f"Change password error: {error_msg}")
+      print(traceback.format_exc())
+      return JsonResponse({'success': False, 'error': f'Error changing password: {error_msg}'}, status=400)
+  
+  return JsonResponse({'success': False, 'error': 'Invalid request method.'}, status=405)
 
 def in_out(request):
   return render(request, 'human_resource/in_out.html')
@@ -9937,6 +10048,172 @@ def employee_messages(request):
     
     print(f"DEBUG: Context passed with {len(context.get('contacts', []))} contacts")
     return render(request, 'employee/messages.html', context)
+
+def admin_messages(request):
+    """Admin messages view - allows messaging between admin and employees"""
+    from django.contrib.auth.models import User
+    from .models import EmployeeMessage
+    
+    # Get current user
+    current_user = request.user
+    contacts = []
+    current_user_employee = None
+    
+    if current_user.is_authenticated:
+        # Get all employees from myapp_employee table
+        all_employees = Employee.objects.all().order_by('first_name', 'last_name')
+        
+        # Try to find current user's employee record
+        try:
+            current_user_employee = Employee.objects.filter(
+                Q(email=current_user.email) | 
+                Q(first_name__iexact=current_user.first_name) |
+                Q(last_name__iexact=current_user.last_name)
+            ).first()
+        except Exception as e:
+            pass
+        
+        # Get current user's receiver_id (for counting unread messages)
+        current_user_receiver_id = None
+        if current_user_employee:
+            current_user_receiver_id = current_user_employee.emp_code or str(current_user_employee.id)
+        else:
+            # Fallback - use user ID
+            current_user_receiver_id = str(current_user.id)
+        
+        # Add all employees to contacts list
+        for emp in all_employees:
+            # Get sender User object for this employee
+            sender_user = None
+            if emp.email:
+                try:
+                    sender_user = User.objects.get(email=emp.email)
+                except User.DoesNotExist:
+                    pass
+            
+            sender_id = emp.emp_code or str(emp.id)
+            
+            # Count unread messages FROM this contact TO current user
+            unread_count = EmployeeMessage.objects.filter(
+                receiver_id=current_user_receiver_id,
+                receiver_name__icontains=emp.get_full_name(),
+                is_read=False
+            ).count()
+            
+            # If we have sender_user, also filter by sender FK
+            if sender_user:
+                unread_count = EmployeeMessage.objects.filter(
+                    receiver_id=current_user_receiver_id,
+                    sender=sender_user,
+                    is_read=False
+                ).count()
+            
+            # Get latest message time for sorting
+            if sender_user:
+                latest_message = EmployeeMessage.objects.filter(
+                    Q(receiver_id=current_user_receiver_id, sender=sender_user) |
+                    Q(receiver_id=sender_id, sender=current_user)
+                ).order_by('-created_at').first()
+            else:
+                latest_message = EmployeeMessage.objects.filter(
+                    Q(receiver_id=current_user_receiver_id) |
+                    Q(receiver_id=sender_id)
+                ).order_by('-created_at').first()
+            
+            latest_message_time = latest_message.created_at if latest_message else None
+            
+            # Create contact data
+            contact_data = {
+                'id': emp.emp_code or str(emp.id),
+                'name': emp.get_full_name(),
+                'first_name': emp.first_name or '',
+                'last_name': emp.last_name or '',
+                'role': emp.designation or 'Employee',
+                'designation': emp.designation or '',
+                'department': emp.department or '',
+                'email': emp.email or '',
+                'unread_count': unread_count,
+                'latest_message_time': latest_message_time
+            }
+            contacts.append(contact_data)
+        
+        # Add other admin users as contacts
+        admin_users = User.objects.filter(is_staff=True, is_active=True).exclude(
+            id=current_user.id if hasattr(current_user, 'id') else None
+        ).order_by('first_name', 'last_name', 'username')
+        
+        for admin in admin_users:
+            admin_name = admin.get_full_name() or admin.username
+            admin_id = f'admin_{admin.id}'
+            
+            # Count unread messages FROM this admin TO current user
+            unread_count = EmployeeMessage.objects.filter(
+                receiver_id=current_user_receiver_id,
+                sender=admin,
+                is_read=False
+            ).count()
+            
+            # Get latest message time for sorting
+            latest_message = EmployeeMessage.objects.filter(
+                Q(receiver_id=current_user_receiver_id, sender=admin) |
+                Q(receiver_id=admin_id, sender=current_user)
+            ).order_by('-created_at').first()
+            
+            latest_message_time = latest_message.created_at if latest_message else None
+            
+            contacts.append({
+                'id': admin_id,
+                'name': admin_name,
+                'first_name': admin.first_name or '',
+                'last_name': admin.last_name or '',
+                'role': 'Admin',
+                'designation': 'Admin',
+                'department': '',
+                'email': admin.email if hasattr(admin, 'email') else '',
+                'unread_count': unread_count,
+                'latest_message_time': latest_message_time
+            })
+    
+    # Get selected contact ID from query params
+    selected_contact_id = request.GET.get('contact_id', None)
+    
+    # Sort contacts: unread messages first, then by latest message time
+    from django.utils import timezone
+    from datetime import datetime
+    from django.utils import timezone as django_timezone
+    
+    contacts_with_messages = []
+    contacts_without_messages = []
+    
+    for contact in contacts:
+        if contact.get('latest_message_time'):
+            contacts_with_messages.append(contact)
+        else:
+            contacts_without_messages.append(contact)
+    
+    # Sort contacts with messages by latest_message_time (most recent first)
+    def get_sort_time(contact):
+        msg_time = contact.get('latest_message_time')
+        if msg_time:
+            if django_timezone.is_aware(msg_time):
+                return msg_time
+            else:
+                return django_timezone.make_aware(msg_time)
+        return django_timezone.make_aware(datetime.min)
+    
+    contacts_with_messages.sort(key=get_sort_time, reverse=True)
+    contacts_without_messages.sort(key=lambda x: x.get('name', '').lower())
+    sorted_contacts = contacts_with_messages + contacts_without_messages
+    
+    context = {
+        'contacts': sorted_contacts,
+        'selected_contact_id': selected_contact_id,
+        'employee_name': current_user.get_full_name() if current_user.is_authenticated else 'Guest',
+        'current_user_employee': current_user_employee,
+        'show_welcome': False,
+    }
+    
+    return render(request, 'dashboard/messages.html', context)
 
 @csrf_exempt
 @require_POST
