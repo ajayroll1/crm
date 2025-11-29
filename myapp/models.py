@@ -314,6 +314,9 @@ class Invoice(models.Model):
     # Line Items (stored as JSON)
     items = models.JSONField(default=list, blank=True, help_text="List of invoice items")
     
+    # Selected Bank Accounts (stored as JSON array of bank account IDs)
+    selected_bank_accounts = models.JSONField(default=list, blank=True, help_text="List of selected bank account IDs to display on invoice")
+    
     # Timestamps
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
@@ -1923,3 +1926,25 @@ class PaymentTransaction(models.Model):
             except Employee.DoesNotExist:
                 return ""
         return ""
+
+
+class CompanyBankAccount(models.Model):
+    """Company bank account details for invoices"""
+    account_name = models.CharField(max_length=255, verbose_name="Account Name")
+    bank_name = models.CharField(max_length=255, verbose_name="Bank Name")
+    account_number = models.CharField(max_length=50, verbose_name="Account Number")
+    ifsc = models.CharField(max_length=20, verbose_name="IFSC Code")
+    branch = models.CharField(max_length=255, blank=True, null=True, verbose_name="Branch")
+    is_active = models.BooleanField(default=True, verbose_name="Active")
+    is_default = models.BooleanField(default=False, verbose_name="Default Account")
+    
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    
+    class Meta:
+        verbose_name = "Company Bank Account"
+        verbose_name_plural = "Company Bank Accounts"
+        ordering = ['-is_default', '-created_at']
+    
+    def __str__(self):
+        return f"{self.bank_name} - {self.account_number}"

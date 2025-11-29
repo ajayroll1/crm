@@ -104,6 +104,7 @@ from .models import (
     TrademarkFilingInstant,
     CompanyAddressChange,
     MOAAlteration,
+    CompanyBankAccount,
 )
 from .forms import (
     LeadForm,
@@ -2998,6 +2999,10 @@ def invoices(request):
             notes = request.POST.get('notes', '').strip() or None
             terms = request.POST.get('terms', '').strip() or None
             
+            # Get selected bank account IDs
+            selected_bank_accounts = request.POST.getlist('selected_bank_accounts')
+            selected_bank_accounts = [int(acc_id) for acc_id in selected_bank_accounts if acc_id and acc_id.isdigit()]
+            
             # Update existing invoice or create new one
             if is_update and invoice:
                 # Update existing invoice
@@ -3019,6 +3024,7 @@ def invoices(request):
                 invoice.notes = notes
                 invoice.terms = terms
                 invoice.items = items
+                invoice.selected_bank_accounts = selected_bank_accounts
                 invoice.save()
                 messages.success(request, f'Invoice {invoice_number} updated successfully!')
             else:
@@ -3042,6 +3048,7 @@ def invoices(request):
                     notes=notes,
                     terms=terms,
                     items=items,
+                    selected_bank_accounts=selected_bank_accounts,
                 )
                 messages.success(request, f'Invoice {invoice_number} created successfully!')
             
@@ -3264,9 +3271,13 @@ def invoices(request):
                 'notes': edit_invoice_obj.notes or '',
                 'terms': edit_invoice_obj.terms or '',
                 'items': edit_invoice_obj.items if isinstance(edit_invoice_obj.items, list) else [],
+                'selected_bank_accounts': edit_invoice_obj.selected_bank_accounts if isinstance(edit_invoice_obj.selected_bank_accounts, list) else [],
             }
         except (Invoice.DoesNotExist, ValueError, TypeError):
             edit_invoice = None
+    
+    # Get all active company bank accounts for invoice selection
+    bank_accounts = CompanyBankAccount.objects.filter(is_active=True).order_by('-is_default', '-created_at')
     
     context = {
         'invoices': invoices_page,
@@ -3281,6 +3292,7 @@ def invoices(request):
         'selected_invoice': selected_invoice,
         'today_iso': today.isoformat(),
         'edit_invoice': edit_invoice,
+        'bank_accounts': bank_accounts,
     }
     return render(request, 'dashboard/invoices.html', context)
 
@@ -3611,7 +3623,35 @@ def invoice_detail(request, invoice_id):
         'terms': invoice.terms or '',
         'items': items,
         'payment_history': history_entries,
+        'selected_bank_accounts': [],
     }
+    
+    # Get selected bank accounts data (only active accounts)
+    # If no accounts selected, fetch all active accounts
+    if invoice.selected_bank_accounts and len(invoice.selected_bank_accounts) > 0:
+        selected_accounts = CompanyBankAccount.objects.filter(
+            id__in=invoice.selected_bank_accounts,
+            is_active=True
+        ).order_by('-is_default', '-created_at')
+    else:
+        # If no accounts selected, get all active accounts
+        selected_accounts = CompanyBankAccount.objects.filter(
+            is_active=True
+        ).order_by('-is_default', '-created_at')
+    
+    if selected_accounts.exists():
+        data['selected_bank_accounts'] = [
+            {
+                'id': acc.id,
+                'account_name': acc.account_name,
+                'bank_name': acc.bank_name,
+                'account_number': acc.account_number,
+                'ifsc': acc.ifsc,
+                'branch': acc.branch or '',
+            }
+            for acc in selected_accounts
+        ]
+    
     return JsonResponse(data)
 
 
@@ -4089,6 +4129,152 @@ def invoice_pdf_download(request, invoice_type, invoice_id):
         print(f"Traceback: {error_trace}")
         messages.error(request, f'Error generating PDF: {str(e)}')
         return redirect('invoices')
+
+
+@login_required
+def bank_accounts_list(request):
+    """List all company bank accounts"""
+    bank_accounts = CompanyBankAccount.objects.all().order_by('-is_default', '-created_at')
+    return JsonResponse({
+        'success': True,
+        'bank_accounts': [
+            {
+                'id': acc.id,
+                'account_name': acc.account_name,
+                'bank_name': acc.bank_name,
+                'account_number': acc.account_number,
+                'ifsc': acc.ifsc,
+                'branch': acc.branch or '',
+                'is_active': acc.is_active,
+                'is_default': acc.is_default,
+            }
+            for acc in bank_accounts
+        ]
+    })
+
+
+@login_required
+@require_POST
+def bank_account_toggle_status(request, account_id):
+    """Toggle bank account active/inactive status"""
+    try:
+        bank_account = get_object_or_404(CompanyBankAccount, id=account_id)
+        bank_account.is_active = not bank_account.is_active
+        bank_account.save()
+        return JsonResponse({
+            'success': True,
+            'message': f'Bank account status updated to {"Active" if bank_account.is_active else "Inactive"}',
+            'is_active': bank_account.is_active
+        })
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': str(e)})
+
+
+@login_required
+@require_POST
+def bank_account_create(request):
+    """Create a new company bank account"""
+    try:
+        account_name = request.POST.get('account_name', '').strip()
+        bank_name = request.POST.get('bank_name', '').strip()
+        account_number = request.POST.get('account_number', '').strip()
+        ifsc = request.POST.get('ifsc', '').strip()
+        branch = request.POST.get('branch', '').strip()
+        is_default = request.POST.get('is_default') == 'true'
+        
+        if not account_name or not bank_name or not account_number or not ifsc:
+            return JsonResponse({'success': False, 'error': 'All required fields must be filled.'})
+        
+        # If this is set as default, unset other defaults
+        if is_default:
+            CompanyBankAccount.objects.filter(is_default=True).update(is_default=False)
+        
+        bank_account = CompanyBankAccount.objects.create(
+            account_name=account_name,
+            bank_name=bank_name,
+            account_number=account_number,
+            ifsc=ifsc,
+            branch=branch or None,
+            is_default=is_default,
+        )
+        
+        return JsonResponse({
+            'success': True,
+            'message': 'Bank account created successfully!',
+            'bank_account': {
+                'id': bank_account.id,
+                'account_name': bank_account.account_name,
+                'bank_name': bank_account.bank_name,
+                'account_number': bank_account.account_number,
+                'ifsc': bank_account.ifsc,
+                'branch': bank_account.branch or '',
+                'is_active': bank_account.is_active,
+                'is_default': bank_account.is_default,
+            }
+        })
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': str(e)})
+
+
+@login_required
+@require_POST
+def bank_account_update(request, account_id):
+    """Update a company bank account"""
+    try:
+        bank_account = get_object_or_404(CompanyBankAccount, id=account_id)
+        
+        account_name = request.POST.get('account_name', '').strip()
+        bank_name = request.POST.get('bank_name', '').strip()
+        account_number = request.POST.get('account_number', '').strip()
+        ifsc = request.POST.get('ifsc', '').strip()
+        branch = request.POST.get('branch', '').strip()
+        is_active = request.POST.get('is_active') == 'true'
+        is_default = request.POST.get('is_default') == 'true'
+        
+        if not account_name or not bank_name or not account_number or not ifsc:
+            return JsonResponse({'success': False, 'error': 'All required fields must be filled.'})
+        
+        # If this is set as default, unset other defaults
+        if is_default and not bank_account.is_default:
+            CompanyBankAccount.objects.filter(is_default=True).update(is_default=False)
+        
+        bank_account.account_name = account_name
+        bank_account.bank_name = bank_name
+        bank_account.account_number = account_number
+        bank_account.ifsc = ifsc
+        bank_account.branch = branch or None
+        bank_account.is_active = is_active
+        bank_account.is_default = is_default
+        bank_account.save()
+        
+        return JsonResponse({
+            'success': True,
+            'message': 'Bank account updated successfully!',
+            'bank_account': {
+                'id': bank_account.id,
+                'account_name': bank_account.account_name,
+                'bank_name': bank_account.bank_name,
+                'account_number': bank_account.account_number,
+                'ifsc': bank_account.ifsc,
+                'branch': bank_account.branch or '',
+                'is_active': bank_account.is_active,
+                'is_default': bank_account.is_default,
+            }
+        })
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': str(e)})
+
+
+@login_required
+@require_POST
+def bank_account_delete(request, account_id):
+    """Delete a company bank account"""
+    try:
+        bank_account = get_object_or_404(CompanyBankAccount, id=account_id)
+        bank_account.delete()
+        return JsonResponse({'success': True, 'message': 'Bank account deleted successfully!'})
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': str(e)})
 
 
 @login_required

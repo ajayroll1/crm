@@ -112,6 +112,11 @@
             <i class="bi bi-plus-circle me-2"></i>Create New Invoice
           </button>
         </li>
+        <li class="nav-item" role="presentation">
+          <button class="nav-link" id="bank-accounts-tab" data-bs-toggle="tab" data-bs-target="#bank-accounts" type="button" role="tab" aria-controls="bank-accounts" aria-selected="false">
+            <i class="bi bi-bank me-2"></i>Company Bank Accounts
+          </button>
+        </li>
       </ul>
     </div>
     <div class="card-body">
@@ -680,7 +685,33 @@
                   <textarea class="form-control" id="terms" name="terms" rows="3"></textarea>
                 </div>
               </div>
-              
+
+              <!-- Select Bank Accounts for Invoice (Inside Form) -->
+              <div class="row mb-4">
+                <div class="col-12">
+                  <h6 class="border-bottom pb-2 mb-3">Select Bank Account(s) to Display on Invoice</h6>
+                  <div class="col-12 mb-3">
+                    <label class="form-label">Choose Bank Accounts</label>
+                    <div id="bank-accounts-list" class="border rounded p-3" style="max-height: 200px; overflow-y: auto; background: #f8f9fa;">
+                      {% if bank_accounts %}
+                        {% for account in bank_accounts %}
+                        <div class="form-check mb-2">
+                          <input class="form-check-input" type="checkbox" name="selected_bank_accounts" value="{{ account.id }}" id="bank_account_{{ account.id }}" {% if account.is_default %}checked{% endif %}>
+                          <label class="form-check-label" for="bank_account_{{ account.id }}">
+                            <strong>{{ account.bank_name }}</strong> - {{ account.account_number }} (IFSC: {{ account.ifsc }})
+                            {% if account.is_default %}<span class="badge bg-primary ms-2">Default</span>{% endif %}
+                          </label>
+                        </div>
+                        {% endfor %}
+                      {% else %}
+                        <p class="text-muted mb-0">No active bank accounts. Add one in the Company Bank Accounts tab.</p>
+                      {% endif %}
+                    </div>
+                    <small class="text-muted">Select one or more bank accounts to display on the invoice</small>
+                  </div>
+                </div>
+              </div>
+
               <div class="d-flex justify-content-end gap-2">
                 <button type="button" class="btn btn-secondary" onclick="resetForm()">Reset</button>
                 <button type="submit" class="btn btn-primary" id="submitInvoiceBtn">
@@ -688,6 +719,92 @@
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+
+        <!-- Company Bank Accounts Tab -->
+        <div class="tab-pane fade" id="bank-accounts" role="tabpanel" aria-labelledby="bank-accounts-tab">
+          <div class="row">
+            <div class="col-12">
+              <h5 class="mb-4"><i class="bi bi-bank me-2"></i>Company Bank Accounts</h5>
+              
+              <!-- Add Bank Account Section -->
+              <div class="card mb-4">
+                <div class="card-header bg-primary text-white">
+                  <h5 class="mb-0"><i class="bi bi-plus-circle me-2"></i>Add Company Bank Account</h5>
+                </div>
+                <div class="card-body">
+                  <div class="row">
+                    <div class="col-md-6 mb-3">
+                      <label for="bank_account_name" class="form-label">Account Name <span class="text-danger">*</span></label>
+                      <input type="text" class="form-control" id="bank_account_name" placeholder="e.g. Sujata Associates Consultancy Pvt Ltd">
+                    </div>
+                    
+                    <div class="col-md-6 mb-3">
+                      <label for="bank_name" class="form-label">Bank Name <span class="text-danger">*</span></label>
+                      <input type="text" class="form-control" id="bank_name" placeholder="e.g. Bank of Maharashtra">
+                    </div>
+                    
+                    <div class="col-md-6 mb-3">
+                      <label for="bank_account_number" class="form-label">Account Number <span class="text-danger">*</span></label>
+                      <input type="text" class="form-control" id="bank_account_number" placeholder="e.g. 60476131014">
+                    </div>
+                    
+                    <div class="col-md-6 mb-3">
+                      <label for="bank_ifsc" class="form-label">IFSC Code <span class="text-danger">*</span></label>
+                      <input type="text" class="form-control" id="bank_ifsc" placeholder="e.g. MAHB0001272">
+                    </div>
+                    
+                    <div class="col-md-6 mb-3">
+                      <label for="bank_branch" class="form-label">Branch</label>
+                      <input type="text" class="form-control" id="bank_branch" placeholder="e.g. Bidhan Nagar, Kolkata">
+                    </div>
+                    
+                    <div class="col-md-6 mb-3 d-flex align-items-end">
+                      <div class="form-check">
+                        <input class="form-check-input" type="checkbox" id="bank_is_default">
+                        <label class="form-check-label" for="bank_is_default">
+                          Set as Default Account
+                        </label>
+                      </div>
+                    </div>
+                    
+                    <div class="col-12">
+                      <button type="button" class="btn btn-primary" id="add-bank-account-btn">
+                        <i class="bi bi-plus-circle me-2"></i>Add Bank Account
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Bank Accounts Table -->
+              <div class="card">
+                <div class="card-header">
+                  <h5 class="mb-0"><i class="bi bi-list-ul me-2"></i>All Bank Accounts</h5>
+                </div>
+                <div class="card-body">
+                  <div class="table-responsive">
+                    <table class="table table-sm table-bordered table-hover" id="bank-accounts-table">
+                      <thead class="table-light">
+                        <tr>
+                          <th>Account Name</th>
+                          <th>Bank Name</th>
+                          <th>Account Number</th>
+                          <th>IFSC</th>
+                          <th>Branch</th>
+                          <th>Status</th>
+                          <th>Actions</th>
+                        </tr>
+                      </thead>
+                      <tbody id="bank-accounts-table-body">
+                        <!-- Bank accounts will be loaded here -->
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -767,6 +884,29 @@
             <p id="detailTerms" class="text-muted mb-0">-</p>
           </div>
         </div>
+
+        {% if company_profile.bank_details %}
+        <div class="row mt-4">
+          <div class="col-12">
+            <div class="detail-card" style="background:#f8f9fa;">
+              <h6>Bank Account Details</h6>
+              <div class="row g-2">
+                <div class="col-md-6">
+                  <p class="mb-1"><strong>Account Name:</strong> {{ company_profile.bank_details.account_name }}</p>
+                  <p class="mb-1"><strong>Bank Name:</strong> {{ company_profile.bank_details.bank_name }}</p>
+                </div>
+                <div class="col-md-6">
+                  <p class="mb-1"><strong>Account Number:</strong> {{ company_profile.bank_details.account_number }}</p>
+                  <p class="mb-1"><strong>IFSC Code:</strong> {{ company_profile.bank_details.ifsc }}</p>
+                  {% if company_profile.bank_details.branch %}
+                  <p class="mb-0"><strong>Branch:</strong> {{ company_profile.bank_details.branch }}</p>
+                  {% endif %}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        {% endif %}
       </div>
       <div class="modal-footer border-0">
         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
@@ -1577,11 +1717,26 @@
     const companyProfile = companyProfileScript ? JSON.parse(companyProfileScript.textContent) : {};
     const companyLogoUrl = document.getElementById('companyLogoUrl')?.dataset.logoUrl || '';
 
-    function openPrintWindow(data) {
+    async function openPrintWindow(data) {
       const currency = data.currency || 'INR';
       const items = Array.isArray(data.items) ? data.items : [];
       const paymentHistory = Array.isArray(data.payment_history) ? data.payment_history : [];
       const pendingBalanceValue = Number(data.pending_balance || 0);
+      
+      // Fetch active bank accounts if no selected accounts
+      let bankAccountsToShow = data.selected_bank_accounts || [];
+      if (!bankAccountsToShow || bankAccountsToShow.length === 0) {
+        try {
+          const bankAccountsResponse = await fetch('{% url "bank_accounts_list" %}');
+          const bankAccountsData = await bankAccountsResponse.json();
+          if (bankAccountsData.success && bankAccountsData.bank_accounts) {
+            // Filter only active accounts
+            bankAccountsToShow = bankAccountsData.bank_accounts.filter(acc => acc.is_active);
+          }
+        } catch (error) {
+          console.error('Error fetching bank accounts:', error);
+        }
+      }
       const itemsRows = items.length ? items.map((item, index) => {
         const qty = Number(item.quantity) || 0;
         const price = Number(item.unit_price || item.price) || 0;
@@ -1733,6 +1888,58 @@
               </tr>
             </tbody>
           </table>
+
+          ${bankAccountsToShow && bankAccountsToShow.length > 0 ? `
+          <div style="margin-top:30px;">
+            <h3 style="margin:0 0 12px 0;font-size:16px;color:#4a306d;">Bank Account Details</h3>
+            ${bankAccountsToShow.map((account, index) => `
+              <div style="margin-bottom:${index < bankAccountsToShow.length - 1 ? '20px' : '0'};padding:16px;background:#f8f9fa;border-radius:8px;border:1px solid #e5e7eb;">
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;font-size:12px;">
+                  <div>
+                    <strong>Account Name:</strong> ${account.account_name || '-'}
+                  </div>
+                  <div>
+                    <strong>Bank Name:</strong> ${account.bank_name || '-'}
+                  </div>
+                  <div>
+                    <strong>Account Number:</strong> ${account.account_number || '-'}
+                  </div>
+                  <div>
+                    <strong>IFSC Code:</strong> ${account.ifsc || '-'}
+                  </div>
+                  ${account.branch ? `
+                  <div style="grid-column:1/-1;">
+                    <strong>Branch:</strong> ${account.branch}
+                  </div>
+                  ` : ''}
+                </div>
+              </div>
+            `).join('')}
+          </div>
+          ` : companyProfile.bank_details ? `
+          <div style="margin-top:30px;padding:16px;background:#f8f9fa;border-radius:8px;border:1px solid #e5e7eb;">
+            <h3 style="margin:0 0 12px 0;font-size:16px;color:#4a306d;">Bank Account Details</h3>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;font-size:12px;">
+              <div>
+                <strong>Account Name:</strong> ${companyProfile.bank_details.account_name || '-'}
+              </div>
+              <div>
+                <strong>Bank Name:</strong> ${companyProfile.bank_details.bank_name || '-'}
+              </div>
+              <div>
+                <strong>Account Number:</strong> ${companyProfile.bank_details.account_number || '-'}
+              </div>
+              <div>
+                <strong>IFSC Code:</strong> ${companyProfile.bank_details.ifsc || '-'}
+              </div>
+              ${companyProfile.bank_details.branch ? `
+              <div style="grid-column:1/-1;">
+                <strong>Branch:</strong> ${companyProfile.bank_details.branch}
+              </div>
+              ` : ''}
+            </div>
+          </div>
+          ` : ''}
 
           <div class="signature">
             <div></div>
@@ -2206,6 +2413,229 @@
       }, false); // Use capture phase to ensure it runs first
     });
   });
+
+  // Bank Accounts Management
+  document.addEventListener('DOMContentLoaded', function() {
+    // Load bank accounts table on page load
+    loadBankAccountsTable();
+    
+    // Load table when bank accounts tab is shown
+    const bankAccountsTab = document.getElementById('bank-accounts-tab');
+    if (bankAccountsTab) {
+      bankAccountsTab.addEventListener('shown.bs.tab', function() {
+        loadBankAccountsTable();
+      });
+    }
+    
+    // Add bank account button
+    const addBankAccountBtn = document.getElementById('add-bank-account-btn');
+    if (addBankAccountBtn) {
+      addBankAccountBtn.addEventListener('click', function() {
+        addBankAccount();
+      });
+    }
+  });
+
+  function updateBankAccountsCheckboxList() {
+    fetch('{% url "bank_accounts_list" %}')
+      .then(response => response.json())
+      .then(data => {
+        const bankAccountsList = document.getElementById('bank-accounts-list');
+        if (bankAccountsList && data.success) {
+          // Filter only active accounts
+          const activeAccounts = data.bank_accounts.filter(account => account.is_active);
+          if (activeAccounts.length > 0) {
+            bankAccountsList.innerHTML = '';
+            activeAccounts.forEach(account => {
+              const div = document.createElement('div');
+              div.className = 'form-check mb-2';
+              div.innerHTML = `
+                <input class="form-check-input" type="checkbox" name="selected_bank_accounts" value="${account.id}" id="bank_account_${account.id}" ${account.is_default ? 'checked' : ''}>
+                <label class="form-check-label" for="bank_account_${account.id}">
+                  <strong>${account.bank_name}</strong> - ${account.account_number} (IFSC: ${account.ifsc})
+                  ${account.is_default ? '<span class="badge bg-primary ms-2">Default</span>' : ''}
+                </label>
+              `;
+              bankAccountsList.appendChild(div);
+            });
+          } else {
+            bankAccountsList.innerHTML = '<p class="text-muted mb-0">No active bank accounts. Add one in the Company Bank Accounts tab.</p>';
+          }
+        }
+      })
+      .catch(error => {
+        console.error('Error updating bank accounts checkbox list:', error);
+      });
+  }
+
+  function loadBankAccountsTable() {
+    fetch('{% url "bank_accounts_list" %}')
+      .then(response => response.json())
+      .then(data => {
+        const tbody = document.getElementById('bank-accounts-table-body');
+        if (tbody) {
+          if (data.success && data.bank_accounts.length > 0) {
+            tbody.innerHTML = '';
+            data.bank_accounts.forEach(account => {
+              const row = document.createElement('tr');
+              row.innerHTML = `
+                <td>${account.account_name}</td>
+                <td>${account.bank_name}</td>
+                <td>${account.account_number}</td>
+                <td>${account.ifsc}</td>
+                <td>${account.branch || '-'}</td>
+                <td>
+                  <span class="badge ${account.is_active ? 'bg-success' : 'bg-secondary'} cursor-pointer" onclick="toggleBankAccountStatus(${account.id})" style="cursor: pointer;" title="Click to toggle status">
+                    ${account.is_active ? 'Active' : 'Inactive'}
+                  </span>
+                  ${account.is_default ? '<span class="badge bg-primary ms-1">Default</span>' : ''}
+                </td>
+                <td>
+                  <button class="btn btn-sm btn-outline-danger" onclick="deleteBankAccount(${account.id})">
+                    <i class="bi bi-trash"></i>
+                  </button>
+                </td>
+              `;
+              tbody.appendChild(row);
+            });
+          } else {
+            tbody.innerHTML = '<tr><td colspan="6" class="text-center text-muted py-4">No bank accounts found. Add one above.</td></tr>';
+          }
+        }
+      })
+      .catch(error => {
+        console.error('Error loading bank accounts:', error);
+        const tbody = document.getElementById('bank-accounts-table-body');
+        if (tbody) {
+          tbody.innerHTML = '<tr><td colspan="6" class="text-center text-danger py-4">Error loading bank accounts. Please refresh the page.</td></tr>';
+        }
+      });
+  }
+
+  function addBankAccount() {
+    const accountName = document.getElementById('bank_account_name').value.trim();
+    const bankName = document.getElementById('bank_name').value.trim();
+    const accountNumber = document.getElementById('bank_account_number').value.trim();
+    const ifsc = document.getElementById('bank_ifsc').value.trim();
+    const branch = document.getElementById('bank_branch').value.trim();
+    const isDefault = document.getElementById('bank_is_default').checked;
+
+    if (!accountName || !bankName || !accountNumber || !ifsc) {
+      alert('Please fill in all required fields (Account Name, Bank Name, Account Number, IFSC)');
+      return;
+    }
+
+    const formData = new FormData();
+    formData.append('account_name', accountName);
+    formData.append('bank_name', bankName);
+    formData.append('account_number', accountNumber);
+    formData.append('ifsc', ifsc);
+    formData.append('branch', branch);
+    formData.append('is_default', isDefault);
+    formData.append('csrfmiddlewaretoken', document.querySelector('[name=csrfmiddlewaretoken]').value);
+
+    fetch('{% url "bank_account_create" %}', {
+      method: 'POST',
+      body: formData
+    })
+      .then(response => response.json())
+      .then(data => {
+        if (data.success) {
+          alert('Bank account added successfully!');
+          // Clear form
+          document.getElementById('bank_account_name').value = '';
+          document.getElementById('bank_name').value = '';
+          document.getElementById('bank_account_number').value = '';
+          document.getElementById('bank_ifsc').value = '';
+          document.getElementById('bank_branch').value = '';
+          document.getElementById('bank_is_default').checked = false;
+          
+          // Reload bank accounts table and update checkbox list in create invoice form
+          loadBankAccountsTable();
+          // Update the checkbox list in create invoice form
+          updateBankAccountsCheckboxList();
+        } else {
+          alert('Error: ' + (data.error || 'Failed to add bank account'));
+        }
+      })
+      .catch(error => {
+        console.error('Error:', error);
+        alert('Error adding bank account. Please try again.');
+      });
+  }
+
+  function toggleBankAccountStatus(accountId) {
+    if (!confirm('Are you sure you want to toggle the status of this bank account?')) {
+      return;
+    }
+
+    fetch(`{% url "bank_account_toggle_status" 0 %}`.replace('0', accountId), {
+      method: 'POST',
+      headers: {
+        'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+      }
+    })
+      .then(response => response.json())
+      .then(data => {
+        if (data.success) {
+          alert(data.message || 'Bank account status updated successfully!');
+          loadBankAccountsTable();
+          updateBankAccountsCheckboxList(); // Update checkbox list to show only active accounts
+        } else {
+          alert('Error: ' + (data.error || 'Failed to update bank account status'));
+        }
+      })
+      .catch(error => {
+        console.error('Error:', error);
+        alert('Error updating bank account status. Please try again.');
+      });
+  }
+
+  function deleteBankAccount(accountId) {
+    if (!confirm('Are you sure you want to delete this bank account?')) {
+      return;
+    }
+
+    fetch(`{% url "bank_account_delete" 0 %}`.replace('0', accountId), {
+      method: 'POST',
+      headers: {
+        'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+      }
+    })
+      .then(response => response.json())
+      .then(data => {
+        if (data.success) {
+          alert('Bank account deleted successfully!');
+          loadBankAccountsTable();
+          // Update the checkbox list in create invoice form
+          updateBankAccountsCheckboxList();
+        } else {
+          alert('Error: ' + (data.error || 'Failed to delete bank account'));
+        }
+      })
+      .catch(error => {
+        console.error('Error:', error);
+        alert('Error deleting bank account. Please try again.');
+      });
+  }
+
+  // Pre-fill selected bank accounts when editing invoice
+  const editInvoiceData = document.getElementById('editInvoiceData');
+  if (editInvoiceData) {
+    try {
+      const invoiceData = JSON.parse(editInvoiceData.textContent);
+      if (invoiceData.selected_bank_accounts && Array.isArray(invoiceData.selected_bank_accounts)) {
+        invoiceData.selected_bank_accounts.forEach(accountId => {
+          const checkbox = document.getElementById(`bank_account_${accountId}`);
+          if (checkbox) {
+            checkbox.checked = true;
+          }
+        });
+      }
+    } catch (e) {
+      console.error('Error parsing edit invoice data:', e);
+    }
+  }
 </script>
 {% endblock %}
 
