@@ -2064,6 +2064,16 @@ def service_leads(request):
     {'id': 'trademark-instant', 'title': 'Trademark Filing (Instant)', 'model': TrademarkFilingInstant, 'icon': 'bi-lightning'},
     {'id': 'address-change', 'title': 'Company Address Change', 'model': CompanyAddressChange, 'icon': 'bi-geo-alt'},
     {'id': 'moa-alteration', 'title': 'MOA Alteration', 'model': MOAAlteration, 'icon': 'bi-pencil-square'},
+    {'id': 'professional-tax', 'title': 'Professional Tax', 'model': ProfessionalTaxRegistration, 'icon': 'bi-cash-coin'},
+    {'id': 'iec', 'title': 'IEC (Import Export Certificate)', 'model': IECRegistration, 'icon': 'bi-globe'},
+    {'id': 'icegate', 'title': 'ICE Gate', 'model': ICEGateRegistration, 'icon': 'bi-door-open'},
+    {'id': 'trade-license', 'title': 'Trade License', 'model': TradeLicenseRegistration, 'icon': 'bi-file-earmark-check'},
+    {'id': 'dsc', 'title': 'DSC (Digital Signature)', 'model': DSCRegistration, 'icon': 'bi-shield-lock'},
+    {'id': 'company-name-change', 'title': 'Company Name Change', 'model': CompanyNameChange, 'icon': 'bi-pencil'},
+    {'id': 'director-change', 'title': 'Director Change', 'model': DirectorChange, 'icon': 'bi-people'},
+    {'id': 'company-closure', 'title': 'Company Closure', 'model': CompanyClosure, 'icon': 'bi-x-circle'},
+    {'id': 'rcmc', 'title': 'RCMC', 'model': RCMCRegistration, 'icon': 'bi-file-earmark-medical'},
+    {'id': 'shop-establishment', 'title': 'Shop Establishment (Jharkhand & West Bengal)', 'model': ShopEstablishmentRegistration, 'icon': 'bi-shop'},
   ]
   
   # Get all records for each service
@@ -2127,6 +2137,16 @@ def assign_service_lead(request):
         'trademark-instant': TrademarkFilingInstant,
         'address-change': CompanyAddressChange,
         'moa-alteration': MOAAlteration,
+        'professional-tax': ProfessionalTaxRegistration,
+        'iec': IECRegistration,
+        'icegate': ICEGateRegistration,
+        'trade-license': TradeLicenseRegistration,
+        'dsc': DSCRegistration,
+        'company-name-change': CompanyNameChange,
+        'director-change': DirectorChange,
+        'company-closure': CompanyClosure,
+        'rcmc': RCMCRegistration,
+        'shop-establishment': ShopEstablishmentRegistration,
       }
       
       if service_type not in service_models:
@@ -2187,6 +2207,23 @@ def delete_service_lead(request):
         'address_change': CompanyAddressChange,
         'moa-alteration': MOAAlteration,
         'moa_alteration': MOAAlteration,
+        'professional-tax': ProfessionalTaxRegistration,
+        'professional_tax': ProfessionalTaxRegistration,
+        'iec': IECRegistration,
+        'icegate': ICEGateRegistration,
+        'ice_gate': ICEGateRegistration,
+        'trade-license': TradeLicenseRegistration,
+        'trade_license': TradeLicenseRegistration,
+        'dsc': DSCRegistration,
+        'company-name-change': CompanyNameChange,
+        'company_name_change': CompanyNameChange,
+        'director-change': DirectorChange,
+        'director_change': DirectorChange,
+        'company-closure': CompanyClosure,
+        'company_closure': CompanyClosure,
+        'rcmc': RCMCRegistration,
+        'shop-establishment': ShopEstablishmentRegistration,
+        'shop_establishment': ShopEstablishmentRegistration,
       }
       
       if service_type not in service_models:
