@@ -330,11 +330,8 @@
                 <th>Email</th>
                 <th>Phone</th>
                 <th>Company</th>
-                <th>Owner</th>
                 <th>Status</th>
-                <th>Priority</th>
-                <th>Notes</th>
-                <th>Due</th>
+                <th>Info</th>
                 <th>Actions</th>
               </tr>
             </thead>
@@ -357,26 +354,19 @@
                     -
                   {% endif %}
                 </td>
-                <td data-label="Owner">{{ lead.owner }}</td>
                 <td data-label="Status">
                   <span class="badge {{ lead.conversion_badge|default:'bg-secondary' }}">{{ lead.conversion_status|default:"Pending" }}</span>
                 </td>
-                <td data-label="Priority">
-                  <span class="badge {{ lead.get_priority_badge_class }}">{{ lead.priority }}</span>
-                </td>
-                <td data-label="Notes">
-                  {% if lead.notes %}
-                    <span title="{{ lead.notes }}">{{ lead.notes|truncatewords:10|default:"-" }}</span>
-                  {% else %}
-                    -
-                  {% endif %}
-                </td>
-                <td data-label="Due">
-                  {% if lead.get_full_due_datetime %}
-                    {{ lead.get_full_due_datetime|date:"d-M-Y H:i" }}
-                  {% else %}
-                    -
-                  {% endif %}
+                <td data-label="Info">
+                  <button class="btn btn-sm btn-outline-info btn-info" data-bs-toggle="modal" data-bs-target="#infoLeadModal" 
+                          data-lead-id="{{ lead.id }}"
+                          data-lead-owner="{{ lead.owner|default:'-' }}"
+                          data-lead-priority="{{ lead.priority|default:'-' }}"
+                          data-lead-notes="{{ lead.notes|default:'-' }}"
+                          data-lead-due="{% if lead.get_full_due_datetime %}{{ lead.get_full_due_datetime|date:'d-M-Y H:i' }}{% else %}-{% endif %}"
+                          title="View Info">
+                    <i class="bi bi-info-circle"></i>
+                  </button>
                 </td>
                 <td data-label="Actions">
                   <button class="btn btn-sm btn-outline-primary btn-view" data-bs-toggle="modal" data-bs-target="#viewLeadModal" data-lead-id="{{ lead.id }}">
@@ -392,7 +382,7 @@
               </tr>
               {% empty %}
               <tr>
-                <td colspan="10" class="text-center text-muted py-4">
+                <td colspan="7" class="text-center text-muted py-4">
                   <i class="bi bi-inbox fs-1 d-block mb-2"></i>
                   No leads found. <a href="{% url 'leads_import_export' %}">Import leads</a>
                 </td>
@@ -693,6 +683,40 @@
   </div>
 </div>
 
+<!-- Info Modal -->
+<div class="modal fade" id="infoLeadModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title"><i class="bi bi-info-circle"></i> Lead Information</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <div class="row g-3">
+          <div class="col-12">
+            <strong>Owner:</strong>
+            <p class="mb-0" id="info_owner">-</p>
+          </div>
+          <div class="col-12">
+            <strong>Priority:</strong>
+            <p class="mb-0" id="info_priority">-</p>
+          </div>
+          <div class="col-12">
+            <strong>Notes:</strong>
+            <p class="mb-0" id="info_notes" style="word-break: break-word; white-space: pre-wrap;">-</p>
+          </div>
+          <div class="col-12">
+            <strong>Due:</strong>
+            <p class="mb-0" id="info_due">-</p>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+      </div>
+    </div>
+  </div>
+</div>
 
 <!-- View Lead Modal -->
 <div class="modal fade" id="viewLeadModal" tabindex="-1" aria-hidden="true">
@@ -1054,6 +1078,37 @@
       }
     }
 
+    // Info Modal - Load owner, priority, notes, and due when modal opens
+    const infoLeadModal = document.getElementById('infoLeadModal');
+    if (infoLeadModal) {
+      infoLeadModal.addEventListener('show.bs.modal', function(event) {
+        const button = event.relatedTarget;
+        if (button) {
+          const owner = button.getAttribute('data-lead-owner') || '-';
+          const priority = button.getAttribute('data-lead-priority') || '-';
+          const notes = button.getAttribute('data-lead-notes') || '-';
+          const due = button.getAttribute('data-lead-due') || '-';
+          
+          // Set priority with badge
+          const priorityElement = document.getElementById('info_priority');
+          if (priority && priority !== '-') {
+            let badgeClass = 'bg-secondary';
+            if (priority === 'High') badgeClass = 'bg-danger';
+            else if (priority === 'Med') badgeClass = 'bg-warning text-dark';
+            else if (priority === 'Low') badgeClass = 'bg-success';
+            priorityElement.innerHTML = `<span class="badge ${badgeClass}">${priority}</span>`;
+          } else {
+            priorityElement.textContent = '-';
+          }
+          
+          // Set other fields
+          document.getElementById('info_owner').textContent = owner;
+          document.getElementById('info_notes').textContent = notes;
+          document.getElementById('info_due').textContent = due;
+        }
+      });
+    }
+
     // View Lead Modal - Fetch complete data when button clicked
     const viewButtons = document.querySelectorAll('.btn-view');
     viewButtons.forEach(button => {
@@ -1211,16 +1266,17 @@
     // Initial scroll setup based on current rows
     updateTableScroll();
     function getRowData(tr) {
+      const infoBtn = tr.querySelector('.btn-info');
       return {
         name: tr.querySelector('[data-label="Name"]').textContent.trim(),
         email: tr.querySelector('[data-label="Email"]').textContent.trim(),
         phone: tr.querySelector('[data-label="Phone"]').textContent.trim(),
         company: tr.querySelector('[data-label="Company"]').textContent.trim(),
-        owner: tr.querySelector('[data-label="Owner"]').textContent.trim(),
-        priority: tr.querySelector('[data-label="Priority"]').innerText.trim(),
-        notes: tr.querySelector('[data-label="Notes"]').textContent.trim(),
+        owner: infoBtn ? (infoBtn.getAttribute('data-lead-owner') || '-') : '-',
+        priority: infoBtn ? (infoBtn.getAttribute('data-lead-priority') || '-') : '-',
+        notes: infoBtn ? (infoBtn.getAttribute('data-lead-notes') || '-') : '-',
         dueIso: tr.getAttribute('data-due'),
-        dueText: tr.querySelector('[data-label="Due"]').textContent.trim(),
+        dueText: infoBtn ? (infoBtn.getAttribute('data-lead-due') || '-') : '-',
       };
     }
 
