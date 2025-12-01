@@ -135,7 +135,7 @@
                   <i class="bi bi-arrow-clockwise me-2"></i>Retake
                 </button>
               </div>
-              <input type="hidden" id="checkInPhotoData" required>
+              <input type="hidden" id="checkInPhotoData">
             </div>
           </div>
           
@@ -204,7 +204,7 @@
                   <i class="bi bi-arrow-clockwise me-2"></i>Retake
                 </button>
               </div>
-              <input type="hidden" id="checkOutPhotoData" required>
+              <input type="hidden" id="checkOutPhotoData">
             </div>
           </div>
           
@@ -1360,16 +1360,14 @@
   
   // Submit check-in
   async function submitCheckIn() {
-    const photoData = document.getElementById('checkInPhotoData').value;
+    const photoData = document.getElementById('checkInPhotoData').value || '';
     
-    if (!photoData) {
-      alert('Please capture a photo first');
-      return;
-    }
-    
+    // Photo is optional - allow check-in without photo
     try {
       const formData = new URLSearchParams();
-      formData.append('photo', photoData);
+      if (photoData) {
+        formData.append('photo', photoData);
+      }
       if (!loggedInEmployee.name || loggedInEmployee.name === 'Guest User') {
         formData.append('employee_name', loggedInEmployee.name);
       }
@@ -1416,16 +1414,14 @@
   
   // Submit check-out
   async function submitCheckOut() {
-    const photoData = document.getElementById('checkOutPhotoData').value;
+    const photoData = document.getElementById('checkOutPhotoData').value || '';
     
-    if (!photoData) {
-      alert('Please capture a photo first');
-      return;
-    }
-    
+    // Photo is optional - allow check-out without photo
     try {
       const formData = new URLSearchParams();
-      formData.append('photo', photoData);
+      if (photoData) {
+        formData.append('photo', photoData);
+      }
       if (!loggedInEmployee.name || loggedInEmployee.name === 'Guest User') {
         formData.append('employee_name', loggedInEmployee.name);
       }

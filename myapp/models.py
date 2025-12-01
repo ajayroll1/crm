@@ -46,11 +46,28 @@ class Lead(models.Model):
         )]
     )
     company = models.CharField(max_length=100, blank=True, null=True)
+    address = models.TextField(blank=True, null=True, verbose_name="Address")
     
     # Lead Management
     source = models.CharField(max_length=50, choices=SOURCE_CHOICES, verbose_name="Lead Source")
     priority = models.CharField(max_length=10, choices=PRIORITY_CHOICES, default='Med')
     owner = models.CharField(max_length=100, verbose_name="Assigned Owner")
+    assigned_to = models.ForeignKey(
+        'Employee',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='assigned_leads',
+        verbose_name="Assigned To Employee"
+    )
+    imported_by = models.ForeignKey(
+        'Employee',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='imported_leads',
+        verbose_name="Imported By"
+    )
     use_case = models.TextField(verbose_name="Use Case", help_text="What do they need?")
     
     # Next Actions
@@ -70,9 +87,22 @@ class Lead(models.Model):
     city = models.CharField(max_length=50, blank=True, null=True)
     country = models.CharField(max_length=50, blank=True, null=True)
     budget = models.CharField(max_length=100, blank=True, null=True)
+    amount = models.DecimalField(max_digits=12, decimal_places=2, blank=True, null=True, verbose_name="Amount")
     timeline = models.CharField(max_length=100, blank=True, null=True, verbose_name="Decision Timeline")
     tags = models.CharField(max_length=200, blank=True, null=True, help_text="Comma separated tags")
     notes = models.TextField(blank=True, null=True)
+    
+    # Status field for lead conversion tracking
+    STATUS_CHOICES = [
+        ('Pending', 'Pending'),
+        ('Contacted', 'Contacted'),
+        ('Qualified', 'Qualified'),
+        ('Proposal', 'Proposal'),
+        ('Negotiation', 'Negotiation'),
+        ('Won', 'Won'),
+        ('Lost', 'Lost'),
+    ]
+    conversion_status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='Pending', blank=True, null=True, verbose_name="Status")
     
     # System fields
     created_at = models.DateTimeField(auto_now_add=True)
@@ -101,6 +131,20 @@ class Lead(models.Model):
             'Low': 'bg-success'
         }
         return priority_classes.get(self.priority, 'bg-secondary')
+    
+    @property
+    def conversion_badge(self):
+        """Get Bootstrap badge class for conversion status"""
+        status_classes = {
+            'Pending': 'bg-secondary',
+            'Contacted': 'bg-info',
+            'Qualified': 'bg-primary',
+            'Proposal': 'bg-warning text-dark',
+            'Negotiation': 'bg-warning text-dark',
+            'Won': 'bg-success',
+            'Lost': 'bg-danger',
+        }
+        return status_classes.get(self.conversion_status or 'Pending', 'bg-secondary')
     
     def clean(self):
         """Custom validation"""
@@ -1536,6 +1580,727 @@ class MOAAlteration(models.Model):
 
     def __str__(self):
         return f"{self.alteration_type} - {self.proposed_object_name[:30]}..."
+
+    def get_status_badge_class(self):
+        status_classes = {
+            'draft': 'bg-secondary text-dark',
+            'pending': 'bg-warning text-dark',
+            'ready': 'bg-info text-dark',
+            'submitted': 'bg-primary text-dark',
+            'approved': 'bg-success text-dark',
+        }
+        return status_classes.get(self.status, 'bg-secondary text-dark')
+
+
+class ProfessionalTaxRegistration(models.Model):
+    """Stores Professional Tax Registration submissions."""
+
+    BUSINESS_TYPE_CHOICES = [
+        ('Proprietorship', 'Proprietorship'),
+        ('Partnership', 'Partnership'),
+        ('Company', 'Company'),
+        ('LLP', 'LLP'),
+    ]
+
+    STATUS_CHOICES = [
+        ('draft', 'Draft'),
+        ('pending', 'Pending'),
+        ('ready', 'Ready'),
+        ('submitted', 'Submitted'),
+        ('approved', 'Approved'),
+    ]
+
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='professional_tax_registrations'
+    )
+    lead_source = models.CharField(max_length=100, default='website', verbose_name="Lead Source")
+    assigned_to = models.ForeignKey(
+        'Employee',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='assigned_professional_tax_records',
+        verbose_name="Assigned To"
+    )
+    # Applicant/User Information
+    applicant_name = models.CharField(max_length=255, verbose_name="Applicant Name", blank=True, null=True)
+    applicant_phone = models.CharField(max_length=20, verbose_name="Phone Number", blank=True, null=True)
+    applicant_whatsapp = models.CharField(max_length=20, verbose_name="WhatsApp Number", blank=True, null=True)
+    applicant_email = models.EmailField(verbose_name="Email", blank=True, null=True)
+    applicant_address = models.TextField(verbose_name="Address", blank=True, null=True)
+    business_name = models.CharField(max_length=255, verbose_name="Business Name")
+    business_type = models.CharField(max_length=50, choices=BUSINESS_TYPE_CHOICES, verbose_name="Business Type")
+    pan_number = models.CharField(max_length=10, verbose_name="PAN Number", blank=True)
+    gst_number = models.CharField(max_length=15, verbose_name="GST Number", blank=True)
+    business_address = models.TextField(verbose_name="Business Address")
+    bank_account_details = models.TextField(verbose_name="Bank Account Details", blank=True)
+    number_of_employees = models.PositiveIntegerField(verbose_name="Number of Employees", null=True, blank=True)
+    business_start_date = models.DateField(verbose_name="Business Start Date", null=True, blank=True)
+    monthly_salary_details = models.TextField(verbose_name="Monthly Salary Details", blank=True)
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='draft')
+    documents = models.JSONField(default=list, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['-created_at']
+        verbose_name = "Professional Tax Registration"
+        verbose_name_plural = "Professional Tax Registrations"
+
+    def __str__(self):
+        return f"{self.business_name} - {self.business_type}"
+
+    def get_status_badge_class(self):
+        status_classes = {
+            'draft': 'bg-secondary text-dark',
+            'pending': 'bg-warning text-dark',
+            'ready': 'bg-info text-dark',
+            'submitted': 'bg-primary text-dark',
+            'approved': 'bg-success text-dark',
+        }
+        return status_classes.get(self.status, 'bg-secondary text-dark')
+
+
+class IECRegistration(models.Model):
+    """Stores IEC (Import Export Code) Registration submissions."""
+
+    BUSINESS_TYPE_CHOICES = [
+        ('Proprietorship', 'Proprietorship'),
+        ('Partnership', 'Partnership'),
+        ('Company', 'Company'),
+        ('LLP', 'LLP'),
+    ]
+
+    STATUS_CHOICES = [
+        ('draft', 'Draft'),
+        ('pending', 'Pending'),
+        ('ready', 'Ready'),
+        ('submitted', 'Submitted'),
+        ('approved', 'Approved'),
+    ]
+
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='iec_registrations'
+    )
+    lead_source = models.CharField(max_length=100, default='website', verbose_name="Lead Source")
+    assigned_to = models.ForeignKey(
+        'Employee',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='assigned_iec_records',
+        verbose_name="Assigned To"
+    )
+    # Applicant/User Information
+    applicant_name = models.CharField(max_length=255, verbose_name="Applicant Name", blank=True, null=True)
+    applicant_phone = models.CharField(max_length=20, verbose_name="Phone Number", blank=True, null=True)
+    applicant_whatsapp = models.CharField(max_length=20, verbose_name="WhatsApp Number", blank=True, null=True)
+    applicant_email = models.EmailField(verbose_name="Email", blank=True, null=True)
+    applicant_address = models.TextField(verbose_name="Address", blank=True, null=True)
+    firm_name = models.CharField(max_length=255, verbose_name="Firm/Company Name")
+    pan_number = models.CharField(max_length=10, verbose_name="PAN Number")
+    business_type = models.CharField(max_length=50, choices=BUSINESS_TYPE_CHOICES, verbose_name="Business Type")
+    incorporation_date = models.DateField(verbose_name="Incorporation/Establishment Date", null=True, blank=True)
+    bank_account_details = models.TextField(verbose_name="Bank Account Details", blank=True)
+    directors_partners_details = models.TextField(verbose_name="Directors/Partners Details", blank=True)
+    branch_offices = models.TextField(verbose_name="Branch Offices Details", blank=True)
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='draft')
+    documents = models.JSONField(default=list, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['-created_at']
+        verbose_name = "IEC Registration"
+        verbose_name_plural = "IEC Registrations"
+
+    def __str__(self):
+        return f"{self.firm_name} - {self.pan_number}"
+
+    def get_status_badge_class(self):
+        status_classes = {
+            'draft': 'bg-secondary text-dark',
+            'pending': 'bg-warning text-dark',
+            'ready': 'bg-info text-dark',
+            'submitted': 'bg-primary text-dark',
+            'approved': 'bg-success text-dark',
+        }
+        return status_classes.get(self.status, 'bg-secondary text-dark')
+
+
+class ICEGateRegistration(models.Model):
+    """Stores ICE Gate Registration submissions."""
+
+    USER_ROLE_CHOICES = [
+        ('Shipping Agent', 'Shipping Agent'),
+        ('Custom Broker', 'Custom Broker'),
+        ('Importer/Exporter', 'Importer/Exporter'),
+        ('Other', 'Other'),
+    ]
+
+    STATUS_CHOICES = [
+        ('draft', 'Draft'),
+        ('pending', 'Pending'),
+        ('ready', 'Ready'),
+        ('submitted', 'Submitted'),
+        ('approved', 'Approved'),
+    ]
+
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='icegate_registrations'
+    )
+    lead_source = models.CharField(max_length=100, default='website', verbose_name="Lead Source")
+    assigned_to = models.ForeignKey(
+        'Employee',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='assigned_icegate_records',
+        verbose_name="Assigned To"
+    )
+    # Applicant/User Information
+    applicant_name = models.CharField(max_length=255, verbose_name="Applicant Name", blank=True, null=True)
+    applicant_phone = models.CharField(max_length=20, verbose_name="Phone Number", blank=True, null=True)
+    applicant_whatsapp = models.CharField(max_length=20, verbose_name="WhatsApp Number", blank=True, null=True)
+    applicant_email = models.EmailField(verbose_name="Email", blank=True, null=True)
+    applicant_address = models.TextField(verbose_name="Address", blank=True, null=True)
+    company_name = models.CharField(max_length=255, verbose_name="Company Name")
+    pan_number = models.CharField(max_length=10, verbose_name="PAN Number")
+    iec_number = models.CharField(max_length=10, verbose_name="IEC Number", blank=True)
+    user_role = models.CharField(max_length=50, choices=USER_ROLE_CHOICES, verbose_name="User Role")
+    authorized_person_name = models.CharField(max_length=255, verbose_name="Authorized Person Name", blank=True)
+    authorized_person_details = models.TextField(verbose_name="Authorized Person Details", blank=True)
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='draft')
+    documents = models.JSONField(default=list, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['-created_at']
+        verbose_name = "ICE Gate Registration"
+        verbose_name_plural = "ICE Gate Registrations"
+
+    def __str__(self):
+        return f"{self.company_name} - {self.user_role}"
+
+    def get_status_badge_class(self):
+        status_classes = {
+            'draft': 'bg-secondary text-dark',
+            'pending': 'bg-warning text-dark',
+            'ready': 'bg-info text-dark',
+            'submitted': 'bg-primary text-dark',
+            'approved': 'bg-success text-dark',
+        }
+        return status_classes.get(self.status, 'bg-secondary text-dark')
+
+
+class TradeLicenseRegistration(models.Model):
+    """Stores Trade License Registration submissions."""
+
+    BUSINESS_TYPE_CHOICES = [
+        ('Proprietorship', 'Proprietorship'),
+        ('Partnership', 'Partnership'),
+        ('Company', 'Company'),
+        ('LLP', 'LLP'),
+    ]
+
+    STATUS_CHOICES = [
+        ('draft', 'Draft'),
+        ('pending', 'Pending'),
+        ('ready', 'Ready'),
+        ('submitted', 'Submitted'),
+        ('approved', 'Approved'),
+    ]
+
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='trade_license_registrations'
+    )
+    lead_source = models.CharField(max_length=100, default='website', verbose_name="Lead Source")
+    assigned_to = models.ForeignKey(
+        'Employee',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='assigned_trade_license_records',
+        verbose_name="Assigned To"
+    )
+    # Applicant/User Information
+    applicant_name = models.CharField(max_length=255, verbose_name="Applicant Name", blank=True, null=True)
+    applicant_phone = models.CharField(max_length=20, verbose_name="Phone Number", blank=True, null=True)
+    applicant_whatsapp = models.CharField(max_length=20, verbose_name="WhatsApp Number", blank=True, null=True)
+    applicant_email = models.EmailField(verbose_name="Email", blank=True, null=True)
+    applicant_address = models.TextField(verbose_name="Address", blank=True, null=True)
+    business_name = models.CharField(max_length=255, verbose_name="Business Name")
+    business_type = models.CharField(max_length=50, choices=BUSINESS_TYPE_CHOICES, verbose_name="Business Type")
+    business_address = models.TextField(verbose_name="Business Address")
+    pan_number = models.CharField(max_length=10, verbose_name="PAN Number", blank=True)
+    gst_number = models.CharField(max_length=15, verbose_name="GST Number", blank=True)
+    number_of_employees = models.PositiveIntegerField(verbose_name="Number of Employees", null=True, blank=True)
+    business_start_date = models.DateField(verbose_name="Business Start Date", null=True, blank=True)
+    municipal_area = models.CharField(max_length=255, verbose_name="Municipal Area", blank=True)
+    required_permissions = models.TextField(verbose_name="Required Permissions", blank=True)
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='draft')
+    documents = models.JSONField(default=list, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['-created_at']
+        verbose_name = "Trade License Registration"
+        verbose_name_plural = "Trade License Registrations"
+
+    def __str__(self):
+        return f"{self.business_name} - {self.business_type}"
+
+    def get_status_badge_class(self):
+        status_classes = {
+            'draft': 'bg-secondary text-dark',
+            'pending': 'bg-warning text-dark',
+            'ready': 'bg-info text-dark',
+            'submitted': 'bg-primary text-dark',
+            'approved': 'bg-success text-dark',
+        }
+        return status_classes.get(self.status, 'bg-secondary text-dark')
+
+
+class DSCRegistration(models.Model):
+    """Stores DSC (Digital Signature Certificate) Registration submissions."""
+
+    DSC_TYPE_CHOICES = [
+        ('Class 2', 'Class 2'),
+        ('Class 3', 'Class 3'),
+    ]
+
+    ORGANISATION_TYPE_CHOICES = [
+        ('Individual', 'Individual'),
+        ('Private Limited', 'Private Limited'),
+        ('Public Limited', 'Public Limited'),
+        ('LLP', 'LLP'),
+        ('Partnership', 'Partnership'),
+        ('Other', 'Other'),
+    ]
+
+    STATUS_CHOICES = [
+        ('draft', 'Draft'),
+        ('pending', 'Pending'),
+        ('ready', 'Ready'),
+        ('submitted', 'Submitted'),
+        ('approved', 'Approved'),
+    ]
+
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='dsc_registrations'
+    )
+    lead_source = models.CharField(max_length=100, default='website', verbose_name="Lead Source")
+    assigned_to = models.ForeignKey(
+        'Employee',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='assigned_dsc_records',
+        verbose_name="Assigned To"
+    )
+    # Applicant/User Information
+    applicant_name = models.CharField(max_length=255, verbose_name="Applicant Name", blank=True, null=True)
+    applicant_phone = models.CharField(max_length=20, verbose_name="Phone Number", blank=True, null=True)
+    applicant_whatsapp = models.CharField(max_length=20, verbose_name="WhatsApp Number", blank=True, null=True)
+    applicant_email = models.EmailField(verbose_name="Email", blank=True, null=True)
+    applicant_address = models.TextField(verbose_name="Address", blank=True, null=True)
+    pan_number = models.CharField(max_length=10, verbose_name="PAN Number")
+    aadhaar_number = models.CharField(max_length=12, verbose_name="Aadhaar Number", blank=True)
+    organisation_name = models.CharField(max_length=255, verbose_name="Organisation Name", blank=True)
+    organisation_type = models.CharField(max_length=50, choices=ORGANISATION_TYPE_CHOICES, verbose_name="Organisation Type", blank=True)
+    organisation_address = models.TextField(verbose_name="Organisation Address", blank=True)
+    dsc_type = models.CharField(max_length=20, choices=DSC_TYPE_CHOICES, verbose_name="DSC Type")
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='draft')
+    documents = models.JSONField(default=list, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['-created_at']
+        verbose_name = "DSC Registration"
+        verbose_name_plural = "DSC Registrations"
+
+    def __str__(self):
+        return f"{self.applicant_name or 'N/A'} - {self.dsc_type}"
+
+    def get_status_badge_class(self):
+        status_classes = {
+            'draft': 'bg-secondary text-dark',
+            'pending': 'bg-warning text-dark',
+            'ready': 'bg-info text-dark',
+            'submitted': 'bg-primary text-dark',
+            'approved': 'bg-success text-dark',
+        }
+        return status_classes.get(self.status, 'bg-secondary text-dark')
+
+
+class CompanyNameChange(models.Model):
+    """Stores Company Name Change submissions."""
+
+    STATUS_CHOICES = [
+        ('draft', 'Draft'),
+        ('pending', 'Pending'),
+        ('ready', 'Ready'),
+        ('submitted', 'Submitted'),
+        ('approved', 'Approved'),
+    ]
+
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='company_name_changes'
+    )
+    lead_source = models.CharField(max_length=100, default='website', verbose_name="Lead Source")
+    assigned_to = models.ForeignKey(
+        'Employee',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='assigned_company_name_change_records',
+        verbose_name="Assigned To"
+    )
+    # Applicant/User Information
+    applicant_name = models.CharField(max_length=255, verbose_name="Applicant Name", blank=True, null=True)
+    applicant_phone = models.CharField(max_length=20, verbose_name="Phone Number", blank=True, null=True)
+    applicant_whatsapp = models.CharField(max_length=20, verbose_name="WhatsApp Number", blank=True, null=True)
+    applicant_email = models.EmailField(verbose_name="Email", blank=True, null=True)
+    applicant_address = models.TextField(verbose_name="Address", blank=True, null=True)
+    current_company_name = models.CharField(max_length=255, verbose_name="Current Company Name")
+    cin_number = models.CharField(max_length=25, verbose_name="CIN Number")
+    proposed_new_name = models.CharField(max_length=255, verbose_name="Proposed New Name")
+    reason_for_change = models.TextField(verbose_name="Reason for Name Change", blank=True)
+    board_meeting_date = models.DateField(verbose_name="Board Meeting Date", null=True, blank=True)
+    registered_office_address = models.TextField(verbose_name="Registered Office Address", blank=True)
+    directors_details = models.TextField(verbose_name="Directors Details", blank=True)
+    shareholders_details = models.TextField(verbose_name="Shareholders Details", blank=True)
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='draft')
+    documents = models.JSONField(default=list, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['-created_at']
+        verbose_name = "Company Name Change"
+        verbose_name_plural = "Company Name Changes"
+
+    def __str__(self):
+        return f"{self.current_company_name} -> {self.proposed_new_name}"
+
+    def get_status_badge_class(self):
+        status_classes = {
+            'draft': 'bg-secondary text-dark',
+            'pending': 'bg-warning text-dark',
+            'ready': 'bg-info text-dark',
+            'submitted': 'bg-primary text-dark',
+            'approved': 'bg-success text-dark',
+        }
+        return status_classes.get(self.status, 'bg-secondary text-dark')
+
+
+class DirectorChange(models.Model):
+    """Stores Director Change submissions."""
+
+    CHANGE_TYPE_CHOICES = [
+        ('Appointment', 'Appointment'),
+        ('Resignation', 'Resignation'),
+        ('Removal', 'Removal'),
+    ]
+
+    STATUS_CHOICES = [
+        ('draft', 'Draft'),
+        ('pending', 'Pending'),
+        ('ready', 'Ready'),
+        ('submitted', 'Submitted'),
+        ('approved', 'Approved'),
+    ]
+
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='director_changes'
+    )
+    lead_source = models.CharField(max_length=100, default='website', verbose_name="Lead Source")
+    assigned_to = models.ForeignKey(
+        'Employee',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='assigned_director_change_records',
+        verbose_name="Assigned To"
+    )
+    # Applicant/User Information
+    applicant_name = models.CharField(max_length=255, verbose_name="Applicant Name", blank=True, null=True)
+    applicant_phone = models.CharField(max_length=20, verbose_name="Phone Number", blank=True, null=True)
+    applicant_whatsapp = models.CharField(max_length=20, verbose_name="WhatsApp Number", blank=True, null=True)
+    applicant_email = models.EmailField(verbose_name="Email", blank=True, null=True)
+    applicant_address = models.TextField(verbose_name="Address", blank=True, null=True)
+    company_name = models.CharField(max_length=255, verbose_name="Company Name")
+    cin_number = models.CharField(max_length=25, verbose_name="CIN Number")
+    change_type = models.CharField(max_length=50, choices=CHANGE_TYPE_CHOICES, verbose_name="Change Type")
+    new_director_name = models.CharField(max_length=255, verbose_name="New Director Name", blank=True)
+    new_director_din = models.CharField(max_length=10, verbose_name="New Director DIN", blank=True)
+    new_director_pan = models.CharField(max_length=10, verbose_name="New Director PAN", blank=True)
+    new_director_aadhaar = models.CharField(max_length=12, verbose_name="New Director Aadhaar", blank=True)
+    new_director_address = models.TextField(verbose_name="New Director Address", blank=True)
+    new_director_email = models.EmailField(verbose_name="New Director Email", blank=True)
+    new_director_mobile = models.CharField(max_length=20, verbose_name="New Director Mobile", blank=True)
+    appointment_date = models.DateField(verbose_name="Appointment Date", null=True, blank=True)
+    existing_directors_details = models.TextField(verbose_name="Existing Directors Details", blank=True)
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='draft')
+    documents = models.JSONField(default=list, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['-created_at']
+        verbose_name = "Director Change"
+        verbose_name_plural = "Director Changes"
+
+    def __str__(self):
+        return f"{self.company_name} - {self.change_type}"
+
+    def get_status_badge_class(self):
+        status_classes = {
+            'draft': 'bg-secondary text-dark',
+            'pending': 'bg-warning text-dark',
+            'ready': 'bg-info text-dark',
+            'submitted': 'bg-primary text-dark',
+            'approved': 'bg-success text-dark',
+        }
+        return status_classes.get(self.status, 'bg-secondary text-dark')
+
+
+class CompanyClosure(models.Model):
+    """Stores Company Closure submissions."""
+
+    CLOSURE_TYPE_CHOICES = [
+        ('Voluntary Winding Up', 'Voluntary Winding Up'),
+        ('Compulsory Winding Up', 'Compulsory Winding Up'),
+        ('Strike Off', 'Strike Off'),
+    ]
+
+    STATUS_CHOICES = [
+        ('draft', 'Draft'),
+        ('pending', 'Pending'),
+        ('ready', 'Ready'),
+        ('submitted', 'Submitted'),
+        ('approved', 'Approved'),
+    ]
+
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='company_closures'
+    )
+    lead_source = models.CharField(max_length=100, default='website', verbose_name="Lead Source")
+    assigned_to = models.ForeignKey(
+        'Employee',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='assigned_company_closure_records',
+        verbose_name="Assigned To"
+    )
+    # Applicant/User Information
+    applicant_name = models.CharField(max_length=255, verbose_name="Applicant Name", blank=True, null=True)
+    applicant_phone = models.CharField(max_length=20, verbose_name="Phone Number", blank=True, null=True)
+    applicant_whatsapp = models.CharField(max_length=20, verbose_name="WhatsApp Number", blank=True, null=True)
+    applicant_email = models.EmailField(verbose_name="Email", blank=True, null=True)
+    applicant_address = models.TextField(verbose_name="Address", blank=True, null=True)
+    company_name = models.CharField(max_length=255, verbose_name="Company Name")
+    cin_number = models.CharField(max_length=25, verbose_name="CIN Number")
+    closure_type = models.CharField(max_length=50, choices=CLOSURE_TYPE_CHOICES, verbose_name="Closure Type")
+    reason_for_closure = models.TextField(verbose_name="Reason for Closure", blank=True)
+    registered_office_address = models.TextField(verbose_name="Registered Office Address", blank=True)
+    directors_details = models.TextField(verbose_name="Directors Details", blank=True)
+    shareholders_details = models.TextField(verbose_name="Shareholders Details", blank=True)
+    liabilities_details = models.TextField(verbose_name="Liabilities Details", blank=True)
+    assets_details = models.TextField(verbose_name="Assets Details", blank=True)
+    board_meeting_date = models.DateField(verbose_name="Board Meeting Date", null=True, blank=True)
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='draft')
+    documents = models.JSONField(default=list, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['-created_at']
+        verbose_name = "Company Closure"
+        verbose_name_plural = "Company Closures"
+
+    def __str__(self):
+        return f"{self.company_name} - {self.closure_type}"
+
+    def get_status_badge_class(self):
+        status_classes = {
+            'draft': 'bg-secondary text-dark',
+            'pending': 'bg-warning text-dark',
+            'ready': 'bg-info text-dark',
+            'submitted': 'bg-primary text-dark',
+            'approved': 'bg-success text-dark',
+        }
+        return status_classes.get(self.status, 'bg-secondary text-dark')
+
+
+class RCMCRegistration(models.Model):
+    """Stores RCMC (Registration Cum Membership Certificate) submissions."""
+
+    STATUS_CHOICES = [
+        ('draft', 'Draft'),
+        ('pending', 'Pending'),
+        ('ready', 'Ready'),
+        ('submitted', 'Submitted'),
+        ('approved', 'Approved'),
+    ]
+
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='rcmc_registrations'
+    )
+    lead_source = models.CharField(max_length=100, default='website', verbose_name="Lead Source")
+    assigned_to = models.ForeignKey(
+        'Employee',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='assigned_rcmc_records',
+        verbose_name="Assigned To"
+    )
+    # Applicant/User Information
+    applicant_name = models.CharField(max_length=255, verbose_name="Applicant Name", blank=True, null=True)
+    applicant_phone = models.CharField(max_length=20, verbose_name="Phone Number", blank=True, null=True)
+    applicant_whatsapp = models.CharField(max_length=20, verbose_name="WhatsApp Number", blank=True, null=True)
+    applicant_email = models.EmailField(verbose_name="Email", blank=True, null=True)
+    applicant_address = models.TextField(verbose_name="Address", blank=True, null=True)
+    firm_name = models.CharField(max_length=255, verbose_name="Firm/Company Name")
+    iec_number = models.CharField(max_length=10, verbose_name="IEC Number")
+    pan_number = models.CharField(max_length=10, verbose_name="PAN Number")
+    registered_office_address = models.TextField(verbose_name="Registered Office Address")
+    export_products_details = models.TextField(verbose_name="Export Products Details", blank=True)
+    export_performance_details = models.TextField(verbose_name="Export Performance Details", blank=True)
+    related_export_council_name = models.CharField(max_length=255, verbose_name="Related Export Council Name", blank=True)
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='draft')
+    documents = models.JSONField(default=list, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['-created_at']
+        verbose_name = "RCMC Registration"
+        verbose_name_plural = "RCMC Registrations"
+
+    def __str__(self):
+        return f"{self.firm_name} - {self.iec_number}"
+
+    def get_status_badge_class(self):
+        status_classes = {
+            'draft': 'bg-secondary text-dark',
+            'pending': 'bg-warning text-dark',
+            'ready': 'bg-info text-dark',
+            'submitted': 'bg-primary text-dark',
+            'approved': 'bg-success text-dark',
+        }
+        return status_classes.get(self.status, 'bg-secondary text-dark')
+
+
+class ShopEstablishmentRegistration(models.Model):
+    """Stores Shop Establishment Registration submissions (Jharkhand & West Bengal)."""
+
+    STATE_CHOICES = [
+        ('Jharkhand', 'Jharkhand'),
+        ('West Bengal', 'West Bengal'),
+    ]
+
+    BUSINESS_TYPE_CHOICES = [
+        ('Proprietorship', 'Proprietorship'),
+        ('Partnership', 'Partnership'),
+        ('Company', 'Company'),
+        ('LLP', 'LLP'),
+    ]
+
+    STATUS_CHOICES = [
+        ('draft', 'Draft'),
+        ('pending', 'Pending'),
+        ('ready', 'Ready'),
+        ('submitted', 'Submitted'),
+        ('approved', 'Approved'),
+    ]
+
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='shop_establishment_registrations'
+    )
+    lead_source = models.CharField(max_length=100, default='website', verbose_name="Lead Source")
+    assigned_to = models.ForeignKey(
+        'Employee',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='assigned_shop_establishment_records',
+        verbose_name="Assigned To"
+    )
+    # Applicant/User Information
+    applicant_name = models.CharField(max_length=255, verbose_name="Applicant Name", blank=True, null=True)
+    applicant_phone = models.CharField(max_length=20, verbose_name="Phone Number", blank=True, null=True)
+    applicant_whatsapp = models.CharField(max_length=20, verbose_name="WhatsApp Number", blank=True, null=True)
+    applicant_email = models.EmailField(verbose_name="Email", blank=True, null=True)
+    applicant_address = models.TextField(verbose_name="Address", blank=True, null=True)
+    shop_establishment_name = models.CharField(max_length=255, verbose_name="Shop/Establishment Name")
+    state = models.CharField(max_length=50, choices=STATE_CHOICES, verbose_name="State")
+    business_type = models.CharField(max_length=50, choices=BUSINESS_TYPE_CHOICES, verbose_name="Business Type")
+    business_address = models.TextField(verbose_name="Business Address")
+    pan_number = models.CharField(max_length=10, verbose_name="PAN Number", blank=True)
+    gst_number = models.CharField(max_length=15, verbose_name="GST Number", blank=True)
+    number_of_employees = models.PositiveIntegerField(verbose_name="Number of Employees", null=True, blank=True)
+    business_start_date = models.DateField(verbose_name="Business Start Date", null=True, blank=True)
+    working_hours = models.CharField(max_length=100, verbose_name="Working Hours", blank=True)
+    weekly_holiday = models.CharField(max_length=50, verbose_name="Weekly Holiday", blank=True)
+    municipal_area = models.CharField(max_length=255, verbose_name="Municipal Area", blank=True)
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='draft')
+    documents = models.JSONField(default=list, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['-created_at']
+        verbose_name = "Shop Establishment Registration"
+        verbose_name_plural = "Shop Establishment Registrations"
+
+    def __str__(self):
+        return f"{self.shop_establishment_name} - {self.state}"
 
     def get_status_badge_class(self):
         status_classes = {

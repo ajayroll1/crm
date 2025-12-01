@@ -77,38 +77,6 @@
       </div>
     </a>
   </div>
-  <div class="col-xl-4 col-lg-4 col-md-6 col-sm-6 mb-3">
-    <a href="{% url 'employee_quotes' %}" class="text-decoration-none">
-      <div class="metric-card">
-        <div class="d-flex align-items-center">
-          <div class="metric-icon warning">
-            <i class="bi bi-receipt"></i>
-          </div>
-          <div>
-            <div class="metric-title">Quotes</div>
-            <div class="metric-value">{{ quotes_count|default:0 }}</div>
-            <div class="metric-subtitle">Owned by you</div>
-          </div>
-        </div>
-      </div>
-    </a>
-  </div>
-  <div class="col-xl-4 col-lg-4 col-md-6 col-sm-6 mb-3">
-    <a href="{% url 'employee_quotes' %}" class="text-decoration-none">
-      <div class="metric-card">
-        <div class="d-flex align-items-center">
-          <div class="metric-icon success">
-            <i class="bi bi-clipboard-check"></i>
-          </div>
-          <div>
-            <div class="metric-title">Onboarding</div>
-            <div class="metric-value">{{ onboardings_count|default:0 }}</div>
-            <div class="metric-subtitle">Your assigned projects</div>
-          </div>
-        </div>
-      </div>
-    </a>
-  </div>
 </div>
 {% elif employee_department|default:''|lower == 'accounts' %}
 <!-- Accounts Department Cards -->

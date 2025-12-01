@@ -291,6 +291,56 @@
                   <label class="form-label">Documents</label>
                   <input type="file" name="moa_alteration_documents" multiple class="form-control">
                 </div>
+              {% elif selected_service_obj.form_name == 'professional_tax' %}
+                <div class="mt-3">
+                  <label class="form-label">Documents</label>
+                  <input type="file" name="professional_tax_documents" multiple class="form-control">
+                </div>
+              {% elif selected_service_obj.form_name == 'iec' %}
+                <div class="mt-3">
+                  <label class="form-label">Documents</label>
+                  <input type="file" name="iec_documents" multiple class="form-control">
+                </div>
+              {% elif selected_service_obj.form_name == 'icegate' %}
+                <div class="mt-3">
+                  <label class="form-label">Documents</label>
+                  <input type="file" name="icegate_documents" multiple class="form-control">
+                </div>
+              {% elif selected_service_obj.form_name == 'trade_license' %}
+                <div class="mt-3">
+                  <label class="form-label">Documents</label>
+                  <input type="file" name="trade_license_documents" multiple class="form-control">
+                </div>
+              {% elif selected_service_obj.form_name == 'dsc' %}
+                <div class="mt-3">
+                  <label class="form-label">Documents</label>
+                  <input type="file" name="dsc_documents" multiple class="form-control">
+                </div>
+              {% elif selected_service_obj.form_name == 'company_name_change' %}
+                <div class="mt-3">
+                  <label class="form-label">Documents</label>
+                  <input type="file" name="company_name_change_documents" multiple class="form-control">
+                </div>
+              {% elif selected_service_obj.form_name == 'director_change' %}
+                <div class="mt-3">
+                  <label class="form-label">Documents</label>
+                  <input type="file" name="director_change_documents" multiple class="form-control">
+                </div>
+              {% elif selected_service_obj.form_name == 'company_closure' %}
+                <div class="mt-3">
+                  <label class="form-label">Documents</label>
+                  <input type="file" name="company_closure_documents" multiple class="form-control">
+                </div>
+              {% elif selected_service_obj.form_name == 'rcmc' %}
+                <div class="mt-3">
+                  <label class="form-label">Documents</label>
+                  <input type="file" name="rcmc_documents" multiple class="form-control">
+                </div>
+              {% elif selected_service_obj.form_name == 'shop_establishment' %}
+                <div class="mt-3">
+                  <label class="form-label">Documents</label>
+                  <input type="file" name="shop_establishment_documents" multiple class="form-control">
+                </div>
               {% endif %}
 
               <!-- Submit Buttons -->

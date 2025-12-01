@@ -28,6 +28,26 @@
   .nav-tabs .nav-link.active { color: #000 !important; }
   .nav-tabs .nav-link:hover { color: #fff !important; background-color: var(--primary-color) !important; }
 
+  /* Actions buttons - horizontal layout with icons only */
+  .leads-table td[data-label="Actions"] {
+    display: flex;
+    gap: 0.25rem;
+    align-items: center;
+    white-space: nowrap;
+  }
+  
+  .leads-table td[data-label="Actions"] .btn {
+    padding: 0.25rem 0.5rem;
+    min-width: auto;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
+  
+  .leads-table td[data-label="Actions"] .btn i {
+    margin: 0;
+  }
+
   /* Mobile responsive table - convert to card layout */
   @media (max-width: 768px) {
     .leads-table { border: 0; }
@@ -45,17 +65,20 @@
 </style>
 
 <!-- Tabs: List | Create -->
+<!-- Create Lead tab temporarily commented out -->
 <ul class="nav nav-tabs" id="leadsTabs" role="tablist">
   <li class="nav-item" role="presentation">
     <button class="nav-link active" id="list-tab" data-bs-toggle="tab" data-bs-target="#list" type="button" role="tab" aria-controls="list" aria-selected="true">
       <i class="bi bi-table"></i> List
     </button>
   </li>
+  {% comment %}
   <li class="nav-item" role="presentation">
     <button class="nav-link" id="create-tab" data-bs-toggle="tab" data-bs-target="#create" type="button" role="tab" aria-controls="create" aria-selected="false">
       <i class="bi bi-plus-circle"></i> Create Lead
     </button>
   </li>
+  {% endcomment %}
 </ul>
 
 <div class="tab-content pt-3" id="leadsTabsContent">
@@ -64,7 +87,18 @@
     <div class="card">
       <div class="card-header d-flex align-items-center justify-content-between">
         <h5 class="card-title mb-0">All Leads ({{ total_leads }})</h5>
-        <div class="d-flex gap-2">
+        <div class="d-flex gap-2 align-items-center">
+          <button class="btn btn-sm btn-outline-success" id="enableBulkSelectBtn" onclick="enableBulkSelect()">
+            <i class="bi bi-check-square"></i> Bulk Assign
+          </button>
+          <div id="bulk_assign_btn_container" style="display: none;">
+            <button class="btn btn-sm btn-success" id="bulkAssignBtn" data-bs-toggle="modal" data-bs-target="#bulkAssignModal">
+              <i class="bi bi-person-plus"></i> Assign Selected (<span id="selected_count">0</span>)
+            </button>
+            <button class="btn btn-sm btn-outline-secondary" id="cancelBulkSelectBtn" onclick="disableBulkSelect()">
+              <i class="bi bi-x"></i> Cancel
+            </button>
+          </div>
           <form method="GET" class="d-flex">
             <input class="form-control form-control-sm" style="max-width: 220px;" type="search" name="search" placeholder="Search leads..." value="{{ search_query }}">
             <button class="btn btn-sm btn-primary" type="submit" style="min-width: 40px;"><i class="bi bi-search"></i></button>
@@ -78,6 +112,9 @@
           <table class="table table-hover align-middle mb-0 leads-table">
             <thead class="table-light">
               <tr>
+                <th style="width: 40px; display: none;" class="bulk-select-column">
+                  <input type="checkbox" id="select_all_leads" title="Select All">
+                </th>
                 <th>Name</th>
                 <th>Email</th>
                 <th>Phone</th>
@@ -85,7 +122,7 @@
                 <th>Owner</th>
                 <th>Status</th>
                 <th>Priority</th>
-                <th>Next Action</th>
+                <th>Notes</th>
                 <th>Due</th>
                 <th>Actions</th>
               </tr>
@@ -93,6 +130,9 @@
             <tbody>
               {% for lead in leads %}
               <tr data-due="{% if lead.get_full_due_datetime %}{{ lead.get_full_due_datetime|date:'c' }}{% endif %}">
+                <td data-label="" class="bulk-select-column" style="display: none;">
+                  <input type="checkbox" class="lead-checkbox" value="{{ lead.id }}" data-lead-name="{{ lead.name }}">
+                </td>
                 <td data-label="Name">{{ lead.name }}</td>
                 <td data-label="Email">{{ lead.email|default:"-" }}</td>
                 <td data-label="Phone">{{ lead.phone|default:"-" }}</td>
@@ -104,7 +144,13 @@
                 <td data-label="Priority">
                   <span class="badge {{ lead.get_priority_badge_class }}">{{ lead.priority }}</span>
                 </td>
-                <td data-label="Next Action">{{ lead.next_action|default:"-" }}</td>
+                <td data-label="Notes">
+                  {% if lead.notes %}
+                    <span title="{{ lead.notes }}">{{ lead.notes|truncatewords:10|default:"-" }}</span>
+                  {% else %}
+                    -
+                  {% endif %}
+                </td>
                 <td data-label="Due">
                   {% if lead.get_full_due_datetime %}
                     {{ lead.get_full_due_datetime|date:"d-M-Y H:i" }}
@@ -119,13 +165,16 @@
                   <button class="btn btn-sm btn-outline-primary btn-edit" data-bs-toggle="modal" data-bs-target="#editLeadModal" data-lead-id="{{ lead.id }}">
                     <i class="bi bi-pencil"></i>
                   </button>
+                  <button class="btn btn-sm btn-outline-success btn-assign" data-bs-toggle="modal" data-bs-target="#assignLeadModal" data-lead-id="{{ lead.id }}" data-lead-name="{{ lead.name }}">
+                    <i class="bi bi-person-plus"></i>
+                  </button>
                 </td>
               </tr>
               {% empty %}
               <tr>
-                <td colspan="9" class="text-center text-muted py-4">
+                <td colspan="11" class="text-center text-muted py-4">
                   <i class="bi bi-inbox fs-1 d-block mb-2"></i>
-                  No leads found. <a href="#create" data-bs-toggle="tab">Create your first lead</a>
+                  No leads found. <a href="{% url 'leads_import_export' %}">Import leads</a>
                 </td>
               </tr>
               {% endfor %}
@@ -169,7 +218,8 @@
     </div>
   </div>
 
-  <!-- Create Tab -->
+  <!-- Create Tab - Temporarily commented out -->
+  {% comment %}
   <div class="tab-pane fade" id="create" role="tabpanel" aria-labelledby="create-tab">
     <form id="createLeadForm" method="post" novalidate>
       {% csrf_token %}
@@ -350,6 +400,7 @@
       </div>
     </form>
   </div>
+  {% endcomment %}
 </div>
 
 <!-- View Lead Modal -->
@@ -510,6 +561,114 @@
   </div>
 </div>
 
+<!-- Assign Lead Modal -->
+<div class="modal fade" id="assignLeadModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title"><i class="bi bi-person-plus"></i> Assign Lead</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <form id="assignLeadForm" method="post" action="{% url 'assign_lead_to_employee' %}">
+        {% csrf_token %}
+        <input type="hidden" name="lead_id" id="assign_lead_id">
+        <div class="modal-body">
+          <div class="mb-3">
+            <label class="form-label">Lead Name</label>
+            <input type="text" class="form-control" id="assign_lead_name" readonly>
+          </div>
+          <div class="mb-3" id="current_assignment_info" style="display: none;">
+            <div class="alert alert-info">
+              <strong>Currently Assigned To:</strong> <span id="current_assigned_employee">-</span>
+            </div>
+          </div>
+          <div class="mb-3">
+            <label class="form-label">Select Sales Employee<span class="text-danger">*</span></label>
+            <select name="employee_id" id="assign_employee_select" class="form-select" required>
+              <option value="">Loading employees...</option>
+            </select>
+            <small class="form-text text-muted" id="assign_employee_help">Select a sales employee to assign this lead</small>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+          <button type="submit" class="btn btn-primary" id="assign_submit_btn">Assign Lead</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- Bulk Assign Lead Modal -->
+<div class="modal fade" id="bulkAssignModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title"><i class="bi bi-person-plus"></i> Assign Multiple Leads</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <form id="bulkAssignForm" method="post">
+        {% csrf_token %}
+        <div class="modal-body">
+          <div class="mb-3">
+            <label class="form-label">Selected Leads</label>
+            <div id="selected_leads_list" class="p-2 bg-light rounded" style="max-height: 150px; overflow-y: auto;">
+              <!-- Selected leads will be listed here -->
+            </div>
+            <small class="form-text text-muted">Total: <span id="bulk_selected_count">0</span> lead(s)</small>
+          </div>
+          <div class="mb-3">
+            <label class="form-label">Select Sales Employee<span class="text-danger">*</span></label>
+            <select name="employee_id" id="bulk_assign_employee_select" class="form-select" required>
+              <option value="">Loading employees...</option>
+            </select>
+            <small class="form-text text-muted" id="bulk_assign_employee_help">Select a sales employee to assign these leads</small>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+          <button type="submit" class="btn btn-primary">Assign Leads</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- Bulk Assign Lead Modal -->
+<div class="modal fade" id="bulkAssignModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title"><i class="bi bi-person-plus"></i> Assign Multiple Leads</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <form id="bulkAssignForm" method="post">
+        {% csrf_token %}
+        <div class="modal-body">
+          <div class="mb-3">
+            <label class="form-label">Selected Leads</label>
+            <div id="selected_leads_list" class="p-2 bg-light rounded" style="max-height: 150px; overflow-y: auto;">
+              <!-- Selected leads will be listed here -->
+            </div>
+            <small class="form-text text-muted">Total: <span id="bulk_selected_count">0</span> lead(s)</small>
+          </div>
+          <div class="mb-3">
+            <label class="form-label">Select Sales Employee<span class="text-danger">*</span></label>
+            <select name="employee_id" id="bulk_assign_employee_select" class="form-select" required>
+              <option value="">Loading employees...</option>
+            </select>
+            <small class="form-text text-muted" id="bulk_assign_employee_help">Select a sales employee to assign these leads</small>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+          <button type="submit" class="btn btn-primary">Assign Leads</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
 <!-- Filter Modal -->
 <div class="modal fade" id="filterModal" tabindex="-1" aria-labelledby="filterModalLabel" aria-hidden="true">
   <div class="modal-dialog">
@@ -596,7 +755,210 @@
 </div>
 <!-- Client-side validation and modal functionality -->
 <script>
+  // Bulk Selection Functions
+  function enableBulkSelect() {
+    // Show checkbox column
+    document.querySelectorAll('.bulk-select-column').forEach(col => {
+      col.style.display = '';
+    });
+    // Hide enable button, show bulk assign container
+    document.getElementById('enableBulkSelectBtn').style.display = 'none';
+    document.getElementById('bulk_assign_btn_container').style.display = 'flex';
+    document.getElementById('bulk_assign_btn_container').style.gap = '0.5rem';
+  }
+  
+  function disableBulkSelect() {
+    // Hide checkbox column
+    document.querySelectorAll('.bulk-select-column').forEach(col => {
+      col.style.display = 'none';
+    });
+    // Uncheck all checkboxes
+    document.querySelectorAll('.lead-checkbox').forEach(cb => cb.checked = false);
+    const selectAllCheckbox = document.getElementById('select_all_leads');
+    if (selectAllCheckbox) selectAllCheckbox.checked = false;
+    // Show enable button, hide bulk assign container
+    document.getElementById('enableBulkSelectBtn').style.display = '';
+    document.getElementById('bulk_assign_btn_container').style.display = 'none';
+    if (typeof updateBulkAssignButton === 'function') {
+      updateBulkAssignButton();
+    }
+  }
+  
   document.addEventListener('DOMContentLoaded', function () {
+    // Bulk Selection and Assignment
+    const selectAllCheckbox = document.getElementById('select_all_leads');
+    const leadCheckboxes = document.querySelectorAll('.lead-checkbox');
+    const bulkAssignBtnContainer = document.getElementById('bulk_assign_btn_container');
+    const selectedCountSpan = document.getElementById('selected_count');
+    
+    // Select All functionality
+    if (selectAllCheckbox) {
+      selectAllCheckbox.addEventListener('change', function() {
+        leadCheckboxes.forEach(checkbox => {
+          checkbox.checked = this.checked;
+        });
+        updateBulkAssignButton();
+      });
+    }
+    
+    // Individual checkbox change
+    leadCheckboxes.forEach(checkbox => {
+      checkbox.addEventListener('change', function() {
+        // Update select all checkbox state
+        if (selectAllCheckbox) {
+          const allChecked = Array.from(leadCheckboxes).every(cb => cb.checked);
+          const someChecked = Array.from(leadCheckboxes).some(cb => cb.checked);
+          selectAllCheckbox.checked = allChecked;
+          selectAllCheckbox.indeterminate = someChecked && !allChecked;
+        }
+        updateBulkAssignButton();
+      });
+    });
+    
+    // Update bulk assign button visibility and count
+    function updateBulkAssignButton() {
+      const selected = Array.from(leadCheckboxes).filter(cb => cb.checked);
+      const count = selected.length;
+      
+      if (count > 0 && bulkAssignBtnContainer) {
+        selectedCountSpan.textContent = count;
+      }
+    }
+    
+    // Bulk Assign Modal - Load employees when modal opens
+    const bulkAssignModal = document.getElementById('bulkAssignModal');
+    if (bulkAssignModal) {
+      bulkAssignModal.addEventListener('show.bs.modal', function(event) {
+        const selected = Array.from(leadCheckboxes).filter(cb => cb.checked);
+        const selectedIds = selected.map(cb => cb.value);
+        const selectedNames = selected.map(cb => cb.getAttribute('data-lead-name'));
+        
+        // Update selected leads list
+        const leadsList = document.getElementById('selected_leads_list');
+        const countSpan = document.getElementById('bulk_selected_count');
+        
+        if (selected.length > 0) {
+          leadsList.innerHTML = selectedNames.map((name, index) => 
+            `<div class="mb-1"><i class="bi bi-check-circle text-success"></i> ${name}</div>`
+          ).join('');
+          countSpan.textContent = selected.length;
+        } else {
+          leadsList.innerHTML = '<div class="text-muted">No leads selected</div>';
+          countSpan.textContent = '0';
+        }
+        
+        // Load sales employees
+        const employeeSelect = document.getElementById('bulk_assign_employee_select');
+        const helpText = document.getElementById('bulk_assign_employee_help');
+        
+        employeeSelect.innerHTML = '<option value="">Loading employees...</option>';
+        employeeSelect.disabled = true;
+        helpText.textContent = 'Loading sales employees...';
+        
+        fetch('{% url "get_employees_by_department" %}?department=Sales')
+          .then(response => response.json())
+          .then(data => {
+            if (data.success && data.employees.length > 0) {
+              employeeSelect.innerHTML = '<option value="">Select Employee</option>';
+              data.employees.forEach(function(emp) {
+                const option = document.createElement('option');
+                option.value = emp.id;
+                option.textContent = `${emp.name}${emp.designation ? ' (' + emp.designation + ')' : ''}`;
+                employeeSelect.appendChild(option);
+              });
+              employeeSelect.disabled = false;
+              helpText.textContent = `Found ${data.employees.length} sales employee(s)`;
+            } else {
+              employeeSelect.innerHTML = '<option value="">No sales employees found</option>';
+              employeeSelect.disabled = true;
+              helpText.textContent = 'No active sales employees found';
+            }
+          })
+          .catch(error => {
+            console.error('Error loading employees:', error);
+            employeeSelect.innerHTML = '<option value="">Error loading employees</option>';
+            employeeSelect.disabled = true;
+            helpText.textContent = 'Error loading employees. Please try again.';
+          });
+      });
+    }
+    
+    // Bulk Assign Form Submission
+    const bulkAssignForm = document.getElementById('bulkAssignForm');
+    if (bulkAssignForm) {
+      bulkAssignForm.addEventListener('submit', function(e) {
+        e.preventDefault();
+        
+        const selected = Array.from(leadCheckboxes).filter(cb => cb.checked);
+        const selectedIds = selected.map(cb => cb.value);
+        const employeeId = document.getElementById('bulk_assign_employee_select').value;
+        
+        if (selectedIds.length === 0) {
+          alert('Please select at least one lead');
+          return;
+        }
+        
+        if (!employeeId) {
+          alert('Please select an employee');
+          return;
+        }
+        
+        const formData = new FormData();
+        formData.append('lead_ids', JSON.stringify(selectedIds));
+        formData.append('employee_id', employeeId);
+        formData.append('csrfmiddlewaretoken', document.querySelector('[name=csrfmiddlewaretoken]').value);
+        
+        const submitBtn = bulkAssignForm.querySelector('button[type="submit"]');
+        const originalText = submitBtn.textContent;
+        
+        submitBtn.disabled = true;
+        submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Assigning...';
+        
+        fetch('{% url "bulk_assign_leads" %}', {
+          method: 'POST',
+          body: formData,
+          headers: {
+            'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+          }
+        })
+        .then(response => response.json())
+        .then(data => {
+          if (data.success) {
+            // Close modal
+            const modal = bootstrap.Modal.getInstance(bulkAssignModal);
+            modal.hide();
+            
+            // Show success message
+            const alert = document.createElement('div');
+            alert.className = 'alert alert-success alert-dismissible fade show';
+            alert.innerHTML = `
+              <strong>Success!</strong> ${data.message}
+              <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            `;
+            document.querySelector('.dashboard-header').after(alert);
+            
+            // Uncheck all checkboxes and disable bulk select
+            disableBulkSelect();
+            
+            // Reload page after 1 second
+            setTimeout(() => {
+              window.location.reload();
+            }, 1000);
+          } else {
+            alert('Error: ' + data.error);
+            submitBtn.disabled = false;
+            submitBtn.textContent = originalText;
+          }
+        })
+        .catch(error => {
+          console.error('Error:', error);
+          alert('An error occurred while assigning leads.');
+          submitBtn.disabled = false;
+          submitBtn.textContent = originalText;
+        });
+      });
+    }
+    
     // Global modal cleanup function
     function cleanupModals() {
       // Remove all modal backdrops
@@ -658,6 +1020,132 @@
       });
     }
 
+    // Assign Lead Modal - Load sales employees when modal opens
+    const assignLeadModal = document.getElementById('assignLeadModal');
+    if (assignLeadModal) {
+      assignLeadModal.addEventListener('show.bs.modal', function(event) {
+        const button = event.relatedTarget;
+        const leadId = button.getAttribute('data-lead-id');
+        const leadName = button.getAttribute('data-lead-name');
+        
+        // Set lead ID and name
+        document.getElementById('assign_lead_id').value = leadId;
+        document.getElementById('assign_lead_name').value = leadName || 'Lead';
+        
+        // Reset current assignment info
+        const currentAssignmentInfo = document.getElementById('current_assignment_info');
+        const currentAssignedEmployee = document.getElementById('current_assigned_employee');
+        currentAssignmentInfo.style.display = 'none';
+        
+        // Load sales employees
+        const employeeSelect = document.getElementById('assign_employee_select');
+        const helpText = document.getElementById('assign_employee_help');
+        
+        employeeSelect.innerHTML = '<option value="">Loading employees...</option>';
+        employeeSelect.disabled = true;
+        helpText.textContent = 'Loading sales employees...';
+        
+        // First, fetch lead data to check current assignment
+        Promise.all([
+          fetch(`/leads/${leadId}/get-data/`).then(r => r.json()),
+          fetch('{% url "get_employees_by_department" %}?department=Sales').then(r => r.json())
+        ])
+          .then(([leadData, employeesData]) => {
+            // Show current assignment if exists
+            const submitBtn = document.getElementById('assign_submit_btn');
+            if (leadData.assigned_to && leadData.assigned_to.id) {
+              currentAssignedEmployee.textContent = leadData.assigned_to.name || 'Unknown';
+              currentAssignmentInfo.style.display = 'block';
+              submitBtn.textContent = 'Change Assignment';
+            } else {
+              submitBtn.textContent = 'Assign Lead';
+            }
+            
+            // Load employees dropdown
+            if (employeesData.success && employeesData.employees.length > 0) {
+              employeeSelect.innerHTML = '<option value="">Select Employee</option>';
+              employeesData.employees.forEach(function(emp) {
+                const option = document.createElement('option');
+                option.value = emp.id;
+                option.textContent = `${emp.name}${emp.designation ? ' (' + emp.designation + ')' : ''}`;
+                // Pre-select current assigned employee if exists
+                if (leadData.assigned_to && leadData.assigned_to.id && emp.id == leadData.assigned_to.id) {
+                  option.selected = true;
+                }
+                employeeSelect.appendChild(option);
+              });
+              employeeSelect.disabled = false;
+              helpText.textContent = `Found ${employeesData.employees.length} sales employee(s)`;
+            } else {
+              employeeSelect.innerHTML = '<option value="">No sales employees found</option>';
+              employeeSelect.disabled = true;
+              helpText.textContent = 'No active sales employees found';
+            }
+          })
+          .catch(error => {
+            console.error('Error loading data:', error);
+            employeeSelect.innerHTML = '<option value="">Error loading data</option>';
+            employeeSelect.disabled = true;
+            helpText.textContent = 'Error loading data. Please try again.';
+          });
+      });
+      
+      // Handle form submission
+      const assignForm = document.getElementById('assignLeadForm');
+      if (assignForm) {
+        assignForm.addEventListener('submit', function(e) {
+          e.preventDefault();
+          
+          const formData = new FormData(assignForm);
+          const submitBtn = assignForm.querySelector('button[type="submit"]');
+          const originalText = submitBtn.textContent;
+          
+          submitBtn.disabled = true;
+          submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Assigning...';
+          
+          fetch('{% url "assign_lead_to_employee" %}', {
+            method: 'POST',
+            body: formData,
+            headers: {
+              'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+            }
+          })
+          .then(response => response.json())
+          .then(data => {
+            if (data.success) {
+              // Close modal
+              const modal = bootstrap.Modal.getInstance(assignLeadModal);
+              modal.hide();
+              
+              // Show success message
+              const alert = document.createElement('div');
+              alert.className = 'alert alert-success alert-dismissible fade show';
+              alert.innerHTML = `
+                <strong>Success!</strong> ${data.message}
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+              `;
+              document.querySelector('.dashboard-header').after(alert);
+              
+              // Reload page after 1 second
+              setTimeout(() => {
+                window.location.reload();
+              }, 1000);
+            } else {
+              alert('Error: ' + data.error);
+              submitBtn.disabled = false;
+              submitBtn.textContent = originalText;
+            }
+          })
+          .catch(error => {
+            console.error('Error:', error);
+            alert('An error occurred while assigning the lead.');
+            submitBtn.disabled = false;
+            submitBtn.textContent = originalText;
+          });
+        });
+      }
+    }
+
     // View Lead Modal - Fetch complete data when button clicked
     const viewButtons = document.querySelectorAll('.btn-view');
     viewButtons.forEach(button => {
@@ -695,7 +1183,7 @@
               <div class="col-md-6"><strong>Priority:</strong> <span class="badge ${data.priority === 'High' ? 'bg-danger' : data.priority === 'Low' ? 'bg-success' : 'bg-warning text-dark'}">${data.priority || '-'}</span></div>
               <div class="col-md-6"><strong>Owner:</strong> ${data.owner || '-'}</div>
               <div class="col-md-6"><strong>Use Case:</strong> ${data.use_case || '-'}</div>
-              <div class="col-md-6"><strong>Next Action:</strong> ${data.next_action || '-'}</div>
+              <div class="col-md-6"><strong>Notes:</strong> ${data.notes || '-'}</div>
               <div class="col-md-6"><strong>Due Date:</strong> ${data.due_date || '-'}</div>
               <div class="col-md-6"><strong>Due Time:</strong> ${data.due_time || '-'}</div>
               <div class="col-md-6"><strong>Website:</strong> ${data.website ? `<a href="${data.website}" target="_blank" class="text-primary">${data.website}</a>` : '-'}</div>
@@ -760,7 +1248,7 @@
           company: row.querySelector('[data-label="Company"]').textContent.trim(),
           owner: row.querySelector('[data-label="Owner"]').textContent.trim(),
           priority: row.querySelector('[data-label="Priority"]').textContent.trim(),
-          nextAction: row.querySelector('[data-label="Next Action"]').textContent.trim(),
+          notes: row.querySelector('[data-label="Notes"]').textContent.trim(),
           due: row.querySelector('[data-label="Due"]').textContent.trim()
         };
 

@@ -14,14 +14,10 @@
   {% endfor %}
 {% endif %}
 {% endcomment %}
-<div class="dashboard-header d-flex align-items-center justify-content-between">
+<div class="dashboard-header d-flex align-items-center justify-content-between flex-wrap">
   <div>
     <h1>Leads</h1>
     <p class="text-muted">Add new leads and manage them here</p>
-  </div>
-  <div class="d-flex gap-2">
-    <a href="{% url 'lead_export' %}" class="btn btn-outline-primary btn-sm"><i class="bi bi-download"></i> Export</a>
-    <a href="{% url 'leads_import_export' %}" class="btn btn-outline-primary btn-sm"><i class="bi bi-upload"></i> Import</a>
   </div>
 </div>
 
@@ -72,53 +68,261 @@
     color: white;
   }
 
+  /* Actions buttons - horizontal layout with icons only */
+  .leads-table td[data-label="Actions"] {
+    display: flex;
+    gap: 0.25rem;
+    align-items: center;
+    white-space: nowrap;
+  }
+  
+  .leads-table td[data-label="Actions"] .btn {
+    padding: 0.25rem 0.5rem;
+    min-width: auto;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
+  
+  .leads-table td[data-label="Actions"] .btn i {
+    margin: 0;
+  }
+
+  /* Tablet and medium screens */
+  @media (max-width: 991px) and (min-width: 769px) {
+    .table-responsive {
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+    }
+    
+    .leads-table {
+      min-width: 800px;
+    }
+    
+    .leads-table td[data-label="Actions"] {
+      gap: 0.5rem;
+    }
+  }
+
+  /* Responsive design for header and card */
+  @media (max-width: 991px) {
+    .dashboard-header {
+      flex-direction: column;
+      align-items: flex-start !important;
+      gap: 1rem;
+    }
+    
+    .dashboard-header > div:last-child {
+      width: 100%;
+      justify-content: flex-start;
+      flex-wrap: wrap;
+    }
+    
+    .card-header {
+      flex-direction: column;
+      align-items: flex-start !important;
+      gap: 1rem;
+    }
+    
+    .card-header > div:last-child {
+      width: 100%;
+      flex-wrap: wrap;
+    }
+    
+    .card-header form {
+      width: 100%;
+      max-width: 100%;
+    }
+    
+    .card-header form input {
+      max-width: 100% !important;
+      flex: 1;
+    }
+  }
+
   /* Mobile responsive table - convert to card layout */
   @media (max-width: 768px) {
-    .leads-table { border: 0; }
-    .leads-table thead { display: none; }
-    .leads-table tbody tr { display: block; margin: 0 0 1rem 0; border: 1px solid #eee; border-radius: 8px; background: #fff; }
-    .leads-table tbody tr td { display: flex; justify-content: space-between; align-items: center; gap: 1rem; padding: 0.5rem 1rem; border-bottom: 1px solid #f1f1f1; }
-    .leads-table tbody tr td:last-child { border-bottom: 0; }
-    .leads-table tbody tr td::before { content: attr(data-label); font-weight: 600; color: #666; }
-    .leads-table .btn { padding: .25rem .5rem; }
-    /* Actions row: keep label on left and icons on right under Due */
-    .leads-table tbody tr td[data-label="Actions"] { justify-content: space-between; gap: .5rem; }
-    /* Push only the first action (view) to the far right; edit follows next to it */
-    .leads-table tbody tr td[data-label="Actions"] .btn-view { margin-left: auto; }
+    .dashboard-header h1 {
+      font-size: 1.5rem;
+    }
+    
+    .dashboard-header p {
+      font-size: 0.875rem;
+    }
+    
+    .dashboard-header > div:last-child {
+      width: 100%;
+    }
+    
+    .dashboard-header > div:last-child .btn {
+      flex: 1;
+      min-width: 0;
+      font-size: 0.875rem;
+      padding: 0.5rem 0.75rem;
+    }
+    
+    .card-header h5 {
+      font-size: 1rem;
+    }
+    
+    .card-header > div:last-child {
+      width: 100%;
+      gap: 0.5rem;
+    }
+    
+    .card-header form {
+      width: 100%;
+      margin-bottom: 0.5rem;
+    }
+    
+    .card-header form input {
+      max-width: 100% !important;
+      font-size: 0.875rem;
+    }
+    
+    .card-header .btn {
+      font-size: 0.875rem;
+      padding: 0.375rem 0.75rem;
+      white-space: nowrap;
+    }
+    
+    .leads-table { 
+      border: 0; 
+      margin: 0;
+    }
+    
+    .leads-table thead { 
+      display: none; 
+    }
+    
+    .leads-table tbody tr { 
+      display: block; 
+      margin: 0 0 1rem 0; 
+      border: 1px solid #dee2e6; 
+      border-radius: 8px; 
+      background: #fff;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    }
+    
+    .leads-table tbody tr td { 
+      display: flex; 
+      justify-content: space-between; 
+      align-items: center; 
+      gap: 1rem; 
+      padding: 0.75rem 1rem; 
+      border-bottom: 1px solid #f1f1f1;
+      text-align: right;
+    }
+    
+    .leads-table tbody tr td:last-child { 
+      border-bottom: 0; 
+    }
+    
+    .leads-table tbody tr td::before { 
+      content: attr(data-label); 
+      font-weight: 600; 
+      color: #495057;
+      text-align: left;
+      flex: 0 0 40%;
+    }
+    
+    .leads-table .btn { 
+      padding: 0.375rem 0.5rem; 
+      font-size: 0.875rem;
+    }
+    
+    /* Actions row: keep label on left and icons on right */
+    .leads-table tbody tr td[data-label="Actions"] { 
+      justify-content: space-between; 
+      gap: 0.5rem;
+      flex-wrap: wrap;
+    }
+    
+    .leads-table tbody tr td[data-label="Actions"]::before {
+      width: 100%;
+      margin-bottom: 0.5rem;
+    }
+    
+    .leads-table tbody tr td[data-label="Actions"] .btn {
+      flex: 1;
+      min-width: 0;
+      justify-content: center;
+    }
+    
+    /* Badge adjustments for mobile */
+    .leads-table .badge {
+      font-size: 0.75rem;
+      padding: 0.25rem 0.5rem;
+    }
+    
+    /* Notes truncation for mobile */
+    .leads-table td[data-label="Notes"] {
+      word-break: break-word;
+    }
+    
+    .leads-table td[data-label="Notes"] span {
+      max-width: 100%;
+      display: block;
+    }
+  }
+  
+  /* Extra small devices */
+  @media (max-width: 576px) {
+    .dashboard-header > div:last-child .btn {
+      font-size: 0.75rem;
+      padding: 0.4rem 0.6rem;
+    }
+    
+    .card-header .btn {
+      font-size: 0.75rem;
+      padding: 0.3rem 0.6rem;
+    }
+    
+    .leads-table tbody tr td {
+      padding: 0.5rem 0.75rem;
+      font-size: 0.875rem;
+    }
+    
+    .leads-table tbody tr td::before {
+      font-size: 0.8125rem;
+      flex: 0 0 35%;
+    }
   }
 </style>
 
 <!-- Tabs: List | Create -->
+<!-- Create Lead tab temporarily commented out -->
 <ul class="nav nav-tabs" id="leadsTabs" role="tablist">
   <li class="nav-item" role="presentation">
     <button class="nav-link active" id="list-tab" data-bs-toggle="tab" data-bs-target="#list" type="button" role="tab" aria-controls="list" aria-selected="true">
       <i class="bi bi-table"></i> List
     </button>
   </li>
+  {% comment %}
   <li class="nav-item" role="presentation">
     <button class="nav-link" id="create-tab" data-bs-toggle="tab" data-bs-target="#create" type="button" role="tab" aria-controls="create" aria-selected="false">
       <i class="bi bi-plus-circle"></i> Create Lead
     </button>
   </li>
+  {% endcomment %}
 </ul>
 
 <div class="tab-content pt-3" id="leadsTabsContent">
   <!-- List Tab -->
   <div class="tab-pane fade show active" id="list" role="tabpanel" aria-labelledby="list-tab">
     <div class="card">
-      <div class="card-header d-flex align-items-center justify-content-between">
+      <div class="card-header d-flex align-items-center justify-content-between flex-wrap">
         <h5 class="card-title mb-0">All Leads ({{ total_leads }})</h5>
-        <div class="d-flex gap-2">
-          <form method="GET" class="d-flex">
-            <input class="form-control form-control-sm" style="max-width: 220px;" type="search" name="search" placeholder="Search leads..." value="{{ search_query }}">
+        <div class="d-flex gap-2 flex-wrap">
+          <form method="GET" class="d-flex flex-grow-1" style="min-width: 200px;">
+            <input class="form-control form-control-sm" type="search" name="search" placeholder="Search leads..." value="{{ search_query }}">
             <button class="btn btn-sm btn-primary" type="submit" style="min-width: 40px;"><i class="bi bi-search"></i></button>
           </form>
-          <button class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#filterModal"><i class="bi bi-funnel"></i> Filter</button>
-          <a href="{% url 'lead_export' %}" class="btn btn-sm btn-primary"><i class="bi bi-download"></i> Export</a>
+          <button class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#filterModal"><i class="bi bi-funnel"></i> <span class="d-none d-md-inline">Filter</span></button>
         </div>
       </div>
       <div class="card-body p-0">
-        <div class="table-responsive">
+        <div class="table-responsive" style="overflow-x: auto; -webkit-overflow-scrolling: touch;">
           <table class="table table-hover align-middle mb-0 leads-table">
             <thead class="table-light">
               <tr>
@@ -127,8 +331,9 @@
                 <th>Phone</th>
                 <th>Company</th>
                 <th>Owner</th>
+                <th>Status</th>
                 <th>Priority</th>
-                <th>Next Action</th>
+                <th>Notes</th>
                 <th>Due</th>
                 <th>Actions</th>
               </tr>
@@ -137,14 +342,35 @@
               {% for lead in leads %}
               <tr data-due="{% if lead.get_full_due_datetime %}{{ lead.get_full_due_datetime|date:'c' }}{% endif %}">
                 <td data-label="Name">{{ lead.name }}</td>
-                <td data-label="Email">{{ lead.email|default:"-" }}</td>
+                <td data-label="Email">
+                  {% if lead.email %}
+                    {{ lead.email }}
+                  {% else %}
+                    -
+                  {% endif %}
+                </td>
                 <td data-label="Phone">{{ lead.phone|default:"-" }}</td>
-                <td data-label="Company">{{ lead.company|default:"-" }}</td>
+                <td data-label="Company">
+                  {% if lead.company %}
+                    {{ lead.company }}
+                  {% else %}
+                    -
+                  {% endif %}
+                </td>
                 <td data-label="Owner">{{ lead.owner }}</td>
+                <td data-label="Status">
+                  <span class="badge {{ lead.conversion_badge|default:'bg-secondary' }}">{{ lead.conversion_status|default:"Pending" }}</span>
+                </td>
                 <td data-label="Priority">
                   <span class="badge {{ lead.get_priority_badge_class }}">{{ lead.priority }}</span>
                 </td>
-                <td data-label="Next Action">{{ lead.next_action|default:"-" }}</td>
+                <td data-label="Notes">
+                  {% if lead.notes %}
+                    <span title="{{ lead.notes }}">{{ lead.notes|truncatewords:10|default:"-" }}</span>
+                  {% else %}
+                    -
+                  {% endif %}
+                </td>
                 <td data-label="Due">
                   {% if lead.get_full_due_datetime %}
                     {{ lead.get_full_due_datetime|date:"d-M-Y H:i" }}
@@ -156,16 +382,19 @@
                   <button class="btn btn-sm btn-outline-primary btn-view" data-bs-toggle="modal" data-bs-target="#viewLeadModal" data-lead-id="{{ lead.id }}">
                     <i class="bi bi-eye"></i>
                   </button>
-                  <button class="btn btn-sm btn-outline-primary btn-edit" data-bs-toggle="modal" data-bs-target="#editLeadModal" data-lead-id="{{ lead.id }}">
-                    <i class="bi bi-pencil"></i>
+                  <button class="btn btn-sm btn-outline-info btn-status" data-bs-toggle="modal" data-bs-target="#statusLeadModal" data-lead-id="{{ lead.id }}" data-lead-name="{{ lead.name }}" title="Update Status">
+                    <i class="bi bi-flag"></i>
+                  </button>
+                  <button class="btn btn-sm btn-outline-warning btn-notes" data-bs-toggle="modal" data-bs-target="#notesLeadModal" data-lead-id="{{ lead.id }}" data-lead-name="{{ lead.name }}" title="Add/Update Notes">
+                    <i class="bi bi-journal-text"></i>
                   </button>
                 </td>
               </tr>
               {% empty %}
               <tr>
-                <td colspan="9" class="text-center text-muted py-4">
+                <td colspan="10" class="text-center text-muted py-4">
                   <i class="bi bi-inbox fs-1 d-block mb-2"></i>
-                  No leads found. <a href="#create" data-bs-toggle="tab">Create your first lead</a>
+                  No leads found. <a href="{% url 'leads_import_export' %}">Import leads</a>
                 </td>
               </tr>
               {% endfor %}
@@ -209,7 +438,8 @@
     </div>
   </div>
 
-  <!-- Create Tab -->
+  <!-- Create Tab - Temporarily commented out -->
+  {% comment %}
   <div class="tab-pane fade" id="create" role="tabpanel" aria-labelledby="create-tab">
     <form id="createLeadForm" method="post" novalidate>
       {% csrf_token %}
@@ -390,7 +620,79 @@
       </div>
     </form>
   </div>
+  {% endcomment %}
 </div>
+
+<!-- Status Update Modal -->
+<div class="modal fade" id="statusLeadModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title"><i class="bi bi-flag"></i> Update Lead Status</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <form id="statusLeadForm" method="post">
+        {% csrf_token %}
+        <input type="hidden" name="lead_id" id="status_lead_id">
+        <div class="modal-body">
+          <div class="mb-3">
+            <label class="form-label">Lead Name</label>
+            <input type="text" class="form-control" id="status_lead_name" readonly>
+          </div>
+          <div class="mb-3">
+            <label class="form-label">Select Status<span class="text-danger">*</span></label>
+            <select name="status" id="status_select" class="form-select" required>
+              <option value="Pending">Pending</option>
+              <option value="Contacted">Contacted</option>
+              <option value="Qualified">Qualified</option>
+              <option value="Proposal">Proposal</option>
+              <option value="Negotiation">Negotiation</option>
+              <option value="Won">Won</option>
+              <option value="Lost">Lost</option>
+            </select>
+            <small class="form-text text-muted">Update the status of this lead</small>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+          <button type="submit" class="btn btn-primary">Update Status</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- Notes Update Modal -->
+<div class="modal fade" id="notesLeadModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title"><i class="bi bi-journal-text"></i> Add/Update Notes</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <form id="notesLeadForm" method="post">
+        {% csrf_token %}
+        <input type="hidden" name="lead_id" id="notes_lead_id">
+      <div class="modal-body">
+          <div class="mb-3">
+            <label class="form-label">Lead Name</label>
+            <input type="text" class="form-control" id="notes_lead_name" readonly>
+        </div>
+          <div class="mb-3">
+            <label class="form-label">Notes<span class="text-danger">*</span></label>
+            <textarea name="notes" id="notes_textarea" class="form-control" rows="6" placeholder="Enter notes about this lead..." required></textarea>
+            <small class="form-text text-muted">These notes will be visible to admin in the leads table</small>
+          </div>
+      </div>
+      <div class="modal-footer">
+          <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+          <button type="submit" class="btn btn-primary">Save Notes</button>
+      </div>
+      </form>
+    </div>
+  </div>
+</div>
+
 
 <!-- View Lead Modal -->
 <div class="modal fade" id="viewLeadModal" tabindex="-1" aria-hidden="true">
@@ -400,155 +702,24 @@
         <h5 class="modal-title"><i class="bi bi-person-badge"></i> Lead Details</h5>
         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
       </div>
-      <div class="modal-body">
+        <div class="modal-body">
         <div class="row g-3" id="leadDetails">
           <!-- Lead details will be populated here by JavaScript -->
-        </div>
+            </div>
         <!-- <div class="d-flex gap-2 mt-3">
           <button class="btn btn-outline-primary btn-sm" id="ld-change-stage"><i class="bi bi-arrow-left-right"></i> Change Stage</button>
           <button class="btn btn-outline-primary btn-sm" id="ld-assign-owner"><i class="bi bi-person-check"></i> Assign</button>
           <button class="btn btn-outline-primary btn-sm" id="ld-schedule"><i class="bi bi-calendar-event"></i> Schedule</button>
           <button class="btn btn-outline-primary btn-sm" id="ld-add-note"><i class="bi bi-journal-plus"></i> Add Note</button>
         </div> -->
-      </div>
-      <div class="modal-footer">
-        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Close</button>
-      </div>
-    </div>
-  </div>
-</div>
-
-<!-- Edit Lead Modal -->
-<div class="modal fade" id="editLeadModal" tabindex="-1" aria-hidden="true">
-  <div class="modal-dialog modal-lg">
-    <div class="modal-content">
-      <div class="modal-header">
-        <h5 class="modal-title"><i class="bi bi-pencil-square"></i> Edit Lead</h5>
-        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-      </div>
-      <form id="editLeadForm" method="post">
-        {% csrf_token %}
-        <div class="modal-body">
-          <div class="row g-3">
-            <div class="col-md-6">
-              <label class="form-label">Name<span class="text-danger">*</span></label>
-              <input type="text" name="name" id="edit_name" class="form-control" required>
-            </div>
-            <div class="col-md-3">
-              <label class="form-label">Email</label>
-              <input type="email" name="email" id="edit_email" class="form-control">
-            </div>
-            <div class="col-md-3">
-              <label class="form-label">Phone</label>
-              <input type="tel" name="phone" id="edit_phone" class="form-control">
-            </div>
-
-            <div class="col-md-4">
-              <label class="form-label">Company</label>
-              <input type="text" name="company" id="edit_company" class="form-control">
-            </div>
-            <div class="col-md-4">
-              <label class="form-label">Source<span class="text-danger">*</span></label>
-              <select name="source" id="edit_source" class="form-select" required>
-                <option value="">Select source</option>
-                <option value="Website">Website</option>
-                <option value="Referral">Referral</option>
-                <option value="Cold Call">Cold Call</option>
-                <option value="Social">Social</option>
-                <option value="Event">Event</option>
-                <option value="Other">Other</option>
-              </select>
-            </div>
-            <div class="col-md-4">
-              <label class="form-label">Priority</label>
-              <select name="priority" id="edit_priority" class="form-select">
-                <option value="Low">Low</option>
-                <option value="Med">Medium</option>
-                <option value="High">High</option>
-              </select>
-            </div>
-
-            <div class="col-md-8">
-              <label class="form-label">Use-case<span class="text-danger">*</span></label>
-              <textarea name="use_case" id="edit_use_case" class="form-control" rows="2" required></textarea>
-            </div>
-            <div class="col-md-4">
-              <label class="form-label">Owner<span class="text-danger">*</span></label>
-              <input type="text" name="owner" id="edit_owner" class="form-control" required>
-            </div>
-
-            <div class="col-md-4">
-              <label class="form-label">Next Action</label>
-              <select name="next_action" id="edit_next_action" class="form-select">
-                <option value="">None</option>
-                <option value="Call">Call</option>
-                <option value="Email">Email</option>
-                <option value="Demo">Demo</option>
-                <option value="Meeting">Meeting</option>
-              </select>
-            </div>
-            <div class="col-md-4">
-              <label class="form-label">Due Date</label>
-              <input type="date" name="due_date" id="edit_due_date" class="form-control">
-            </div>
-            <div class="col-md-4">
-              <label class="form-label">Due Time</label>
-              <input type="time" name="due_time" id="edit_due_time" class="form-control">
-            </div>
-          </div>
-
-          <!-- Optional fields toggle -->
-          <div class="mt-4">
-            <button class="btn btn-outline-secondary" type="button" data-bs-toggle="collapse" data-bs-target="#editOptionalFields" aria-expanded="false" aria-controls="editOptionalFields">
-              <i class="bi bi-sliders"></i> Optional fields
-            </button>
-          </div>
-
-          <div class="collapse mt-3" id="editOptionalFields">
-            <div class="row g-3">
-              <div class="col-md-6">
-                <label class="form-label">Website</label>
-                <input type="url" name="website" id="edit_website" class="form-control" placeholder="https://...">
-              </div>
-              <div class="col-md-6">
-                <label class="form-label">Industry</label>
-                <input type="text" name="industry" id="edit_industry" class="form-control" placeholder="e.g. BFSI, Retail">
-              </div>
-              <div class="col-md-4">
-                <label class="form-label">City</label>
-                <input type="text" name="city" id="edit_city" class="form-control">
-              </div>
-              <div class="col-md-4">
-                <label class="form-label">Country</label>
-                <input type="text" name="country" id="edit_country" class="form-control">
-              </div>
-              <div class="col-md-4">
-                <label class="form-label">Budget</label>
-                <input type="text" name="budget" id="edit_budget" class="form-control" placeholder="e.g. 1–2 Lakh">
-              </div>
-              <div class="col-md-6">
-                <label class="form-label">Decision Timeline</label>
-                <input type="text" name="timeline" id="edit_timeline" class="form-control" placeholder="e.g. 2 months">
-              </div>
-              <div class="col-md-6">
-                <label class="form-label">Tags</label>
-                <input type="text" name="tags" id="edit_tags" class="form-control" placeholder="Comma separated e.g. BFSI, Enterprise">
-              </div>
-              <div class="col-12">
-                <label class="form-label">Notes</label>
-                <textarea name="notes" id="edit_notes" class="form-control" rows="3"></textarea>
-              </div>
-            </div>
-          </div>
         </div>
         <div class="modal-footer">
-          <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
-          <button type="submit" class="btn btn-primary">Update Lead</button>
+        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Close</button>
         </div>
-      </form>
     </div>
   </div>
 </div>
+
 
 <!-- Filter Modal -->
 <div class="modal fade" id="filterModal" tabindex="-1" aria-labelledby="filterModalLabel" aria-hidden="true">
@@ -698,6 +869,191 @@
       });
     }
 
+
+    // Status Modal - Load current status when modal opens
+    const statusLeadModal = document.getElementById('statusLeadModal');
+    if (statusLeadModal) {
+      statusLeadModal.addEventListener('show.bs.modal', function(event) {
+        const button = event.relatedTarget;
+        let leadId = null;
+        let leadName = null;
+        
+        if (button) {
+          leadId = button.getAttribute('data-lead-id');
+          leadName = button.getAttribute('data-lead-name');
+        }
+        
+        // If not found from button, try to find from clicked element
+        if (!leadId && event.target) {
+          const clickedBtn = event.target.closest('.btn-status');
+          if (clickedBtn) {
+            leadId = clickedBtn.getAttribute('data-lead-id');
+            leadName = clickedBtn.getAttribute('data-lead-name');
+          }
+        }
+        
+        if (leadId) {
+          document.getElementById('status_lead_id').value = leadId;
+          document.getElementById('status_lead_name').value = leadName || 'Loading...';
+          
+          // Fetch current status and lead name from API
+          fetch(`/leads/${leadId}/get-data/`)
+          .then(response => response.json())
+          .then(data => {
+              // Update lead name from API if available
+              if (data.name) {
+                document.getElementById('status_lead_name').value = data.name;
+              } else if (leadName) {
+                document.getElementById('status_lead_name').value = leadName;
+              }
+              
+              // Update status dropdown
+              if (data.status || data.conversion_status) {
+                document.getElementById('status_select').value = data.status || data.conversion_status;
+              }
+            })
+            .catch(error => {
+              console.error('Error fetching lead status:', error);
+              // Keep the lead name from button attribute if API fails
+              if (leadName) {
+                document.getElementById('status_lead_name').value = leadName;
+              }
+            });
+        }
+      });
+      
+      // Handle form submission
+      const statusForm = document.getElementById('statusLeadForm');
+      if (statusForm) {
+        statusForm.addEventListener('submit', function(e) {
+          e.preventDefault();
+          
+          const formData = new FormData(statusForm);
+          const submitBtn = statusForm.querySelector('button[type="submit"]');
+          const originalText = submitBtn.textContent;
+          
+          submitBtn.disabled = true;
+          submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Updating...';
+          
+          fetch('{% url "update_lead_status" %}', {
+            method: 'POST',
+            body: formData,
+            headers: {
+              'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+            }
+          })
+          .then(response => response.json())
+          .then(data => {
+            if (data.success) {
+              const modal = bootstrap.Modal.getInstance(statusLeadModal);
+              modal.hide();
+              
+              const alert = document.createElement('div');
+              alert.className = 'alert alert-success alert-dismissible fade show';
+              alert.innerHTML = `
+                <strong>Success!</strong> ${data.message}
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+              `;
+              document.querySelector('.dashboard-header').after(alert);
+              
+              setTimeout(() => {
+                window.location.reload();
+              }, 1000);
+            } else {
+              alert('Error: ' + data.error);
+              submitBtn.disabled = false;
+              submitBtn.textContent = originalText;
+            }
+          })
+          .catch(error => {
+            console.error('Error:', error);
+            alert('An error occurred while updating status.');
+            submitBtn.disabled = false;
+            submitBtn.textContent = originalText;
+          });
+        });
+      }
+    }
+    
+    // Notes Modal - Load current notes when modal opens
+    const notesLeadModal = document.getElementById('notesLeadModal');
+    if (notesLeadModal) {
+      notesLeadModal.addEventListener('show.bs.modal', function(event) {
+        const button = event.relatedTarget;
+        const leadId = button.getAttribute('data-lead-id');
+        const leadName = button.getAttribute('data-lead-name');
+        
+        document.getElementById('notes_lead_id').value = leadId;
+        document.getElementById('notes_lead_name').value = leadName || 'Lead';
+        
+        // Fetch current notes
+        fetch(`/leads/${leadId}/get-data/`)
+          .then(response => response.json())
+          .then(data => {
+            if (data.notes) {
+              document.getElementById('notes_textarea').value = data.notes;
+            } else {
+              document.getElementById('notes_textarea').value = '';
+            }
+          })
+          .catch(error => {
+            console.error('Error fetching lead notes:', error);
+          });
+      });
+      
+      // Handle form submission
+      const notesForm = document.getElementById('notesLeadForm');
+      if (notesForm) {
+        notesForm.addEventListener('submit', function(e) {
+          e.preventDefault();
+          
+          const formData = new FormData(notesForm);
+          const submitBtn = notesForm.querySelector('button[type="submit"]');
+          const originalText = submitBtn.textContent;
+          
+          submitBtn.disabled = true;
+          submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Saving...';
+          
+          fetch('{% url "update_lead_notes" %}', {
+            method: 'POST',
+            body: formData,
+            headers: {
+              'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+            }
+          })
+          .then(response => response.json())
+          .then(data => {
+            if (data.success) {
+              const modal = bootstrap.Modal.getInstance(notesLeadModal);
+              modal.hide();
+              
+              const alert = document.createElement('div');
+              alert.className = 'alert alert-success alert-dismissible fade show';
+              alert.innerHTML = `
+                <strong>Success!</strong> ${data.message}
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+              `;
+              document.querySelector('.dashboard-header').after(alert);
+              
+              setTimeout(() => {
+                window.location.reload();
+              }, 1000);
+            } else {
+              alert('Error: ' + data.error);
+              submitBtn.disabled = false;
+              submitBtn.textContent = originalText;
+            }
+          })
+          .catch(error => {
+            console.error('Error:', error);
+            alert('An error occurred while saving notes.');
+            submitBtn.disabled = false;
+            submitBtn.textContent = originalText;
+          });
+        });
+      }
+    }
+
     // View Lead Modal - Fetch complete data when button clicked
     const viewButtons = document.querySelectorAll('.btn-view');
     viewButtons.forEach(button => {
@@ -735,7 +1091,7 @@
               <div class="col-md-6"><strong>Priority:</strong> <span class="badge ${data.priority === 'High' ? 'bg-danger' : data.priority === 'Low' ? 'bg-success' : 'bg-warning text-dark'}">${data.priority || '-'}</span></div>
               <div class="col-md-6"><strong>Owner:</strong> ${data.owner || '-'}</div>
               <div class="col-md-6"><strong>Use Case:</strong> ${data.use_case || '-'}</div>
-              <div class="col-md-6"><strong>Next Action:</strong> ${data.next_action || '-'}</div>
+              <div class="col-md-6"><strong>Notes:</strong> ${data.notes || '-'}</div>
               <div class="col-md-6"><strong>Due Date:</strong> ${data.due_date || '-'}</div>
               <div class="col-md-6"><strong>Due Time:</strong> ${data.due_time || '-'}</div>
               <div class="col-md-6"><strong>Website:</strong> ${data.website ? `<a href="${data.website}" target="_blank" class="text-primary">${data.website}</a>` : '-'}</div>
@@ -785,174 +1141,6 @@
       });
     }
 
-    // Edit Lead Modal - Populate form when button clicked
-    const editButtons = document.querySelectorAll('.btn-edit');
-    editButtons.forEach(button => {
-      button.addEventListener('click', function() {
-        const leadId = this.getAttribute('data-lead-id');
-        const row = this.closest('tr');
-        
-        // Get data from table row
-        const leadData = {
-          name: row.querySelector('[data-label="Name"]').textContent.trim(),
-          email: row.querySelector('[data-label="Email"]').textContent.trim(),
-          phone: row.querySelector('[data-label="Phone"]').textContent.trim(),
-          company: row.querySelector('[data-label="Company"]').textContent.trim(),
-          owner: row.querySelector('[data-label="Owner"]').textContent.trim(),
-          priority: row.querySelector('[data-label="Priority"]').textContent.trim(),
-          nextAction: row.querySelector('[data-label="Next Action"]').textContent.trim(),
-          due: row.querySelector('[data-label="Due"]').textContent.trim()
-        };
-
-        // Fetch complete lead data from server
-        fetch(`/leads/${leadId}/get-data/`)
-          .then(response => {
-            if (response.ok) {
-              return response.json();
-            } else {
-              throw new Error('Server response not ok');
-            }
-          })
-          .then(data => {
-            // Populate all form fields with complete data
-            document.getElementById('edit_name').value = data.name || '';
-            document.getElementById('edit_email').value = data.email || '';
-            document.getElementById('edit_phone').value = data.phone || '';
-            document.getElementById('edit_company').value = data.company || '';
-            document.getElementById('edit_owner').value = data.owner || '';
-            document.getElementById('edit_source').value = data.source || '';
-            document.getElementById('edit_priority').value = data.priority || 'Med';
-            document.getElementById('edit_next_action').value = data.next_action || '';
-            document.getElementById('edit_use_case').value = data.use_case || '';
-            
-            // Set due date and time
-            if (data.due_date) {
-              document.getElementById('edit_due_date').value = data.due_date;
-            }
-            if (data.due_time) {
-              document.getElementById('edit_due_time').value = data.due_time;
-            }
-            
-            // Populate optional fields
-            document.getElementById('edit_website').value = data.website || '';
-            document.getElementById('edit_industry').value = data.industry || '';
-            document.getElementById('edit_city').value = data.city || '';
-            document.getElementById('edit_country').value = data.country || '';
-            document.getElementById('edit_budget').value = data.budget || '';
-            document.getElementById('edit_timeline').value = data.timeline || '';
-            document.getElementById('edit_tags').value = data.tags || '';
-            document.getElementById('edit_notes').value = data.notes || '';
-            
-            // Show optional fields section
-            const optionalFields = document.getElementById('editOptionalFields');
-            if (optionalFields) {
-              optionalFields.style.display = 'block';
-            }
-          })
-          .catch(error => {
-            console.error('Error fetching lead data:', error);
-            // Fallback to table data if server request fails
-            document.getElementById('edit_name').value = leadData.name;
-            document.getElementById('edit_email').value = leadData.email === '-' ? '' : leadData.email;
-            document.getElementById('edit_phone').value = leadData.phone === '-' ? '' : leadData.phone;
-            document.getElementById('edit_company').value = leadData.company === '-' ? '' : leadData.company;
-            document.getElementById('edit_owner').value = leadData.owner;
-            
-            // Fix priority selection
-            const priorityText = leadData.priority.trim();
-            if (priorityText.includes('High')) {
-              document.getElementById('edit_priority').value = 'High';
-            } else if (priorityText.includes('Low')) {
-              document.getElementById('edit_priority').value = 'Low';
-            } else {
-              document.getElementById('edit_priority').value = 'Med';
-            }
-            
-            document.getElementById('edit_next_action').value = leadData.nextAction === '-' ? '' : leadData.nextAction;
-            
-            // Parse due date and time
-            if (leadData.due && leadData.due !== '-') {
-              const dueParts = leadData.due.split(' ');
-              if (dueParts.length === 2) {
-                const datePart = dueParts[0];
-                const timePart = dueParts[1];
-                
-                const dateObj = new Date(datePart);
-                if (!isNaN(dateObj.getTime())) {
-                  const year = dateObj.getFullYear();
-                  const month = String(dateObj.getMonth() + 1).padStart(2, '0');
-                  const day = String(dateObj.getDate()).padStart(2, '0');
-                  document.getElementById('edit_due_date').value = `${year}-${month}-${day}`;
-                }
-                
-                document.getElementById('edit_due_time').value = timePart;
-              }
-            } else {
-              document.getElementById('edit_due_date').value = '';
-              document.getElementById('edit_due_time').value = '';
-            }
-          });
-        
-        // Set form action to edit URL
-        document.getElementById('editLeadForm').action = `/leads/${leadId}/edit/`;
-      });
-    });
-
-    // Edit Lead Form Submission
-    const editForm = document.getElementById('editLeadForm');
-    if (editForm) {
-      editForm.addEventListener('submit', function(e) {
-        e.preventDefault();
-        
-        // Get form data
-        const formData = new FormData(this);
-        
-        // Send AJAX request
-        fetch(this.action, {
-          method: 'POST',
-          body: formData,
-          headers: {
-            'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
-          }
-        })
-        .then(response => {
-          if (response.ok) {
-            // Close modal and reload page
-            const modal = bootstrap.Modal.getInstance(document.getElementById('editLeadModal'));
-            modal.hide();
-            location.reload();
-          } else {
-            alert('Error updating lead. Please try again.');
-          }
-        })
-        .catch(error => {
-          console.error('Error:', error);
-          alert('Error updating lead. Please try again.');
-        });
-      });
-    }
-
-    // Fix edit modal backdrop issues
-    const editModal = document.getElementById('editLeadModal');
-    if (editModal) {
-      // Clean up modal when hidden
-      editModal.addEventListener('hidden.bs.modal', function () {
-        // Remove any backdrop
-        document.querySelectorAll('.modal-backdrop').forEach(backdrop => backdrop.remove());
-        // Remove modal-open class from body
-        document.body.classList.remove('modal-open');
-        // Reset body padding
-        document.body.style.paddingRight = '';
-        // Reset body overflow
-        document.body.style.overflow = '';
-      });
-
-      // Clean up modal when shown
-      editModal.addEventListener('shown.bs.modal', function () {
-        // Ensure proper modal display
-        document.body.classList.add('modal-open');
-      });
-    }
 
     // Filtering logic for All Leads table
     const filterForm = document.getElementById('filterForm');
@@ -1030,7 +1218,7 @@
         company: tr.querySelector('[data-label="Company"]').textContent.trim(),
         owner: tr.querySelector('[data-label="Owner"]').textContent.trim(),
         priority: tr.querySelector('[data-label="Priority"]').innerText.trim(),
-        nextAction: tr.querySelector('[data-label="Next Action"]').textContent.trim(),
+        notes: tr.querySelector('[data-label="Notes"]').textContent.trim(),
         dueIso: tr.getAttribute('data-due'),
         dueText: tr.querySelector('[data-label="Due"]').textContent.trim(),
       };
@@ -1039,7 +1227,6 @@
     if (table) {
       table.addEventListener('click', function (e) {
         const btnView = e.target.closest('.btn-view');
-        const btnEdit = e.target.closest('.btn-edit');
         const tr = e.target.closest('tr');
         if (!tr) return;
         const data = getRowData(tr);
@@ -1055,15 +1242,13 @@
               <div class="col-md-6"><strong>Owner:</strong> ${data.owner}</div>
               <div class="col-md-3"><strong>Priority:</strong> ${data.priority}</div>
               <div class="col-md-3"><strong>Stage:</strong> Proposal</div>
-              <div class="col-md-6"><strong>Next Action:</strong> ${data.nextAction}</div>
+              <div class="col-md-6"><strong>Notes:</strong> ${data.notes}</div>
               <div class="col-md-6"><strong>Due:</strong> ${data.dueText}</div>
             `;
             const modal = new bootstrap.Modal(document.getElementById('viewLeadModal'));
             modal.show();
           }
         }
-
-        if (btnEdit && createTabBtn && leadForm) {
           // Switch to Create tab
           const tab = new bootstrap.Tab(createTabBtn);
           tab.show();
@@ -1098,8 +1283,173 @@
         }
       });
     }
+    
+    // Company name popup for long names - using event delegation
+    function setupCompanyEmailPopups() {
+      // Remove existing listeners to avoid duplicates
+      const companyElements = document.querySelectorAll('.company-display');
+      companyElements.forEach(function(el) {
+        el.removeEventListener('click', handleCompanyClick);
+        el.addEventListener('click', handleCompanyClick);
+      });
+      
+      const emailElements = document.querySelectorAll('.email-display');
+      emailElements.forEach(function(el) {
+        el.removeEventListener('click', handleEmailClick);
+        el.addEventListener('click', handleEmailClick);
+      });
+    }
+    
+    function handleCompanyClick(e) {
+      e.preventDefault();
+      e.stopPropagation();
+      const fullCompany = this.getAttribute('data-full-company');
+      console.log('Company clicked, full company:', fullCompany);
+      if (fullCompany && fullCompany.trim() !== '') {
+        const modalBody = document.getElementById('companyModalBody');
+        if (modalBody) {
+          // Set the complete company name directly - ensure it's visible
+          modalBody.innerHTML = '';
+          modalBody.textContent = fullCompany;
+          
+          const modalElement = document.getElementById('companyModal');
+          if (modalElement) {
+            // Hide any existing modal first
+            const existingModal = bootstrap.Modal.getInstance(modalElement);
+            if (existingModal) {
+              existingModal.hide();
+            }
+            
+            // Small delay to ensure modal is ready
+            setTimeout(function() {
+              // Create and show new modal
+              const modal = new bootstrap.Modal(modalElement);
+              modal.show();
+              
+              // Double-check content is set after modal is shown
+              modalElement.addEventListener('shown.bs.modal', function() {
+                if (modalBody.textContent !== fullCompany) {
+                  modalBody.textContent = fullCompany;
+                }
+                console.log('Company modal shown with:', modalBody.textContent);
+              }, { once: true });
+            }, 100);
+          } else {
+            console.error('companyModal element not found');
+          }
+        } else {
+          console.error('companyModalBody not found');
+        }
+      } else {
+        console.error('No full company attribute found or empty');
+        alert('Company name not available');
+      }
+    }
+    
+    function handleEmailClick(e) {
+      e.preventDefault();
+      e.stopPropagation();
+      const fullEmail = this.getAttribute('data-full-email');
+      console.log('Email clicked, full email:', fullEmail);
+      if (fullEmail && fullEmail.trim() !== '') {
+        const modalBody = document.getElementById('emailModalBody');
+        if (modalBody) {
+          // Clear and set the complete email content
+          modalBody.innerHTML = `
+            <p class="mb-2"><strong>Complete Email Address:</strong></p>
+            <p class="mb-3 fs-5">
+              <code style="word-break: break-all; white-space: pre-wrap; display: block; padding: 10px; background: #f8f9fa; border-radius: 4px; color: #000;">${fullEmail}</code>
+            </p>
+            <a href="mailto:${fullEmail}" class="btn btn-sm btn-primary">
+              <i class="bi bi-envelope"></i> Send Email
+            </a>
+          `;
+          
+          const modalElement = document.getElementById('emailModal');
+          if (modalElement) {
+            // Hide any existing modal first
+            const existingModal = bootstrap.Modal.getInstance(modalElement);
+            if (existingModal) {
+              existingModal.hide();
+            }
+            
+            // Small delay to ensure modal is ready
+            setTimeout(function() {
+              // Create and show new modal
+              const modal = new bootstrap.Modal(modalElement);
+              modal.show();
+              
+              // Double-check content is set after modal is shown
+              modalElement.addEventListener('shown.bs.modal', function() {
+                const emailCode = modalBody.querySelector('code');
+                if (emailCode && emailCode.textContent !== fullEmail) {
+                  emailCode.textContent = fullEmail;
+                }
+                console.log('Email modal shown with:', emailCode ? emailCode.textContent : 'not found');
+              }, { once: true });
+            }, 100);
+          } else {
+            console.error('emailModal element not found');
+          }
+        } else {
+          console.error('emailModalBody not found');
+        }
+      } else {
+        console.error('No full email attribute found or empty');
+        alert('Email not available');
+      }
+    }
+    
+    // Setup popups when DOM is ready
+    setupCompanyEmailPopups();
+    
+    // Re-setup if table is updated
+    const tableObserver = new MutationObserver(function() {
+      setupCompanyEmailPopups();
+    });
+    const tableElement = document.querySelector('.leads-table');
+    if (tableElement) {
+      tableObserver.observe(tableElement, { childList: true, subtree: true });
+    }
   });
 </script>
+
+<!-- Company Name Modal -->
+<div class="modal fade" id="companyModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title"><i class="bi bi-building"></i> Company Name</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <p class="mb-2"><strong>Complete Company Name:</strong></p>
+        <p id="companyModalBody" class="mb-0 fs-5" style="word-break: break-word; white-space: pre-wrap; padding: 10px; background: #f8f9fa; border-radius: 4px; min-height: 40px; color: #000;"></p>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Email Modal -->
+<div class="modal fade" id="emailModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title"><i class="bi bi-envelope"></i> Email Address</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <div id="emailModalBody" style="min-height: 50px;"></div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+      </div>
+    </div>
+  </div>
+</div>
 {% endblock %}
 
 

@@ -120,6 +120,10 @@ urlpatterns =[
   path('employee/messages/get/',views.employee_get_messages,name='employee_get_messages'),
   
   path('leads/<int:lead_id>/assign_engineer/', views.assign_engineer, name='assign_engineer'),
+  path('leads/assign-to-employee/', views.assign_lead_to_employee, name='assign_lead_to_employee'),
+  path('leads/bulk-assign/', views.bulk_assign_leads, name='bulk_assign_leads'),
+  path('leads/update-status/', views.update_lead_status, name='update_lead_status'),
+  path('leads/update-notes/', views.update_lead_notes, name='update_lead_notes'),
 
   
 

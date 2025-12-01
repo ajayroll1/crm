@@ -147,16 +147,26 @@
     }
 
     function takeSnapshot(){
-      const canvas = document.createElement('canvas');
-      canvas.width = video.videoWidth || 640;
-      canvas.height = video.videoHeight || 480;
-      const ctx = canvas.getContext('2d');
-      ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-      photo.src = canvas.toDataURL('image/jpeg', 0.85);
-      photo.classList.remove('d-none');
-      video.classList.add('d-none');
-      btnRetake.classList.remove('d-none');
-      return photo.src;
+      // Photo is optional - return empty string if camera not available
+      try {
+        if (!video || !video.videoWidth || !video.videoHeight) {
+          return ''; // Return empty if video not ready
+        }
+        const canvas = document.createElement('canvas');
+        canvas.width = video.videoWidth || 640;
+        canvas.height = video.videoHeight || 480;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+        const dataUrl = canvas.toDataURL('image/jpeg', 0.85);
+        photo.src = dataUrl;
+        photo.classList.remove('d-none');
+        video.classList.add('d-none');
+        btnRetake.classList.remove('d-none');
+        return dataUrl;
+      } catch (e) {
+        console.warn('Photo capture failed:', e);
+        return ''; // Return empty string on error
+      }
     }
 
     btnRetake.addEventListener('click', () => { btnRetake.classList.add('d-none'); startCamera(); });
@@ -329,7 +339,14 @@
       const empId = parseInt(empSelect.value || '0', 10);
       if (!empId) { alert('Please select an employee'); return; }
       const employee = employees.find(e => e.id === empId);
-      const snapshot = takeSnapshot();
+      // Photo is optional - try to capture, but allow without photo
+      let snapshot = '';
+      try {
+        snapshot = takeSnapshot() || '';
+      } catch (e) {
+        console.warn('Photo capture failed, continuing without photo:', e);
+        snapshot = '';
+      }
       const lat = latEl.value, lng = lngEl.value;
       const nowIso = new Date().toISOString();
       const log = { id: Date.now(), empId, name: employee.name, action, time: nowIso, photo: snapshot, lat, lng };

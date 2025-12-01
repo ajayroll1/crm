@@ -18,6 +18,16 @@ from .models import (
     TrademarkFilingInstant,
     CompanyAddressChange,
     MOAAlteration,
+    ProfessionalTaxRegistration,
+    IECRegistration,
+    ICEGateRegistration,
+    TradeLicenseRegistration,
+    DSCRegistration,
+    CompanyNameChange,
+    DirectorChange,
+    CompanyClosure,
+    RCMCRegistration,
+    ShopEstablishmentRegistration,
 )
 
 class LeadForm(forms.ModelForm):
@@ -781,6 +791,395 @@ class MOAAlterationForm(forms.ModelForm):
         widgets = {
             'proposed_object_name': forms.Textarea(attrs={'class': 'form-control', 'rows': 3, 'placeholder': 'Draft text / options'}),
             'effective_date': forms.DateInput(attrs={'class': 'form-control', 'type': 'date'}),
+        }
+
+
+class ProfessionalTaxRegistrationForm(forms.ModelForm):
+    """Form for Professional Tax Registration intake."""
+    
+    lead_source = forms.CharField(
+        initial='website',
+        widget=forms.HiddenInput(),
+        required=False
+    )
+
+    business_type = forms.ChoiceField(
+        choices=ProfessionalTaxRegistration.BUSINESS_TYPE_CHOICES,
+        widget=forms.Select(attrs={'class': 'form-select'}),
+    )
+
+    class Meta:
+        model = ProfessionalTaxRegistration
+        fields = [
+            'lead_source',
+            'business_name',
+            'business_type',
+            'pan_number',
+            'gst_number',
+            'business_address',
+            'bank_account_details',
+            'number_of_employees',
+            'business_start_date',
+            'monthly_salary_details',
+        ]
+        widgets = {
+            'business_name': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Business name'}),
+            'pan_number': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'ABCDE1234F', 'maxlength': 10}),
+            'gst_number': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'GSTIN'}),
+            'business_address': forms.Textarea(attrs={'class': 'form-control', 'rows': 3, 'placeholder': 'Complete business address'}),
+            'bank_account_details': forms.Textarea(attrs={'class': 'form-control', 'rows': 2, 'placeholder': 'Bank account details'}),
+            'number_of_employees': forms.NumberInput(attrs={'class': 'form-control', 'placeholder': 'Number of employees'}),
+            'business_start_date': forms.DateInput(attrs={'class': 'form-control', 'type': 'date'}),
+            'monthly_salary_details': forms.Textarea(attrs={'class': 'form-control', 'rows': 3, 'placeholder': 'Monthly salary details'}),
+        }
+
+
+class IECRegistrationForm(forms.ModelForm):
+    """Form for IEC Registration intake."""
+    
+    lead_source = forms.CharField(
+        initial='website',
+        widget=forms.HiddenInput(),
+        required=False
+    )
+
+    business_type = forms.ChoiceField(
+        choices=IECRegistration.BUSINESS_TYPE_CHOICES,
+        widget=forms.Select(attrs={'class': 'form-select'}),
+    )
+
+    class Meta:
+        model = IECRegistration
+        fields = [
+            'lead_source',
+            'firm_name',
+            'pan_number',
+            'business_type',
+            'incorporation_date',
+            'bank_account_details',
+            'directors_partners_details',
+            'branch_offices',
+        ]
+        widgets = {
+            'firm_name': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Firm/Company name'}),
+            'pan_number': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'ABCDE1234F', 'maxlength': 10}),
+            'incorporation_date': forms.DateInput(attrs={'class': 'form-control', 'type': 'date'}),
+            'bank_account_details': forms.Textarea(attrs={'class': 'form-control', 'rows': 2, 'placeholder': 'Bank account details'}),
+            'directors_partners_details': forms.Textarea(attrs={'class': 'form-control', 'rows': 3, 'placeholder': 'Directors/Partners details'}),
+            'branch_offices': forms.Textarea(attrs={'class': 'form-control', 'rows': 2, 'placeholder': 'Branch offices details'}),
+        }
+
+
+class ICEGateRegistrationForm(forms.ModelForm):
+    """Form for ICE Gate Registration intake."""
+    
+    lead_source = forms.CharField(
+        initial='website',
+        widget=forms.HiddenInput(),
+        required=False
+    )
+
+    user_role = forms.ChoiceField(
+        choices=ICEGateRegistration.USER_ROLE_CHOICES,
+        widget=forms.Select(attrs={'class': 'form-select'}),
+    )
+
+    class Meta:
+        model = ICEGateRegistration
+        fields = [
+            'lead_source',
+            'company_name',
+            'pan_number',
+            'iec_number',
+            'user_role',
+            'authorized_person_name',
+            'authorized_person_details',
+        ]
+        widgets = {
+            'company_name': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Company name'}),
+            'pan_number': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'ABCDE1234F', 'maxlength': 10}),
+            'iec_number': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'IEC number'}),
+            'authorized_person_name': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Authorized person name'}),
+            'authorized_person_details': forms.Textarea(attrs={'class': 'form-control', 'rows': 3, 'placeholder': 'Authorized person details'}),
+        }
+
+
+class TradeLicenseRegistrationForm(forms.ModelForm):
+    """Form for Trade License Registration intake."""
+    
+    lead_source = forms.CharField(
+        initial='website',
+        widget=forms.HiddenInput(),
+        required=False
+    )
+
+    business_type = forms.ChoiceField(
+        choices=TradeLicenseRegistration.BUSINESS_TYPE_CHOICES,
+        widget=forms.Select(attrs={'class': 'form-select'}),
+    )
+
+    class Meta:
+        model = TradeLicenseRegistration
+        fields = [
+            'lead_source',
+            'business_name',
+            'business_type',
+            'business_address',
+            'pan_number',
+            'gst_number',
+            'number_of_employees',
+            'business_start_date',
+            'municipal_area',
+            'required_permissions',
+        ]
+        widgets = {
+            'business_name': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Business name'}),
+            'business_address': forms.Textarea(attrs={'class': 'form-control', 'rows': 3, 'placeholder': 'Complete business address'}),
+            'pan_number': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'ABCDE1234F', 'maxlength': 10}),
+            'gst_number': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'GSTIN'}),
+            'number_of_employees': forms.NumberInput(attrs={'class': 'form-control', 'placeholder': 'Number of employees'}),
+            'business_start_date': forms.DateInput(attrs={'class': 'form-control', 'type': 'date'}),
+            'municipal_area': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Municipal area'}),
+            'required_permissions': forms.Textarea(attrs={'class': 'form-control', 'rows': 2, 'placeholder': 'Required permissions'}),
+        }
+
+
+class DSCRegistrationForm(forms.ModelForm):
+    """Form for DSC Registration intake."""
+    
+    lead_source = forms.CharField(
+        initial='website',
+        widget=forms.HiddenInput(),
+        required=False
+    )
+
+    dsc_type = forms.ChoiceField(
+        choices=DSCRegistration.DSC_TYPE_CHOICES,
+        widget=forms.Select(attrs={'class': 'form-select'}),
+    )
+    organisation_type = forms.ChoiceField(
+        choices=DSCRegistration.ORGANISATION_TYPE_CHOICES,
+        widget=forms.Select(attrs={'class': 'form-select'}),
+        required=False
+    )
+
+    class Meta:
+        model = DSCRegistration
+        fields = [
+            'lead_source',
+            'pan_number',
+            'aadhaar_number',
+            'organisation_name',
+            'organisation_type',
+            'organisation_address',
+            'dsc_type',
+        ]
+        widgets = {
+            'pan_number': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'ABCDE1234F', 'maxlength': 10}),
+            'aadhaar_number': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Aadhaar number', 'maxlength': 12}),
+            'organisation_name': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Organisation name'}),
+            'organisation_address': forms.Textarea(attrs={'class': 'form-control', 'rows': 3, 'placeholder': 'Organisation address'}),
+        }
+
+
+class CompanyNameChangeForm(forms.ModelForm):
+    """Form for Company Name Change intake."""
+    
+    lead_source = forms.CharField(
+        initial='website',
+        widget=forms.HiddenInput(),
+        required=False
+    )
+
+    class Meta:
+        model = CompanyNameChange
+        fields = [
+            'lead_source',
+            'current_company_name',
+            'cin_number',
+            'proposed_new_name',
+            'reason_for_change',
+            'board_meeting_date',
+            'registered_office_address',
+            'directors_details',
+            'shareholders_details',
+        ]
+        widgets = {
+            'current_company_name': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Current company name'}),
+            'cin_number': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'CIN number'}),
+            'proposed_new_name': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Proposed new name'}),
+            'reason_for_change': forms.Textarea(attrs={'class': 'form-control', 'rows': 3, 'placeholder': 'Reason for name change'}),
+            'board_meeting_date': forms.DateInput(attrs={'class': 'form-control', 'type': 'date'}),
+            'registered_office_address': forms.Textarea(attrs={'class': 'form-control', 'rows': 2, 'placeholder': 'Registered office address'}),
+            'directors_details': forms.Textarea(attrs={'class': 'form-control', 'rows': 3, 'placeholder': 'Directors details'}),
+            'shareholders_details': forms.Textarea(attrs={'class': 'form-control', 'rows': 3, 'placeholder': 'Shareholders details'}),
+        }
+
+
+class DirectorChangeForm(forms.ModelForm):
+    """Form for Director Change intake."""
+    
+    lead_source = forms.CharField(
+        initial='website',
+        widget=forms.HiddenInput(),
+        required=False
+    )
+
+    change_type = forms.ChoiceField(
+        choices=DirectorChange.CHANGE_TYPE_CHOICES,
+        widget=forms.Select(attrs={'class': 'form-select'}),
+    )
+
+    class Meta:
+        model = DirectorChange
+        fields = [
+            'lead_source',
+            'company_name',
+            'cin_number',
+            'change_type',
+            'new_director_name',
+            'new_director_din',
+            'new_director_pan',
+            'new_director_aadhaar',
+            'new_director_address',
+            'new_director_email',
+            'new_director_mobile',
+            'appointment_date',
+            'existing_directors_details',
+        ]
+        widgets = {
+            'company_name': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Company name'}),
+            'cin_number': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'CIN number'}),
+            'new_director_name': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'New director name'}),
+            'new_director_din': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'DIN'}),
+            'new_director_pan': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'PAN', 'maxlength': 10}),
+            'new_director_aadhaar': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Aadhaar', 'maxlength': 12}),
+            'new_director_address': forms.Textarea(attrs={'class': 'form-control', 'rows': 2, 'placeholder': 'New director address'}),
+            'new_director_email': forms.EmailInput(attrs={'class': 'form-control', 'placeholder': 'Email'}),
+            'new_director_mobile': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Mobile number'}),
+            'appointment_date': forms.DateInput(attrs={'class': 'form-control', 'type': 'date'}),
+            'existing_directors_details': forms.Textarea(attrs={'class': 'form-control', 'rows': 3, 'placeholder': 'Existing directors details'}),
+        }
+
+
+class CompanyClosureForm(forms.ModelForm):
+    """Form for Company Closure intake."""
+    
+    lead_source = forms.CharField(
+        initial='website',
+        widget=forms.HiddenInput(),
+        required=False
+    )
+
+    closure_type = forms.ChoiceField(
+        choices=CompanyClosure.CLOSURE_TYPE_CHOICES,
+        widget=forms.Select(attrs={'class': 'form-select'}),
+    )
+
+    class Meta:
+        model = CompanyClosure
+        fields = [
+            'lead_source',
+            'company_name',
+            'cin_number',
+            'closure_type',
+            'reason_for_closure',
+            'registered_office_address',
+            'directors_details',
+            'shareholders_details',
+            'liabilities_details',
+            'assets_details',
+            'board_meeting_date',
+        ]
+        widgets = {
+            'company_name': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Company name'}),
+            'cin_number': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'CIN number'}),
+            'reason_for_closure': forms.Textarea(attrs={'class': 'form-control', 'rows': 3, 'placeholder': 'Reason for closure'}),
+            'registered_office_address': forms.Textarea(attrs={'class': 'form-control', 'rows': 2, 'placeholder': 'Registered office address'}),
+            'directors_details': forms.Textarea(attrs={'class': 'form-control', 'rows': 3, 'placeholder': 'Directors details'}),
+            'shareholders_details': forms.Textarea(attrs={'class': 'form-control', 'rows': 3, 'placeholder': 'Shareholders details'}),
+            'liabilities_details': forms.Textarea(attrs={'class': 'form-control', 'rows': 3, 'placeholder': 'Liabilities details'}),
+            'assets_details': forms.Textarea(attrs={'class': 'form-control', 'rows': 3, 'placeholder': 'Assets details'}),
+            'board_meeting_date': forms.DateInput(attrs={'class': 'form-control', 'type': 'date'}),
+        }
+
+
+class RCMCRegistrationForm(forms.ModelForm):
+    """Form for RCMC Registration intake."""
+    
+    lead_source = forms.CharField(
+        initial='website',
+        widget=forms.HiddenInput(),
+        required=False
+    )
+
+    class Meta:
+        model = RCMCRegistration
+        fields = [
+            'lead_source',
+            'firm_name',
+            'iec_number',
+            'pan_number',
+            'registered_office_address',
+            'export_products_details',
+            'export_performance_details',
+            'related_export_council_name',
+        ]
+        widgets = {
+            'firm_name': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Firm/Company name'}),
+            'iec_number': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'IEC number'}),
+            'pan_number': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'ABCDE1234F', 'maxlength': 10}),
+            'registered_office_address': forms.Textarea(attrs={'class': 'form-control', 'rows': 3, 'placeholder': 'Registered office address'}),
+            'export_products_details': forms.Textarea(attrs={'class': 'form-control', 'rows': 3, 'placeholder': 'Export products details'}),
+            'export_performance_details': forms.Textarea(attrs={'class': 'form-control', 'rows': 3, 'placeholder': 'Export performance details'}),
+            'related_export_council_name': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Related export council name'}),
+        }
+
+
+class ShopEstablishmentRegistrationForm(forms.ModelForm):
+    """Form for Shop Establishment Registration intake."""
+    
+    lead_source = forms.CharField(
+        initial='website',
+        widget=forms.HiddenInput(),
+        required=False
+    )
+
+    state = forms.ChoiceField(
+        choices=ShopEstablishmentRegistration.STATE_CHOICES,
+        widget=forms.Select(attrs={'class': 'form-select'}),
+    )
+    business_type = forms.ChoiceField(
+        choices=ShopEstablishmentRegistration.BUSINESS_TYPE_CHOICES,
+        widget=forms.Select(attrs={'class': 'form-select'}),
+    )
+
+    class Meta:
+        model = ShopEstablishmentRegistration
+        fields = [
+            'lead_source',
+            'shop_establishment_name',
+            'state',
+            'business_type',
+            'business_address',
+            'pan_number',
+            'gst_number',
+            'number_of_employees',
+            'business_start_date',
+            'working_hours',
+            'weekly_holiday',
+            'municipal_area',
+        ]
+        widgets = {
+            'shop_establishment_name': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Shop/Establishment name'}),
+            'business_address': forms.Textarea(attrs={'class': 'form-control', 'rows': 3, 'placeholder': 'Complete business address'}),
+            'pan_number': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'ABCDE1234F', 'maxlength': 10}),
+            'gst_number': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'GSTIN'}),
+            'number_of_employees': forms.NumberInput(attrs={'class': 'form-control', 'placeholder': 'Number of employees'}),
+            'business_start_date': forms.DateInput(attrs={'class': 'form-control', 'type': 'date'}),
+            'working_hours': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'e.g. 9 AM - 6 PM'}),
+            'weekly_holiday': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'e.g. Sunday'}),
+            'municipal_area': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Municipal area'}),
         }
 
 

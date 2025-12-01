@@ -38,14 +38,6 @@
             </div>
             <form class="auth-form-content" method="POST" action="{% url 'login' %}">
               {% csrf_token %}
-              {% if messages %}
-                {% for message in messages %}
-                  <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert" style="display: none;">
-                    {{ message }}
-                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-                  </div>
-                {% endfor %}
-              {% endif %}
               <div class="form-group">
                 <label for="loginEmail">Email Address</label>
                 <div class="input-group">
@@ -75,6 +67,14 @@
               <button type="submit" class="btn btn-primary btn-block">
                 <i class="bi bi-box-arrow-in-right me-2"></i>Sign In
               </button>
+              {% if messages %}
+                {% for message in messages %}
+                  <div class="alert alert-{{ message.tags }} alert-dismissible fade show custom-alert" role="alert">
+                    {{ message }}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                  </div>
+                {% endfor %}
+              {% endif %}
             </form>
             {% comment %}
             <div class="form-footer">
@@ -380,6 +380,53 @@
     box-shadow: 0 6px 20px rgba(39, 174, 96, 0.4);
   }
   
+  /* Custom Alert Styles - Matching Homepage Purple Gradient */
+  .custom-alert {
+    margin-top: 1rem;
+    border-radius: 10px;
+    border: none;
+    padding: 1rem 1.25rem;
+    font-weight: 500;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+    animation: slideInDown 0.3s ease-out;
+  }
+  
+  .custom-alert.alert-error,
+  .custom-alert.alert-danger {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+  }
+  
+  .custom-alert.alert-success {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+  }
+  
+  .custom-alert.alert-info {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+  }
+  
+  .custom-alert .btn-close {
+    filter: invert(1) grayscale(100%) brightness(200%);
+    opacity: 0.9;
+  }
+  
+  .custom-alert .btn-close:hover {
+    opacity: 1;
+  }
+  
+  @keyframes slideInDown {
+    from {
+      opacity: 0;
+      transform: translateY(-10px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+  
   .form-footer {
     text-align: center;
     margin-top: 1.5rem;
@@ -548,13 +595,13 @@
     // Login form - let it submit naturally to Django backend
     // No preventDefault needed - form will submit to {% url 'login' %}
     
-    // Auto-hide alert messages after 2 seconds
+    // Auto-hide alert messages after 5 seconds
     setTimeout(function() {
       const alerts = document.querySelectorAll('.alert');
       alerts.forEach(function(alert) {
         alert.style.display = 'none';
       });
-    }, 2000);
+    }, 5000);
   });
 </script>
 {% endblock %}

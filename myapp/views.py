@@ -105,6 +105,16 @@ from .models import (
     CompanyAddressChange,
     MOAAlteration,
     CompanyBankAccount,
+    ProfessionalTaxRegistration,
+    IECRegistration,
+    ICEGateRegistration,
+    TradeLicenseRegistration,
+    DSCRegistration,
+    CompanyNameChange,
+    DirectorChange,
+    CompanyClosure,
+    RCMCRegistration,
+    ShopEstablishmentRegistration,
 )
 from .forms import (
     LeadForm,
@@ -125,6 +135,16 @@ from .forms import (
     TrademarkFilingInstantForm,
     CompanyAddressChangeForm,
     MOAAlterationForm,
+    ProfessionalTaxRegistrationForm,
+    IECRegistrationForm,
+    ICEGateRegistrationForm,
+    TradeLicenseRegistrationForm,
+    DSCRegistrationForm,
+    CompanyNameChangeForm,
+    DirectorChangeForm,
+    CompanyClosureForm,
+    RCMCRegistrationForm,
+    ShopEstablishmentRegistrationForm,
 )
 from django.views.decorators.http import require_POST
 from django.views.decorators.csrf import csrf_exempt, ensure_csrf_cookie
@@ -313,7 +333,8 @@ def login_view(request):
     try:
       employee = Employee.objects.get(email__iexact=email)
     except Employee.DoesNotExist:
-      messages.error(request, 'Invalid email address. Please check your email and try again.')
+      # Email doesn't exist - show unified error message
+      messages.error(request, 'Wrong password or email.')
       return redirect('home')
     except Employee.MultipleObjectsReturned:
       # If multiple employees found (shouldn't happen), get the first one
@@ -329,7 +350,8 @@ def login_view(request):
       # Password is set - authenticate using password
       from django.contrib.auth.hashers import check_password
       if not check_password(password_input, employee.password):
-        messages.error(request, 'Invalid password. Please check your password and try again.')
+        # Password doesn't match - show unified error message
+        messages.error(request, 'Wrong password or email.')
         return redirect('home')
       # Password is correct, proceed with login
       login_password = password_input
@@ -345,11 +367,12 @@ def login_view(request):
       input_phone = ''.join(filter(str.isdigit, password_input))
       
       if not input_phone:
-        messages.error(request, 'Please enter a valid phone number.')
+        messages.error(request, 'Wrong password or email.')
         return redirect('home')
       
       if employee_phone != input_phone:
-        messages.error(request, 'Invalid phone number. Please check your phone number and try again.')
+        # Phone doesn't match - show unified error message
+        messages.error(request, 'Wrong password or email.')
         return redirect('home')
       
       # Phone matches, use phone as login password
@@ -495,10 +518,10 @@ def login_view(request):
             messages.success(request, f'Welcome back, {employee.get_full_name()}!')
             return redirect('employee_dashboard')
         else:
-          messages.error(request, 'Authentication failed. Please try again.')
+          messages.error(request, 'Wrong password or email.')
           return redirect('home')
       else:
-        messages.error(request, 'User account not found. Please contact administrator.')
+        messages.error(request, 'Wrong password or email.')
         return redirect('home')
   
   # If GET request, redirect to home
@@ -911,6 +934,116 @@ def backoffice_department(request):
         'proposed_object_name__icontains',
       ],
     },
+    {
+      'id': 'professional-tax',
+      'title': 'Professional Tax',
+      'icon': 'bi-cash-coin',
+      'model': ProfessionalTaxRegistration,
+      'search_fields': [
+        'business_name__icontains',
+        'business_type__icontains',
+        'pan_number__icontains',
+      ],
+    },
+    {
+      'id': 'iec',
+      'title': 'IEC (Import Export Certificate)',
+      'icon': 'bi-globe',
+      'model': IECRegistration,
+      'search_fields': [
+        'firm_name__icontains',
+        'pan_number__icontains',
+        'business_type__icontains',
+      ],
+    },
+    {
+      'id': 'icegate',
+      'title': 'ICE Gate',
+      'icon': 'bi-door-open',
+      'model': ICEGateRegistration,
+      'search_fields': [
+        'company_name__icontains',
+        'pan_number__icontains',
+        'iec_number__icontains',
+      ],
+    },
+    {
+      'id': 'trade-license',
+      'title': 'Trade License',
+      'icon': 'bi-file-earmark-check',
+      'model': TradeLicenseRegistration,
+      'search_fields': [
+        'business_name__icontains',
+        'business_type__icontains',
+        'municipal_area__icontains',
+      ],
+    },
+    {
+      'id': 'dsc',
+      'title': 'DSC (Digital Signature)',
+      'icon': 'bi-shield-lock',
+      'model': DSCRegistration,
+      'search_fields': [
+        'applicant_name__icontains',
+        'pan_number__icontains',
+        'dsc_type__icontains',
+      ],
+    },
+    {
+      'id': 'company-name-change',
+      'title': 'Company Name Change',
+      'icon': 'bi-pencil',
+      'model': CompanyNameChange,
+      'search_fields': [
+        'current_company_name__icontains',
+        'proposed_new_name__icontains',
+        'cin_number__icontains',
+      ],
+    },
+    {
+      'id': 'director-change',
+      'title': 'Director Change',
+      'icon': 'bi-people',
+      'model': DirectorChange,
+      'search_fields': [
+        'company_name__icontains',
+        'new_director_name__icontains',
+        'change_type__icontains',
+      ],
+    },
+    {
+      'id': 'company-closure',
+      'title': 'Company Closure',
+      'icon': 'bi-x-circle',
+      'model': CompanyClosure,
+      'search_fields': [
+        'company_name__icontains',
+        'cin_number__icontains',
+        'closure_type__icontains',
+      ],
+    },
+    {
+      'id': 'rcmc',
+      'title': 'RCMC',
+      'icon': 'bi-file-earmark-medical',
+      'model': RCMCRegistration,
+      'search_fields': [
+        'firm_name__icontains',
+        'iec_number__icontains',
+        'pan_number__icontains',
+      ],
+    },
+    {
+      'id': 'shop-establishment',
+      'title': 'Shop Establishment (Jharkhand & West Bengal)',
+      'icon': 'bi-shop',
+      'model': ShopEstablishmentRegistration,
+      'search_fields': [
+        'shop_establishment_name__icontains',
+        'state__icontains',
+        'business_type__icontains',
+      ],
+    },
   ]
 
   service_map = {service['id']: service for service in service_definitions}
@@ -1115,6 +1248,96 @@ def service_forms(request):
       'form_class': MOAAlterationForm,
       'form_name': 'moa_alteration',
       'model': MOAAlteration,
+    },
+    {
+      'id': 'professional-tax',
+      'title': 'Professional Tax',
+      'icon': 'bi-cash-coin',
+      'department': 'Back Office',
+      'form_class': ProfessionalTaxRegistrationForm,
+      'form_name': 'professional_tax',
+      'model': ProfessionalTaxRegistration,
+    },
+    {
+      'id': 'iec',
+      'title': 'IEC (Import Export Certificate)',
+      'icon': 'bi-globe',
+      'department': 'Back Office',
+      'form_class': IECRegistrationForm,
+      'form_name': 'iec',
+      'model': IECRegistration,
+    },
+    {
+      'id': 'icegate',
+      'title': 'ICE Gate',
+      'icon': 'bi-door-open',
+      'department': 'Back Office',
+      'form_class': ICEGateRegistrationForm,
+      'form_name': 'icegate',
+      'model': ICEGateRegistration,
+    },
+    {
+      'id': 'trade-license',
+      'title': 'Trade License',
+      'icon': 'bi-file-earmark-check',
+      'department': 'Back Office',
+      'form_class': TradeLicenseRegistrationForm,
+      'form_name': 'trade_license',
+      'model': TradeLicenseRegistration,
+    },
+    {
+      'id': 'dsc',
+      'title': 'DSC (Digital Signature)',
+      'icon': 'bi-shield-lock',
+      'department': 'Back Office',
+      'form_class': DSCRegistrationForm,
+      'form_name': 'dsc',
+      'model': DSCRegistration,
+    },
+    {
+      'id': 'company-name-change',
+      'title': 'Company Name Change',
+      'icon': 'bi-pencil',
+      'department': 'Back Office',
+      'form_class': CompanyNameChangeForm,
+      'form_name': 'company_name_change',
+      'model': CompanyNameChange,
+    },
+    {
+      'id': 'director-change',
+      'title': 'Director Change',
+      'icon': 'bi-people',
+      'department': 'Back Office',
+      'form_class': DirectorChangeForm,
+      'form_name': 'director_change',
+      'model': DirectorChange,
+    },
+    {
+      'id': 'company-closure',
+      'title': 'Company Closure',
+      'icon': 'bi-x-circle',
+      'department': 'Back Office',
+      'form_class': CompanyClosureForm,
+      'form_name': 'company_closure',
+      'model': CompanyClosure,
+    },
+    {
+      'id': 'rcmc',
+      'title': 'RCMC',
+      'icon': 'bi-file-earmark-medical',
+      'department': 'Back Office',
+      'form_class': RCMCRegistrationForm,
+      'form_name': 'rcmc',
+      'model': RCMCRegistration,
+    },
+    {
+      'id': 'shop-establishment',
+      'title': 'Shop Establishment (Jharkhand & West Bengal)',
+      'icon': 'bi-shop',
+      'department': 'Back Office',
+      'form_class': ShopEstablishmentRegistrationForm,
+      'form_name': 'shop_establishment',
+      'model': ShopEstablishmentRegistration,
     },
   ]
   
@@ -1533,6 +1756,246 @@ def service_forms(request):
             uploaded_files = request.FILES.getlist('moa_alteration_documents')
             if uploaded_files:
               record.documents = _store_uploaded_files(uploaded_files, 'moa_alteration')
+            record.status = 'pending'
+          
+          elif form_name == 'professional_tax':
+            # Save applicant information for Professional Tax Registration
+            applicant_name = request.POST.get('applicant_name', '').strip()
+            applicant_phone = request.POST.get('applicant_phone', '').strip()
+            applicant_whatsapp = request.POST.get('applicant_whatsapp', '').strip()
+            applicant_email = request.POST.get('applicant_email', '').strip()
+            applicant_address = request.POST.get('applicant_address', '').strip()
+            
+            if hasattr(record, 'applicant_name'):
+              record.applicant_name = applicant_name if applicant_name else None
+            if hasattr(record, 'applicant_phone'):
+              record.applicant_phone = applicant_phone if applicant_phone else None
+            if hasattr(record, 'applicant_whatsapp'):
+              record.applicant_whatsapp = applicant_whatsapp if applicant_whatsapp else None
+            if hasattr(record, 'applicant_email'):
+              record.applicant_email = applicant_email if applicant_email else None
+            if hasattr(record, 'applicant_address'):
+              record.applicant_address = applicant_address if applicant_address else None
+            
+            uploaded_files = request.FILES.getlist('professional_tax_documents')
+            if uploaded_files:
+              record.documents = _store_uploaded_files(uploaded_files, 'professional_tax')
+            record.status = 'pending'
+          
+          elif form_name == 'iec':
+            # Save applicant information for IEC Registration
+            applicant_name = request.POST.get('applicant_name', '').strip()
+            applicant_phone = request.POST.get('applicant_phone', '').strip()
+            applicant_whatsapp = request.POST.get('applicant_whatsapp', '').strip()
+            applicant_email = request.POST.get('applicant_email', '').strip()
+            applicant_address = request.POST.get('applicant_address', '').strip()
+            
+            if hasattr(record, 'applicant_name'):
+              record.applicant_name = applicant_name if applicant_name else None
+            if hasattr(record, 'applicant_phone'):
+              record.applicant_phone = applicant_phone if applicant_phone else None
+            if hasattr(record, 'applicant_whatsapp'):
+              record.applicant_whatsapp = applicant_whatsapp if applicant_whatsapp else None
+            if hasattr(record, 'applicant_email'):
+              record.applicant_email = applicant_email if applicant_email else None
+            if hasattr(record, 'applicant_address'):
+              record.applicant_address = applicant_address if applicant_address else None
+            
+            uploaded_files = request.FILES.getlist('iec_documents')
+            if uploaded_files:
+              record.documents = _store_uploaded_files(uploaded_files, 'iec')
+            record.status = 'pending'
+          
+          elif form_name == 'icegate':
+            # Save applicant information for ICE Gate Registration
+            applicant_name = request.POST.get('applicant_name', '').strip()
+            applicant_phone = request.POST.get('applicant_phone', '').strip()
+            applicant_whatsapp = request.POST.get('applicant_whatsapp', '').strip()
+            applicant_email = request.POST.get('applicant_email', '').strip()
+            applicant_address = request.POST.get('applicant_address', '').strip()
+            
+            if hasattr(record, 'applicant_name'):
+              record.applicant_name = applicant_name if applicant_name else None
+            if hasattr(record, 'applicant_phone'):
+              record.applicant_phone = applicant_phone if applicant_phone else None
+            if hasattr(record, 'applicant_whatsapp'):
+              record.applicant_whatsapp = applicant_whatsapp if applicant_whatsapp else None
+            if hasattr(record, 'applicant_email'):
+              record.applicant_email = applicant_email if applicant_email else None
+            if hasattr(record, 'applicant_address'):
+              record.applicant_address = applicant_address if applicant_address else None
+            
+            uploaded_files = request.FILES.getlist('icegate_documents')
+            if uploaded_files:
+              record.documents = _store_uploaded_files(uploaded_files, 'icegate')
+            record.status = 'pending'
+          
+          elif form_name == 'trade_license':
+            # Save applicant information for Trade License Registration
+            applicant_name = request.POST.get('applicant_name', '').strip()
+            applicant_phone = request.POST.get('applicant_phone', '').strip()
+            applicant_whatsapp = request.POST.get('applicant_whatsapp', '').strip()
+            applicant_email = request.POST.get('applicant_email', '').strip()
+            applicant_address = request.POST.get('applicant_address', '').strip()
+            
+            if hasattr(record, 'applicant_name'):
+              record.applicant_name = applicant_name if applicant_name else None
+            if hasattr(record, 'applicant_phone'):
+              record.applicant_phone = applicant_phone if applicant_phone else None
+            if hasattr(record, 'applicant_whatsapp'):
+              record.applicant_whatsapp = applicant_whatsapp if applicant_whatsapp else None
+            if hasattr(record, 'applicant_email'):
+              record.applicant_email = applicant_email if applicant_email else None
+            if hasattr(record, 'applicant_address'):
+              record.applicant_address = applicant_address if applicant_address else None
+            
+            uploaded_files = request.FILES.getlist('trade_license_documents')
+            if uploaded_files:
+              record.documents = _store_uploaded_files(uploaded_files, 'trade_license')
+            record.status = 'pending'
+          
+          elif form_name == 'dsc':
+            # Save applicant information for DSC Registration
+            applicant_name = request.POST.get('applicant_name', '').strip()
+            applicant_phone = request.POST.get('applicant_phone', '').strip()
+            applicant_whatsapp = request.POST.get('applicant_whatsapp', '').strip()
+            applicant_email = request.POST.get('applicant_email', '').strip()
+            applicant_address = request.POST.get('applicant_address', '').strip()
+            
+            if hasattr(record, 'applicant_name'):
+              record.applicant_name = applicant_name if applicant_name else None
+            if hasattr(record, 'applicant_phone'):
+              record.applicant_phone = applicant_phone if applicant_phone else None
+            if hasattr(record, 'applicant_whatsapp'):
+              record.applicant_whatsapp = applicant_whatsapp if applicant_whatsapp else None
+            if hasattr(record, 'applicant_email'):
+              record.applicant_email = applicant_email if applicant_email else None
+            if hasattr(record, 'applicant_address'):
+              record.applicant_address = applicant_address if applicant_address else None
+            
+            uploaded_files = request.FILES.getlist('dsc_documents')
+            if uploaded_files:
+              record.documents = _store_uploaded_files(uploaded_files, 'dsc')
+            record.status = 'pending'
+          
+          elif form_name == 'company_name_change':
+            # Save applicant information for Company Name Change
+            applicant_name = request.POST.get('applicant_name', '').strip()
+            applicant_phone = request.POST.get('applicant_phone', '').strip()
+            applicant_whatsapp = request.POST.get('applicant_whatsapp', '').strip()
+            applicant_email = request.POST.get('applicant_email', '').strip()
+            applicant_address = request.POST.get('applicant_address', '').strip()
+            
+            if hasattr(record, 'applicant_name'):
+              record.applicant_name = applicant_name if applicant_name else None
+            if hasattr(record, 'applicant_phone'):
+              record.applicant_phone = applicant_phone if applicant_phone else None
+            if hasattr(record, 'applicant_whatsapp'):
+              record.applicant_whatsapp = applicant_whatsapp if applicant_whatsapp else None
+            if hasattr(record, 'applicant_email'):
+              record.applicant_email = applicant_email if applicant_email else None
+            if hasattr(record, 'applicant_address'):
+              record.applicant_address = applicant_address if applicant_address else None
+            
+            uploaded_files = request.FILES.getlist('company_name_change_documents')
+            if uploaded_files:
+              record.documents = _store_uploaded_files(uploaded_files, 'company_name_change')
+            record.status = 'pending'
+          
+          elif form_name == 'director_change':
+            # Save applicant information for Director Change
+            applicant_name = request.POST.get('applicant_name', '').strip()
+            applicant_phone = request.POST.get('applicant_phone', '').strip()
+            applicant_whatsapp = request.POST.get('applicant_whatsapp', '').strip()
+            applicant_email = request.POST.get('applicant_email', '').strip()
+            applicant_address = request.POST.get('applicant_address', '').strip()
+            
+            if hasattr(record, 'applicant_name'):
+              record.applicant_name = applicant_name if applicant_name else None
+            if hasattr(record, 'applicant_phone'):
+              record.applicant_phone = applicant_phone if applicant_phone else None
+            if hasattr(record, 'applicant_whatsapp'):
+              record.applicant_whatsapp = applicant_whatsapp if applicant_whatsapp else None
+            if hasattr(record, 'applicant_email'):
+              record.applicant_email = applicant_email if applicant_email else None
+            if hasattr(record, 'applicant_address'):
+              record.applicant_address = applicant_address if applicant_address else None
+            
+            uploaded_files = request.FILES.getlist('director_change_documents')
+            if uploaded_files:
+              record.documents = _store_uploaded_files(uploaded_files, 'director_change')
+            record.status = 'pending'
+          
+          elif form_name == 'company_closure':
+            # Save applicant information for Company Closure
+            applicant_name = request.POST.get('applicant_name', '').strip()
+            applicant_phone = request.POST.get('applicant_phone', '').strip()
+            applicant_whatsapp = request.POST.get('applicant_whatsapp', '').strip()
+            applicant_email = request.POST.get('applicant_email', '').strip()
+            applicant_address = request.POST.get('applicant_address', '').strip()
+            
+            if hasattr(record, 'applicant_name'):
+              record.applicant_name = applicant_name if applicant_name else None
+            if hasattr(record, 'applicant_phone'):
+              record.applicant_phone = applicant_phone if applicant_phone else None
+            if hasattr(record, 'applicant_whatsapp'):
+              record.applicant_whatsapp = applicant_whatsapp if applicant_whatsapp else None
+            if hasattr(record, 'applicant_email'):
+              record.applicant_email = applicant_email if applicant_email else None
+            if hasattr(record, 'applicant_address'):
+              record.applicant_address = applicant_address if applicant_address else None
+            
+            uploaded_files = request.FILES.getlist('company_closure_documents')
+            if uploaded_files:
+              record.documents = _store_uploaded_files(uploaded_files, 'company_closure')
+            record.status = 'pending'
+          
+          elif form_name == 'rcmc':
+            # Save applicant information for RCMC Registration
+            applicant_name = request.POST.get('applicant_name', '').strip()
+            applicant_phone = request.POST.get('applicant_phone', '').strip()
+            applicant_whatsapp = request.POST.get('applicant_whatsapp', '').strip()
+            applicant_email = request.POST.get('applicant_email', '').strip()
+            applicant_address = request.POST.get('applicant_address', '').strip()
+            
+            if hasattr(record, 'applicant_name'):
+              record.applicant_name = applicant_name if applicant_name else None
+            if hasattr(record, 'applicant_phone'):
+              record.applicant_phone = applicant_phone if applicant_phone else None
+            if hasattr(record, 'applicant_whatsapp'):
+              record.applicant_whatsapp = applicant_whatsapp if applicant_whatsapp else None
+            if hasattr(record, 'applicant_email'):
+              record.applicant_email = applicant_email if applicant_email else None
+            if hasattr(record, 'applicant_address'):
+              record.applicant_address = applicant_address if applicant_address else None
+            
+            uploaded_files = request.FILES.getlist('rcmc_documents')
+            if uploaded_files:
+              record.documents = _store_uploaded_files(uploaded_files, 'rcmc')
+            record.status = 'pending'
+          
+          elif form_name == 'shop_establishment':
+            # Save applicant information for Shop Establishment Registration
+            applicant_name = request.POST.get('applicant_name', '').strip()
+            applicant_phone = request.POST.get('applicant_phone', '').strip()
+            applicant_whatsapp = request.POST.get('applicant_whatsapp', '').strip()
+            applicant_email = request.POST.get('applicant_email', '').strip()
+            applicant_address = request.POST.get('applicant_address', '').strip()
+            
+            if hasattr(record, 'applicant_name'):
+              record.applicant_name = applicant_name if applicant_name else None
+            if hasattr(record, 'applicant_phone'):
+              record.applicant_phone = applicant_phone if applicant_phone else None
+            if hasattr(record, 'applicant_whatsapp'):
+              record.applicant_whatsapp = applicant_whatsapp if applicant_whatsapp else None
+            if hasattr(record, 'applicant_email'):
+              record.applicant_email = applicant_email if applicant_email else None
+            if hasattr(record, 'applicant_address'):
+              record.applicant_address = applicant_address if applicant_address else None
+            
+            uploaded_files = request.FILES.getlist('shop_establishment_documents')
+            if uploaded_files:
+              record.documents = _store_uploaded_files(uploaded_files, 'shop_establishment')
             record.status = 'pending'
           
           record.save()
@@ -2020,8 +2483,13 @@ def leads(request):
             name_key and name_key in client_names
         ])
 
-        lead.conversion_status = 'Converted' if converted else 'Pending'
-        lead.conversion_badge = 'bg-success' if converted else 'bg-secondary'
+        # Only update conversion_status if it's not already set or if lead is converted
+        # Don't set conversion_badge as it's a read-only property
+        if converted and (not lead.conversion_status or lead.conversion_status == 'Pending'):
+            lead.conversion_status = 'Won'  # Use 'Won' instead of 'Converted' to match our choices
+        elif not lead.conversion_status:
+            # Only set to Pending if status is not already set
+            lead.conversion_status = 'Pending'
     
     # Handle form submission
     if request.method == 'POST':
@@ -2183,128 +2651,447 @@ def lead_filter(request):
 
 def lead_export(request):
     """
-    Export leads to CSV
-    यह leads को CSV में export करता है
+    Export leads to CSV or Excel
+    यह leads को CSV या Excel में export करता है
+    For employees: only export leads they imported
+    For admin: export all leads
     """
-    import csv
     from django.http import HttpResponse
     
-    # Get all active leads
-    leads = Lead.objects.filter(is_active=True).order_by('-created_at')
+    # Get format from request
+    export_format = request.GET.get('format', 'csv').lower()
+    fields_mode = request.GET.get('fields', 'all')
     
-    # Create CSV response
-    response = HttpResponse(content_type='text/csv')
-    response['Content-Disposition'] = 'attachment; filename="leads_export.csv"'
+    # Check if user is employee (filter by imported_by)
+    # Get employee object for current user
+    employee_obj = None
+    if request.user.is_authenticated:
+        try:
+            user_email = getattr(request.user, 'email', None)
+            if user_email:
+                employee_obj = Employee.objects.filter(email__iexact=user_email).first()
+        except:
+            pass
     
-    writer = csv.writer(response)
+    # Get leads - filter by imported_by if employee, otherwise all leads
+    if employee_obj:
+        # Employee: only export leads they imported
+        leads = Lead.objects.filter(is_active=True, imported_by=employee_obj).order_by('-created_at')
+    else:
+        # Admin: export all leads
+        leads = Lead.objects.filter(is_active=True).order_by('-created_at')
     
-    # Write headers
-    writer.writerow([
-        'Name', 'Email', 'Phone', 'Company', 'Source', 'Priority', 
-        'Owner', 'Use Case', 'Next Action', 'Due Date', 'Due Time',
-        'Website', 'Industry', 'City', 'Country', 'Budget', 
-        'Timeline', 'Tags', 'Notes', 'Created At'
-    ])
+    # Define headers based on fields mode
+    if fields_mode == 'basic':
+        headers = ['Name', 'Email', 'Phone', 'Company', 'Source', 'Priority', 'Owner', 'Use Case', 'Next Action', 'Due Date', 'Notes']
+        field_list = ['name', 'email', 'phone', 'company', 'source', 'priority', 'owner', 'use_case', 'next_action', 'due_date', 'notes']
+    else:
+        headers = [
+            'Name', 'Email', 'Phone', 'Company', 'Address', 'Source', 'Priority', 
+            'Owner', 'Use Case', 'Next Action', 'Due Date', 'Due Time',
+            'Website', 'Industry', 'City', 'Country', 'Budget', 'Amount',
+            'Timeline', 'Tags', 'Notes', 'Created At'
+        ]
+        field_list = [
+            'name', 'email', 'phone', 'company', 'address', 'source', 'priority',
+            'owner', 'use_case', 'next_action', 'due_date', 'due_time',
+            'website', 'industry', 'city', 'country', 'budget', 'amount',
+            'timeline', 'tags', 'notes', 'created_at'
+        ]
     
-    # Write data
-    for lead in leads:
-        writer.writerow([
-            lead.name,
-            lead.email or '',
-            lead.phone or '',
-            lead.company or '',
-            lead.source,
-            lead.priority,
-            lead.owner,
-            lead.use_case,
-            lead.next_action or '',
-            lead.due_date or '',
-            lead.due_time or '',
-            lead.website or '',
-            lead.industry or '',
-            lead.city or '',
-            lead.country or '',
-            lead.budget or '',
-            lead.timeline or '',
-            lead.tags or '',
-            lead.notes or '',
-            lead.created_at.strftime('%Y-%m-%d %H:%M:%S')
-        ])
-    
-    return response
+    if export_format == 'xlsx':
+        # Export to Excel
+        try:
+            from openpyxl import Workbook
+            from openpyxl.styles import Font, PatternFill
+            
+            wb = Workbook()
+            ws = wb.active
+            ws.title = "Leads"
+            
+            # Header row with styling
+            header_fill = PatternFill(start_color="366092", end_color="366092", fill_type="solid")
+            header_font = Font(bold=True, color="FFFFFF")
+            
+            for col_idx, header in enumerate(headers, 1):
+                cell = ws.cell(row=1, column=col_idx, value=header)
+                cell.fill = header_fill
+                cell.font = header_font
+            
+            # Data rows
+            for row_idx, lead in enumerate(leads, 2):
+                for col_idx, field in enumerate(field_list, 1):
+                    if field == 'created_at':
+                        value = lead.created_at.strftime('%Y-%m-%d %H:%M:%S') if lead.created_at else ''
+                    elif field == 'due_date':
+                        value = lead.due_date.strftime('%Y-%m-%d') if lead.due_date else ''
+                    elif field == 'due_time':
+                        value = lead.due_time.strftime('%H:%M') if lead.due_time else ''
+                    elif field == 'amount':
+                        value = float(lead.amount) if lead.amount else ''
+                    else:
+                        value = getattr(lead, field, '') or ''
+                    ws.cell(row=row_idx, column=col_idx, value=value)
+            
+            # Auto-adjust column widths
+            for col in ws.columns:
+                max_length = 0
+                col_letter = col[0].column_letter
+                for cell in col:
+                    try:
+                        if len(str(cell.value)) > max_length:
+                            max_length = len(str(cell.value))
+                    except:
+                        pass
+                adjusted_width = min(max_length + 2, 50)
+                ws.column_dimensions[col_letter].width = adjusted_width
+            
+            # Create response
+            response = HttpResponse(
+                content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+            )
+            response['Content-Disposition'] = 'attachment; filename="leads_export.xlsx"'
+            wb.save(response)
+            return response
+            
+        except ImportError:
+            messages.error(request, 'Excel export requires openpyxl. Install it using: pip install openpyxl')
+            return redirect('leads_import_export')
+        except Exception as e:
+            messages.error(request, f'Error exporting to Excel: {str(e)}')
+            return redirect('leads_import_export')
+    else:
+        # Export to CSV
+        import csv
+        
+        response = HttpResponse(content_type='text/csv')
+        response['Content-Disposition'] = 'attachment; filename="leads_export.csv"'
+        
+        writer = csv.writer(response)
+        writer.writerow(headers)
+        
+        # Write data
+        for lead in leads:
+            row = []
+            for field in field_list:
+                if field == 'created_at':
+                    value = lead.created_at.strftime('%Y-%m-%d %H:%M:%S') if lead.created_at else ''
+                elif field == 'due_date':
+                    value = lead.due_date.strftime('%Y-%m-%d') if lead.due_date else ''
+                elif field == 'due_time':
+                    value = lead.due_time.strftime('%H:%M') if lead.due_time else ''
+                elif field == 'amount':
+                    value = str(lead.amount) if lead.amount else ''
+                else:
+                    value = getattr(lead, field, '') or ''
+                row.append(value)
+            writer.writerow(row)
+        
+        return response
 
 
 def lead_import(request):
     """
-    Import leads from CSV
-    यह CSV से leads import करता है
+    Import leads from CSV or Excel
+    यह CSV या Excel से leads import करता है
+    Respects filters from leads list page
     """
-    if request.method == 'POST' and request.FILES.get('csv_file'):
-        csv_file = request.FILES['csv_file']
+    if request.method == 'POST' and request.FILES.get('csv'):
+        uploaded_file = request.FILES['csv']
+        duplicate_handling = request.POST.get('duplicate', 'skip')
+        owner_override = request.POST.get('owner', '').strip()
+        
+        # Get current employee (who is importing)
+        imported_by_employee = None
+        if request.user.is_authenticated:
+            try:
+                user_email = getattr(request.user, 'email', None)
+                if user_email:
+                    imported_by_employee = Employee.objects.filter(email__iexact=user_email).first()
+            except:
+                pass
+        
+        # Get filter parameters from request (if coming from filtered leads page)
+        filter_search = request.POST.get('filter_search', '').strip()
+        filter_owner = request.POST.get('filter_owner', '').strip()
+        filter_source = request.POST.get('filter_source', '').strip()
+        filter_priority = request.POST.get('filter_priority', '').strip()
+        filter_status = request.POST.get('filter_status', '').strip()
         
         try:
             import csv
             import io
             
-            # Read CSV file
-            file_data = csv_file.read().decode('utf-8')
-            csv_reader = csv.DictReader(io.StringIO(file_data))
+            # Check file extension
+            file_name = uploaded_file.name.lower()
+            is_excel = file_name.endswith(('.xlsx', '.xls'))
+            
+            rows = []
+            
+            if is_excel:
+                # Handle Excel file
+                try:
+                    import openpyxl
+                    from openpyxl import load_workbook
+                    
+                    # Read Excel file
+                    workbook = load_workbook(uploaded_file, data_only=True)
+                    sheet = workbook.active
+                    
+                    # Get headers from first row
+                    headers = []
+                    for cell in sheet[1]:
+                        headers.append(str(cell.value).strip() if cell.value else '')
+                    
+                    # Read data rows
+                    for row in sheet.iter_rows(min_row=2, values_only=False):
+                        row_dict = {}
+                        for idx, cell in enumerate(row):
+                            if idx < len(headers) and headers[idx]:
+                                value = cell.value
+                                if value is not None:
+                                    row_dict[headers[idx]] = str(value).strip()
+                                else:
+                                    row_dict[headers[idx]] = ''
+                        if any(row_dict.values()):  # Skip empty rows
+                            rows.append(row_dict)
+                    
+                except ImportError:
+                    messages.error(request, 'Excel support requires openpyxl. Install it using: pip install openpyxl')
+                    return redirect('leads')
+                except Exception as e:
+                    messages.error(request, f'Error reading Excel file: {str(e)}')
+                    return redirect('leads')
+            else:
+                # Handle CSV file
+                file_data = uploaded_file.read().decode('utf-8')
+                csv_reader = csv.DictReader(io.StringIO(file_data))
+                rows = list(csv_reader)
             
             imported_count = 0
+            updated_count = 0
+            skipped_count = 0
             error_count = 0
             
-            for row in csv_reader:
+            for row in rows:
                 try:
-                    # Create lead from CSV row
+                    # Normalize column names (handle both lowercase and title case)
+                    def get_field(row, *keys):
+                        for key in keys:
+                            # Direct match
+                            if key in row:
+                                val = row[key]
+                                return val.strip() if val and str(val).strip() else ''
+                            # Case-insensitive match
+                            for row_key in row.keys():
+                                if str(row_key).strip().lower() == key.lower():
+                                    val = row[row_key]
+                                    return val.strip() if val and str(val).strip() else ''
+                        return ''
+                    
+                    # Map Excel format columns to Lead fields
+                    # Excel columns: DATE, COMPANY NAME, ADDRESSLIENT NAM, CONTACT NO, EMAIL ID, 
+                    # NATURE OF BUQUOTATIO, AMOUNT, EXECUTIVENIOR NAN, REMARK
+                    
+                    # Get date (DATE column)
+                    date_str = get_field(row, 'DATE', 'date', 'Date')
+                    
+                    # Get company (COMPANY NAME column)
+                    company = get_field(row, 'COMPANY NAME', 'company name', 'company', 'Company', 'COMPANY') or None
+                    
+                    # Get address and name from ADDRESSLIENT NAM column
+                    address_client = get_field(row, 'ADDRESSLIENT NAM', 'addressclient nam', 'address', 'Address', 'ADDRESS')
+                    # Try to extract name from address field (usually name is at the end)
+                    name = ''
+                    address = address_client
+                    if address_client:
+                        # Split by comma and try to find name (usually last part)
+                        parts = [p.strip() for p in address_client.split(',')]
+                        if len(parts) > 1:
+                            # Last part might be name
+                            potential_name = parts[-1].strip()
+                            if len(potential_name) < 50 and not any(char.isdigit() for char in potential_name[:5]):
+                                name = potential_name
+                                address = ', '.join(parts[:-1])
+                            else:
+                                name = address_client.split(',')[-1].strip() if ',' in address_client else address_client
+                        else:
+                            name = address_client
+                    
+                    # If name not found in address, try NAME column
+                    if not name:
+                        name = get_field(row, 'name', 'Name', 'NAME', 'CLIENT NAME', 'client name')
+                    
+                    # Get phone (CONTACT NO column)
+                    phone = get_field(row, 'CONTACT NO', 'contact no', 'phone', 'Phone', 'PHONE') or None
+                    
+                    # Get email (EMAIL ID column)
+                    email = get_field(row, 'EMAIL ID', 'email id', 'email', 'Email', 'EMAIL') or None
+                    
+                    # Skip if name is empty
+                    if not name:
+                        skipped_count += 1
+                        continue
+                    
+                    # Build filter query for duplicate checking (respects current filters)
+                    duplicate_query = Lead.objects.filter(is_active=True)
+                    
+                    # Apply filters if provided
+                    if filter_search:
+                        duplicate_query = duplicate_query.filter(
+                            Q(name__icontains=filter_search) |
+                            Q(email__icontains=filter_search) |
+                            Q(company__icontains=filter_search) |
+                            Q(phone__icontains=filter_search) |
+                            Q(owner__icontains=filter_search)
+                        )
+                    if filter_owner:
+                        duplicate_query = duplicate_query.filter(owner__icontains=filter_owner)
+                    if filter_source:
+                        duplicate_query = duplicate_query.filter(source=filter_source)
+                    if filter_priority:
+                        duplicate_query = duplicate_query.filter(priority=filter_priority)
+                    
+                    # Check for duplicates based on email or phone (within filtered set)
+                    existing_lead = None
+                    if email:
+                        existing_lead = duplicate_query.filter(email=email).first()
+                    elif phone:
+                        existing_lead = duplicate_query.filter(phone=phone).first()
+                    
+                    # If not found in filtered set, check in all leads (for duplicate detection)
+                    if not existing_lead:
+                        if email:
+                            existing_lead = Lead.objects.filter(is_active=True, email=email).first()
+                        elif phone:
+                            existing_lead = Lead.objects.filter(is_active=True, phone=phone).first()
+                    
+                    # Handle duplicates
+                    if existing_lead:
+                        if duplicate_handling == 'skip':
+                            skipped_count += 1
+                            continue
+                        elif duplicate_handling == 'update':
+                            # Update existing lead
+                            lead = existing_lead
+                        else:  # create anyway
+                            lead = None
+                    else:
+                        lead = None
+                    
+                    # Get use_case (NATURE OF BUQUOTATIO column)
+                    use_case = get_field(row, 'NATURE OF BUQUOTATIO', 'nature of buquotatio', 'use_case', 'Use Case', 'use case', 'source', 'Source')
+                    
+                    # Get amount (AMOUNT column)
+                    amount_str = get_field(row, 'AMOUNT', 'amount', 'Amount', 'budget', 'Budget')
+                    amount = None
+                    if amount_str:
+                        try:
+                            # Remove any currency symbols and commas
+                            amount_clean = amount_str.replace('₹', '').replace('$', '').replace(',', '').replace(' ', '')
+                            amount = Decimal(amount_clean)
+                        except:
+                            pass
+                    
+                    # Get owner (EXECUTIVENIOR NAN column)
+                    owner = owner_override or get_field(row, 'EXECUTIVENIOR NAN', 'executivenior nan', 'owner', 'Owner', 'OWNER') or ''
+                    
+                    # Get notes (REMARK column)
+                    notes = get_field(row, 'REMARK', 'remark', 'Remark', 'notes', 'Notes', 'NOTES')
+                    
+                    # Create lead data
                     lead_data = {
-                        'name': row.get('Name', ''),
-                        'email': row.get('Email', '') or None,
-                        'phone': row.get('Phone', '') or None,
-                        'company': row.get('Company', '') or None,
-                        'source': row.get('Source', 'Other'),
-                        'priority': row.get('Priority', 'Med'),
-                        'owner': row.get('Owner', ''),
-                        'use_case': row.get('Use Case', ''),
-                        'next_action': row.get('Next Action', 'None'),
-                        'website': row.get('Website', '') or None,
-                        'industry': row.get('Industry', '') or None,
-                        'city': row.get('City', '') or None,
-                        'country': row.get('Country', '') or None,
-                        'budget': row.get('Budget', '') or None,
-                        'timeline': row.get('Timeline', '') or None,
-                        'tags': row.get('Tags', '') or None,
-                        'notes': row.get('Notes', '') or None,
+                        'name': name,
+                        'email': email,
+                        'phone': phone,
+                        'company': company,
+                        'address': address or None,
+                        'source': get_field(row, 'source', 'Source') or 'Other',
+                        'priority': get_field(row, 'priority', 'Priority') or 'Med',
+                        'owner': owner,
+                        'use_case': use_case or '',
+                        'next_action': get_field(row, 'next_action', 'Next Action', 'next action') or 'None',
+                        'website': get_field(row, 'website', 'Website') or None,
+                        'industry': get_field(row, 'industry', 'Industry') or None,
+                        'city': get_field(row, 'city', 'City') or None,
+                        'country': get_field(row, 'country', 'Country') or None,
+                        'budget': amount_str or get_field(row, 'budget', 'Budget') or None,
+                        'amount': amount,
+                        'timeline': get_field(row, 'timeline', 'Timeline') or None,
+                        'tags': get_field(row, 'tags', 'Tags') or None,
+                        'notes': notes or None,
+                        'imported_by': imported_by_employee,
                     }
                     
-                    # Parse dates if provided
-                    if row.get('Due Date'):
+                    # Parse dates if provided (DATE column from Excel)
+                    due_date_str = date_str or get_field(row, 'due_date', 'Due Date', 'due date')
+                    if due_date_str:
                         try:
-                            lead_data['due_date'] = datetime.strptime(row['Due Date'], '%Y-%m-%d').date()
+                            # Try different date formats (including DD.MM.YYYY for Excel)
+                            for fmt in ['%d.%m.%Y', '%d-%m-%Y', '%Y-%m-%d', '%m/%d/%Y', '%d/%m/%Y', '%Y/%m/%d']:
+                                try:
+                                    lead_data['due_date'] = datetime.strptime(due_date_str, fmt).date()
+                                    break
+                                except:
+                                    continue
                         except:
                             pass
                     
-                    if row.get('Due Time'):
+                    due_time_str = get_field(row, 'due_time', 'Due Time', 'due time')
+                    if due_time_str:
                         try:
-                            lead_data['due_time'] = datetime.strptime(row['Due Time'], '%H:%M').time()
+                            # Try different time formats
+                            for fmt in ['%H:%M', '%H:%M:%S', '%I:%M %p', '%I:%M:%S %p']:
+                                try:
+                                    lead_data['due_time'] = datetime.strptime(due_time_str, fmt).time()
+                                    break
+                                except:
+                                    continue
                         except:
                             pass
                     
-                    # Create lead
-                    Lead.objects.create(**lead_data)
-                    imported_count += 1
+                    # Create or update lead
+                    if lead:
+                        # Update existing
+                        for key, value in lead_data.items():
+                            setattr(lead, key, value)
+                        # Only update imported_by if it's not set (preserve original importer)
+                        if not lead.imported_by and imported_by_employee:
+                            lead.imported_by = imported_by_employee
+                        lead.save()
+                        updated_count += 1
+                    else:
+                        # Create new
+                        Lead.objects.create(**lead_data)
+                        imported_count += 1
                     
                 except Exception as e:
                     error_count += 1
                     print(f"Error importing row: {e}")
+                    import traceback
+                    traceback.print_exc()
                     continue
+            
+            # Success message
+            msg_parts = []
+            if imported_count > 0:
+                msg_parts.append(f'{imported_count} imported')
+            if updated_count > 0:
+                msg_parts.append(f'{updated_count} updated')
+            if skipped_count > 0:
+                msg_parts.append(f'{skipped_count} skipped')
+            if error_count > 0:
+                msg_parts.append(f'{error_count} errors')
             
             messages.success(
                 request, 
-                f'Import completed! {imported_count} leads imported successfully. {error_count} errors occurred.'
+                f'Import completed! {", ".join(msg_parts)}.'
             )
             
         except Exception as e:
             messages.error(request, f'Error importing file: {str(e)}')
+            import traceback
+            traceback.print_exc()
     
     return redirect('leads')
 
@@ -2338,14 +3125,76 @@ def lead_get_data(request, lead_id):
             'timeline': lead.timeline or '',
             'tags': lead.tags or '',
             'notes': lead.notes or '',
+            'status': lead.conversion_status or 'Pending',
             'created_at': lead.created_at.strftime('%d-%b-%Y %H:%M') if lead.created_at else '',
             'updated_at': lead.updated_at.strftime('%d-%b-%Y %H:%M') if lead.updated_at else '',
+            'assigned_to': {
+                'id': lead.assigned_to.id if lead.assigned_to else None,
+                'name': lead.assigned_to.get_full_name() if lead.assigned_to else None,
+            } if lead.assigned_to else None,
         }
         
         return JsonResponse(data)
         
     except Exception as e:
         return JsonResponse({'error': str(e)}, status=500)
+
+@login_required
+@require_POST
+def update_lead_status(request):
+    """Update lead status"""
+    try:
+        lead_id = request.POST.get('lead_id')
+        status = request.POST.get('status', '').strip()
+        
+        if not lead_id:
+            return JsonResponse({'success': False, 'error': 'Lead ID is required'}, status=400)
+        
+        if not status:
+            return JsonResponse({'success': False, 'error': 'Status is required'}, status=400)
+        
+        lead = get_object_or_404(Lead, id=lead_id, is_active=True)
+        
+        # Update conversion_status field
+        lead.conversion_status = status
+        lead.save(update_fields=['conversion_status'])
+        
+        return JsonResponse({
+            'success': True,
+            'message': f'Lead status updated to "{status}" successfully!',
+            'status': status
+        })
+        
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': str(e)}, status=500)
+
+@login_required
+@require_POST
+def update_lead_notes(request):
+    """Update lead notes"""
+    try:
+        lead_id = request.POST.get('lead_id')
+        notes = request.POST.get('notes', '').strip()
+        
+        if not lead_id:
+            return JsonResponse({'success': False, 'error': 'Lead ID is required'}, status=400)
+        
+        if not notes:
+            return JsonResponse({'success': False, 'error': 'Notes cannot be empty'}, status=400)
+        
+        lead = get_object_or_404(Lead, id=lead_id, is_active=True)
+        
+        # Update notes directly (status is stored separately in conversion_status field)
+        lead.notes = notes
+        lead.save(update_fields=['notes'])
+        
+        return JsonResponse({
+            'success': True,
+            'message': 'Lead notes updated successfully!'
+        })
+        
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': str(e)}, status=500)
 
 @csrf_exempt
 @require_POST
@@ -2362,6 +3211,101 @@ def assign_engineer(request, lead_id):
         lead.owner = engineer
         lead.save(update_fields=['owner'])
         return JsonResponse({'success': True, 'engineer': engineer})
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': str(e)}, status=500)
+
+
+@login_required
+@require_POST
+def assign_lead_to_employee(request):
+    """
+    Assign lead to sales employee
+    POST expects: lead_id, employee_id
+    """
+    from django.http import JsonResponse
+    from myapp.models import Employee, Lead
+    
+    try:
+        lead_id = request.POST.get('lead_id')
+        employee_id = request.POST.get('employee_id')
+        
+        if not lead_id:
+            return JsonResponse({'success': False, 'error': 'Lead ID is required'}, status=400)
+        
+        if not employee_id:
+            return JsonResponse({'success': False, 'error': 'Employee ID is required'}, status=400)
+        
+        lead = get_object_or_404(Lead, id=lead_id, is_active=True)
+        employee = get_object_or_404(Employee, id=employee_id, status='active')
+        
+        # Check if employee is in Sales department
+        if employee.department and 'sales' not in employee.department.lower():
+            return JsonResponse({'success': False, 'error': 'Only Sales employees can be assigned leads'}, status=400)
+        
+        lead.assigned_to = employee
+        lead.save(update_fields=['assigned_to'])
+        
+        return JsonResponse({
+            'success': True,
+            'message': f'Lead "{lead.name}" assigned to {employee.get_full_name()} successfully!',
+            'employee_name': employee.get_full_name()
+        })
+        
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': str(e)}, status=500)
+
+
+@login_required
+@require_POST
+def bulk_assign_leads(request):
+    """
+    Assign multiple leads to sales employee
+    POST expects: lead_ids (JSON array), employee_id
+    """
+    from django.http import JsonResponse
+    import json
+    from myapp.models import Employee, Lead
+    
+    try:
+        lead_ids_json = request.POST.get('lead_ids')
+        employee_id = request.POST.get('employee_id')
+        
+        if not lead_ids_json:
+            return JsonResponse({'success': False, 'error': 'Lead IDs are required'}, status=400)
+        
+        if not employee_id:
+            return JsonResponse({'success': False, 'error': 'Employee ID is required'}, status=400)
+        
+        try:
+            lead_ids = json.loads(lead_ids_json)
+        except json.JSONDecodeError:
+            return JsonResponse({'success': False, 'error': 'Invalid lead IDs format'}, status=400)
+        
+        if not isinstance(lead_ids, list) or len(lead_ids) == 0:
+            return JsonResponse({'success': False, 'error': 'At least one lead ID is required'}, status=400)
+        
+        employee = get_object_or_404(Employee, id=employee_id, status='active')
+        
+        # Check if employee is in Sales department
+        if employee.department and 'sales' not in employee.department.lower():
+            return JsonResponse({'success': False, 'error': 'Only Sales employees can be assigned leads'}, status=400)
+        
+        # Get all leads
+        leads = Lead.objects.filter(id__in=lead_ids, is_active=True)
+        
+        if leads.count() != len(lead_ids):
+            return JsonResponse({'success': False, 'error': 'Some leads were not found'}, status=400)
+        
+        # Assign all leads to employee
+        updated_count = leads.update(assigned_to=employee)
+        
+        return JsonResponse({
+            'success': True,
+            'message': f'{updated_count} lead(s) assigned to {employee.get_full_name()} successfully!',
+            'employee_name': employee.get_full_name(),
+            'assigned_count': updated_count
+        })
+        
     except Exception as e:
         return JsonResponse({'success': False, 'error': str(e)}, status=500)
 
@@ -6613,8 +7557,12 @@ def employee_dashboard(request):
     quotes_count = 0
     onboardings_count = 0
     try:
-        # Show overall totals to ensure visibility; can be scoped later if needed
-        leads_count = Lead.objects.filter(is_active=True).count()
+        # For all employees, show only assigned leads
+        if employee_obj:
+            leads_count = Lead.objects.filter(is_active=True, assigned_to=employee_obj).count()
+        else:
+            # If no employee found, show 0
+            leads_count = 0
         quotes_count = Quote.objects.all().count()
         onboardings_count = ClientOnboarding.objects.all().count()
     except Exception as e:
@@ -11001,8 +11949,22 @@ def employee_achievements(request):
 
 @login_required
 def employee_leads(request):
-    # Same data/loading as public leads(), but using employee-styled template
-    leads_list = Lead.objects.filter(is_active=True).order_by('-created_at')
+    # Get employee object for current user
+    employee_obj = None
+    if request.user.is_authenticated:
+        try:
+            user_email = getattr(request.user, 'email', None)
+            if user_email:
+                employee_obj = Employee.objects.filter(email__iexact=user_email).first()
+        except:
+            pass
+    
+    # Filter leads assigned to this employee (only show leads assigned to them)
+    if employee_obj:
+        leads_list = Lead.objects.filter(is_active=True, assigned_to=employee_obj).order_by('-created_at')
+    else:
+        # If no employee found, show empty list
+        leads_list = Lead.objects.none()
 
     search_query = request.GET.get('search', '')
     if search_query:
@@ -11054,9 +12016,7 @@ def employee_leads(request):
 def employee_attendance_check_in(request):
     """Handle check-in submission"""
     try:
-        photo_data = request.POST.get('photo')
-        if not photo_data:
-            return JsonResponse({'success': False, 'error': 'Photo is required'}, status=400)
+        photo_data = request.POST.get('photo', '').strip() or None  # Photo is optional
         
         # Get logged-in user's name and find employee
         employee_obj = None
@@ -11144,9 +12104,7 @@ def employee_attendance_check_in(request):
 def employee_attendance_check_out(request):
     """Handle check-out submission"""
     try:
-        photo_data = request.POST.get('photo')
-        if not photo_data:
-            return JsonResponse({'success': False, 'error': 'Photo is required'}, status=400)
+        photo_data = request.POST.get('photo', '').strip() or None  # Photo is optional
         
         # Get logged-in user's name and find employee
         employee_obj = None

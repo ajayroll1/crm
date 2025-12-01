@@ -15,11 +15,6 @@
       <div class="metric-subtitle">{{ leads_this_month }} This Month</div>
     </div>
     
-    <div class="metric-card">
-      <div class="metric-title">Deals In Progress</div>
-      <div class="metric-value">{{ quotes_in_progress }}</div>
-      <div class="metric-subtitle">{{ quotes_closing_soon }} Closing Soon</div>
-    </div>
     
     <div class="metric-card">
       <div class="metric-title">Projects In Progress</div>
@@ -51,18 +46,6 @@
           <span class="stat-badge">{{ total_leads }} Leads</span>
         </div>
         <a href="{% url 'leads' %}" class="overview-link">View Leads <i class="bi bi-arrow-right"></i></a>
-      </div>
-      
-      <div class="overview-card">
-        <div class="overview-icon">
-          <i class="bi bi-file-text"></i>
-        </div>
-        <h3>Quotes</h3>
-        <p>Create and manage quotations</p>
-        <div class="overview-stats">
-          <span class="stat-badge">{{ total_quotes }} Quotes</span>
-        </div>
-        <a href="{% url 'quotes' %}" class="overview-link">View Quotes <i class="bi bi-arrow-right"></i></a>
       </div>
       
       <div class="overview-card">

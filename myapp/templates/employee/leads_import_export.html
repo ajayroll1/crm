@@ -15,10 +15,12 @@
         <a class="btn btn-sm btn-outline-secondary" href="#"><i class="bi bi-filetype-csv"></i> Download Sample CSV</a>
       </div>
       <div class="card-body">
-        <form id="importForm" enctype="multipart/form-data" novalidate>
+        <form id="importForm" method="POST" action="{% url 'lead_import' %}" enctype="multipart/form-data" novalidate>
+          {% csrf_token %}
           <div class="mb-3">
-            <label class="form-label">CSV File</label>
-            <input type="file" class="form-control" name="csv" accept=".csv" required>
+            <label class="form-label">CSV or Excel File</label>
+            <input type="file" class="form-control" name="csv" accept=".csv,.xlsx,.xls" required>
+            <small class="form-text text-muted">Supports CSV, XLSX, and XLS formats</small>
           </div>
           <div class="row g-3">
             <div class="col-md-6">
@@ -40,7 +42,8 @@
         </form>
       </div>
       <div class="card-footer small text-muted">
-        Expected columns: name, email, phone, company, source, priority, owner, use_case, next_action, due_date, due_time
+        <strong>CSV Format:</strong> name, email, phone, company, source, priority, owner, use_case, next_action, due_date, due_time<br>
+        <strong>Excel Format:</strong> DATE, COMPANY NAME, ADDRESSLIENT NAM, CONTACT NO, EMAIL ID, NATURE OF BUQUOTATIO, AMOUNT, EXECUTIVENIOR NAN, REMARK
       </div>
     </div>
   </div>
@@ -51,7 +54,7 @@
         <a href="{% url 'leads' %}" class="btn btn-sm btn-outline-secondary"><i class="bi bi-table"></i> Back to List</a>
       </div>
       <div class="card-body">
-        <form id="exportForm">
+        <form id="exportForm" method="GET" action="{% url 'lead_export' %}">
           <div class="row g-3">
             <div class="col-md-6">
               <label class="form-label">Format</label>
@@ -63,24 +66,9 @@
             <div class="col-md-6">
               <label class="form-label">Fields</label>
               <select class="form-select" name="fields">
-                <option value="basic" selected>Basic (recommended)</option>
-                <option value="all">All fields</option>
-                <option value="custom">Custom selection</option>
+                <option value="all" selected>All fields</option>
+                <option value="basic">Basic fields</option>
               </select>
-            </div>
-          </div>
-
-          <div class="mt-3 d-none" id="customFields">
-            <label class="form-label">Choose fields</label>
-            <div class="row g-2">
-              {% for f in export_fields %}
-              <div class="col-sm-6">
-                <div class="form-check">
-                  <input class="form-check-input" type="checkbox" id="f_{{ f }}" checked>
-                  <label class="form-check-label" for="f_{{ f }}">{{ f|capfirst }}</label>
-                </div>
-              </div>
-              {% endfor %}
             </div>
           </div>
 
@@ -106,41 +94,26 @@
         customFields.classList.toggle('d-none', fieldsMode !== 'custom');
       });
       exportForm.addEventListener('submit', (e) => {
-        e.preventDefault();
         const btn = exportForm.querySelector('button[type="submit"]');
         btn.disabled = true;
         btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Preparing...';
-        setTimeout(() => {
-          btn.disabled = false;
-          btn.innerHTML = '<i class="bi bi-download"></i> Export';
-          const toast = document.createElement('div');
-          toast.className = 'alert alert-success mt-3';
-          toast.textContent = 'Export ready (demo)';
-          exportForm.appendChild(toast);
-        }, 800);
+        // Form will submit normally to backend
       });
     }
 
     const importForm = document.getElementById('importForm');
     if (importForm) {
       importForm.addEventListener('submit', (e) => {
-        e.preventDefault();
         const file = importForm.querySelector('input[type="file"]').files[0];
         if (!file) {
+          e.preventDefault();
           alert('Please select a CSV file');
           return;
         }
         const btn = importForm.querySelector('button[type="submit"]');
         btn.disabled = true;
         btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Importing...';
-        setTimeout(() => {
-          btn.disabled = false;
-          btn.innerHTML = '<i class="bi bi-upload"></i> Import';
-          const toast = document.createElement('div');
-          toast.className = 'alert alert-success mt-3';
-          toast.textContent = 'Imported 2 of 2 leads (demo)';
-          importForm.appendChild(toast);
-        }, 1000);
+        // Form will submit normally to backend
       });
     }
   });
