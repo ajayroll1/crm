@@ -41,8 +41,9 @@
           {% if contacts and contacts|length > 0 %}
             {% for contact in contacts %}
               <div class="contact-item p-3 border-bottom cursor-pointer {% if selected_contact_id == contact.id %}active{% endif %}" 
-                   onclick="selectContact('{{ contact.id }}', '{{ contact.name|escapejs }}', '{{ contact.role|escapejs }}', event)"
-                   data-contact-id="{{ contact.id }}">
+                   data-contact-id="{{ contact.id }}"
+                   data-contact-name="{{ contact.name|escapejs }}"
+                   data-contact-role="{{ contact.role|escapejs }}">
                 <div class="d-flex align-items-center">
                   <div class="contact-avatar me-3">
                     {% if contact.first_name %}{{ contact.first_name|first|upper }}{% else %}{{ contact.name|first|upper }}{% endif %}
@@ -444,7 +445,7 @@
   let oldestMessageIds = {}; // Track oldest message ID per contact
   let hasMoreMessages = {}; // Track if more messages available per contact
   
-  // Select contact
+  // Select contact - make it globally available
   function selectContact(contactId, contactName, contactRole, event) {
     selectedContactId = contactId;
     selectedContactName = contactName;
@@ -521,6 +522,9 @@
     // Load messages
     loadMessages(contactId);
   }
+  
+  // Make selectContact available globally immediately
+  window.selectContact = selectContact;
   
   // Add back button for mobile view
   function showContactsList() {
@@ -1447,8 +1451,40 @@
     });
   }
   
+  // Initialize contact click handlers using event delegation
+  function initializeContactHandlers() {
+    const contactsList = document.querySelector('.contacts-list');
+    if (contactsList) {
+      // Use event delegation - works even if contacts are added dynamically
+      contactsList.addEventListener('click', function(e) {
+        // Find the closest contact-item
+        const contactItem = e.target.closest('.contact-item');
+        if (contactItem) {
+          e.preventDefault();
+          e.stopPropagation();
+          
+          const contactId = contactItem.getAttribute('data-contact-id');
+          const contactName = contactItem.getAttribute('data-contact-name');
+          const contactRole = contactItem.getAttribute('data-contact-role');
+          
+          if (contactId && contactName) {
+            selectContact(contactId, contactName, contactRole || '', e);
+          }
+        }
+      });
+      
+      // Ensure all contact items have pointer cursor
+      document.querySelectorAll('.contact-item').forEach(item => {
+        item.style.cursor = 'pointer';
+      });
+    }
+  }
+  
   // Hide badges for contacts that were already clicked
   document.addEventListener('DOMContentLoaded', function() {
+    // Initialize contact handlers first
+    initializeContactHandlers();
+    
     document.querySelectorAll('.unread-badge').forEach(badge => {
       const contactId = badge.id.replace('badge-', '');
       const clickedTime = localStorage.getItem(`contact_clicked_${contactId}`);
@@ -1632,6 +1668,9 @@
     
     // Also try after window load (in case DOM wasn't fully ready)
     window.addEventListener('load', function() {
+      // Re-initialize contact handlers in case DOM changed
+      initializeContactHandlers();
+      
       // Only restore if no contact is currently selected
       if (!selectedContactId) {
         console.log('Window loaded, attempting to restore conversation...');
@@ -1642,6 +1681,16 @@
     });
     
   });
+  
+  // Also initialize immediately when script loads (before DOMContentLoaded)
+  // This ensures function is available for any early clicks
+  if (document.readyState === 'loading') {
+    // DOM is still loading, wait for DOMContentLoaded
+    document.addEventListener('DOMContentLoaded', initializeContactHandlers);
+  } else {
+    // DOM is already loaded, initialize immediately
+    initializeContactHandlers();
+  }
   
   // CSS for loading spinner animation
   const style = document.createElement('style');
