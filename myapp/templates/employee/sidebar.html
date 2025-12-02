@@ -132,7 +132,8 @@
       </ul>
     </div>
     
-    <!-- Communication Section -->
+    <!-- Communication Section - Only for Admin/Staff users -->
+    {% if user.is_staff %}
     <div class="nav-section">
       <h3 class="nav-section-title">COMMUNICATION</h3>
       <ul class="nav-list">
@@ -147,6 +148,7 @@
         </li>
       </ul>
     </div>
+    {% endif %}
     
     <!-- Personal Section -->
     <div class="nav-section">
