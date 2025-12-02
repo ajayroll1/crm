@@ -2,15 +2,6 @@
 {% block title %}Leads -Sujata Associates {% endblock %}
 
 {% block content %}
-<!-- Display messages -->
-{% if messages %}
-  {% for message in messages %}
-    <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
-      {{ message }}
-      <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-    </div>
-  {% endfor %}
-{% endif %}
 <div class="dashboard-header d-flex align-items-center justify-content-between">
   <div>
     <h1>Leads</h1>
@@ -46,6 +37,33 @@
   
   .leads-table td[data-label="Actions"] .btn i {
     margin: 0;
+  }
+  
+  /* Status badge dropdown styling */
+  .status-badge-btn {
+    cursor: pointer;
+    border: none !important;
+    padding: 0.35em 0.65em !important;
+    font-size: 0.875em;
+    transition: opacity 0.2s;
+  }
+  
+  .status-badge-btn:hover {
+    opacity: 0.8;
+  }
+  
+  .status-badge-btn:focus {
+    box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
+  }
+  
+  .status-badge-btn.dropdown-toggle::after {
+    margin-left: 0.5em;
+    vertical-align: 0.15em;
+  }
+  
+  .dropdown-menu .status-option.active {
+    background-color: #0d6efd;
+    color: white;
   }
 
   /* Mobile responsive table - convert to card layout */
@@ -136,7 +154,27 @@
                 <td data-label="Company">{{ lead.company|default:"-" }}</td>
                 <td data-label="Owner">{{ lead.owner }}</td>
                 <td data-label="Status">
-                  <span class="badge {{ lead.conversion_badge|default:'bg-secondary' }}">{{ lead.conversion_status|default:"Pending" }}</span>
+                  <div class="dropdown">
+                    <button class="btn badge {{ lead.conversion_badge|default:'bg-secondary' }} dropdown-toggle status-badge-btn" 
+                            type="button" 
+                            id="statusDropdown{{ lead.id }}" 
+                            data-bs-toggle="dropdown" 
+                            aria-expanded="false"
+                            data-lead-id="{{ lead.id }}"
+                            data-current-status="{{ lead.conversion_status|default:'Pending' }}"
+                            style="cursor: pointer; border: none; padding: 0.35em 0.65em;">
+                      {{ lead.conversion_status|default:"Pending" }}
+                    </button>
+                    <ul class="dropdown-menu" aria-labelledby="statusDropdown{{ lead.id }}">
+                      <li><a class="dropdown-item status-option" href="#" data-status="Pending" data-lead-id="{{ lead.id }}">Pending</a></li>
+                      <li><a class="dropdown-item status-option" href="#" data-status="Contacted" data-lead-id="{{ lead.id }}">Contacted</a></li>
+                      <li><a class="dropdown-item status-option" href="#" data-status="Qualified" data-lead-id="{{ lead.id }}">Qualified</a></li>
+                      <li><a class="dropdown-item status-option" href="#" data-status="Proposal" data-lead-id="{{ lead.id }}">Proposal</a></li>
+                      <li><a class="dropdown-item status-option" href="#" data-status="Negotiation" data-lead-id="{{ lead.id }}">Negotiation</a></li>
+                      <li><a class="dropdown-item status-option" href="#" data-status="Won" data-lead-id="{{ lead.id }}">Won</a></li>
+                      <li><a class="dropdown-item status-option" href="#" data-status="Lost" data-lead-id="{{ lead.id }}">Lost</a></li>
+                    </ul>
+                  </div>
                 </td>
                 <td data-label="Priority">
                   <span class="badge {{ lead.get_priority_badge_class }}">{{ lead.priority }}</span>
@@ -674,57 +712,32 @@
       </div>
       <form id="filterForm" method="post" action="{% url 'lead_filter' %}">
         {% csrf_token %}
+        <input type="hidden" name="filter_type" value="between">
         <div class="modal-body">
-          <div class="mb-3">
-            <label class="form-label">Filter Type</label>
-            <div class="d-flex flex-wrap gap-3">
-              <div class="form-check">
-                <input class="form-check-input" type="radio" name="filter_type" id="ft_date" value="date" checked>
-                <label class="form-check-label" for="ft_date">Date</label>
-              </div>
-              <div class="form-check">
-                <input class="form-check-input" type="radio" name="filter_type" id="ft_month" value="month">
-                <label class="form-check-label" for="ft_month">Month</label>
-              </div>
-              <div class="form-check">
-                <input class="form-check-input" type="radio" name="filter_type" id="ft_year" value="year">
-                <label class="form-check-label" for="ft_year">Year</label>
-              </div>
-              <div class="form-check">
-                <input class="form-check-input" type="radio" name="filter_type" id="ft_between" value="between">
-                <label class="form-check-label" for="ft_between">Between</label>
-              </div>
-            </div>
-          </div>
-
           <div class="row g-3">
-            <div class="col-12" data-ft="date">
-              <label class="form-label">Select date</label>
-              <input type="date" name="single_date" class="form-control">
-            </div>
-            <div class="col-12 d-none" data-ft="month">
-              <label class="form-label">Select month</label>
-              <input type="month" name="month" class="form-control">
-            </div>
-            <div class="col-12 d-none" data-ft="year">
-              <label class="form-label">Select year</label>
-              <input type="number" name="year" class="form-control" min="2000" max="2100" placeholder="e.g. 2025">
-            </div>
-            <div class="col-12 d-none" data-ft="between">
+            <div class="col-12">
               <div class="row g-3">
                 <div class="col-6">
-                  <label class="form-label">From</label>
-                  <input type="date" name="from_date" class="form-control">
+                  <label class="form-label">From Date<span class="text-danger">*</span></label>
+                  <input type="date" name="from_date" id="from_date" class="form-control" required>
+                  <small class="form-text text-muted">Start date of the range</small>
                 </div>
                 <div class="col-6">
-                  <label class="form-label">To</label>
-                  <input type="date" name="to_date" class="form-control">
+                  <label class="form-label">To Date<span class="text-danger">*</span></label>
+                  <input type="date" name="to_date" id="to_date" class="form-control" required>
+                  <small class="form-text text-muted">End date of the range</small>
+                </div>
+                <div class="col-12">
+                  <div id="dateRangeError" class="alert alert-danger d-none" role="alert">
+                    <i class="bi bi-exclamation-triangle"></i> <strong>Error:</strong> "From Date" cannot be greater than "To Date"
+                  </div>
                 </div>
               </div>
             </div>
           </div>
         </div>
         <div class="modal-footer">
+          <button type="button" class="btn btn-outline-secondary" id="clearFilterBtn">Clear Filter</button>
           <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Close</button>
           <button type="submit" class="btn btn-primary">Apply Filter</button>
         </div>
@@ -735,16 +748,69 @@
     document.addEventListener('DOMContentLoaded', () => {
       const form = document.getElementById('filterForm');
       if (!form) return;
-      const typeRadios = form.querySelectorAll('input[name="filter_type"]');
-      const sections = form.querySelectorAll('[data-ft]');
-      function updateSections() {
-        const selected = form.querySelector('input[name="filter_type"]:checked').value;
-        sections.forEach(sec => {
-          sec.classList.toggle('d-none', sec.getAttribute('data-ft') !== selected);
+      
+      // Validate date range
+      const fromDateInput = document.getElementById('from_date');
+      const toDateInput = document.getElementById('to_date');
+      const errorDiv = document.getElementById('dateRangeError');
+      
+      function validateDateRange() {
+        const fromDate = fromDateInput.value;
+        const toDate = toDateInput.value;
+        
+        if (fromDate && toDate) {
+          const from = new Date(fromDate);
+          const to = new Date(toDate);
+          
+          if (from > to) {
+            if (errorDiv) {
+              errorDiv.classList.remove('d-none');
+            }
+            return false;
+          } else {
+            if (errorDiv) {
+              errorDiv.classList.add('d-none');
+            }
+          }
+        }
+        return true;
+      }
+      
+      if (fromDateInput && toDateInput) {
+        fromDateInput.addEventListener('change', validateDateRange);
+        toDateInput.addEventListener('change', validateDateRange);
+      }
+      
+      // Clear filter functionality
+      const clearFilterBtn = document.getElementById('clearFilterBtn');
+      if (clearFilterBtn) {
+        clearFilterBtn.addEventListener('click', function() {
+          // Reset all form fields
+          form.reset();
+          
+          // Clear error message
+          if (errorDiv) {
+            errorDiv.classList.add('d-none');
+          }
+          
+          // Show all rows
+          const rows = document.querySelectorAll('.leads-table tbody tr');
+          rows.forEach(row => {
+            row.style.display = '';
+          });
+          
+          // Remove any "no results" alerts
+          const existingAlert = document.querySelector('#list .card-body .alert-info');
+          if (existingAlert) {
+            existingAlert.remove();
+          }
+          
+          // Close modal
+          const modalEl = document.getElementById('filterModal');
+          const modal = bootstrap.Modal.getInstance(modalEl);
+          if (modal) modal.hide();
         });
       }
-      typeRadios.forEach(r => r.addEventListener('change', updateSections));
-      updateSections();
     });
   </script>
 </div>
@@ -1042,13 +1108,41 @@
         
         // First, fetch lead data to check current assignment
         Promise.all([
-          fetch(`/leads/${leadId}/get-data/`).then(r => r.json()),
-          fetch('{% url "get_employees_by_department" %}?department=Sales').then(r => r.json())
+          fetch(`/leads/${leadId}/get-data/`)
+            .then(response => {
+              if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+              }
+              return response.json();
+            })
+            .catch(error => {
+              console.error('Error fetching lead data:', error);
+              return { error: 'Failed to load lead data' };
+            }),
+          fetch('{% url "get_employees_by_department" %}?department=Sales')
+            .then(async response => {
+              if (!response.ok) {
+                const errorText = await response.text();
+                console.error('HTTP error response:', response.status, errorText);
+                throw new Error(`HTTP error! status: ${response.status} - ${errorText.substring(0, 100)}`);
+              }
+              const contentType = response.headers.get("content-type");
+              if (!contentType || !contentType.includes("application/json")) {
+                const text = await response.text();
+                console.error('Non-JSON response:', text.substring(0, 200));
+                throw new Error("Response is not JSON");
+              }
+              return response.json();
+            })
+            .catch(error => {
+              console.error('Error fetching employees:', error);
+              return { success: false, error: 'Failed to load employees. Please check console for details.', employees: [] };
+            })
         ])
           .then(([leadData, employeesData]) => {
             // Show current assignment if exists
             const submitBtn = document.getElementById('assign_submit_btn');
-            if (leadData.assigned_to && leadData.assigned_to.id) {
+            if (leadData && !leadData.error && leadData.assigned_to && leadData.assigned_to.id) {
               currentAssignedEmployee.textContent = leadData.assigned_to.name || 'Unknown';
               currentAssignmentInfo.style.display = 'block';
               submitBtn.textContent = 'Change Assignment';
@@ -1057,14 +1151,14 @@
             }
             
             // Load employees dropdown
-            if (employeesData.success && employeesData.employees.length > 0) {
+            if (employeesData && employeesData.success && employeesData.employees && employeesData.employees.length > 0) {
               employeeSelect.innerHTML = '<option value="">Select Employee</option>';
               employeesData.employees.forEach(function(emp) {
                 const option = document.createElement('option');
                 option.value = emp.id;
                 option.textContent = `${emp.name}${emp.designation ? ' (' + emp.designation + ')' : ''}`;
                 // Pre-select current assigned employee if exists
-                if (leadData.assigned_to && leadData.assigned_to.id && emp.id == leadData.assigned_to.id) {
+                if (leadData && !leadData.error && leadData.assigned_to && leadData.assigned_to.id && emp.id == leadData.assigned_to.id) {
                   option.selected = true;
                 }
                 employeeSelect.appendChild(option);
@@ -1072,9 +1166,22 @@
               employeeSelect.disabled = false;
               helpText.textContent = `Found ${employeesData.employees.length} sales employee(s)`;
             } else {
+              let errorMsg = 'No active sales employees found';
+              if (employeesData && employeesData.error) {
+                errorMsg = employeesData.error;
+                // Show debug info if available
+                if (employeesData.debug_info) {
+                  console.log('Debug info:', employeesData.debug_info);
+                  if (employeesData.debug_info.available_departments && employeesData.debug_info.available_departments.length > 0) {
+                    errorMsg += ` (Available: ${employeesData.debug_info.available_departments.join(', ')})`;
+                  }
+                }
+              }
               employeeSelect.innerHTML = '<option value="">No sales employees found</option>';
               employeeSelect.disabled = true;
-              helpText.textContent = 'No active sales employees found';
+              helpText.textContent = errorMsg;
+              helpText.style.color = '#dc3545';
+              console.error('Employees data error:', employeesData);
             }
           })
           .catch(error => {
@@ -1397,43 +1504,76 @@
       });
     }
 
-    // Filtering logic for All Leads table
+    // Filtering logic for All Leads table - Only "Between" date range filter
     const filterForm = document.getElementById('filterForm');
     if (filterForm) {
       filterForm.addEventListener('submit', function (e) {
         e.preventDefault();
-        const type = filterForm.querySelector('[name="filter_type"]:checked').value;
-        const date = filterForm.querySelector('[name="single_date"]').value; // format YYYY-MM-DD
-        const month = filterForm.querySelector('[name="month"]').value; // format YYYY-MM
-        const year = filterForm.querySelector('[name="year"]').value;   // format YYYY
         const from = filterForm.querySelector('[name="from_date"]').value;
         const to = filterForm.querySelector('[name="to_date"]').value;
 
+        // Validate date range
+        if (!from || !to) {
+          alert('Please select both "From Date" and "To Date" for date range filter.');
+          return;
+        }
+        
+        const fromDate = new Date(from);
+        const toDate = new Date(to);
+        
+        if (fromDate > toDate) {
+          const errorDiv = document.getElementById('dateRangeError');
+          if (errorDiv) {
+            errorDiv.classList.remove('d-none');
+          }
+          alert('Error: "From Date" cannot be greater than "To Date". Please select a valid date range.');
+          return;
+        }
+
         const rows = document.querySelectorAll('.leads-table tbody tr');
+        let visibleCount = 0;
+        
         rows.forEach(row => {
           const dueIso = row.getAttribute('data-due');
-          if (!dueIso) { row.style.display = ''; return; }
-          const due = new Date(dueIso);
-          let show = true;
-
-          if (type === 'date' && date) {
-            const d = new Date(date);
-            show = due.getFullYear() === d.getFullYear() && due.getMonth() === d.getMonth() && due.getDate() === d.getDate();
-          } else if (type === 'month' && month) {
-            const [y, m] = month.split('-').map(n => parseInt(n, 10));
-            show = due.getFullYear() === y && (due.getMonth() + 1) === m;
-          } else if (type === 'year' && year) {
-            const y = parseInt(year, 10);
-            show = due.getFullYear() === y;
-          } else if (type === 'between' && from && to) {
-            const f = new Date(from);
-            const t = new Date(to);
-            // inclusive range
-            show = due >= new Date(f.setHours(0,0,0,0)) && due <= new Date(t.setHours(23,59,59,999));
+          if (!dueIso) { 
+            // If no due date, hide the row when filtering
+            row.style.display = 'none';
+            return; 
           }
+          
+          const due = new Date(dueIso);
+          const f = new Date(from);
+          const t = new Date(to);
+          
+          // Set time to start and end of day for inclusive range
+          f.setHours(0, 0, 0, 0);
+          t.setHours(23, 59, 59, 999);
+          
+          const show = due >= f && due <= t;
 
           row.style.display = show ? '' : 'none';
+          if (show) visibleCount++;
         });
+
+        // Show message if no results
+        if (visibleCount === 0) {
+          const alertDiv = document.createElement('div');
+          alertDiv.className = 'alert alert-info alert-dismissible fade show mt-3';
+          alertDiv.innerHTML = `
+            <i class="bi bi-info-circle"></i> <strong>No leads found</strong> matching the selected date range (${from} to ${to}).
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+          `;
+          const cardBody = document.querySelector('#list .card-body');
+          if (cardBody && !cardBody.querySelector('.alert-info')) {
+            cardBody.insertBefore(alertDiv, cardBody.firstChild);
+          }
+        } else {
+          // Remove any existing "no results" alerts
+          const existingAlert = document.querySelector('#list .card-body .alert-info');
+          if (existingAlert) {
+            existingAlert.remove();
+          }
+        }
 
         // Close modal
         const modalEl = document.getElementById('filterModal');
@@ -1541,6 +1681,125 @@
         }
       });
     }
+    
+    // Highlight current status in dropdown when opened
+    document.querySelectorAll('.status-badge-btn').forEach(button => {
+      button.addEventListener('show.bs.dropdown', function() {
+        const currentStatus = this.getAttribute('data-current-status');
+        const dropdownMenu = this.nextElementSibling;
+        if (dropdownMenu) {
+          // Remove active class from all options
+          dropdownMenu.querySelectorAll('.status-option').forEach(option => {
+            option.classList.remove('active');
+          });
+          // Add active class to current status
+          const currentOption = dropdownMenu.querySelector(`[data-status="${currentStatus}"]`);
+          if (currentOption) {
+            currentOption.classList.add('active');
+          }
+        }
+      });
+    });
+    
+    // Status dropdown click handler - Update lead status
+    document.addEventListener('click', function(e) {
+      if (e.target.classList.contains('status-option')) {
+        e.preventDefault();
+        e.stopPropagation();
+        
+        const statusOption = e.target;
+        const leadId = statusOption.getAttribute('data-lead-id');
+        const newStatus = statusOption.getAttribute('data-status');
+        const statusButton = document.getElementById(`statusDropdown${leadId}`);
+        
+        if (!leadId || !newStatus || !statusButton) {
+          console.error('Missing data for status update');
+          return;
+        }
+        
+        // Get current status
+        const currentStatus = statusButton.getAttribute('data-current-status');
+        if (currentStatus === newStatus) {
+          // Status is already set, just close dropdown
+          const dropdown = bootstrap.Dropdown.getInstance(statusButton);
+          if (dropdown) dropdown.hide();
+          return;
+        }
+        
+        // Show loading state
+        const originalText = statusButton.textContent;
+        statusButton.disabled = true;
+        statusButton.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Updating...';
+        
+        // Prepare form data
+        const formData = new FormData();
+        formData.append('lead_id', leadId);
+        formData.append('status', newStatus);
+        formData.append('csrfmiddlewaretoken', document.querySelector('[name=csrfmiddlewaretoken]').value);
+        
+        // Update status via API
+        fetch('{% url "update_lead_status" %}', {
+          method: 'POST',
+          body: formData,
+          headers: {
+            'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+          }
+        })
+        .then(response => response.json())
+        .then(data => {
+          if (data.success) {
+            // Update badge class and text
+            const badgeClassMap = {
+              'Pending': 'bg-secondary',
+              'Contacted': 'bg-info',
+              'Qualified': 'bg-primary',
+              'Proposal': 'bg-warning text-dark',
+              'Negotiation': 'bg-warning text-dark',
+              'Won': 'bg-success',
+              'Lost': 'bg-danger'
+            };
+            
+            const badgeClass = data.badge_class || badgeClassMap[newStatus] || 'bg-secondary';
+            
+            // Update button
+            statusButton.className = `btn badge ${badgeClass} dropdown-toggle status-badge-btn`;
+            statusButton.textContent = newStatus;
+            statusButton.setAttribute('data-current-status', newStatus);
+            statusButton.disabled = false;
+            
+            // Close dropdown
+            const dropdown = bootstrap.Dropdown.getInstance(statusButton);
+            if (dropdown) dropdown.hide();
+            
+            // Show success message
+            const alert = document.createElement('div');
+            alert.className = 'alert alert-success alert-dismissible fade show position-fixed top-0 start-50 translate-middle-x mt-3';
+            alert.style.zIndex = '9999';
+            alert.innerHTML = `
+              <strong>Success!</strong> Status updated to "${newStatus}"
+              <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            `;
+            document.body.appendChild(alert);
+            
+            // Remove alert after 3 seconds
+            setTimeout(() => {
+              alert.remove();
+            }, 3000);
+          } else {
+            // Error occurred
+            alert('Error: ' + (data.error || 'Failed to update status'));
+            statusButton.textContent = originalText;
+            statusButton.disabled = false;
+          }
+        })
+        .catch(error => {
+          console.error('Error updating status:', error);
+          alert('An error occurred while updating status. Please try again.');
+          statusButton.textContent = originalText;
+          statusButton.disabled = false;
+        });
+      }
+    });
   });
 </script>
 {% endblock %}

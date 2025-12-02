@@ -1,14 +1,27 @@
-{% extends "dashboard/dashboard_base.html" %}
+{% extends "employee/base.html" %}
 {% load static %}
 {% load humanize %}
-{% block title %}Invoices - Sujata Associates{% endblock %}
+{% block title %}My Invoices - Sujata Associates{% endblock %}
+{% block page_title %}<h1 style="display: none;"></h1>{% endblock %}
 
 {% block content %}
 <div class="invoices-container" style="width: 100%; max-width: 100%; overflow-x: auto;">
   <div class="dashboard-header">
-    <h1>Invoices</h1>
-    <p class="text-muted">View and manage all invoices</p>
+    <h1>My Invoices</h1>
+    <p class="text-muted">View and manage your invoices</p>
   </div>
+
+  <!-- Messages Display - Hidden for employees -->
+  {% if messages and user.is_staff %}
+    <div class="messages-container mb-3">
+      {% for message in messages %}
+        <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+          {{ message }}
+          <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+      {% endfor %}
+    </div>
+  {% endif %}
 
   <!-- Statistics Cards -->
   <div class="row mb-4">
@@ -49,7 +62,7 @@
   <!-- Search Section -->
   <div class="card mb-4">
     <div class="card-body">
-      <form method="GET" action="{% url 'invoices' %}" class="row g-3 align-items-end" id="invoicesSearchForm">
+      <form method="GET" action="{% url 'employee_invoices' %}" class="row g-3 align-items-end" id="invoicesSearchForm">
         <div class="col-12 col-md-10">
           <label for="search" class="form-label">
             <i class="bi bi-search me-1"></i>Search
@@ -78,9 +91,9 @@
         <div class="mt-3 d-flex flex-wrap align-items-center gap-2">
           <span class="badge bg-secondary">
             Search: "{{ search_query }}"
-            <a href="{% url 'invoices' %}" class="text-white ms-2" style="text-decoration: none;">×</a>
+            <a href="{% url 'employee_invoices' %}" class="text-white ms-2" style="text-decoration: none;">×</a>
           </span>
-          <a href="{% url 'invoices' %}" class="btn btn-sm btn-outline-secondary">Clear All</a>
+          <a href="{% url 'employee_invoices' %}" class="btn btn-sm btn-outline-secondary">Clear All</a>
         </div>
       {% endif %}
     </div>
@@ -100,11 +113,6 @@
             <i class="bi bi-plus-circle me-2"></i>Create New Invoice
           </button>
         </li>
-        <li class="nav-item" role="presentation">
-          <button class="nav-link" id="bank-accounts-tab" data-bs-toggle="tab" data-bs-target="#bank-accounts" type="button" role="tab" aria-controls="bank-accounts" aria-selected="false">
-            <i class="bi bi-bank me-2"></i>Company Bank Accounts
-          </button>
-        </li>
       </ul>
     </div>
     <div class="card-body">
@@ -119,11 +127,7 @@
                 <th>Invoice #</th>
                 <th>Client Name</th>
                 <th>Company</th>
-                <th>Email</th>
-                <th>Phone</th>
-                <th>Amount / Due</th>
-                <th>Status</th>
-                <th>Date</th>
+                <th>Info</th>
                 <th class="text-end">Actions</th>
               </tr>
             </thead>
@@ -135,57 +139,28 @@
                   </td>
                   <td data-label="Client Name">{{ invoice.client_name|default:"-" }}</td>
                   <td data-label="Company">{{ invoice.company|default:"-" }}</td>
-                  <td data-label="Email">
-                    {% if invoice.email %}
-                      <a href="mailto:{{ invoice.email }}">{{ invoice.email }}</a>
-                    {% else %}
-                      -
-                    {% endif %}
-                  </td>
-                  <td data-label="Phone">
-                    {% if invoice.phone %}
-                      <a href="tel:{{ invoice.phone }}">{{ invoice.phone }}</a>
-                    {% else %}
-                      -
-                    {% endif %}
-                  </td>
-                  <td data-label="Amount / Due">
-                    <strong>
-                      {% if invoice.currency == 'USD' %}
-                        $ {{ invoice.amount|floatformat:2|intcomma|default:"0.00" }}
-                      {% elif invoice.currency == 'EUR' %}
-                        € {{ invoice.amount|floatformat:2|intcomma|default:"0.00" }}
-                      {% else %}
-                        ₹ {{ invoice.amount|floatformat:2|intcomma|default:"0.00" }}
-                      {% endif %}
-                    </strong>
-                    <span class="text-muted">
-                      /
-                      {% if invoice.currency == 'USD' %}
-                        $ {{ invoice.pending_balance|floatformat:2|intcomma|default:"0.00" }}
-                      {% elif invoice.currency == 'EUR' %}
-                        € {{ invoice.pending_balance|floatformat:2|intcomma|default:"0.00" }}
-                      {% else %}
-                        ₹ {{ invoice.pending_balance|floatformat:2|intcomma|default:"0.00" }}
-                      {% endif %}
-                    </span>
-                  </td>
-                  <td data-label="Status">
-                    <span class="badge {{ invoice.status_badge|default:'bg-secondary' }}">
-                      {{ invoice.status|default:"-" }}
-                    </span>
-                  </td>
-                  <td data-label="Date">
-                    {% if invoice.date %}
-                      {{ invoice.date|date:"M d, Y" }}
-                    {% else %}
-                      -
-                    {% endif %}
+                  <td data-label="Info">
+                    <button type="button" 
+                            class="btn btn-sm btn-outline-info invoice-info-btn" 
+                            data-invoice-id="{{ invoice.id }}"
+                            data-invoice-email="{{ invoice.email|default:'' }}"
+                            data-invoice-phone="{{ invoice.phone|default:'' }}"
+                            data-invoice-amount="{{ invoice.amount|default:0 }}"
+                            data-invoice-pending="{{ invoice.pending_balance|default:0 }}"
+                            data-invoice-currency="{{ invoice.currency|default:'INR' }}"
+                            data-invoice-status="{{ invoice.status|default:'-' }}"
+                            data-invoice-status-badge="{{ invoice.status_badge|default:'bg-secondary' }}"
+                            data-invoice-date="{% if invoice.date %}{{ invoice.date|date:'M d, Y' }}{% else %}-{% endif %}"
+                            data-bs-toggle="modal" 
+                            data-bs-target="#invoiceInfoModal"
+                            title="View Invoice Info">
+                      <i class="bi bi-info-circle"></i>
+                    </button>
                   </td>
                   <td data-label="Actions" class="text-end">
                     <div class="btn-group" role="group">
                       {% if invoice.pending_balance > 0 %}
-                      <a href="{% url 'invoices' %}?open_invoice={{ invoice.id }}#create-invoice"
+                      <a href="{% url 'employee_invoices' %}?open_invoice={{ invoice.id }}#create-invoice"
                          class="btn btn-sm btn-outline-warning invoice-pay-due-link"
                          data-invoice-id="{{ invoice.id }}"
                          title="Pay Due">
@@ -228,7 +203,7 @@
                 </tr>
               {% empty %}
                 <tr>
-                  <td colspan="10" class="text-center text-muted py-4">
+                  <td colspan="5" class="text-center text-muted py-4">
                     <i class="bi bi-inbox" style="font-size: 2rem; display: block; margin-bottom: 0.5rem;"></i>
                     No invoices found
                   </td>
@@ -415,7 +390,7 @@
                   {% csrf_token %}
                   <div class="row g-3">
                     <div class="col-md-4">
-                      <label for="pay_due_amount" class="form-label">Pay Due Amount</label>
+                      <label for="pay_due_amount" class="form-label">Pay Due Amount <span class="text-danger">*</span></label>
                       <input type="number"
                              class="form-control"
                              id="pay_due_amount"
@@ -425,8 +400,18 @@
                              max="{{ selected_invoice.pending_balance }}"
                              value="{{ selected_invoice.pending_balance|floatformat:2 }}"
                              data-pending="{{ selected_invoice.pending_balance }}"
+                             data-currency="{{ selected_invoice.currency }}"
                              required>
-                      <small class="text-muted">Maximum {{ selected_invoice.pending_balance|floatformat:2 }}</small>
+                      <small class="text-muted">
+                        Remaining Due: 
+                        {% if selected_invoice.currency == 'USD' %}
+                          $ {{ selected_invoice.pending_balance|floatformat:2|intcomma }}
+                        {% elif selected_invoice.currency == 'EUR' %}
+                          € {{ selected_invoice.pending_balance|floatformat:2|intcomma }}
+                        {% else %}
+                          ₹ {{ selected_invoice.pending_balance|floatformat:2|intcomma }}
+                        {% endif %}
+                      </small>
                     </div>
                     <div class="col-md-4">
                       <label for="pay_due_date" class="form-label">Payment Date</label>
@@ -443,17 +428,24 @@
                       </button>
                     </div>
                   </div>
-                  <div class="mt-2 text-muted">
-                    Remaining Due after payment:
-                    <span class="fw-semibold" id="pay_due_preview">
-                      {% if selected_invoice.currency == 'USD' %}
-                        $ 0.00
-                      {% elif selected_invoice.currency == 'EUR' %}
-                        € 0.00
-                      {% else %}
-                        ₹ 0.00
-                      {% endif %}
-                    </span>
+                  <div class="mt-2">
+                    <div class="d-flex justify-content-between align-items-center">
+                      <span class="text-muted">Remaining Due after payment:</span>
+                      <span class="fw-semibold" id="pay_due_preview">
+                        {% if selected_invoice.currency == 'USD' %}
+                          $ 0.00
+                        {% elif selected_invoice.currency == 'EUR' %}
+                          € 0.00
+                        {% else %}
+                          ₹ 0.00
+                        {% endif %}
+                      </span>
+                    </div>
+                    <div class="mt-1">
+                      <button type="button" class="btn btn-sm btn-outline-primary" id="pay-full-due-btn">
+                        <i class="bi bi-check-all me-1"></i>Pay Full Due Amount
+                      </button>
+                    </div>
                   </div>
                 </form>
               </div>
@@ -468,7 +460,7 @@
               {% endif %}
             </h5>
             
-            <form method="POST" action="{% url 'invoices' %}" id="createInvoiceForm" novalidate onsubmit="return validateClientForm()">
+            <form method="POST" action="{% url 'employee_invoices' %}" id="createInvoiceForm" novalidate onsubmit="return validateClientForm()">
               {% csrf_token %}
               {% if edit_invoice %}
                 <input type="hidden" name="invoice_id" value="{{ edit_invoice.id }}">
@@ -559,9 +551,9 @@
                   <input type="date" class="form-control" id="invoice_date" name="invoice_date" required>
                 </div>
                 
-                <div class="col-md-6 mb-3">
+                <div class="col-md-6 mb-3" style="display: none;">
                   <label for="owner" class="form-label">Owner/Assignee <span class="text-danger">*</span></label>
-                  <input type="text" class="form-control" id="owner" name="owner" required>
+                  <input type="text" class="form-control" id="owner" name="owner" value="{{ employee_name|default:'' }}" required>
                 </div>
                 
                 <div class="col-md-6 mb-3">
@@ -710,91 +702,72 @@
           </div>
         </div>
 
-        <!-- Company Bank Accounts Tab -->
-        <div class="tab-pane fade" id="bank-accounts" role="tabpanel" aria-labelledby="bank-accounts-tab">
-          <div class="row">
-            <div class="col-12">
-              <h5 class="mb-4"><i class="bi bi-bank me-2"></i>Company Bank Accounts</h5>
-              
-              <!-- Add Bank Account Section -->
-              <div class="card mb-4">
-                <div class="card-header bg-primary text-white">
-                  <h5 class="mb-0"><i class="bi bi-plus-circle me-2"></i>Add Company Bank Account</h5>
-                </div>
-                <div class="card-body">
-                  <div class="row">
-                    <div class="col-md-6 mb-3">
-                      <label for="bank_account_name" class="form-label">Account Name <span class="text-danger">*</span></label>
-                      <input type="text" class="form-control" id="bank_account_name" placeholder="e.g. Sujata Associates Consultancy Pvt Ltd">
-                    </div>
-                    
-                    <div class="col-md-6 mb-3">
-                      <label for="bank_name" class="form-label">Bank Name <span class="text-danger">*</span></label>
-                      <input type="text" class="form-control" id="bank_name" placeholder="e.g. Bank of Maharashtra">
-                    </div>
-                    
-                    <div class="col-md-6 mb-3">
-                      <label for="bank_account_number" class="form-label">Account Number <span class="text-danger">*</span></label>
-                      <input type="text" class="form-control" id="bank_account_number" placeholder="e.g. 60476131014">
-                    </div>
-                    
-                    <div class="col-md-6 mb-3">
-                      <label for="bank_ifsc" class="form-label">IFSC Code <span class="text-danger">*</span></label>
-                      <input type="text" class="form-control" id="bank_ifsc" placeholder="e.g. MAHB0001272">
-                    </div>
-                    
-                    <div class="col-md-6 mb-3">
-                      <label for="bank_branch" class="form-label">Branch</label>
-                      <input type="text" class="form-control" id="bank_branch" placeholder="e.g. Bidhan Nagar, Kolkata">
-                    </div>
-                    
-                    <div class="col-md-6 mb-3 d-flex align-items-end">
-                      <div class="form-check">
-                        <input class="form-check-input" type="checkbox" id="bank_is_default">
-                        <label class="form-check-label" for="bank_is_default">
-                          Set as Default Account
-                        </label>
-                      </div>
-                    </div>
-                    
-                    <div class="col-12">
-                      <button type="button" class="btn btn-primary" id="add-bank-account-btn">
-                        <i class="bi bi-plus-circle me-2"></i>Add Bank Account
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              </div>
+      </div>
+    </div>
+  </div>
+</div>
 
-              <!-- Bank Accounts Table -->
-              <div class="card">
-                <div class="card-header">
-                  <h5 class="mb-0"><i class="bi bi-list-ul me-2"></i>All Bank Accounts</h5>
-                </div>
-                <div class="card-body">
-                  <div class="table-responsive">
-                    <table class="table table-sm table-bordered table-hover" id="bank-accounts-table">
-                      <thead class="table-light">
-                        <tr>
-                          <th>Account Name</th>
-                          <th>Bank Name</th>
-                          <th>Account Number</th>
-                          <th>IFSC</th>
-                          <th>Branch</th>
-                          <th>Status</th>
-                          <th>Actions</th>
-                        </tr>
-                      </thead>
-                      <tbody id="bank-accounts-table-body">
-                        <!-- Bank accounts will be loaded here -->
-                      </tbody>
-                    </table>
-                  </div>
-                </div>
+<!-- Invoice Info Modal (Simple Popup) -->
+<div class="modal fade" id="invoiceInfoModal" tabindex="-1" aria-labelledby="invoiceInfoModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header bg-info text-white">
+        <h5 class="modal-title" id="invoiceInfoModalLabel">
+          <i class="bi bi-info-circle me-2"></i>Invoice Information
+        </h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <div class="row g-3">
+          <div class="col-12">
+            <div class="d-flex align-items-center mb-3">
+              <i class="bi bi-envelope me-2 text-primary"></i>
+              <div>
+                <strong>Email:</strong>
+                <div id="infoEmail" class="text-muted">-</div>
+              </div>
+            </div>
+          </div>
+          <div class="col-12">
+            <div class="d-flex align-items-center mb-3">
+              <i class="bi bi-telephone me-2 text-primary"></i>
+              <div>
+                <strong>Phone:</strong>
+                <div id="infoPhone" class="text-muted">-</div>
+              </div>
+            </div>
+          </div>
+          <div class="col-12">
+            <div class="d-flex align-items-center mb-3">
+              <i class="bi bi-currency-exchange me-2 text-primary"></i>
+              <div>
+                <strong>Amount / Due:</strong>
+                <div id="infoAmountDue" class="text-muted">-</div>
+              </div>
+            </div>
+          </div>
+          <div class="col-12">
+            <div class="d-flex align-items-center mb-3">
+              <i class="bi bi-check-circle me-2 text-primary"></i>
+              <div>
+                <strong>Status:</strong>
+                <div id="infoStatus" class="mt-1">-</div>
+              </div>
+            </div>
+          </div>
+          <div class="col-12">
+            <div class="d-flex align-items-center">
+              <i class="bi bi-calendar me-2 text-primary"></i>
+              <div>
+                <strong>Date:</strong>
+                <div id="infoDate" class="text-muted">-</div>
               </div>
             </div>
           </div>
         </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
       </div>
     </div>
   </div>
@@ -932,20 +905,17 @@
     background-color: transparent;
   }
   
-  /* Black text color for Create Invoice and Company Bank Accounts tabs */
-  #create-invoice-tab,
-  #bank-accounts-tab {
-    color: #000000 !important;
-  }
-  
-  #create-invoice-tab:hover,
-  #bank-accounts-tab:hover {
+  /* White text color for Create Invoice tab */
+  #create-invoice-tab {
     color: #ffffff !important;
   }
   
-  #create-invoice-tab.active,
-  #bank-accounts-tab.active {
-    color: #000000 !important;
+  #create-invoice-tab:hover {
+    color: #ffffff !important;
+  }
+  
+  #create-invoice-tab.active {
+    color: #ffffff !important;
   }
   
   .card-header-tabs {
@@ -1146,10 +1116,26 @@
             payDueAmountInput.value = '0.00';
           }
           const remaining = Math.max(0, pending - entered);
-          payDuePreview.textContent = remaining > 0 ? formatCurrency(remaining) : `${formatCurrency(0)} (No Due)`;
+          if (remaining > 0) {
+            payDuePreview.textContent = formatCurrency(remaining);
+            payDuePreview.className = 'fw-semibold text-warning';
+          } else {
+            payDuePreview.textContent = formatCurrency(0) + ' (No Due)';
+            payDuePreview.className = 'fw-semibold text-success';
+          }
         }
         updatePayDuePreview();
         payDueAmountInput.addEventListener('input', updatePayDuePreview);
+        
+        // Pay Full Due button
+        const payFullDueBtn = document.getElementById('pay-full-due-btn');
+        if (payFullDueBtn) {
+          payFullDueBtn.addEventListener('click', function() {
+            payDueAmountInput.value = pending.toFixed(2);
+            updatePayDuePreview();
+            payDueAmountInput.focus();
+          });
+        }
         scrollToCreateTab();
       }
     } else if (openInvoiceParam) {
@@ -1963,6 +1949,59 @@
       printWindow.focus();
     }
 
+    // Invoice Info modal handler
+    const infoButtons = document.querySelectorAll('.invoice-info-btn');
+    const infoModalEl = document.getElementById('invoiceInfoModal');
+    let infoModal = null;
+    if (infoModalEl && window.bootstrap) {
+      infoModal = bootstrap.Modal.getOrCreateInstance(infoModalEl);
+    }
+
+    infoButtons.forEach(button => {
+      button.addEventListener('click', function() {
+        const email = this.dataset.invoiceEmail || '-';
+        const phone = this.dataset.invoicePhone || '-';
+        const amount = parseFloat(this.dataset.invoiceAmount || '0');
+        const pending = parseFloat(this.dataset.invoicePending || '0');
+        const currency = this.dataset.invoiceCurrency || 'INR';
+        const status = this.dataset.invoiceStatus || '-';
+        const statusBadge = this.dataset.invoiceStatusBadge || 'bg-secondary';
+        const date = this.dataset.invoiceDate || '-';
+
+        // Format currency
+        function formatCurrency(value) {
+          const formatted = value.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+          if (currency === 'USD') return `$ ${formatted}`;
+          if (currency === 'EUR') return `€ ${formatted}`;
+          return `₹ ${formatted}`;
+        }
+
+        // Update modal content with clickable links
+        const emailEl = document.getElementById('infoEmail');
+        const phoneEl = document.getElementById('infoPhone');
+        
+        if (email && email !== '-') {
+          emailEl.innerHTML = `<a href="mailto:${email}">${email}</a>`;
+        } else {
+          emailEl.textContent = '-';
+        }
+        
+        if (phone && phone !== '-') {
+          phoneEl.innerHTML = `<a href="tel:${phone}">${phone}</a>`;
+        } else {
+          phoneEl.textContent = '-';
+        }
+        document.getElementById('infoAmountDue').innerHTML = `<strong>${formatCurrency(amount)}</strong> / <span class="text-muted">${formatCurrency(pending)}</span>`;
+        document.getElementById('infoStatus').innerHTML = `<span class="badge ${statusBadge}">${status}</span>`;
+        document.getElementById('infoDate').textContent = date;
+
+        // Show modal
+        if (infoModal) {
+          infoModal.show();
+        }
+      });
+    });
+
     // Invoice detail view modal
     const viewButtons = document.querySelectorAll('.invoice-view-btn');
     const detailModalEl = document.getElementById('invoiceDetailModal');
@@ -2420,26 +2459,7 @@
   });
 
   // Bank Accounts Management
-  document.addEventListener('DOMContentLoaded', function() {
-    // Load bank accounts table on page load
-    loadBankAccountsTable();
-    
-    // Load table when bank accounts tab is shown
-    const bankAccountsTab = document.getElementById('bank-accounts-tab');
-    if (bankAccountsTab) {
-      bankAccountsTab.addEventListener('shown.bs.tab', function() {
-        loadBankAccountsTable();
-      });
-    }
-    
-    // Add bank account button
-    const addBankAccountBtn = document.getElementById('add-bank-account-btn');
-    if (addBankAccountBtn) {
-      addBankAccountBtn.addEventListener('click', function() {
-        addBankAccount();
-      });
-    }
-  });
+  // Bank accounts management removed for employees - they can only select from existing accounts
 
   function updateBankAccountsCheckboxList() {
     fetch('{% url "bank_accounts_list" %}')

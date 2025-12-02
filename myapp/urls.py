@@ -107,6 +107,7 @@ urlpatterns =[
   path('employee/quotes/onboard/<int:onboard_id>/view/',views.employee_onboard_view,name='employee_onboard_view'),
   path('employee/quotes/onboard/<int:onboard_id>/delete/',views.employee_onboard_delete,name='employee_onboard_delete'),
   path('employee/clients/',views.employee_clients,name='employee_clients'),
+  path('employee/invoices/',views.employee_invoices,name='employee_invoices'),
   
   # Personal Section URLs
   path('employee/profile/',views.employee_profile,name='employee_profile'),

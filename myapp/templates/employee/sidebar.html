@@ -65,20 +65,26 @@
     </div>
     {% endif %}
     
-    <!-- Account Management Section (Only for Accounts department) -->
-    {% if employee_department|default:''|lower == 'accounts' %}
+    <!-- Account Management Section -->
     <div class="nav-section">
       <h3 class="nav-section-title">ACCOUNT MANAGEMENT</h3>
       <ul class="nav-list">
+        {% if employee_department|default:''|lower == 'accounts' %}
         <li class="nav-item">
           <a href="{% url 'employee_accounts' %}" class="nav-link">
             <i class="bi bi-journal-check"></i>
             <span>Accounts Team</span>
           </a>
         </li>
+        {% endif %}
+        <li class="nav-item">
+          <a href="{% url 'employee_invoices' %}" class="nav-link">
+            <i class="bi bi-receipt"></i>
+            <span>My Invoices</span>
+          </a>
+        </li>
       </ul>
     </div>
-    {% endif %}
     
     <!-- Back Office Management Section (Only for Backoffice department) -->
     {% if employee_department|default:''|lower == 'backoffice' %}

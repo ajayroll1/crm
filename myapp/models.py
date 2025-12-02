@@ -366,6 +366,7 @@ class Invoice(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
     
     class Meta:
+        db_table = 'myapp_invoice'
         ordering = ['-invoice_date', '-created_at']
         verbose_name = "Invoice"
         verbose_name_plural = "Invoices"

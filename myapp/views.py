@@ -673,6 +673,16 @@ def dashboard(request):
       'due_date': lead.due_date.strftime('%b %d, %Y') if lead.due_date else 'N/A'
     })
   
+  # Check if password needs to be changed
+  show_password_change_modal = False
+  try:
+    employee = Employee.objects.get(email=request.user.email)
+    # Check if password is not set or empty
+    if not employee.password or not employee.password.strip():
+      show_password_change_modal = True
+  except Employee.DoesNotExist:
+    pass
+  
   # Prepare context with JSON serialized data for charts
   context = {
     'total_leads': total_leads,
@@ -696,6 +706,7 @@ def dashboard(request):
     'renewals_list': renewals_list,
     'tasks_list': tasks_list,
     'user_name': request.user.get_full_name() or request.user.username or 'Admin',
+    'show_password_change_modal': show_password_change_modal,
   }
   
   return render(request, 'dashboard/dashboard.html', context)
@@ -3136,6 +3147,7 @@ def lead_import(request):
     return redirect('leads')
 
 
+@login_required
 def lead_get_data(request, lead_id):
     """
     Get lead data for edit modal
@@ -3146,16 +3158,16 @@ def lead_get_data(request, lead_id):
         
         data = {
             'id': lead.id,
-            'name': lead.name,
+            'name': lead.name or '',
             'email': lead.email or '',
             'phone': lead.phone or '',
             'company': lead.company or '',
-            'owner': lead.owner,
-            'source': lead.source,
-            'priority': lead.priority,
-            'use_case': lead.use_case,
+            'owner': str(lead.owner) if lead.owner else '',
+            'source': lead.source or '',
+            'priority': lead.priority or '',
+            'use_case': lead.use_case or '',
             'next_action': lead.next_action or '',
-            'due_date': lead.due_date.strftime('%Y-%m-%d') if lead.due_date else '',
+            'due_date': lead.due_date.strftime('%d-%b-%Y') if lead.due_date else '',
             'due_time': lead.due_time.strftime('%H:%M') if lead.due_time else '',
             'website': lead.website or '',
             'industry': lead.industry or '',
@@ -3164,7 +3176,7 @@ def lead_get_data(request, lead_id):
             'budget': lead.budget or '',
             'timeline': lead.timeline or '',
             'tags': lead.tags or '',
-            'notes': lead.notes or '',
+            'notes': (lead.notes or '').strip(),  # Return empty string if notes is None or empty, and strip whitespace
             'status': lead.conversion_status or 'Pending',
             'created_at': lead.created_at.strftime('%d-%b-%Y %H:%M') if lead.created_at else '',
             'updated_at': lead.updated_at.strftime('%d-%b-%Y %H:%M') if lead.updated_at else '',
@@ -3199,10 +3211,24 @@ def update_lead_status(request):
         lead.conversion_status = status
         lead.save(update_fields=['conversion_status'])
         
+        # Get badge class for the status
+        status_badge_map = {
+            'Pending': 'bg-secondary',
+            'Contacted': 'bg-info',
+            'Qualified': 'bg-primary',
+            'Proposal': 'bg-warning text-dark',
+            'Negotiation': 'bg-warning text-dark',
+            'Won': 'bg-success',
+            'Lost': 'bg-danger'
+        }
+        badge_class = status_badge_map.get(status, 'bg-secondary')
+        
         return JsonResponse({
             'success': True,
             'message': f'Lead status updated to "{status}" successfully!',
-            'status': status
+            'status': status,
+            'badge_class': badge_class,
+            'status_display': status
         })
         
     except Exception as e:
@@ -3226,14 +3252,23 @@ def update_lead_notes(request):
         
         # Update notes directly (status is stored separately in conversion_status field)
         lead.notes = notes
-        lead.save(update_fields=['notes'])
+        lead.save(update_fields=['notes', 'updated_at'])
+        
+        # Verify the save was successful
+        lead.refresh_from_db()
         
         return JsonResponse({
             'success': True,
-            'message': 'Lead notes updated successfully!'
+            'message': f'Notes for {lead.name} updated successfully!',
+            'notes': lead.notes  # Return updated notes for verification
         })
         
+    except Lead.DoesNotExist:
+        return JsonResponse({'success': False, 'error': 'Lead not found'}, status=404)
     except Exception as e:
+        import traceback
+        print(f"Error updating lead notes: {str(e)}")
+        print(traceback.format_exc())
         return JsonResponse({'success': False, 'error': str(e)}, status=500)
 
 @csrf_exempt
@@ -3278,9 +3313,14 @@ def assign_lead_to_employee(request):
         lead = get_object_or_404(Lead, id=lead_id, is_active=True)
         employee = get_object_or_404(Employee, id=employee_id, status='active')
         
-        # Check if employee is in Sales department
-        if employee.department and 'sales' not in employee.department.lower():
-            return JsonResponse({'success': False, 'error': 'Only Sales employees can be assigned leads'}, status=400)
+        # Check if employee is in Sales department - ensure department exists and matches Sales
+        if not employee.department or not employee.department.strip():
+            return JsonResponse({'success': False, 'error': 'Employee does not have a department assigned. Only Sales employees can be assigned leads.'}, status=400)
+        
+        # Check if employee is in Sales department (case-insensitive)
+        employee_dept = employee.department.strip().lower()
+        if 'sales' not in employee_dept:
+            return JsonResponse({'success': False, 'error': f'Only Sales employees can be assigned leads. This employee belongs to "{employee.department}" department.'}, status=400)
         
         lead.assigned_to = employee
         lead.save(update_fields=['assigned_to'])
@@ -3326,9 +3366,14 @@ def bulk_assign_leads(request):
         
         employee = get_object_or_404(Employee, id=employee_id, status='active')
         
-        # Check if employee is in Sales department
-        if employee.department and 'sales' not in employee.department.lower():
-            return JsonResponse({'success': False, 'error': 'Only Sales employees can be assigned leads'}, status=400)
+        # Check if employee is in Sales department - ensure department exists and matches Sales
+        if not employee.department or not employee.department.strip():
+            return JsonResponse({'success': False, 'error': 'Employee does not have a department assigned. Only Sales employees can be assigned leads.'}, status=400)
+        
+        # Check if employee is in Sales department (case-insensitive)
+        employee_dept = employee.department.strip().lower()
+        if 'sales' not in employee_dept:
+            return JsonResponse({'success': False, 'error': f'Only Sales employees can be assigned leads. This employee belongs to "{employee.department}" department.'}, status=400)
         
         # Get all leads
         leads = Lead.objects.filter(id__in=lead_ids, is_active=True)
@@ -3728,29 +3773,81 @@ def clients(request):
 def get_employees_by_department(request):
     """Get employees by department via AJAX"""
     from django.http import JsonResponse
+    import logging
+    from django.db.models import Q
     
+    logger = logging.getLogger(__name__)
     department = request.GET.get('department', '').strip()
     
+    logger.info(f"get_employees_by_department called with department: '{department}'")
+    
     if not department:
-        return JsonResponse({'success': False, 'error': 'Department is required'})
+        return JsonResponse({'success': False, 'error': 'Department is required', 'employees': []}, status=400)
     
     try:
         from myapp.models import Employee
-        employees = Employee.objects.filter(
-            department__iexact=department,
-            status='active'
-        ).order_by('first_name', 'last_name')
+        
+        # Normalize department name for matching
+        dept_lower = department.lower()
+        
+        # For Sales department, match case-insensitively with multiple variations
+        if dept_lower == 'sales':
+            # Match exact "Sales" or "sales" or any case variation
+            employees = Employee.objects.filter(
+                Q(department__iexact='Sales') | 
+                Q(department__iexact='sales') |
+                Q(department__icontains='sales'),
+                status='active',
+                department__isnull=False
+            ).exclude(department='').order_by('first_name', 'last_name')
+        else:
+            # For other departments, use case-insensitive exact match
+            employees = Employee.objects.filter(
+                department__iexact=department,
+                status='active',
+                department__isnull=False
+            ).exclude(department='').order_by('first_name', 'last_name')
+        
+        logger.info(f"Found {employees.count()} employees with department matching '{department}'")
         
         employees_list = []
         for emp in employees:
-            emp_name = emp.get_full_name()
-            # Count assigned projects for this employee
-            project_count = ClientOnboarding.objects.filter(assigned_engineer__iexact=emp_name).count()
-            employees_list.append({
-                'id': emp.id,
-                'name': emp_name,
-                'designation': emp.designation or '',
-                'project_count': project_count
+            try:
+                emp_name = emp.get_full_name()
+                if not emp_name or not emp_name.strip():
+                    continue
+                # Count assigned projects for this employee
+                project_count = ClientOnboarding.objects.filter(assigned_engineer__iexact=emp_name).count()
+                employees_list.append({
+                    'id': emp.id,
+                    'name': emp_name,
+                    'designation': emp.designation or '',
+                    'project_count': project_count
+                })
+            except Exception as emp_error:
+                # Skip this employee if there's an error, but continue with others
+                import logging
+                logger = logging.getLogger(__name__)
+                logger.error(f"Error processing employee {emp.id}: {str(emp_error)}")
+                continue
+        
+        # If still no employees found, check if any employees exist in database
+        if not employees_list:
+            total_employees = Employee.objects.filter(status='active').count()
+            all_departments = Employee.objects.filter(
+                status='active',
+                department__isnull=False
+            ).exclude(department='').values_list('department', flat=True).distinct()
+            
+            return JsonResponse({
+                'success': False,
+                'error': f'No active employees found in "{department}" department. Available departments: {", ".join(all_departments) if all_departments else "None"}. Total active employees: {total_employees}',
+                'employees': [],
+                'debug_info': {
+                    'requested_department': department,
+                    'total_active_employees': total_employees,
+                    'available_departments': list(all_departments)
+                }
             })
         
         return JsonResponse({
@@ -3758,7 +3855,16 @@ def get_employees_by_department(request):
             'employees': employees_list
         })
     except Exception as e:
-        return JsonResponse({'success': False, 'error': str(e)})
+        import traceback
+        import logging
+        logger = logging.getLogger(__name__)
+        error_trace = traceback.format_exc()
+        logger.error(f"Error in get_employees_by_department: {error_trace}")
+        return JsonResponse({
+            'success': False, 
+            'error': str(e),
+            'employees': []
+        }, status=500)
 
 
 @login_required
@@ -3882,6 +3988,8 @@ def invoices(request):
     # Handle POST request for creating new invoice or updating existing invoice
     if request.method == 'POST':
         try:
+            print(f"DEBUG: POST request received for invoices. POST data keys: {list(request.POST.keys())}")
+            
             # Check if this is an update request
             invoice_id = request.POST.get('invoice_id')
             is_update = invoice_id and invoice_id.strip()
@@ -3890,6 +3998,7 @@ def invoices(request):
             if is_update:
                 try:
                     invoice = Invoice.objects.get(id=int(invoice_id))
+                    print(f"DEBUG: Updating invoice {invoice_id}")
                 except (Invoice.DoesNotExist, ValueError):
                     messages.error(request, 'Invoice not found for update.')
                     return redirect('invoices')
@@ -3900,6 +4009,8 @@ def invoices(request):
                 messages.error(request, 'Client name is required.')
                 return redirect('invoices')
             
+            print(f"DEBUG: Creating invoice for client: {client_name}")
+            
             company = request.POST.get('company', '').strip() or None
             email = request.POST.get('email', '').strip() or None
             phone = request.POST.get('phone', '').strip() or None
@@ -3908,6 +4019,20 @@ def invoices(request):
             currency = request.POST.get('currency', 'INR')
             invoice_date_str = request.POST.get('invoice_date', '')
             owner = request.POST.get('owner', '').strip()
+            
+            # For employees, automatically set owner to their name if not provided or empty
+            if not owner or owner == '':
+                if request.user.is_authenticated:
+                    try:
+                        employee = Employee.objects.get(email=request.user.email)
+                        if employee.role != 'Admin':
+                            # Employee - set owner to their full name
+                            owner = employee.get_full_name().strip() if employee.get_full_name() else (employee.first_name or request.user.get_full_name() or request.user.username or '')
+                    except Employee.DoesNotExist:
+                        # If no employee record, try to get name from user
+                        if not request.user.is_staff:
+                            owner = request.user.get_full_name() or request.user.username or ''
+            
             if not owner:
                 messages.error(request, 'Owner/Assignee is required.')
                 return redirect('invoices')
@@ -3989,6 +4114,41 @@ def invoices(request):
             
             # Update existing invoice or create new one
             if is_update and invoice:
+                # Check if user is employee and if they own this invoice
+                is_employee_owner = False
+                if request.user.is_authenticated:
+                    try:
+                        employee = Employee.objects.get(email=request.user.email)
+                        if employee.role != 'Admin':
+                            # Employee - check if they own this invoice
+                            employee_name = employee.get_full_name().strip() if employee.get_full_name() else None
+                            employee_first_name = employee.first_name.strip() if employee.first_name else None
+                            employee_last_name = employee.last_name.strip() if employee.last_name else None
+                            
+                            # Check if invoice owner matches employee
+                            if employee_name and invoice.owner:
+                                is_employee_owner = (
+                                    invoice.owner.strip().lower() == employee_name.lower() or
+                                    (employee_first_name and employee_last_name and 
+                                     employee_first_name.lower() in invoice.owner.lower() and 
+                                     employee_last_name.lower() in invoice.owner.lower())
+                                )
+                            elif employee_first_name and invoice.owner:
+                                is_employee_owner = employee_first_name.lower() in invoice.owner.lower()
+                            
+                            if not is_employee_owner:
+                                messages.error(request, 'You can only edit invoices that you created.')
+                                return redirect('invoices')
+                    except Employee.DoesNotExist:
+                        # If no employee record but user is not staff, check by name
+                        if not request.user.is_staff:
+                            user_full_name = (request.user.get_full_name() or request.user.username or '').strip()
+                            if user_full_name and invoice.owner:
+                                is_employee_owner = user_full_name.lower() in invoice.owner.lower()
+                            if not is_employee_owner:
+                                messages.error(request, 'You can only edit invoices that you created.')
+                                return redirect('invoices')
+                
                 # Update existing invoice
                 invoice.client_name = client_name
                 invoice.company = company
@@ -4013,28 +4173,45 @@ def invoices(request):
                 messages.success(request, f'Invoice {invoice_number} updated successfully!')
             else:
                 # Create new Invoice object
-                invoice = Invoice.objects.create(
-                    client_name=client_name,
-                    company=company,
-                    email=email,
-                    phone=phone,
-                    invoice_number=invoice_number,
-                    invoice_date=invoice_date,
-                    owner=owner,
-                    status=payment_status,
-                    currency=currency,
-                    subtotal=subtotal,
-                    discount=discount,
-                    gst_percent=gst_percent,
-                    gst_amount=gst_amount,
-                    total=total,
-                    amount_received=amount_received,
-                    notes=notes,
-                    terms=terms,
-                    items=items,
-                    selected_bank_accounts=selected_bank_accounts,
-                )
-                messages.success(request, f'Invoice {invoice_number} created successfully!')
+                print(f"DEBUG: Creating invoice with number: {invoice_number}, owner: {owner}")
+                print(f"DEBUG: Table name: {Invoice._meta.db_table}")
+                try:
+                    invoice = Invoice.objects.create(
+                        client_name=client_name,
+                        company=company,
+                        email=email,
+                        phone=phone,
+                        invoice_number=invoice_number,
+                        invoice_date=invoice_date,
+                        owner=owner,
+                        status=payment_status,
+                        currency=currency,
+                        subtotal=subtotal,
+                        discount=discount,
+                        gst_percent=gst_percent,
+                        gst_amount=gst_amount,
+                        total=total,
+                        amount_received=amount_received,
+                        notes=notes,
+                        terms=terms,
+                        items=items,
+                        selected_bank_accounts=selected_bank_accounts,
+                    )
+                    # Force save to ensure it's committed
+                    invoice.save()
+                    print(f"DEBUG: Invoice created successfully! ID: {invoice.id}, Number: {invoice.invoice_number}, Table: {invoice._meta.db_table}")
+                    # Verify it was saved
+                    verify_invoice = Invoice.objects.filter(id=invoice.id).first()
+                    if verify_invoice:
+                        print(f"DEBUG: Invoice verified in database! ID: {verify_invoice.id}")
+                    else:
+                        print(f"DEBUG: ERROR - Invoice not found in database after creation!")
+                    messages.success(request, f'Invoice {invoice_number} created successfully!')
+                except Exception as create_error:
+                    print(f"DEBUG: Error during Invoice.objects.create(): {str(create_error)}")
+                    import traceback
+                    print(traceback.format_exc())
+                    raise
             
             # If payment status is Paid, try to create/update ClientOnboarding record
             if payment_status == 'Paid':
@@ -4066,6 +4243,10 @@ def invoices(request):
             return redirect('invoices')
             
         except Exception as e:
+            import traceback
+            error_trace = traceback.format_exc()
+            print(f"Error creating invoice: {str(e)}")
+            print(f"Traceback: {error_trace}")
             messages.error(request, f'Error creating invoice: {str(e)}')
             return redirect('invoices')
     
@@ -4073,8 +4254,84 @@ def invoices(request):
     # Search functionality
     search_query = request.GET.get('search', '').strip()
     
-    # Get all invoices from Invoice model
+    # Get all invoices from Invoice model (myapp_invoice table)
+    # Admins will see ALL invoices, employees will see only their own
     invoices_list = Invoice.objects.all().order_by('-invoice_date', '-created_at')
+    
+    # Determine if user is Admin or Employee
+    # Admins see ALL invoices from myapp_invoice table
+    # Employees see only invoices they created (where owner matches their name)
+    is_admin = False
+    employee_name = None
+    employee_first_name = None
+    employee_last_name = None
+    
+    if request.user.is_authenticated:
+        # First check if user is Django staff/superuser (most reliable admin check)
+        if request.user.is_staff or request.user.is_superuser:
+            is_admin = True  # Staff/Admin - will see ALL invoices
+        
+        # Also check Employee model for admin role
+        try:
+            employee = Employee.objects.get(email=request.user.email)
+            if employee.role == 'Admin':
+                is_admin = True  # Admin - will see ALL invoices
+            else:
+                # Employee - get their full name and individual names to filter invoices
+                # Only set employee name if not already admin
+                if not is_admin:
+                    employee_name = employee.get_full_name().strip() if employee.get_full_name() else None
+                    employee_first_name = employee.first_name.strip() if employee.first_name else None
+                    employee_last_name = employee.last_name.strip() if employee.last_name else None
+        except Employee.DoesNotExist:
+            # If no employee record and not staff, try to get employee name from user's full name
+            if not is_admin:
+                user_full_name = (request.user.get_full_name() or request.user.username or '').strip()
+                if user_full_name:
+                    name_parts = user_full_name.split(' ', 1)
+                    employee_first_name = name_parts[0] if name_parts else None
+                    employee_last_name = name_parts[1] if len(name_parts) > 1 else None
+                    employee_name = user_full_name
+        except Exception:
+            # Fallback: if error and not admin, treat as employee and try to get name
+            if not is_admin:
+                user_full_name = (request.user.get_full_name() or request.user.username or '').strip()
+                if user_full_name:
+                    name_parts = user_full_name.split(' ', 1)
+                    employee_first_name = name_parts[0] if name_parts else None
+                    employee_last_name = name_parts[1] if len(name_parts) > 1 else None
+                    employee_name = user_full_name
+    
+    # IMPORTANT: Only filter invoices if user is NOT admin
+    # Admins (is_admin=True) will see ALL invoices from myapp_invoice table
+    # Employees (is_admin=False) will see only their own invoices
+    if not is_admin:
+        if employee_name or employee_first_name:
+            # Try multiple matching strategies for better compatibility
+            owner_filters = Q()
+            
+            # Exact match with full name (case-insensitive) - primary match
+            if employee_name:
+                owner_filters |= Q(owner__iexact=employee_name)
+                # Also try with regex to handle extra whitespace
+                owner_filters |= Q(owner__iregex=rf'^\s*{re.escape(employee_name.strip())}\s*$')
+            
+            # Match with first name and last name separately (more flexible)
+            if employee_first_name and employee_last_name:
+                # Match if owner contains both first and last name (handles variations)
+                owner_filters |= (Q(owner__icontains=employee_first_name) & Q(owner__icontains=employee_last_name))
+            elif employee_first_name:
+                # If only first name available, match by first name
+                owner_filters |= Q(owner__icontains=employee_first_name)
+            
+            if owner_filters:
+                invoices_list = invoices_list.filter(owner_filters).distinct()
+            else:
+                # If no name can be determined, show no invoices for employee
+                invoices_list = invoices_list.none()
+        else:
+            # If employee name cannot be determined, show no invoices (not all invoices)
+            invoices_list = invoices_list.none()
     
     # Apply search filter to invoices
     if search_query:
@@ -4282,12 +4539,431 @@ def invoices(request):
 
 
 @login_required
+def employee_invoices(request):
+    """Employee invoice page - shows only invoices created by the logged-in employee"""
+    from django.core.paginator import Paginator
+    from django.db.models import Q
+    from decimal import Decimal
+    from datetime import datetime, date
+    import json
+    import re
+    
+    # Get employee information
+    employee_obj = None
+    employee_name = None
+    employee_first_name = None
+    employee_last_name = None
+    
+    if request.user.is_authenticated:
+        try:
+            employee_obj = Employee.objects.get(email=request.user.email)
+            employee_name = employee_obj.get_full_name().strip() if employee_obj.get_full_name() else None
+            employee_first_name = employee_obj.first_name.strip() if employee_obj.first_name else None
+            employee_last_name = employee_obj.last_name.strip() if employee_obj.last_name else None
+        except Employee.DoesNotExist:
+            # Try to get name from user
+            user_full_name = (request.user.get_full_name() or request.user.username or '').strip()
+            if user_full_name:
+                name_parts = user_full_name.split(' ', 1)
+                employee_first_name = name_parts[0] if name_parts else None
+                employee_last_name = name_parts[1] if len(name_parts) > 1 else None
+                employee_name = user_full_name
+    
+    # Handle POST request for creating/updating invoice
+    if request.method == 'POST':
+        try:
+            invoice_id = request.POST.get('invoice_id')
+            is_update = invoice_id and invoice_id.strip()
+            invoice = None
+            
+            if is_update:
+                try:
+                    invoice = Invoice.objects.get(id=int(invoice_id))
+                    # Check ownership
+                    if not _check_employee_invoice_ownership(invoice, employee_name, employee_first_name, employee_last_name):
+                        messages.error(request, 'You can only edit invoices that you created.')
+                        return redirect('employee_invoices')
+                except (Invoice.DoesNotExist, ValueError):
+                    messages.error(request, 'Invoice not found for update.')
+                    return redirect('employee_invoices')
+            
+            # Get form data
+            client_name = request.POST.get('client_name', '').strip()
+            if not client_name:
+                messages.error(request, 'Client name is required.')
+                return redirect('employee_invoices')
+            
+            company = request.POST.get('company', '').strip() or None
+            email = request.POST.get('email', '').strip() or None
+            phone = request.POST.get('phone', '').strip() or None
+            currency = request.POST.get('currency', 'INR')
+            invoice_date_str = request.POST.get('invoice_date', '')
+            
+            # Auto-set owner to employee name
+            owner = employee_name or (employee_first_name + ' ' + employee_last_name if employee_first_name and employee_last_name else employee_first_name or request.user.get_full_name() or request.user.username or '')
+            
+            # Parse invoice date
+            invoice_date = None
+            if invoice_date_str:
+                try:
+                    invoice_date = datetime.strptime(invoice_date_str, '%Y-%m-%d').date()
+                except ValueError:
+                    invoice_date = date.today()
+            else:
+                invoice_date = date.today()
+            
+            invoice_number = request.POST.get('invoice_number', '').strip()
+            if not invoice_number:
+                invoice_number = generate_invoice_number_for_date(invoice_date)
+            
+            # Check if invoice number already exists
+            existing_invoice = Invoice.objects.filter(invoice_number=invoice_number).first()
+            if existing_invoice and (not is_update or existing_invoice.id != invoice.id):
+                messages.error(request, f'Invoice number {invoice_number} already exists.')
+                return redirect('employee_invoices')
+            
+            payment_status = request.POST.get('status', 'Unpaid')
+            
+            # Get items
+            items = []
+            item_index_pattern = re.compile(r'^items\[(\d+)\]\[description\]$')
+            item_indices = sorted(
+                {int(match.group(1)) for key in request.POST.keys()
+                 if (match := item_index_pattern.match(key))}
+            )
+            
+            for item_index in item_indices:
+                desc_key = f'items[{item_index}][description]'
+                description = request.POST.get(desc_key, '').strip()
+                if not description:
+                    continue
+                
+                quantity_str = request.POST.get(f'items[{item_index}][quantity]', '1') or '1'
+                price_str = request.POST.get(f'items[{item_index}][price]', '0') or '0'
+                quantity = Decimal(quantity_str)
+                price = Decimal(price_str)
+                
+                items.append({
+                    'description': description,
+                    'quantity': float(quantity),
+                    'price': float(price),
+                })
+            
+            if not items:
+                messages.error(request, 'At least one item is required.')
+                return redirect('employee_invoices')
+            
+            # Calculate totals
+            subtotal = Decimal(request.POST.get('subtotal', '0') or '0')
+            discount = Decimal(request.POST.get('discount', '0') or '0')
+            apply_gst = request.POST.get('apply_gst', 'no')
+            gst_percent = Decimal('0')
+            gst_amount = Decimal('0')
+            if apply_gst == 'yes':
+                gst_percent = Decimal(request.POST.get('gst_percent', '0') or '0')
+                gst_amount = (subtotal * gst_percent) / 100
+            
+            total = Decimal(request.POST.get('total', '0') or '0')
+            amount_received = Decimal(request.POST.get('amount_received', '0') or '0')
+            notes = request.POST.get('notes', '').strip() or None
+            terms = request.POST.get('terms', '').strip() or None
+            selected_bank_accounts = request.POST.getlist('selected_bank_accounts')
+            selected_bank_accounts = [int(acc_id) for acc_id in selected_bank_accounts if acc_id and acc_id.isdigit()]
+            
+            # Create or update invoice
+            if is_update and invoice:
+                invoice.client_name = client_name
+                invoice.company = company
+                invoice.email = email
+                invoice.phone = phone
+                invoice.invoice_number = invoice_number
+                invoice.invoice_date = invoice_date
+                invoice.owner = owner
+                invoice.status = payment_status
+                invoice.currency = currency
+                invoice.subtotal = subtotal
+                invoice.discount = discount
+                invoice.gst_percent = gst_percent
+                invoice.gst_amount = gst_amount
+                invoice.total = total
+                invoice.amount_received = amount_received
+                invoice.notes = notes
+                invoice.terms = terms
+                invoice.items = items
+                invoice.selected_bank_accounts = selected_bank_accounts
+                invoice.save()
+                messages.success(request, f'Invoice {invoice_number} updated successfully!')
+            else:
+                print(f"DEBUG: Creating employee invoice with number: {invoice_number}, owner: {owner}")
+                print(f"DEBUG: Table name: {Invoice._meta.db_table}")
+                try:
+                    invoice = Invoice.objects.create(
+                        client_name=client_name,
+                        company=company,
+                        email=email,
+                        phone=phone,
+                        invoice_number=invoice_number,
+                        invoice_date=invoice_date,
+                        owner=owner,
+                        status=payment_status,
+                        currency=currency,
+                        subtotal=subtotal,
+                        discount=discount,
+                        gst_percent=gst_percent,
+                        gst_amount=gst_amount,
+                        total=total,
+                        amount_received=amount_received,
+                        notes=notes,
+                        terms=terms,
+                        items=items,
+                        selected_bank_accounts=selected_bank_accounts,
+                    )
+                    # Force save to ensure it's committed
+                    invoice.save()
+                    print(f"DEBUG: Employee invoice created successfully! ID: {invoice.id}, Number: {invoice.invoice_number}, Table: {invoice._meta.db_table}")
+                    # Verify it was saved
+                    verify_invoice = Invoice.objects.filter(id=invoice.id).first()
+                    if verify_invoice:
+                        print(f"DEBUG: Employee invoice verified in database! ID: {verify_invoice.id}")
+                    else:
+                        print(f"DEBUG: ERROR - Employee invoice not found in database after creation!")
+                    messages.success(request, f'Invoice {invoice_number} created successfully!')
+                except Exception as create_error:
+                    print(f"DEBUG: Error during Invoice.objects.create(): {str(create_error)}")
+                    import traceback
+                    print(traceback.format_exc())
+                    raise
+            
+            return redirect('employee_invoices')
+            
+        except Exception as e:
+            import traceback
+            error_trace = traceback.format_exc()
+            print(f"Error creating employee invoice: {str(e)}")
+            print(f"Traceback: {error_trace}")
+            messages.error(request, f'Error creating invoice: {str(e)}')
+            return redirect('employee_invoices')
+    
+    # GET request - show invoices
+    search_query = request.GET.get('search', '').strip()
+    
+    # Get only invoices created by this employee
+    invoices_list = Invoice.objects.all().order_by('-invoice_date', '-created_at')
+    
+    # Filter by owner
+    if employee_name or employee_first_name:
+        owner_filters = Q()
+        if employee_name:
+            owner_filters |= Q(owner__iexact=employee_name)
+            owner_filters |= Q(owner__iregex=rf'^\s*{re.escape(employee_name.strip())}\s*$')
+        if employee_first_name and employee_last_name:
+            owner_filters |= (Q(owner__icontains=employee_first_name) & Q(owner__icontains=employee_last_name))
+        elif employee_first_name:
+            owner_filters |= Q(owner__icontains=employee_first_name)
+        
+        if owner_filters:
+            invoices_list = invoices_list.filter(owner_filters).distinct()
+        else:
+            invoices_list = invoices_list.none()
+    else:
+        invoices_list = invoices_list.none()
+    
+    # Apply search
+    if search_query:
+        invoices_list = invoices_list.filter(
+            Q(invoice_number__icontains=search_query) |
+            Q(client_name__icontains=search_query) |
+            Q(company__icontains=search_query) |
+            Q(email__icontains=search_query) |
+            Q(phone__icontains=search_query)
+        )
+    
+    # Prepare invoice data
+    invoice_data = []
+    for invoice in invoices_list:
+        pending_balance = invoice.total - invoice.amount_received
+        if pending_balance < Decimal('0.00'):
+            pending_balance = Decimal('0.00')
+        
+        calculated_status = invoice.calculate_status()
+        if invoice.status != calculated_status and invoice.status != 'Cancelled':
+            invoice.status = calculated_status
+            invoice.save(update_fields=['status', 'updated_at'])
+        
+        invoice_data.append({
+            'id': invoice.id,
+            'invoice_number': invoice.invoice_number,
+            'client_name': invoice.client_name,
+            'company': invoice.company,
+            'email': invoice.email,
+            'phone': invoice.phone,
+            'amount': invoice.total,
+            'currency': invoice.currency,
+            'status': invoice.status,
+            'status_badge': invoice.get_status_badge_class(),
+            'date': invoice.invoice_date,
+            'pending_balance': pending_balance,
+        })
+    
+    invoice_data.sort(key=lambda x: x['date'], reverse=True)
+    
+    # Pagination
+    paginator = Paginator(invoice_data, 10)
+    page_num = request.GET.get('page', 1)
+    try:
+        invoices_page = paginator.page(page_num)
+    except PageNotAnInteger:
+        invoices_page = paginator.page(1)
+    except EmptyPage:
+        invoices_page = paginator.page(paginator.num_pages)
+    
+    # Statistics
+    total_invoices = len(invoice_data)
+    total_amount = sum(Decimal(str(inv['amount'])) for inv in invoice_data)
+    paid_count = sum(1 for inv in invoice_data if inv['status'] == 'Paid')
+    unpaid_count = sum(1 for inv in invoice_data if inv['status'] == 'Unpaid')
+    
+    # Get existing clients from employee's invoices
+    existing_clients = []
+    if invoice_data:
+        invoice_ids = [inv['id'] for inv in invoice_data]
+        invoice_clients = Invoice.objects.filter(id__in=invoice_ids).values('client_name', 'company', 'email', 'phone').distinct()
+        for invoice_client in invoice_clients:
+            if invoice_client['client_name']:
+                existing_clients.append({
+                    'name': invoice_client['client_name'],
+                    'company': invoice_client.get('company') or '',
+                    'email': invoice_client.get('email') or '',
+                    'phone': invoice_client.get('phone') or '',
+                })
+    
+    existing_clients.sort(key=lambda x: x['name'].lower())
+    
+    today = timezone.localdate()
+    suggested_invoice_number = generate_invoice_number_for_date(today)
+    
+    # Handle edit invoice
+    edit_invoice_id = request.GET.get('edit_invoice')
+    edit_invoice = None
+    if edit_invoice_id:
+        try:
+            edit_invoice_obj = Invoice.objects.get(id=int(edit_invoice_id))
+            # Check ownership
+            if _check_employee_invoice_ownership(edit_invoice_obj, employee_name, employee_first_name, employee_last_name):
+                edit_invoice = {
+                    'id': edit_invoice_obj.id,
+                    'client_name': edit_invoice_obj.client_name,
+                    'company': edit_invoice_obj.company or '',
+                    'email': edit_invoice_obj.email or '',
+                    'phone': edit_invoice_obj.phone or '',
+                    'invoice_number': edit_invoice_obj.invoice_number,
+                    'invoice_date': edit_invoice_obj.invoice_date.isoformat() if edit_invoice_obj.invoice_date else today.isoformat(),
+                    'currency': edit_invoice_obj.currency,
+                    'subtotal': float(edit_invoice_obj.subtotal),
+                    'discount': float(edit_invoice_obj.discount),
+                    'apply_gst': 'yes' if edit_invoice_obj.gst_percent > 0 else 'no',
+                    'gst_percent': float(edit_invoice_obj.gst_percent),
+                    'gst_amount': float(edit_invoice_obj.gst_amount),
+                    'total': float(edit_invoice_obj.total),
+                    'amount_received': float(edit_invoice_obj.amount_received),
+                    'status': edit_invoice_obj.status,
+                    'notes': edit_invoice_obj.notes or '',
+                    'terms': edit_invoice_obj.terms or '',
+                    'items': edit_invoice_obj.items if isinstance(edit_invoice_obj.items, list) else [],
+                    'selected_bank_accounts': edit_invoice_obj.selected_bank_accounts if isinstance(edit_invoice_obj.selected_bank_accounts, list) else [],
+                }
+        except (Invoice.DoesNotExist, ValueError, TypeError):
+            edit_invoice = None
+    
+    # Get bank accounts
+    bank_accounts = CompanyBankAccount.objects.filter(is_active=True).order_by('-is_default', '-created_at')
+    
+    # Get employee info for context
+    employee_name_display = employee_name or (employee_first_name + ' ' + employee_last_name if employee_first_name and employee_last_name else employee_first_name or 'Employee')
+    employee_department = employee_obj.department if employee_obj else None
+    
+    context = {
+        'invoices': invoices_page,
+        'search_query': search_query,
+        'total_invoices': total_invoices,
+        'total_amount': total_amount,
+        'paid_count': paid_count,
+        'unpaid_count': unpaid_count,
+        'existing_clients': existing_clients,
+        'suggested_invoice_number': suggested_invoice_number,
+        'company_profile': COMPANY_PROFILE,
+        'today_iso': today.isoformat(),
+        'edit_invoice': edit_invoice,
+        'bank_accounts': bank_accounts,
+        'employee_name': employee_name_display,
+        'employee_department': employee_department,
+    }
+    return render(request, 'employee/invoices.html', context)
+
+
+def _check_employee_invoice_ownership(invoice, employee_name, employee_first_name, employee_last_name):
+    """Helper function to check if invoice belongs to employee"""
+    if not invoice or not invoice.owner:
+        return False
+    
+    if employee_name and invoice.owner:
+        if invoice.owner.strip().lower() == employee_name.lower():
+            return True
+        if employee_first_name and employee_last_name:
+            if (employee_first_name.lower() in invoice.owner.lower() and 
+                employee_last_name.lower() in invoice.owner.lower()):
+                return True
+    elif employee_first_name and invoice.owner:
+        if employee_first_name.lower() in invoice.owner.lower():
+            return True
+    
+    return False
+
+
+@login_required
 def invoice_edit(request, invoice_type, invoice_id):
     """Edit invoice - redirects to appropriate edit page based on invoice type"""
     if invoice_type == 'invoice':
         # For Invoice model, redirect to invoices page with edit capability
         try:
             invoice = Invoice.objects.get(id=invoice_id)
+            
+            # Check if user is employee and if they own this invoice
+            if request.user.is_authenticated:
+                try:
+                    employee = Employee.objects.get(email=request.user.email)
+                    if employee.role != 'Admin':
+                        # Employee - check if they own this invoice
+                        employee_name = employee.get_full_name().strip() if employee.get_full_name() else None
+                        employee_first_name = employee.first_name.strip() if employee.first_name else None
+                        employee_last_name = employee.last_name.strip() if employee.last_name else None
+                        
+                        is_employee_owner = False
+                        if employee_name and invoice.owner:
+                            is_employee_owner = (
+                                invoice.owner.strip().lower() == employee_name.lower() or
+                                (employee_first_name and employee_last_name and 
+                                 employee_first_name.lower() in invoice.owner.lower() and 
+                                 employee_last_name.lower() in invoice.owner.lower())
+                            )
+                        elif employee_first_name and invoice.owner:
+                            is_employee_owner = employee_first_name.lower() in invoice.owner.lower()
+                        
+                        if not is_employee_owner:
+                            messages.error(request, 'You can only edit invoices that you created.')
+                            return redirect('invoices')
+                except Employee.DoesNotExist:
+                    # If no employee record but user is not staff, check by name
+                    if not request.user.is_staff:
+                        user_full_name = (request.user.get_full_name() or request.user.username or '').strip()
+                        if user_full_name and invoice.owner:
+                            is_employee_owner = user_full_name.lower() in invoice.owner.lower()
+                        else:
+                            is_employee_owner = False
+                        if not is_employee_owner:
+                            messages.error(request, 'You can only edit invoices that you created.')
+                            return redirect('invoices')
+            
             # Redirect to invoices page with edit_invoice parameter to open edit form
             return redirect(f"{reverse('invoices')}?edit_invoice={invoice_id}#create-invoice")
         except Invoice.DoesNotExist:
@@ -4324,6 +5000,43 @@ def invoice_delete(request, invoice_type, invoice_id):
     try:
         if invoice_type == 'invoice':
             invoice = get_object_or_404(Invoice, id=invoice_id)
+            
+            # Check if user is employee and if they own this invoice
+            if request.user.is_authenticated:
+                try:
+                    employee = Employee.objects.get(email=request.user.email)
+                    if employee.role != 'Admin':
+                        # Employee - check if they own this invoice
+                        employee_name = employee.get_full_name().strip() if employee.get_full_name() else None
+                        employee_first_name = employee.first_name.strip() if employee.first_name else None
+                        employee_last_name = employee.last_name.strip() if employee.last_name else None
+                        
+                        is_employee_owner = False
+                        if employee_name and invoice.owner:
+                            is_employee_owner = (
+                                invoice.owner.strip().lower() == employee_name.lower() or
+                                (employee_first_name and employee_last_name and 
+                                 employee_first_name.lower() in invoice.owner.lower() and 
+                                 employee_last_name.lower() in invoice.owner.lower())
+                            )
+                        elif employee_first_name and invoice.owner:
+                            is_employee_owner = employee_first_name.lower() in invoice.owner.lower()
+                        
+                        if not is_employee_owner:
+                            messages.error(request, 'You can only delete invoices that you created.')
+                            return redirect('invoices')
+                except Employee.DoesNotExist:
+                    # If no employee record but user is not staff, check by name
+                    if not request.user.is_staff:
+                        user_full_name = (request.user.get_full_name() or request.user.username or '').strip()
+                        if user_full_name and invoice.owner:
+                            is_employee_owner = user_full_name.lower() in invoice.owner.lower()
+                        else:
+                            is_employee_owner = False
+                        if not is_employee_owner:
+                            messages.error(request, 'You can only delete invoices that you created.')
+                            return redirect('invoices')
+            
             invoice_number = invoice.invoice_number
             client_name = invoice.client_name
             invoice.delete()
@@ -4370,7 +5083,10 @@ def invoice_pay_due(request, invoice_id):
     pending_before = Decimal(invoice.get_pending_balance())
     if pending_before <= 0:
         messages.info(request, f'Invoice {invoice.invoice_number} is already fully paid.')
-        return redirect(f"{reverse('invoices')}?open_invoice={invoice.id}")
+        if request.user.is_staff:
+            return redirect(f"{reverse('invoices')}?open_invoice={invoice.id}")
+        else:
+            return redirect(f"{reverse('employee_invoices')}?open_invoice={invoice.id}")
     
     if pay_amount <= 0 or pay_amount > pending_before:
         pay_amount = pending_before
@@ -4383,15 +5099,38 @@ def invoice_pay_due(request, invoice_id):
         'created_at': timezone.now().isoformat()
     })
     invoice.payment_history = history
+    
+    # Ensure amount_received doesn't exceed total
     if invoice.amount_received >= invoice.total:
         invoice.amount_received = invoice.total
         invoice.status = 'Paid'
     elif invoice.amount_received > 0:
         invoice.status = 'Partial'
+    else:
+        invoice.status = 'Unpaid'
     
-    invoice.save(update_fields=['amount_received', 'status', 'updated_at', 'payment_history'])
-    messages.success(request, f'INR {pay_amount:,.2f} applied to invoice {invoice.invoice_number}. Pending balance updated.')
-    return redirect(f"{reverse('invoices')}?open_invoice={invoice.id}")
+    # Save invoice - the model's save() method will auto-update status if needed
+    invoice.save()
+    
+    # Format currency for message
+    currency_symbol = '₹'
+    if invoice.currency == 'USD':
+        currency_symbol = '$'
+    elif invoice.currency == 'EUR':
+        currency_symbol = '€'
+    
+    # Check if fully paid
+    remaining_balance = invoice.get_pending_balance()
+    if remaining_balance <= 0:
+        messages.success(request, f'{currency_symbol} {pay_amount:,.2f} applied to invoice {invoice.invoice_number}. Invoice is now fully paid (No Due).')
+    else:
+        messages.success(request, f'{currency_symbol} {pay_amount:,.2f} applied to invoice {invoice.invoice_number}. Remaining due: {currency_symbol} {remaining_balance:,.2f}')
+    
+    # Redirect based on user type
+    if request.user.is_staff:
+        return redirect(f"{reverse('invoices')}?open_invoice={invoice.id}")
+    else:
+        return redirect(f"{reverse('employee_invoices')}?open_invoice={invoice.id}")
 
 
 @login_required
@@ -4538,6 +5277,41 @@ def invoice_table_pdf_download(request):
 def invoice_detail(request, invoice_id):
     """Return full invoice details as JSON (used for modal view)."""
     invoice = get_object_or_404(Invoice, id=invoice_id)
+    
+    # Check if user is employee and if they own this invoice
+    if request.user.is_authenticated:
+        try:
+            employee = Employee.objects.get(email=request.user.email)
+            if employee.role != 'Admin':
+                # Employee - check if they own this invoice
+                employee_name = employee.get_full_name().strip() if employee.get_full_name() else None
+                employee_first_name = employee.first_name.strip() if employee.first_name else None
+                employee_last_name = employee.last_name.strip() if employee.last_name else None
+                
+                is_employee_owner = False
+                if employee_name and invoice.owner:
+                    is_employee_owner = (
+                        invoice.owner.strip().lower() == employee_name.lower() or
+                        (employee_first_name and employee_last_name and 
+                         employee_first_name.lower() in invoice.owner.lower() and 
+                         employee_last_name.lower() in invoice.owner.lower())
+                    )
+                elif employee_first_name and invoice.owner:
+                    is_employee_owner = employee_first_name.lower() in invoice.owner.lower()
+                
+                if not is_employee_owner:
+                    return JsonResponse({'error': 'You can only view invoices that you created.'}, status=403)
+        except Employee.DoesNotExist:
+            # If no employee record but user is not staff, check by name
+            if not request.user.is_staff:
+                user_full_name = (request.user.get_full_name() or request.user.username or '').strip()
+                if user_full_name and invoice.owner:
+                    is_employee_owner = user_full_name.lower() in invoice.owner.lower()
+                else:
+                    is_employee_owner = False
+                if not is_employee_owner:
+                    return JsonResponse({'error': 'You can only view invoices that you created.'}, status=403)
+    
     raw_items = invoice.items if isinstance(invoice.items, list) else []
     items = []
     for item in raw_items:
@@ -7736,6 +8510,15 @@ def employee_dashboard(request):
         'total_backoffice_records': total_backoffice_records,
         'is_backoffice': is_backoffice,  # Flag to help template identify backoffice users
     }
+    
+    # Check if password needs to be changed
+    show_password_change_modal = False
+    if employee_obj:
+        # Check if password is not set or empty
+        if not employee_obj.password or not employee_obj.password.strip():
+            show_password_change_modal = True
+    context['show_password_change_modal'] = show_password_change_modal
+    
     return render(request, 'employee/dashboard.html', context)
 
 @login_required
@@ -12028,8 +12811,14 @@ def employee_leads(request):
                 # If owner not provided, default to logged-in user's name/username
                 if not lead.owner and request.user.is_authenticated:
                     lead.owner = request.user.get_full_name() or request.user.username
+                # Automatically assign lead to the employee who created it
+                if employee_obj:
+                    lead.assigned_to = employee_obj
+                # Ensure lead is active so it shows in admin leads table (dashboard/leads)
+                # Admin leads view filters by is_active=True, so all employee-created leads will appear there
+                lead.is_active = True
                 lead.save()
-                messages.success(request, f'Lead "{lead.name}" created successfully!')
+                messages.success(request, f'Lead "{lead.name}" created successfully and assigned to you!')
                 return redirect('employee_leads')
             except Exception as e:
                 messages.error(request, f'Error creating lead: {str(e)}')

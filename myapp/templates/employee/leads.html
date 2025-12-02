@@ -27,6 +27,47 @@
   .nav-tabs .nav-link.active { color: #000 !important; }
   .nav-tabs .nav-link:hover { color: #fff !important; background-color: var(--primary-color) !important; }
   
+  /* Status badge styling */
+  .status-badge-btn {
+    cursor: pointer;
+    border: none;
+    padding: 0.35em 0.65em;
+    font-size: 0.875em;
+    border-radius: 0.25rem;
+    transition: opacity 0.2s;
+  }
+  
+  .status-badge-btn:hover {
+    opacity: 0.9;
+    transform: scale(1.05);
+  }
+  
+  .status-badge-btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
+  
+  /* Status popup modal styling */
+  .status-option-popup {
+    cursor: pointer;
+    transition: background-color 0.2s;
+  }
+  
+  .status-option-popup:hover {
+    background-color: #f8f9fa;
+  }
+  
+  .status-option-popup.active {
+    background-color: #e7f3ff;
+    border-left: 3px solid #0d6efd;
+  }
+  
+  .status-option-popup.selected {
+    background-color: #d1ecf1;
+    border-left: 3px solid #0dcaf0;
+    font-weight: 600;
+  }
+  
   /* Better visibility for search, filter, and export buttons */
   .card-header .btn-primary {
     background-color: var(--primary-color);
@@ -328,13 +369,12 @@
                 <th>Phone</th>
                 <th>Company</th>
                 <th>Status</th>
-                <th>Info</th>
                 <th>Actions</th>
               </tr>
             </thead>
             <tbody>
               {% for lead in leads %}
-              <tr data-due="{% if lead.get_full_due_datetime %}{{ lead.get_full_due_datetime|date:'c' }}{% endif %}">
+              <tr data-lead-id="{{ lead.id }}" data-due="{% if lead.get_full_due_datetime %}{{ lead.get_full_due_datetime|date:'c' }}{% endif %}">
                 <td data-label="Name">{{ lead.name }}</td>
                 <td data-label="Email">
                   {% if lead.email %}
@@ -352,25 +392,20 @@
                   {% endif %}
                 </td>
                 <td data-label="Status">
-                  <span class="badge {{ lead.conversion_badge|default:'bg-secondary' }}">{{ lead.conversion_status|default:"Pending" }}</span>
-                </td>
-                <td data-label="Info">
-                  <button class="btn btn-sm btn-outline-info btn-info" data-bs-toggle="modal" data-bs-target="#infoLeadModal" 
+                  <button class="badge {{ lead.conversion_badge|default:'bg-secondary' }} status-badge-btn" 
+                          type="button" 
+                          data-bs-toggle="modal" 
+                          data-bs-target="#statusPopupModal"
                           data-lead-id="{{ lead.id }}"
-                          data-lead-owner="{{ lead.owner|default:'-' }}"
-                          data-lead-priority="{{ lead.priority|default:'-' }}"
-                          data-lead-notes="{{ lead.notes|default:'-' }}"
-                          data-lead-due="{% if lead.get_full_due_datetime %}{{ lead.get_full_due_datetime|date:'d-M-Y H:i' }}{% else %}-{% endif %}"
-                          title="View Info">
-                    <i class="bi bi-info-circle"></i>
+                          data-lead-name="{{ lead.name }}"
+                          data-current-status="{{ lead.conversion_status|default:'Pending' }}"
+                          style="cursor: pointer; border: none;">
+                    {{ lead.conversion_status|default:"Pending" }}
                   </button>
                 </td>
                 <td data-label="Actions">
                   <button class="btn btn-sm btn-outline-primary btn-view" data-bs-toggle="modal" data-bs-target="#viewLeadModal" data-lead-id="{{ lead.id }}">
                     <i class="bi bi-eye"></i>
-                  </button>
-                  <button class="btn btn-sm btn-outline-info btn-status" data-bs-toggle="modal" data-bs-target="#statusLeadModal" data-lead-id="{{ lead.id }}" data-lead-name="{{ lead.name }}" title="Update Status">
-                    <i class="bi bi-flag"></i>
                   </button>
                   <button class="btn btn-sm btn-outline-warning btn-notes" data-bs-toggle="modal" data-bs-target="#notesLeadModal" data-lead-id="{{ lead.id }}" data-lead-name="{{ lead.name }}" title="Add/Update Notes">
                     <i class="bi bi-journal-text"></i>
@@ -379,7 +414,7 @@
               </tr>
               {% empty %}
               <tr>
-                <td colspan="7" class="text-center text-muted py-4">
+                <td colspan="6" class="text-center text-muted py-4">
                   <i class="bi bi-inbox fs-1 d-block mb-2"></i>
                   No leads found. <a href="{% url 'leads_import_export' %}">Import leads</a>
                 </td>
@@ -608,41 +643,52 @@
   </div>
 </div>
 
-<!-- Status Update Modal -->
-<div class="modal fade" id="statusLeadModal" tabindex="-1" aria-hidden="true">
-  <div class="modal-dialog">
+<!-- Status Popup Modal -->
+<div class="modal fade" id="statusPopupModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
     <div class="modal-content">
       <div class="modal-header">
         <h5 class="modal-title"><i class="bi bi-flag"></i> Update Lead Status</h5>
         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
       </div>
-      <form id="statusLeadForm" method="post">
-        {% csrf_token %}
-        <input type="hidden" name="lead_id" id="status_lead_id">
         <div class="modal-body">
           <div class="mb-3">
             <label class="form-label">Lead Name</label>
-            <input type="text" class="form-control" id="status_lead_name" readonly>
+            <input type="text" class="form-control" id="popup_lead_name" readonly>
           </div>
           <div class="mb-3">
             <label class="form-label">Select Status<span class="text-danger">*</span></label>
-            <select name="status" id="status_select" class="form-select" required>
-              <option value="Pending">Pending</option>
-              <option value="Contacted">Contacted</option>
-              <option value="Qualified">Qualified</option>
-              <option value="Proposal">Proposal</option>
-              <option value="Negotiation">Negotiation</option>
-              <option value="Won">Won</option>
-              <option value="Lost">Lost</option>
-            </select>
-            <small class="form-text text-muted">Update the status of this lead</small>
+            <div class="list-group" id="statusOptionsList">
+              <button type="button" class="list-group-item list-group-item-action status-option-popup" data-status="Pending">
+                <span class="badge bg-secondary me-2">Pending</span> Pending
+              </button>
+              <button type="button" class="list-group-item list-group-item-action status-option-popup" data-status="Contacted">
+                <span class="badge bg-info me-2">Contacted</span> Contacted
+              </button>
+              <button type="button" class="list-group-item list-group-item-action status-option-popup" data-status="Qualified">
+                <span class="badge bg-primary me-2">Qualified</span> Qualified
+              </button>
+              <button type="button" class="list-group-item list-group-item-action status-option-popup" data-status="Proposal">
+                <span class="badge bg-warning text-dark me-2">Proposal</span> Proposal
+              </button>
+              <button type="button" class="list-group-item list-group-item-action status-option-popup" data-status="Negotiation">
+                <span class="badge bg-warning text-dark me-2">Negotiation</span> Negotiation
+              </button>
+              <button type="button" class="list-group-item list-group-item-action status-option-popup" data-status="Won">
+                <span class="badge bg-success me-2">Won</span> Won
+              </button>
+              <button type="button" class="list-group-item list-group-item-action status-option-popup" data-status="Lost">
+                <span class="badge bg-danger me-2">Lost</span> Lost
+              </button>
+            </div>
           </div>
         </div>
         <div class="modal-footer">
           <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
-          <button type="submit" class="btn btn-primary">Update Status</button>
+          <button type="button" class="btn btn-primary" id="saveStatusBtn" style="display: none;">
+            <i class="bi bi-check-circle me-1"></i> Save Status
+          </button>
         </div>
-      </form>
     </div>
   </div>
 </div>
@@ -674,41 +720,6 @@
           <button type="submit" class="btn btn-primary">Save Notes</button>
       </div>
       </form>
-    </div>
-  </div>
-</div>
-
-<!-- Info Modal -->
-<div class="modal fade" id="infoLeadModal" tabindex="-1" aria-hidden="true">
-  <div class="modal-dialog">
-    <div class="modal-content">
-      <div class="modal-header">
-        <h5 class="modal-title"><i class="bi bi-info-circle"></i> Lead Information</h5>
-        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-      </div>
-      <div class="modal-body">
-        <div class="row g-3">
-          <div class="col-12">
-            <strong>Owner:</strong>
-            <p class="mb-0" id="info_owner">-</p>
-          </div>
-          <div class="col-12">
-            <strong>Priority:</strong>
-            <p class="mb-0" id="info_priority">-</p>
-          </div>
-          <div class="col-12">
-            <strong>Notes:</strong>
-            <p class="mb-0" id="info_notes" style="word-break: break-word; white-space: pre-wrap;">-</p>
-          </div>
-          <div class="col-12">
-            <strong>Due:</strong>
-            <p class="mb-0" id="info_due">-</p>
-          </div>
-        </div>
-      </div>
-      <div class="modal-footer">
-        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-      </div>
     </div>
   </div>
 </div>
@@ -889,10 +900,198 @@
     }
 
 
-    // Status Modal - Load current status when modal opens
-    const statusLeadModal = document.getElementById('statusLeadModal');
-    if (statusLeadModal) {
-      statusLeadModal.addEventListener('show.bs.modal', function(event) {
+    // Status Popup Modal - Load lead info when modal opens
+    const statusPopupModal = document.getElementById('statusPopupModal');
+    if (statusPopupModal) {
+      statusPopupModal.addEventListener('show.bs.modal', function(event) {
+        const button = event.relatedTarget;
+        let leadId = null;
+        let leadName = null;
+        let currentStatus = null;
+        
+        if (button) {
+          leadId = button.getAttribute('data-lead-id');
+          leadName = button.getAttribute('data-lead-name');
+          currentStatus = button.getAttribute('data-current-status');
+        }
+        
+        // Hide save button initially
+        const saveBtn = document.getElementById('saveStatusBtn');
+        if (saveBtn) {
+          saveBtn.style.display = 'none';
+        }
+        
+        // Set lead name - try to fetch from API if not available
+        const leadNameField = document.getElementById('popup_lead_name');
+        if (leadNameField) {
+          if (leadName) {
+            leadNameField.value = leadName;
+          } else if (leadId) {
+            // Fetch lead name from API
+            leadNameField.value = 'Loading...';
+          fetch(`/leads/${leadId}/get-data/`)
+              .then(response => response.json())
+              .then(data => {
+                if (data.name) {
+                  leadNameField.value = data.name;
+                } else {
+                  leadNameField.value = 'Unknown';
+                }
+              })
+              .catch(error => {
+                console.error('Error fetching lead name:', error);
+                leadNameField.value = leadName || 'Unknown';
+              });
+          } else {
+            leadNameField.value = 'Unknown';
+          }
+        }
+        
+        // Highlight current status
+        const statusOptions = statusPopupModal.querySelectorAll('.status-option-popup');
+        statusOptions.forEach(option => {
+          option.classList.remove('active', 'selected');
+          if (option.getAttribute('data-status') === currentStatus) {
+            option.classList.add('active');
+          }
+        });
+        
+        // Store lead ID and current status in modal for later use
+        statusPopupModal.setAttribute('data-current-lead-id', leadId);
+        statusPopupModal.setAttribute('data-current-status', currentStatus);
+        statusPopupModal.setAttribute('data-selected-status', ''); // Clear selected status
+      });
+      
+      // Handle status selection from popup - just highlight, don't save yet
+      const statusOptions = statusPopupModal.querySelectorAll('.status-option-popup');
+      statusOptions.forEach(option => {
+        option.addEventListener('click', function() {
+          const newStatus = this.getAttribute('data-status');
+          const currentStatus = statusPopupModal.getAttribute('data-current-status');
+          
+          // Remove selected class from all options
+          statusOptions.forEach(opt => opt.classList.remove('selected'));
+          
+          // Add selected class to clicked option
+          this.classList.add('selected');
+          
+          // Store selected status
+          statusPopupModal.setAttribute('data-selected-status', newStatus);
+          
+          // Show save button if status changed
+          const saveBtn = document.getElementById('saveStatusBtn');
+          if (saveBtn) {
+            if (newStatus !== currentStatus) {
+              saveBtn.style.display = 'inline-block';
+            } else {
+              saveBtn.style.display = 'none';
+            }
+          }
+        });
+      });
+      
+      // Handle save button click
+      const saveStatusBtn = document.getElementById('saveStatusBtn');
+      if (saveStatusBtn) {
+        saveStatusBtn.addEventListener('click', function() {
+          const selectedStatus = statusPopupModal.getAttribute('data-selected-status');
+          const leadId = statusPopupModal.getAttribute('data-current-lead-id');
+          const currentStatus = statusPopupModal.getAttribute('data-current-status');
+          
+          if (!selectedStatus || selectedStatus === '') {
+            alert('Please select a status first.');
+            return;
+          }
+          
+          if (selectedStatus === currentStatus) {
+            const modal = bootstrap.Modal.getInstance(statusPopupModal);
+            if (modal) modal.hide();
+            return;
+          }
+          
+          // Find the status button in the table
+          const statusBtn = document.querySelector(`.status-badge-btn[data-lead-id="${leadId}"]`);
+          if (!statusBtn) {
+            alert('Error: Could not find lead in table.');
+            return;
+          }
+          
+          // Disable save button and show loading
+          saveStatusBtn.disabled = true;
+          saveStatusBtn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Saving...';
+          
+          // Show loading state on badge
+          const originalText = statusBtn.textContent;
+          statusBtn.disabled = true;
+          statusBtn.innerHTML = '<span class="spinner-border spinner-border-sm"></span>';
+          
+          // Prepare form data
+          const formData = new FormData();
+          formData.append('lead_id', leadId);
+          formData.append('status', selectedStatus);
+          formData.append('csrfmiddlewaretoken', document.querySelector('[name=csrfmiddlewaretoken]').value);
+          
+          // Update status via API
+          fetch('{% url "update_lead_status" %}', {
+            method: 'POST',
+            body: formData,
+            headers: {
+              'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+            }
+          })
+          .then(response => response.json())
+          .then(data => {
+            if (data.success) {
+              // Close modal
+              const modal = bootstrap.Modal.getInstance(statusPopupModal);
+              if (modal) modal.hide();
+              
+              // Update badge
+              const badgeClass = data.badge_class || 'bg-secondary';
+              statusBtn.className = `badge ${badgeClass} status-badge-btn`;
+              statusBtn.textContent = selectedStatus;
+              statusBtn.setAttribute('data-current-status', selectedStatus);
+              statusBtn.disabled = false;
+              statusBtn.style.cursor = 'pointer';
+              statusBtn.style.border = 'none';
+              
+              // Show success message
+              const alert = document.createElement('div');
+              alert.className = 'alert alert-success alert-dismissible fade show';
+              alert.innerHTML = `
+                <strong>Success!</strong> ${data.message}
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+              `;
+              document.querySelector('.dashboard-header').after(alert);
+              
+              // Auto-dismiss alert after 3 seconds
+              setTimeout(() => {
+                alert.remove();
+              }, 3000);
+            } else {
+              alert('Error: ' + data.error);
+              statusBtn.textContent = originalText;
+              statusBtn.disabled = false;
+              saveStatusBtn.disabled = false;
+              saveStatusBtn.innerHTML = '<i class="bi bi-check-circle me-1"></i> Save Status';
+            }
+          })
+          .catch(error => {
+            console.error('Error:', error);
+            alert('An error occurred while updating status.');
+            statusBtn.textContent = originalText;
+            statusBtn.disabled = false;
+            saveStatusBtn.disabled = false;
+            saveStatusBtn.innerHTML = '<i class="bi bi-check-circle me-1"></i> Save Status';
+          });
+        });
+      }
+    }
+    
+    // Notes Modal - Load current notes when modal opens
+    const notesLeadModal = document.getElementById('notesLeadModal');
+    if (notesLeadModal) {
+      notesLeadModal.addEventListener('show.bs.modal', function(event) {
         const button = event.relatedTarget;
         let leadId = null;
         let leadName = null;
@@ -904,7 +1103,7 @@
         
         // If not found from button, try to find from clicked element
         if (!leadId && event.target) {
-          const clickedBtn = event.target.closest('.btn-status');
+          const clickedBtn = event.target.closest('.btn-notes');
           if (clickedBtn) {
             leadId = clickedBtn.getAttribute('data-lead-id');
             leadName = clickedBtn.getAttribute('data-lead-name');
@@ -912,112 +1111,72 @@
         }
         
         if (leadId) {
-          document.getElementById('status_lead_id').value = leadId;
-          document.getElementById('status_lead_name').value = leadName || 'Loading...';
+          // Set lead ID immediately
+          const notesLeadIdField = document.getElementById('notes_lead_id');
+          const notesLeadNameField = document.getElementById('notes_lead_name');
+          const notesTextarea = document.getElementById('notes_textarea');
           
-          // Fetch current status and lead name from API
+          if (notesLeadIdField) notesLeadIdField.value = leadId;
+          if (notesLeadNameField) {
+            notesLeadNameField.value = 'Loading...';
+          }
+          if (notesTextarea) {
+            notesTextarea.value = '';
+          }
+          
+          // Fetch current notes and lead name from API
           fetch(`/leads/${leadId}/get-data/`)
-          .then(response => response.json())
-          .then(data => {
-              // Update lead name from API if available
-              if (data.name) {
-                document.getElementById('status_lead_name').value = data.name;
-              } else if (leadName) {
-                document.getElementById('status_lead_name').value = leadName;
+            .then(response => {
+              if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+              }
+              return response.json();
+            })
+            .then(data => {
+              // Check if response has error
+              if (data.error) {
+                console.error('API Error:', data.error);
+                throw new Error(data.error);
               }
               
-              // Update status dropdown
-              if (data.status || data.conversion_status) {
-                document.getElementById('status_select').value = data.status || data.conversion_status;
+              // Update lead name from API (priority) or button attribute (fallback)
+              if (notesLeadNameField) {
+                if (data.name && data.name.trim() !== '') {
+                  notesLeadNameField.value = data.name;
+                } else if (leadName && leadName.trim() !== '') {
+                  notesLeadNameField.value = leadName;
+                } else {
+                  notesLeadNameField.value = 'Unknown Lead';
+                }
+              }
+              
+              // Update notes textarea
+              if (notesTextarea) {
+                if (data.notes && data.notes.trim() !== '') {
+                  notesTextarea.value = data.notes;
+                } else {
+                  notesTextarea.value = '';
+                }
               }
             })
             .catch(error => {
-              console.error('Error fetching lead status:', error);
-              // Keep the lead name from button attribute if API fails
-              if (leadName) {
-                document.getElementById('status_lead_name').value = leadName;
+              console.error('Error fetching lead notes:', error);
+              // Fallback to button attribute or default
+              if (notesLeadNameField) {
+                if (leadName && leadName.trim() !== '') {
+                  notesLeadNameField.value = leadName;
+                } else {
+                  notesLeadNameField.value = 'Unknown Lead';
+                }
               }
             });
+        } else {
+          // No lead ID found
+          const notesLeadNameField = document.getElementById('notes_lead_name');
+          if (notesLeadNameField) {
+            notesLeadNameField.value = 'Unknown Lead';
+          }
         }
-      });
-      
-      // Handle form submission
-      const statusForm = document.getElementById('statusLeadForm');
-      if (statusForm) {
-        statusForm.addEventListener('submit', function(e) {
-          e.preventDefault();
-          
-          const formData = new FormData(statusForm);
-          const submitBtn = statusForm.querySelector('button[type="submit"]');
-          const originalText = submitBtn.textContent;
-          
-          submitBtn.disabled = true;
-          submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Updating...';
-          
-          fetch('{% url "update_lead_status" %}', {
-            method: 'POST',
-            body: formData,
-            headers: {
-              'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
-            }
-          })
-          .then(response => response.json())
-          .then(data => {
-            if (data.success) {
-              const modal = bootstrap.Modal.getInstance(statusLeadModal);
-              modal.hide();
-              
-              const alert = document.createElement('div');
-              alert.className = 'alert alert-success alert-dismissible fade show';
-              alert.innerHTML = `
-                <strong>Success!</strong> ${data.message}
-                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-              `;
-              document.querySelector('.dashboard-header').after(alert);
-              
-              setTimeout(() => {
-                window.location.reload();
-              }, 1000);
-            } else {
-              alert('Error: ' + data.error);
-              submitBtn.disabled = false;
-              submitBtn.textContent = originalText;
-            }
-          })
-          .catch(error => {
-            console.error('Error:', error);
-            alert('An error occurred while updating status.');
-            submitBtn.disabled = false;
-            submitBtn.textContent = originalText;
-          });
-        });
-      }
-    }
-    
-    // Notes Modal - Load current notes when modal opens
-    const notesLeadModal = document.getElementById('notesLeadModal');
-    if (notesLeadModal) {
-      notesLeadModal.addEventListener('show.bs.modal', function(event) {
-        const button = event.relatedTarget;
-        const leadId = button.getAttribute('data-lead-id');
-        const leadName = button.getAttribute('data-lead-name');
-        
-        document.getElementById('notes_lead_id').value = leadId;
-        document.getElementById('notes_lead_name').value = leadName || 'Lead';
-        
-        // Fetch current notes
-        fetch(`/leads/${leadId}/get-data/`)
-          .then(response => response.json())
-          .then(data => {
-            if (data.notes) {
-              document.getElementById('notes_textarea').value = data.notes;
-            } else {
-              document.getElementById('notes_textarea').value = '';
-            }
-          })
-          .catch(error => {
-            console.error('Error fetching lead notes:', error);
-          });
       });
       
       // Handle form submission
@@ -1054,9 +1213,15 @@
               `;
               document.querySelector('.dashboard-header').after(alert);
               
+              // Auto-dismiss alert after 3 seconds
               setTimeout(() => {
-                window.location.reload();
-              }, 1000);
+                alert.remove();
+              }, 3000);
+              
+              // Reset form
+              notesForm.reset();
+              submitBtn.disabled = false;
+              submitBtn.textContent = originalText;
             } else {
               alert('Error: ' + data.error);
               submitBtn.disabled = false;
@@ -1073,101 +1238,184 @@
       }
     }
 
-    // Info Modal - Load owner, priority, notes, and due when modal opens
-    const infoLeadModal = document.getElementById('infoLeadModal');
-    if (infoLeadModal) {
-      infoLeadModal.addEventListener('show.bs.modal', function(event) {
-        const button = event.relatedTarget;
-        if (button) {
-          const owner = button.getAttribute('data-lead-owner') || '-';
-          const priority = button.getAttribute('data-lead-priority') || '-';
-          const notes = button.getAttribute('data-lead-notes') || '-';
-          const due = button.getAttribute('data-lead-due') || '-';
+    // View Lead Modal - Fetch complete data when modal opens
+    const viewLeadModal = document.getElementById('viewLeadModal');
+    if (viewLeadModal) {
+      // Store leadId when view button is clicked
+      let currentLeadId = null;
+      
+      // Function to fetch and display lead data
+      function fetchAndDisplayLeadData(leadId) {
+        if (!leadId) {
+          console.error('No lead ID provided');
+          return;
+        }
+        
+        const leadDetails = document.getElementById('leadDetails');
+        if (!leadDetails) {
+          console.error('leadDetails element not found!');
+          return;
+        }
+        
+          // Show loading state
+          leadDetails.innerHTML = `
+            <div class="text-center py-4">
+              <div class="spinner-border text-primary" role="status">
+                <span class="visually-hidden">Loading...</span>
+              </div>
+              <p class="mt-2">Loading lead details...</p>
+            </div>
+          `;
+
+          // Fetch complete lead data from server
+          fetch(`/leads/${leadId}/get-data/`)
+            .then(response => {
+            console.log('API Response status:', response.status);
+              if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+              }
+              return response.json();
+            })
+            .then(data => {
+            console.log('API Response data:', data);
+            
+              // Check if response has error
+              if (data.error) {
+                console.error('API Error:', data.error);
+                throw new Error(data.error);
+              }
+              
+              // Escape HTML to prevent XSS
+              const escapeHtml = (text) => {
+              if (text === null || text === undefined) return '-';
+                const div = document.createElement('div');
+              div.textContent = String(text);
+                return div.innerHTML;
+              };
+              
+            // Get priority badge class
+            const getPriorityBadge = (priority) => {
+              if (!priority) return 'bg-secondary';
+              const p = String(priority).toLowerCase();
+              if (p === 'high') return 'bg-danger';
+              if (p === 'low') return 'bg-success';
+              return 'bg-warning text-dark';
+            };
+            
+            // Populate modal with complete data (matching admin leads format)
+              leadDetails.innerHTML = `
+              <div class="col-md-6"><strong>Name:</strong> ${escapeHtml(data.name || '-')}</div>
+              <div class="col-md-6"><strong>Email:</strong> ${data.email ? `<a href="mailto:${escapeHtml(data.email)}">${escapeHtml(data.email)}</a>` : '-'}</div>
+              <div class="col-md-6"><strong>Phone:</strong> ${data.phone ? `<a href="tel:${escapeHtml(data.phone)}">${escapeHtml(data.phone)}</a>` : '-'}</div>
+              <div class="col-md-6"><strong>Company:</strong> ${escapeHtml(data.company || '-')}</div>
+              <div class="col-md-6"><strong>Source:</strong> ${escapeHtml(data.source || '-')}</div>
+              <div class="col-md-6"><strong>Priority:</strong> <span class="badge ${getPriorityBadge(data.priority)}">${escapeHtml(data.priority || '-')}</span></div>
+              <div class="col-md-6"><strong>Owner:</strong> ${escapeHtml(data.owner || '-')}</div>
+              <div class="col-md-6"><strong>Use Case:</strong> ${escapeHtml(data.use_case || '-')}</div>
+              <div class="col-md-6"><strong>Notes:</strong> ${escapeHtml(data.notes || '-')}</div>
+              <div class="col-md-6"><strong>Due Date:</strong> ${escapeHtml(data.due_date || '-')}</div>
+              <div class="col-md-6"><strong>Due Time:</strong> ${escapeHtml(data.due_time || '-')}</div>
+                <div class="col-md-6"><strong>Website:</strong> ${data.website ? `<a href="${escapeHtml(data.website)}" target="_blank" class="text-primary">${escapeHtml(data.website)}</a>` : '-'}</div>
+              <div class="col-md-6"><strong>Industry:</strong> ${escapeHtml(data.industry || '-')}</div>
+              <div class="col-md-6"><strong>City:</strong> ${escapeHtml(data.city || '-')}</div>
+              <div class="col-md-6"><strong>Country:</strong> ${escapeHtml(data.country || '-')}</div>
+              <div class="col-md-6"><strong>Budget:</strong> ${escapeHtml(data.budget || '-')}</div>
+              <div class="col-md-6"><strong>Timeline:</strong> ${escapeHtml(data.timeline || '-')}</div>
+              <div class="col-md-6"><strong>Tags:</strong> ${escapeHtml(data.tags || '-')}</div>
+                <div class="col-12"><strong>Notes:</strong> <div class="mt-1 p-2 bg-light rounded" style="white-space: pre-wrap; word-break: break-word;">${escapeHtml(data.notes || 'No notes available')}</div></div>
+              <div class="col-md-6"><strong>Created:</strong> ${escapeHtml(data.created_at || '-')}</div>
+              <div class="col-md-6"><strong>Updated:</strong> ${escapeHtml(data.updated_at || '-')}</div>
+              `;
+            })
+            .catch(error => {
+              console.error('Error fetching lead data:', error);
+            const leadDetails = document.getElementById('leadDetails');
+            if (leadDetails) {
+              leadDetails.innerHTML = `
+                <div class="alert alert-danger">
+                  <i class="bi bi-exclamation-triangle"></i>
+                  <strong>Error loading lead data!</strong><br>
+                  ${error.message || 'Please try again or contact support if the problem persists.'}
+                  <br><small>Lead ID: ${leadId}</small>
+                  <br><small>Check browser console for more details.</small>
+                </div>
+              `;
+            }
+          });
+      }
+      
+      // Use event delegation for view buttons (works with dynamically added buttons)
+      document.addEventListener('click', function(e) {
+        const viewBtn = e.target.closest('.btn-view');
+        if (viewBtn && viewBtn.getAttribute('data-bs-target') === '#viewLeadModal') {
+          currentLeadId = viewBtn.getAttribute('data-lead-id');
+          console.log('View button clicked - Lead ID:', currentLeadId);
           
-          // Set priority with badge
-          const priorityElement = document.getElementById('info_priority');
-          if (priority && priority !== '-') {
-            let badgeClass = 'bg-secondary';
-            if (priority === 'High') badgeClass = 'bg-danger';
-            else if (priority === 'Med') badgeClass = 'bg-warning text-dark';
-            else if (priority === 'Low') badgeClass = 'bg-success';
-            priorityElement.innerHTML = `<span class="badge ${badgeClass}">${priority}</span>`;
-          } else {
-            priorityElement.textContent = '-';
+          // Fetch data immediately when button is clicked
+          if (currentLeadId) {
+            fetchAndDisplayLeadData(currentLeadId);
           }
-          
-          // Set other fields
-          document.getElementById('info_owner').textContent = owner;
-          document.getElementById('info_notes').textContent = notes;
-          document.getElementById('info_due').textContent = due;
         }
       });
-    }
-
-    // View Lead Modal - Fetch complete data when button clicked
-    const viewButtons = document.querySelectorAll('.btn-view');
-    viewButtons.forEach(button => {
-      button.addEventListener('click', function() {
-        const leadId = this.getAttribute('data-lead-id');
+      
+      viewLeadModal.addEventListener('show.bs.modal', function(event) {
+        const button = event.relatedTarget;
+        let leadId = null;
         
-        // Show loading state
-        const leadDetails = document.getElementById('leadDetails');
-        leadDetails.innerHTML = `
-          <div class="text-center py-4">
-            <div class="spinner-border text-primary" role="status">
-              <span class="visually-hidden">Loading...</span>
+        // Try to get leadId from stored value first (most reliable)
+        if (currentLeadId) {
+          leadId = currentLeadId;
+          console.log('Using stored Lead ID:', leadId);
+        }
+        
+        // Try to get leadId from button
+        if (!leadId && button) {
+          leadId = button.getAttribute('data-lead-id');
+          console.log('Using button Lead ID:', leadId);
+        }
+        
+        // If not found from button, try to find from clicked element
+        if (!leadId && event.target) {
+          const clickedBtn = event.target.closest('.btn-view');
+          if (clickedBtn) {
+            leadId = clickedBtn.getAttribute('data-lead-id');
+            console.log('Using clicked element Lead ID:', leadId);
+          }
+        }
+        
+        // Also try to get from the button that triggered the modal
+        if (!leadId) {
+          const triggerBtn = document.querySelector('.btn-view[data-bs-target="#viewLeadModal"]');
+          if (triggerBtn) {
+            leadId = triggerBtn.getAttribute('data-lead-id');
+            console.log('Using trigger button Lead ID:', leadId);
+          }
+        }
+        
+        console.log('View Lead Modal - Final Lead ID:', leadId);
+        
+        // If we have a leadId, fetch and display the data
+        if (leadId) {
+          fetchAndDisplayLeadData(leadId);
+        } else {
+          console.error('Lead ID not found!');
+          const leadDetails = document.getElementById('leadDetails');
+          if (leadDetails) {
+          leadDetails.innerHTML = `
+            <div class="alert alert-danger">
+              <i class="bi bi-exclamation-triangle"></i>
+              <strong>Error!</strong><br>
+              Lead ID not found. Please try again.
+                <br><small>Make sure you clicked the eye icon button.</small>
             </div>
-            <p class="mt-2">Loading lead details...</p>
-          </div>
-        `;
-
-        // Fetch complete lead data from server
-        fetch(`/leads/${leadId}/get-data/`)
-          .then(response => {
-            if (response.ok) {
-              return response.json();
-            } else {
-              throw new Error('Server response not ok');
-            }
-          })
-          .then(data => {
-            // Populate modal with complete data
-            leadDetails.innerHTML = `
-              <div class="col-md-6"><strong>Name:</strong> ${data.name || '-'}</div>
-              <div class="col-md-6"><strong>Email:</strong> ${data.email || '-'}</div>
-              <div class="col-md-6"><strong>Phone:</strong> ${data.phone || '-'}</div>
-              <div class="col-md-6"><strong>Company:</strong> ${data.company || '-'}</div>
-              <div class="col-md-6"><strong>Source:</strong> ${data.source || '-'}</div>
-              <div class="col-md-6"><strong>Priority:</strong> <span class="badge ${data.priority === 'High' ? 'bg-danger' : data.priority === 'Low' ? 'bg-success' : 'bg-warning text-dark'}">${data.priority || '-'}</span></div>
-              <div class="col-md-6"><strong>Owner:</strong> ${data.owner || '-'}</div>
-              <div class="col-md-6"><strong>Use Case:</strong> ${data.use_case || '-'}</div>
-              <div class="col-md-6"><strong>Notes:</strong> ${data.notes || '-'}</div>
-              <div class="col-md-6"><strong>Due Date:</strong> ${data.due_date || '-'}</div>
-              <div class="col-md-6"><strong>Due Time:</strong> ${data.due_time || '-'}</div>
-              <div class="col-md-6"><strong>Website:</strong> ${data.website ? `<a href="${data.website}" target="_blank" class="text-primary">${data.website}</a>` : '-'}</div>
-              <div class="col-md-6"><strong>Industry:</strong> ${data.industry || '-'}</div>
-              <div class="col-md-6"><strong>City:</strong> ${data.city || '-'}</div>
-              <div class="col-md-6"><strong>Country:</strong> ${data.country || '-'}</div>
-              <div class="col-md-6"><strong>Budget:</strong> ${data.budget || '-'}</div>
-              <div class="col-md-6"><strong>Timeline:</strong> ${data.timeline || '-'}</div>
-              <div class="col-md-6"><strong>Tags:</strong> ${data.tags || '-'}</div>
-              <div class="col-12"><strong>Notes:</strong> <div class="mt-1 p-2 bg-light rounded">${data.notes || 'No notes available'}</div></div>
-              <div class="col-md-6"><strong>Created:</strong> ${data.created_at || '-'}</div>
-              <div class="col-md-6"><strong>Updated:</strong> ${data.updated_at || '-'}</div>
-            `;
-          })
-          .catch(error => {
-            console.error('Error fetching lead data:', error);
-            leadDetails.innerHTML = `
-              <div class="alert alert-danger">
-                <i class="bi bi-exclamation-triangle"></i>
-                <strong>Error loading lead data!</strong><br>
-                Please try again or contact support if the problem persists.
-              </div>
-            `;
-          });
+          `;
+        }
+        }
+        
+        // Reset stored leadId after use
+        currentLeadId = null;
       });
-    });
+    }
 
     // Fix modal backdrop issues
     const viewModal = document.getElementById('viewLeadModal');
@@ -1261,17 +1509,28 @@
     // Initial scroll setup based on current rows
     updateTableScroll();
     function getRowData(tr) {
-      const infoBtn = tr.querySelector('.btn-info');
+      const leadId = tr.getAttribute('data-lead-id');
+      const dueIso = tr.getAttribute('data-due');
+      let dueText = '-';
+      if (dueIso) {
+        const d = new Date(dueIso);
+        const day = String(d.getDate()).padStart(2, '0');
+        const month = d.toLocaleString('default', { month: 'short' });
+        const year = d.getFullYear();
+        const hours = String(d.getHours()).padStart(2, '0');
+        const minutes = String(d.getMinutes()).padStart(2, '0');
+        dueText = `${day}-${month}-${year} ${hours}:${minutes}`;
+      }
       return {
         name: tr.querySelector('[data-label="Name"]').textContent.trim(),
         email: tr.querySelector('[data-label="Email"]').textContent.trim(),
         phone: tr.querySelector('[data-label="Phone"]').textContent.trim(),
         company: tr.querySelector('[data-label="Company"]').textContent.trim(),
-        owner: infoBtn ? (infoBtn.getAttribute('data-lead-owner') || '-') : '-',
-        priority: infoBtn ? (infoBtn.getAttribute('data-lead-priority') || '-') : '-',
-        notes: infoBtn ? (infoBtn.getAttribute('data-lead-notes') || '-') : '-',
-        dueIso: tr.getAttribute('data-due'),
-        dueText: infoBtn ? (infoBtn.getAttribute('data-lead-due') || '-') : '-',
+        owner: '-', // Will be fetched from API in viewLeadModal
+        priority: '-', // Will be fetched from API in viewLeadModal
+        notes: '-', // Will be fetched from API in viewLeadModal
+        dueIso: dueIso,
+        dueText: dueText,
       };
     }
 
@@ -1282,24 +1541,8 @@
         if (!tr) return;
         const data = getRowData(tr);
 
-        if (btnView) {
-          const container = document.getElementById('leadDetails');
-          if (container) {
-            container.innerHTML = `
-              <div class="col-md-6"><strong>Name:</strong> ${data.name}</div>
-              <div class="col-md-6"><strong>Company:</strong> ${data.company}</div>
-              <div class="col-md-6"><strong>Email:</strong> ${data.email}</div>
-              <div class="col-md-6"><strong>Phone:</strong> ${data.phone}</div>
-              <div class="col-md-6"><strong>Owner:</strong> ${data.owner}</div>
-              <div class="col-md-3"><strong>Priority:</strong> ${data.priority}</div>
-              <div class="col-md-3"><strong>Stage:</strong> Proposal</div>
-              <div class="col-md-6"><strong>Notes:</strong> ${data.notes}</div>
-              <div class="col-md-6"><strong>Due:</strong> ${data.dueText}</div>
-            `;
-            const modal = new bootstrap.Modal(document.getElementById('viewLeadModal'));
-            modal.show();
-          }
-        }
+        // btnView click is handled by the modal's show.bs.modal event listener
+        // which fetches complete data from API including Owner, Priority, Notes, and Due
           // Switch to Create tab
           const tab = new bootstrap.Tab(createTabBtn);
           tab.show();
