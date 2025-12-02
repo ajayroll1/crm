@@ -11,34 +11,6 @@
   <div class="card shadow-sm mb-3">
     <div class="card-body">
       <style>
-        .backoffice-tabs .nav-link {
-          border-radius: 12px;
-          font-weight: 600;
-          background: #0d6efd;
-          color: #ffffff;
-          border: 1px solid #0d6efd;
-          transition: none;
-        }
-
-        .backoffice-tabs .nav-link .badge {
-          background: rgba(255, 255, 255, 0.2);
-          margin-left: 0.35rem;
-        }
-
-        .backoffice-tabs .nav-link:hover,
-        .backoffice-tabs .nav-link:focus,
-        .backoffice-tabs .nav-link.active {
-          background: #0d6efd;
-          color: #ffffff;
-          border-color: #0d6efd;
-          box-shadow: none;
-        }
-
-        .backoffice-tabs .nav-link i {
-          font-size: 1rem;
-          color: #ffffff;
-        }
-
         .backoffice-dashboard .card h6 {
           font-weight: 600;
         }
@@ -52,6 +24,19 @@
           border: 1px solid #0d6efd;
           box-shadow: none;
           transition: none;
+        }
+
+        .backoffice-dashboard .dropdown-item.active {
+          background-color: #0d6efd;
+          color: #ffffff;
+        }
+
+        .backoffice-dashboard .dropdown-item:hover {
+          background-color: #f8f9fa;
+        }
+
+        .backoffice-dashboard .dropdown-item.active:hover {
+          background-color: #0b5ed7;
         }
 
         .table-responsive {
@@ -84,45 +69,39 @@
           .table-responsive {
             display: none;
           }
-
-          .backoffice-tabs {
-            display: none;
-          }
         }
       </style>
 
-      <div class="d-sm-none mb-3">
+      <div class="mb-3">
         <div class="dropdown w-100">
           <button class="btn btn-primary w-100 d-flex justify-content-between align-items-center" type="button" id="backofficeTabDropdown" data-bs-toggle="dropdown" aria-expanded="false">
             <span>
-              {% for service in services %}
-                {% if service.id == active_tab %}{{ service.title }}{% endif %}
-              {% endfor %}
+              {% if tab_selected %}
+                {% for service in services %}
+                  {% if service.id == active_tab %}
+                    <i class="bi {{ service.icon }} me-2"></i>{{ service.title }} <span class="badge bg-light text-dark ms-2">{{ service.count }}</span>
+                  {% endif %}
+                {% endfor %}
+              {% else %}
+                <i class="bi bi-list-ul me-2"></i>Select Service or Click to Choose
+              {% endif %}
             </span>
             <i class="bi bi-chevron-down"></i>
           </button>
-          <ul class="dropdown-menu w-100" aria-labelledby="backofficeTabDropdown">
+          <ul class="dropdown-menu w-100" aria-labelledby="backofficeTabDropdown" style="max-height: 500px; overflow-y: auto;">
             {% for service in services %}
             <li>
-              <a class="dropdown-item {% if service.id == active_tab %}active{% endif %}" href="?tab={{ service.id }}">
-                {{ service.title }}
+              <a class="dropdown-item {% if service.id == active_tab %}active{% endif %} d-flex justify-content-between align-items-center" href="?tab={{ service.id }}">
+                <span>
+                  <i class="bi {{ service.icon }} me-2"></i>{{ service.title }}
+                </span>
+                <span class="badge bg-primary rounded-pill">{{ service.count }}</span>
               </a>
             </li>
             {% endfor %}
           </ul>
         </div>
       </div>
-
-      <ul class="nav nav-pills backoffice-tabs gap-2 mb-0 d-none d-sm-flex" role="tablist">
-        {% for service in services %}
-        <li class="nav-item" role="presentation">
-          <a href="?tab={{ service.id }}" class="nav-link {% if service.id == active_tab %}active{% endif %}">
-            <i class="bi {{ service.icon }} me-1"></i>{{ service.title }}
-            <span class="badge">{{ service.count }}</span>
-          </a>
-        </li>
-        {% endfor %}
-      </ul>
     </div>
   </div>
 

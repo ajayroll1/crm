@@ -1059,9 +1059,11 @@ def backoffice_department(request):
       'count': count,
     })
 
+  tab_selected = 'tab' in request.GET
   active_tab = request.GET.get('tab', 'startup')
   if active_tab not in service_map:
     active_tab = 'startup'
+    tab_selected = False
 
   search_query = request.GET.get('q', '').strip()
   page_number = request.GET.get('page')
@@ -1085,6 +1087,7 @@ def backoffice_department(request):
     'search_query': search_query,
     'page_obj': page_obj,
     'tab_counts': tab_counts,
+    'tab_selected': tab_selected,
   }
 
   return render(request, 'dashboard/backoffice_department.html', context)
