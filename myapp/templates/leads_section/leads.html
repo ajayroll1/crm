@@ -65,20 +65,17 @@
 </style>
 
 <!-- Tabs: List | Create -->
-<!-- Create Lead tab temporarily commented out -->
 <ul class="nav nav-tabs" id="leadsTabs" role="tablist">
   <li class="nav-item" role="presentation">
     <button class="nav-link active" id="list-tab" data-bs-toggle="tab" data-bs-target="#list" type="button" role="tab" aria-controls="list" aria-selected="true">
       <i class="bi bi-table"></i> List
     </button>
   </li>
-  {% comment %}
   <li class="nav-item" role="presentation">
     <button class="nav-link" id="create-tab" data-bs-toggle="tab" data-bs-target="#create" type="button" role="tab" aria-controls="create" aria-selected="false">
       <i class="bi bi-plus-circle"></i> Create Lead
     </button>
   </li>
-  {% endcomment %}
 </ul>
 
 <div class="tab-content pt-3" id="leadsTabsContent">
@@ -218,8 +215,7 @@
     </div>
   </div>
 
-  <!-- Create Tab - Temporarily commented out -->
-  {% comment %}
+  <!-- Create Tab -->
   <div class="tab-pane fade" id="create" role="tabpanel" aria-labelledby="create-tab">
     <form id="createLeadForm" method="post" novalidate>
       {% csrf_token %}
@@ -400,7 +396,6 @@
       </div>
     </form>
   </div>
-  {% endcomment %}
 </div>
 
 <!-- View Lead Modal -->
