@@ -16,6 +16,42 @@
       <input id="importCsvInput" type="file" accept=".csv" hidden>
     </div>
   </div>
+  
+  <!-- Summary Statistics -->
+  <div class="row mt-3 mb-3">
+    <div class="col-md-3 col-sm-6 mb-2">
+      <div class="card border-success">
+        <div class="card-body text-center">
+          <h6 class="card-subtitle mb-2 text-muted">Total Present</h6>
+          <h3 class="card-title text-success mb-0" id="summaryPresent">0</h3>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-3 col-sm-6 mb-2">
+      <div class="card border-danger">
+        <div class="card-body text-center">
+          <h6 class="card-subtitle mb-2 text-muted">Total Absent</h6>
+          <h3 class="card-title text-danger mb-0" id="summaryAbsent">0</h3>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-3 col-sm-6 mb-2">
+      <div class="card border-warning">
+        <div class="card-body text-center">
+          <h6 class="card-subtitle mb-2 text-muted">Half Day</h6>
+          <h3 class="card-title text-warning mb-0" id="summaryHalfDay">0</h3>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-3 col-sm-6 mb-2">
+      <div class="card border-info">
+        <div class="card-body text-center">
+          <h6 class="card-subtitle mb-2 text-muted">Leave</h6>
+          <h3 class="card-title text-info mb-0" id="summaryLeave">0</h3>
+        </div>
+      </div>
+    </div>
+  </div>
 </div>
 
 <style>
@@ -103,6 +139,28 @@
         const data = await response.json();
         employees = data.employees || [];
         attendance = data.attendance || {};
+        
+        // Update summary statistics
+        if (data.summary) {
+          document.getElementById('summaryPresent').textContent = data.summary.total_present || 0;
+          document.getElementById('summaryAbsent').textContent = data.summary.total_absent || 0;
+          document.getElementById('summaryHalfDay').textContent = data.summary.total_half_day || 0;
+          document.getElementById('summaryLeave').textContent = data.summary.total_leave || 0;
+        } else {
+          // Calculate from attendance data if summary not provided
+          let present = 0, absent = 0, halfDay = 0, leave = 0;
+          for (const status of Object.values(attendance)) {
+            if (status === 'P') present++;
+            else if (status === 'A') absent++;
+            else if (status === 'H') halfDay++;
+            else if (status === 'L') leave++;
+          }
+          document.getElementById('summaryPresent').textContent = present;
+          document.getElementById('summaryAbsent').textContent = absent;
+          document.getElementById('summaryHalfDay').textContent = halfDay;
+          document.getElementById('summaryLeave').textContent = leave;
+        }
+        
         renderEmployees();
         renderSheet();
       } catch (error) {
@@ -222,6 +280,20 @@
       });
     }
 
+    function updateSummary(){
+      let present = 0, absent = 0, halfDay = 0, leave = 0;
+      for (const status of Object.values(attendance)) {
+        if (status === 'P') present++;
+        else if (status === 'A') absent++;
+        else if (status === 'H') halfDay++;
+        else if (status === 'L') leave++;
+      }
+      document.getElementById('summaryPresent').textContent = present;
+      document.getElementById('summaryAbsent').textContent = absent;
+      document.getElementById('summaryHalfDay').textContent = halfDay;
+      document.getElementById('summaryLeave').textContent = leave;
+    }
+
     function cycle(td){
       const seq = ['', 'P', 'A', 'L', 'H'];
       const cur = td.textContent || '';
@@ -230,6 +302,7 @@
       const key = `${td.dataset.empId}_${td.dataset.date}`;
       if (next) attendance[key] = next; else delete attendance[key];
       applyCellStyle(td);
+      updateSummary(); // Update summary when attendance changes
       // Note: Manual changes are stored in memory but not saved to backend
       // You may want to add an API endpoint to save manual overrides
     }

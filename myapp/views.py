@@ -115,6 +115,20 @@ from .models import (
     CompanyClosure,
     RCMCRegistration,
     ShopEstablishmentRegistration,
+    DINApplication,
+    GSTRegistration,
+    GSTFiling,
+    CompanyComplianceROCLLP,
+    AuthorizedPaidupCapitalIncrease,
+    DINKYC,
+    NGODarpan,
+    ITRFiling,
+    INC20ABusinessCommencement,
+    GEMRegistration,
+    StartupIndiaSeedFunding,
+    CSR1NGO,
+    Registration12A80G,
+    PartnershipRegistration,
 )
 from .forms import (
     LeadForm,
@@ -145,6 +159,20 @@ from .forms import (
     CompanyClosureForm,
     RCMCRegistrationForm,
     ShopEstablishmentRegistrationForm,
+    DINApplicationForm,
+    GSTRegistrationForm,
+    GSTFilingForm,
+    CompanyComplianceROCLLPForm,
+    AuthorizedPaidupCapitalIncreaseForm,
+    DINKYCForm,
+    NGODarpanForm,
+    ITRFilingForm,
+    INC20ABusinessCommencementForm,
+    GEMRegistrationForm,
+    StartupIndiaSeedFundingForm,
+    CSR1NGOForm,
+    Registration12A80GForm,
+    PartnershipRegistrationForm,
 )
 from django.views.decorators.http import require_POST
 from django.views.decorators.csrf import csrf_exempt, ensure_csrf_cookie
@@ -454,27 +482,27 @@ def login_view(request):
         except:
           pass
         
-        # Check attendance status and show message
-        if today_attendance:
-          if today_attendance.check_in_time and today_attendance.check_out_time:
-            messages.info(request, f'Welcome back! You have already completed check-in and check-out today.')
-          elif today_attendance.check_in_time:
-            check_in_time = today_attendance.check_in_time.strftime('%I:%M %p')
-            messages.info(request, f'Welcome back! You checked in at {check_in_time}. Don\'t forget to check out!')
-          else:
-            messages.info(request, f'Welcome back! Please complete your check-in.')
-        else:
-          messages.info(request, f'Welcome back! Please complete your check-in for today.')
+        # Check attendance status (messages removed as per user request)
+        # if today_attendance:
+        #   if today_attendance.check_in_time and today_attendance.check_out_time:
+        #     messages.info(request, f'Welcome back! You have already completed check-in and check-out today.')
+        #   elif today_attendance.check_in_time:
+        #     check_in_time = today_attendance.check_in_time.strftime('%I:%M %p')
+        #     messages.info(request, f'Welcome back! You checked in at {check_in_time}. Don\'t forget to check out!')
+        #   else:
+        #     messages.info(request, f'Welcome back! Please complete your check-in.')
+        # else:
+        #   messages.info(request, f'Welcome back! Please complete your check-in for today.')
         
         # Get role from Employee model
         role = employee.role or 'Employee'
         
         # Redirect based on role
         if role == 'Admin':
-          messages.success(request, f'Welcome back, {employee.get_full_name()}!')
+          # messages.success(request, f'Welcome back, {employee.get_full_name()}!')
           return redirect('dashboard')
         else:
-          messages.success(request, f'Welcome back, {employee.get_full_name()}!')
+          # messages.success(request, f'Welcome back, {employee.get_full_name()}!')
           return redirect('employee_dashboard')
       else:
         messages.error(request, 'Your account has been disabled.')
@@ -507,24 +535,24 @@ def login_view(request):
           except:
             pass
           
-          # Check attendance status and show message
-          if today_attendance:
-            if today_attendance.check_in_time and today_attendance.check_out_time:
-              messages.info(request, f'Welcome back! You have already completed check-in and check-out today.')
-            elif today_attendance.check_in_time:
-              check_in_time = today_attendance.check_in_time.strftime('%I:%M %p')
-              messages.info(request, f'Welcome back! You checked in at {check_in_time}. Don\'t forget to check out!')
-            else:
-              messages.info(request, f'Welcome back! Please complete your check-in.')
-          else:
-            messages.info(request, f'Welcome back! Please complete your check-in for today.')
+          # Check attendance status (messages removed as per user request)
+          # if today_attendance:
+          #   if today_attendance.check_in_time and today_attendance.check_out_time:
+          #     messages.info(request, f'Welcome back! You have already completed check-in and check-out today.')
+          #   elif today_attendance.check_in_time:
+          #     check_in_time = today_attendance.check_in_time.strftime('%I:%M %p')
+          #     messages.info(request, f'Welcome back! You checked in at {check_in_time}. Don\'t forget to check out!')
+          #   else:
+          #     messages.info(request, f'Welcome back! Please complete your check-in.')
+          # else:
+          #   messages.info(request, f'Welcome back! Please complete your check-in for today.')
           
           role = employee.role or 'Employee'
           if role == 'Admin':
-            messages.success(request, f'Welcome back, {employee.get_full_name()}!')
+            # messages.success(request, f'Welcome back, {employee.get_full_name()}!')
             return redirect('dashboard')
           else:
-            messages.success(request, f'Welcome back, {employee.get_full_name()}!')
+            # messages.success(request, f'Welcome back, {employee.get_full_name()}!')
             return redirect('employee_dashboard')
         else:
           messages.error(request, 'Wrong password or email.')
@@ -1064,6 +1092,168 @@ def backoffice_department(request):
         'business_type__icontains',
       ],
     },
+    {
+      'id': 'din-application',
+      'title': 'DIN Application',
+      'icon': 'bi-person-badge',
+      'model': DINApplication,
+      'search_fields': [
+        'applicant_name__icontains',
+        'pan_number__icontains',
+        'email__icontains',
+        'phone__icontains',
+      ],
+    },
+    {
+      'id': 'gst-registration',
+      'title': 'GST Registration',
+      'icon': 'bi-receipt-cutoff',
+      'model': GSTRegistration,
+      'search_fields': [
+        'legal_entity_name__icontains',
+        'trade_name__icontains',
+        'pan_number__icontains',
+        'email__icontains',
+      ],
+    },
+    {
+      'id': 'gst-filing',
+      'title': 'GST Filing',
+      'icon': 'bi-file-earmark-spreadsheet',
+      'model': GSTFiling,
+      'search_fields': [
+        'gstin_number__icontains',
+        'return_type__icontains',
+        'return_period__icontains',
+      ],
+    },
+    {
+      'id': 'company-compliance-roc-llp',
+      'title': 'Company Compliance (ROC) LLP',
+      'icon': 'bi-file-check',
+      'model': CompanyComplianceROCLLP,
+      'search_fields': [
+        'company_name__icontains',
+        'registration_number__icontains',
+        'filing_type__icontains',
+      ],
+    },
+    {
+      'id': 'authorized-paidup-capital-increase',
+      'title': 'Authorized Capital & Paidup capital increase',
+      'icon': 'bi-arrow-up-circle',
+      'model': AuthorizedPaidupCapitalIncrease,
+      'search_fields': [
+        'company_name__icontains',
+        'cin_number__icontains',
+      ],
+    },
+    {
+      'id': 'din-kyc',
+      'title': 'DIN KYC',
+      'icon': 'bi-person-check',
+      'model': DINKYC,
+      'search_fields': [
+        'director_name__icontains',
+        'din_number__icontains',
+        'pan_number__icontains',
+        'email__icontains',
+      ],
+    },
+    {
+      'id': 'ngo-darpan',
+      'title': 'NGO Darpan',
+      'icon': 'bi-people-fill',
+      'model': NGODarpan,
+      'search_fields': [
+        'organization_name__icontains',
+        'registration_number__icontains',
+        'contact_person__icontains',
+        'email__icontains',
+      ],
+    },
+    {
+      'id': 'itr-filing',
+      'title': 'ITR Filing',
+      'icon': 'bi-file-earmark-text',
+      'model': ITRFiling,
+      'search_fields': [
+        'pan_number__icontains',
+        'assessment_year__icontains',
+        'itr_type__icontains',
+      ],
+    },
+    {
+      'id': 'inc-20a',
+      'title': 'INC-20A (Business Commencement)',
+      'icon': 'bi-play-circle',
+      'model': INC20ABusinessCommencement,
+      'search_fields': [
+        'company_name__icontains',
+        'cin_number__icontains',
+        'business_activity__icontains',
+      ],
+    },
+    {
+      'id': 'gem-registration',
+      'title': 'GEM Registration',
+      'icon': 'bi-building',
+      'model': GEMRegistration,
+      'search_fields': [
+        'business_name__icontains',
+        'business_type__icontains',
+        'pan_number__icontains',
+        'email__icontains',
+      ],
+    },
+    {
+      'id': 'startup-india-seed-funding',
+      'title': 'Start-up INDIA – SEED FUNDING',
+      'icon': 'bi-cash-stack',
+      'model': StartupIndiaSeedFunding,
+      'search_fields': [
+        'startup_name__icontains',
+        'cin_number__icontains',
+        'startup_india_registration_number__icontains',
+        'contact_email__icontains',
+      ],
+    },
+    {
+      'id': 'csr-1-ngo',
+      'title': 'CSR-1 (NGO)',
+      'icon': 'bi-heart',
+      'model': CSR1NGO,
+      'search_fields': [
+        'ngo_name__icontains',
+        'registration_number__icontains',
+        'contact_person__icontains',
+        'email__icontains',
+      ],
+    },
+    {
+      'id': '12a-80g-registration',
+      'title': '12A & 80G Registration',
+      'icon': 'bi-file-earmark-medical',
+      'model': Registration12A80G,
+      'search_fields': [
+        'organization_name__icontains',
+        'registration_number__icontains',
+        'contact_person__icontains',
+        'email__icontains',
+      ],
+    },
+    {
+      'id': 'partnership-registration',
+      'title': 'Partnership Registration',
+      'icon': 'bi-people-fill',
+      'model': PartnershipRegistration,
+      'search_fields': [
+        'firm_name__icontains',
+        'business_activity__icontains',
+        'contact_email__icontains',
+        'contact_phone__icontains',
+      ],
+    },
   ]
 
   service_map = {service['id']: service for service in service_definitions}
@@ -1361,6 +1551,132 @@ def service_forms(request):
       'form_class': ShopEstablishmentRegistrationForm,
       'form_name': 'shop_establishment',
       'model': ShopEstablishmentRegistration,
+    },
+    {
+      'id': 'din-application',
+      'title': 'DIN Application',
+      'icon': 'bi-person-badge',
+      'department': 'Back Office',
+      'form_class': DINApplicationForm,
+      'form_name': 'din_application',
+      'model': DINApplication,
+    },
+    {
+      'id': 'gst-registration',
+      'title': 'GST Registration',
+      'icon': 'bi-receipt-cutoff',
+      'department': 'Back Office',
+      'form_class': GSTRegistrationForm,
+      'form_name': 'gst_registration',
+      'model': GSTRegistration,
+    },
+    {
+      'id': 'gst-filing',
+      'title': 'GST Filing',
+      'icon': 'bi-file-earmark-spreadsheet',
+      'department': 'Back Office',
+      'form_class': GSTFilingForm,
+      'form_name': 'gst_filing',
+      'model': GSTFiling,
+    },
+    {
+      'id': 'company-compliance-roc-llp',
+      'title': 'Company Compliance (ROC) LLP',
+      'icon': 'bi-file-check',
+      'department': 'Back Office',
+      'form_class': CompanyComplianceROCLLPForm,
+      'form_name': 'company_compliance_roc_llp',
+      'model': CompanyComplianceROCLLP,
+    },
+    {
+      'id': 'authorized-paidup-capital-increase',
+      'title': 'Authorized Capital & Paidup capital increase',
+      'icon': 'bi-arrow-up-circle',
+      'department': 'Back Office',
+      'form_class': AuthorizedPaidupCapitalIncreaseForm,
+      'form_name': 'authorized_paidup_capital_increase',
+      'model': AuthorizedPaidupCapitalIncrease,
+    },
+    {
+      'id': 'din-kyc',
+      'title': 'DIN KYC',
+      'icon': 'bi-person-check',
+      'department': 'Back Office',
+      'form_class': DINKYCForm,
+      'form_name': 'din_kyc',
+      'model': DINKYC,
+    },
+    {
+      'id': 'ngo-darpan',
+      'title': 'NGO Darpan',
+      'icon': 'bi-people-fill',
+      'department': 'Back Office',
+      'form_class': NGODarpanForm,
+      'form_name': 'ngo_darpan',
+      'model': NGODarpan,
+    },
+    {
+      'id': 'itr-filing',
+      'title': 'ITR Filing',
+      'icon': 'bi-file-earmark-text',
+      'department': 'Back Office',
+      'form_class': ITRFilingForm,
+      'form_name': 'itr_filing',
+      'model': ITRFiling,
+    },
+    {
+      'id': 'inc-20a',
+      'title': 'INC-20A (Business Commencement)',
+      'icon': 'bi-play-circle',
+      'department': 'Back Office',
+      'form_class': INC20ABusinessCommencementForm,
+      'form_name': 'inc_20a',
+      'model': INC20ABusinessCommencement,
+    },
+    {
+      'id': 'gem-registration',
+      'title': 'GEM Registration',
+      'icon': 'bi-building',
+      'department': 'Back Office',
+      'form_class': GEMRegistrationForm,
+      'form_name': 'gem_registration',
+      'model': GEMRegistration,
+    },
+    {
+      'id': 'startup-india-seed-funding',
+      'title': 'Start-up INDIA – SEED FUNDING',
+      'icon': 'bi-cash-stack',
+      'department': 'Back Office',
+      'form_class': StartupIndiaSeedFundingForm,
+      'form_name': 'startup_india_seed_funding',
+      'model': StartupIndiaSeedFunding,
+    },
+    {
+      'id': 'csr-1-ngo',
+      'title': 'CSR-1 (NGO)',
+      'icon': 'bi-heart',
+      'department': 'Back Office',
+      'form_class': CSR1NGOForm,
+      'form_name': 'csr_1_ngo',
+      'model': CSR1NGO,
+    },
+    {
+      'id': '12a-80g-registration',
+      'title': '12A & 80G Registration',
+      'icon': 'bi-file-earmark-medical',
+      'department': 'Back Office',
+      'form_class': Registration12A80GForm,
+      'form_name': '12a_80g_registration',
+      'model': Registration12A80G,
+    },
+    {
+      'id': 'partnership-registration',
+      'title': 'Partnership Registration',
+      'icon': 'bi-people-fill',
+      'department': 'Back Office',
+      'form_class': PartnershipRegistrationForm,
+      'form_name': 'partnership_registration',
+      'model': PartnershipRegistration,
     },
   ]
   
@@ -2097,6 +2413,20 @@ def service_leads(request):
     {'id': 'company-closure', 'title': 'Company Closure', 'model': CompanyClosure, 'icon': 'bi-x-circle'},
     {'id': 'rcmc', 'title': 'RCMC', 'model': RCMCRegistration, 'icon': 'bi-file-earmark-medical'},
     {'id': 'shop-establishment', 'title': 'Shop Establishment (Jharkhand & West Bengal)', 'model': ShopEstablishmentRegistration, 'icon': 'bi-shop'},
+    {'id': 'din-application', 'title': 'DIN Application', 'model': DINApplication, 'icon': 'bi-person-badge'},
+    {'id': 'gst-registration', 'title': 'GST Registration', 'model': GSTRegistration, 'icon': 'bi-receipt-cutoff'},
+    {'id': 'gst-filing', 'title': 'GST Filing', 'model': GSTFiling, 'icon': 'bi-file-earmark-spreadsheet'},
+    {'id': 'company-compliance-roc-llp', 'title': 'Company Compliance (ROC) LLP', 'model': CompanyComplianceROCLLP, 'icon': 'bi-file-check'},
+    {'id': 'authorized-paidup-capital-increase', 'title': 'Authorized Capital & Paidup capital increase', 'model': AuthorizedPaidupCapitalIncrease, 'icon': 'bi-arrow-up-circle'},
+    {'id': 'din-kyc', 'title': 'DIN KYC', 'model': DINKYC, 'icon': 'bi-person-check'},
+    {'id': 'ngo-darpan', 'title': 'NGO Darpan', 'model': NGODarpan, 'icon': 'bi-people-fill'},
+    {'id': 'itr-filing', 'title': 'ITR Filing', 'model': ITRFiling, 'icon': 'bi-file-earmark-text'},
+    {'id': 'inc-20a', 'title': 'INC-20A (Business Commencement)', 'model': INC20ABusinessCommencement, 'icon': 'bi-play-circle'},
+    {'id': 'gem-registration', 'title': 'GEM Registration', 'model': GEMRegistration, 'icon': 'bi-building'},
+    {'id': 'startup-india-seed-funding', 'title': 'Start-up INDIA – SEED FUNDING', 'model': StartupIndiaSeedFunding, 'icon': 'bi-cash-stack'},
+    {'id': 'csr-1-ngo', 'title': 'CSR-1 (NGO)', 'model': CSR1NGO, 'icon': 'bi-heart'},
+    {'id': '12a-80g-registration', 'title': '12A & 80G Registration', 'model': Registration12A80G, 'icon': 'bi-file-earmark-medical'},
+    {'id': 'partnership-registration', 'title': 'Partnership Registration', 'model': PartnershipRegistration, 'icon': 'bi-people-fill'},
   ]
   
   # Get all records for each service
@@ -2170,6 +2500,20 @@ def assign_service_lead(request):
         'company-closure': CompanyClosure,
         'rcmc': RCMCRegistration,
         'shop-establishment': ShopEstablishmentRegistration,
+        'din-application': DINApplication,
+        'gst-registration': GSTRegistration,
+        'gst-filing': GSTFiling,
+        'company-compliance-roc-llp': CompanyComplianceROCLLP,
+        'authorized-paidup-capital-increase': AuthorizedPaidupCapitalIncrease,
+        'din-kyc': DINKYC,
+        'ngo-darpan': NGODarpan,
+        'itr-filing': ITRFiling,
+        'inc-20a': INC20ABusinessCommencement,
+        'gem-registration': GEMRegistration,
+        'startup-india-seed-funding': StartupIndiaSeedFunding,
+        'csr-1-ngo': CSR1NGO,
+        '12a-80g-registration': Registration12A80G,
+        'partnership-registration': PartnershipRegistration,
       }
       
       if service_type not in service_models:
@@ -2247,6 +2591,34 @@ def delete_service_lead(request):
         'rcmc': RCMCRegistration,
         'shop-establishment': ShopEstablishmentRegistration,
         'shop_establishment': ShopEstablishmentRegistration,
+        'din-application': DINApplication,
+        'din_application': DINApplication,
+        'gst-registration': GSTRegistration,
+        'gst_registration': GSTRegistration,
+        'gst-filing': GSTFiling,
+        'gst_filing': GSTFiling,
+        'company-compliance-roc-llp': CompanyComplianceROCLLP,
+        'company_compliance_roc_llp': CompanyComplianceROCLLP,
+        'authorized-paidup-capital-increase': AuthorizedPaidupCapitalIncrease,
+        'authorized_paidup_capital_increase': AuthorizedPaidupCapitalIncrease,
+        'din-kyc': DINKYC,
+        'din_kyc': DINKYC,
+        'ngo-darpan': NGODarpan,
+        'ngo_darpan': NGODarpan,
+        'itr-filing': ITRFiling,
+        'itr_filing': ITRFiling,
+        'inc-20a': INC20ABusinessCommencement,
+        'inc_20a': INC20ABusinessCommencement,
+        'gem-registration': GEMRegistration,
+        'gem_registration': GEMRegistration,
+        'startup-india-seed-funding': StartupIndiaSeedFunding,
+        'startup_india_seed_funding': StartupIndiaSeedFunding,
+        'csr-1-ngo': CSR1NGO,
+        'csr_1_ngo': CSR1NGO,
+        '12a-80g-registration': Registration12A80G,
+        '12a_80g_registration': Registration12A80G,
+        'partnership-registration': PartnershipRegistration,
+        'partnership_registration': PartnershipRegistration,
       }
       
       if service_type not in service_models:
@@ -6801,8 +7173,8 @@ def attendance_data_api(request):
         total_seconds = int(delta.total_seconds())
         total_hours = total_seconds / 3600.0
         
-        required_hours = 8.5
-        half_day_hours = required_hours / 2.0
+        required_hours = 8
+        half_day_hours = 4
         
         if total_hours >= required_hours:
           status = 'P'  # Present
@@ -6825,8 +7197,8 @@ def attendance_data_api(request):
         total_seconds = int(delta.total_seconds())
         total_hours = total_seconds / 3600.0
         
-        required_hours = 8.5
-        half_day_hours = required_hours / 2.0
+        required_hours = 8
+        half_day_hours = 4
         
         if total_hours >= required_hours:
           status = 'P'  # Present
@@ -6841,9 +7213,34 @@ def attendance_data_api(request):
       key = f"{emp_id}_{date_str}"
       attendance_data[key] = status
   
+  # Calculate summary statistics
+  total_present = 0
+  total_absent = 0
+  total_half_day = 0
+  total_leave = 0
+  
+  for status in attendance_data.values():
+    if status == 'P':
+      total_present += 1
+    elif status == 'A':
+      total_absent += 1
+    elif status == 'H':
+      total_half_day += 1
+    elif status == 'L':
+      total_leave += 1
+  
+  total_records = len(attendance_data)
+  
   return JsonResponse({
     'employees': employees_data,
-    'attendance': attendance_data
+    'attendance': attendance_data,
+    'summary': {
+      'total_present': total_present,
+      'total_absent': total_absent,
+      'total_half_day': total_half_day,
+      'total_leave': total_leave,
+      'total_records': total_records
+    }
   })
 
 def leave(request):
@@ -9759,6 +10156,368 @@ def employee_backoffice(request):
             ],
             'documents': ['Altered MOA/AOA drafts', 'Board & shareholder resolutions', 'GM notice with explanatory statement', 'Lender consents (if any)'],
         },
+        {
+            'id': 'professional-tax',
+            'title': 'Professional Tax',
+            'icon': 'bi-cash-coin',
+            'summary': 'State-wise professional tax registration and compliance.',
+            'form_fields': [
+                {'label': 'Business Name', 'type': 'text', 'placeholder': 'Business name', 'col': 6},
+                {'label': 'Business Type', 'type': 'select', 'options': ['Proprietorship', 'Partnership', 'LLP', 'Company'], 'col': 6},
+                {'label': 'PAN Number', 'type': 'text', 'placeholder': 'ABCDE1234F', 'col': 6},
+                {'label': 'GST Number', 'type': 'text', 'placeholder': 'GSTIN', 'col': 6},
+                {'label': 'Business Address', 'type': 'textarea', 'placeholder': 'Complete business address', 'col': 12},
+                {'label': 'Number of Employees', 'type': 'number', 'placeholder': 'Number of employees', 'col': 6},
+                {'label': 'Business Start Date', 'type': 'date', 'placeholder': '', 'col': 6},
+            ],
+            'documents': ['PAN card', 'GST certificate', 'Business address proof', 'Bank account details', 'Employee list'],
+        },
+        {
+            'id': 'iec',
+            'title': 'IEC (Import Export Certificate)',
+            'icon': 'bi-globe',
+            'summary': 'Import Export Code registration for international trade.',
+            'form_fields': [
+                {'label': 'Firm Name', 'type': 'text', 'placeholder': 'Firm/Company name', 'col': 6},
+                {'label': 'PAN Number', 'type': 'text', 'placeholder': 'ABCDE1234F', 'col': 6},
+                {'label': 'Business Type', 'type': 'select', 'options': ['Proprietorship', 'Partnership', 'LLP', 'Company'], 'col': 6},
+                {'label': 'Incorporation Date', 'type': 'date', 'placeholder': '', 'col': 6},
+                {'label': 'Bank Account Details', 'type': 'textarea', 'placeholder': 'Bank account details', 'col': 6},
+                {'label': 'Directors/Partners Details', 'type': 'textarea', 'placeholder': 'Directors/Partners details', 'col': 6},
+            ],
+            'documents': ['PAN card', 'Bank account proof', 'Address proof', 'Directors/Partners KYC', 'Incorporation certificate'],
+        },
+        {
+            'id': 'icegate',
+            'title': 'ICE Gate',
+            'icon': 'bi-door-open',
+            'summary': 'ICE Gate registration for customs clearance.',
+            'form_fields': [
+                {'label': 'Company Name', 'type': 'text', 'placeholder': 'Company name', 'col': 6},
+                {'label': 'PAN Number', 'type': 'text', 'placeholder': 'ABCDE1234F', 'col': 6},
+                {'label': 'IEC Number', 'type': 'text', 'placeholder': 'IEC number', 'col': 6},
+                {'label': 'User Role', 'type': 'select', 'options': ['Importer', 'Exporter', 'Customs Broker', 'Other'], 'col': 6},
+                {'label': 'Authorized Person Name', 'type': 'text', 'placeholder': 'Authorized person name', 'col': 6},
+                {'label': 'Authorized Person Details', 'type': 'textarea', 'placeholder': 'Authorized person details', 'col': 6},
+            ],
+            'documents': ['IEC certificate', 'PAN card', 'Company registration certificate', 'Authorized person KYC'],
+        },
+        {
+            'id': 'trade-license',
+            'title': 'Trade License',
+            'icon': 'bi-file-earmark-check',
+            'summary': 'Municipal trade license registration.',
+            'form_fields': [
+                {'label': 'Business Name', 'type': 'text', 'placeholder': 'Business name', 'col': 6},
+                {'label': 'Business Type', 'type': 'select', 'options': ['Retail', 'Wholesale', 'Manufacturing', 'Service', 'Other'], 'col': 6},
+                {'label': 'Business Address', 'type': 'textarea', 'placeholder': 'Complete business address', 'col': 12},
+                {'label': 'PAN Number', 'type': 'text', 'placeholder': 'ABCDE1234F', 'col': 6},
+                {'label': 'GST Number', 'type': 'text', 'placeholder': 'GSTIN', 'col': 6},
+                {'label': 'Municipal Area', 'type': 'text', 'placeholder': 'Municipal area', 'col': 6},
+                {'label': 'Number of Employees', 'type': 'number', 'placeholder': 'Number of employees', 'col': 6},
+            ],
+            'documents': ['PAN card', 'GST certificate', 'Business address proof', 'Municipal NOC', 'Rental agreement/Ownership proof'],
+        },
+        {
+            'id': 'dsc',
+            'title': 'DSC (Digital Signature)',
+            'icon': 'bi-shield-lock',
+            'summary': 'Digital Signature Certificate for e-filing.',
+            'form_fields': [
+                {'label': 'PAN Number', 'type': 'text', 'placeholder': 'ABCDE1234F', 'col': 6},
+                {'label': 'Aadhaar Number', 'type': 'text', 'placeholder': 'Aadhaar number', 'col': 6},
+                {'label': 'Organisation Name', 'type': 'text', 'placeholder': 'Organisation name', 'col': 6},
+                {'label': 'Organisation Type', 'type': 'select', 'options': ['Individual', 'Company', 'LLP', 'Partnership', 'Other'], 'col': 6},
+                {'label': 'DSC Type', 'type': 'select', 'options': ['Class 2', 'Class 3', 'DGFT'], 'col': 6},
+                {'label': 'Organisation Address', 'type': 'textarea', 'placeholder': 'Organisation address', 'col': 6},
+            ],
+            'documents': ['PAN card', 'Aadhaar card', 'Address proof', 'Photo', 'Organisation certificate (if applicable)'],
+        },
+        {
+            'id': 'company-name-change',
+            'title': 'Company Name Change',
+            'icon': 'bi-pencil',
+            'summary': 'Change company name with ROC approval.',
+            'form_fields': [
+                {'label': 'Current Company Name', 'type': 'text', 'placeholder': 'Current company name', 'col': 6},
+                {'label': 'CIN Number', 'type': 'text', 'placeholder': 'CIN number', 'col': 6},
+                {'label': 'Proposed New Name', 'type': 'text', 'placeholder': 'Proposed new name', 'col': 6},
+                {'label': 'Reason for Change', 'type': 'textarea', 'placeholder': 'Reason for name change', 'col': 6},
+                {'label': 'Board Meeting Date', 'type': 'date', 'placeholder': '', 'col': 6},
+            ],
+            'documents': ['Board resolution', 'Shareholder resolution', 'Name availability certificate', 'Altered MOA/AOA', 'ROC forms'],
+        },
+        {
+            'id': 'director-change',
+            'title': 'Director Change',
+            'icon': 'bi-people',
+            'summary': 'Appointment/removal of directors.',
+            'form_fields': [
+                {'label': 'Company Name', 'type': 'text', 'placeholder': 'Company name', 'col': 6},
+                {'label': 'CIN Number', 'type': 'text', 'placeholder': 'CIN number', 'col': 6},
+                {'label': 'Change Type', 'type': 'select', 'options': ['Appointment', 'Resignation', 'Removal'], 'col': 6},
+                {'label': 'New Director Name', 'type': 'text', 'placeholder': 'New director name', 'col': 6},
+                {'label': 'DIN', 'type': 'text', 'placeholder': 'DIN', 'col': 6},
+                {'label': 'Appointment Date', 'type': 'date', 'placeholder': '', 'col': 6},
+            ],
+            'documents': ['Board resolution', 'Director KYC (DIN, PAN, Aadhaar)', 'Consent letter', 'ROC forms (DIR-12)'],
+        },
+        {
+            'id': 'company-closure',
+            'title': 'Company Closure',
+            'icon': 'bi-x-circle',
+            'summary': 'Strike off or winding up of company.',
+            'form_fields': [
+                {'label': 'Company Name', 'type': 'text', 'placeholder': 'Company name', 'col': 6},
+                {'label': 'CIN Number', 'type': 'text', 'placeholder': 'CIN number', 'col': 6},
+                {'label': 'Closure Type', 'type': 'select', 'options': ['Strike Off', 'Winding Up', 'Voluntary Liquidation'], 'col': 6},
+                {'label': 'Reason for Closure', 'type': 'textarea', 'placeholder': 'Reason for closure', 'col': 12},
+                {'label': 'Board Meeting Date', 'type': 'date', 'placeholder': '', 'col': 6},
+            ],
+            'documents': ['Board resolution', 'Shareholder resolution', 'No objection certificates', 'Financial statements', 'ROC forms'],
+        },
+        {
+            'id': 'rcmc',
+            'title': 'RCMC',
+            'icon': 'bi-file-earmark-medical',
+            'summary': 'Registration Cum Membership Certificate for export promotion.',
+            'form_fields': [
+                {'label': 'Firm Name', 'type': 'text', 'placeholder': 'Firm/Company name', 'col': 6},
+                {'label': 'IEC Number', 'type': 'text', 'placeholder': 'IEC number', 'col': 6},
+                {'label': 'PAN Number', 'type': 'text', 'placeholder': 'ABCDE1234F', 'col': 6},
+                {'label': 'Export Products Details', 'type': 'textarea', 'placeholder': 'Export products details', 'col': 6},
+                {'label': 'Related Export Council Name', 'type': 'text', 'placeholder': 'Related export council name', 'col': 6},
+            ],
+            'documents': ['IEC certificate', 'PAN card', 'Export invoices', 'Bank certificate', 'Export council membership'],
+        },
+        {
+            'id': 'shop-establishment',
+            'title': 'Shop Establishment (Jharkhand & West Bengal)',
+            'icon': 'bi-shop',
+            'summary': 'Shop and establishment registration.',
+            'form_fields': [
+                {'label': 'Shop/Establishment Name', 'type': 'text', 'placeholder': 'Shop/Establishment name', 'col': 6},
+                {'label': 'State', 'type': 'select', 'options': ['Jharkhand', 'West Bengal'], 'col': 6},
+                {'label': 'Business Type', 'type': 'select', 'options': ['Retail', 'Wholesale', 'Manufacturing', 'Service', 'Other'], 'col': 6},
+                {'label': 'Business Address', 'type': 'textarea', 'placeholder': 'Complete business address', 'col': 12},
+                {'label': 'PAN Number', 'type': 'text', 'placeholder': 'ABCDE1234F', 'col': 6},
+                {'label': 'Number of Employees', 'type': 'number', 'placeholder': 'Number of employees', 'col': 6},
+            ],
+            'documents': ['PAN card', 'Business address proof', 'Employee list', 'Rental agreement/Ownership proof', 'Municipal NOC'],
+        },
+        {
+            'id': 'din-application',
+            'title': 'DIN Application',
+            'icon': 'bi-person-badge',
+            'summary': 'Director Identification Number application.',
+            'form_fields': [
+                {'label': 'Applicant Name', 'type': 'text', 'placeholder': 'Applicant name', 'col': 6},
+                {'label': 'Father Name', 'type': 'text', 'placeholder': 'Father name', 'col': 6},
+                {'label': 'Date of Birth', 'type': 'date', 'placeholder': '', 'col': 6},
+                {'label': 'PAN Number', 'type': 'text', 'placeholder': 'ABCDE1234F', 'col': 6},
+                {'label': 'Aadhaar Number', 'type': 'text', 'placeholder': 'Aadhaar number', 'col': 6},
+                {'label': 'Email', 'type': 'email', 'placeholder': 'Email', 'col': 6},
+                {'label': 'Phone', 'type': 'tel', 'placeholder': 'Phone', 'col': 6},
+                {'label': 'Address', 'type': 'textarea', 'placeholder': 'Address', 'col': 12},
+            ],
+            'documents': ['PAN card', 'Aadhaar card', 'Photo', 'Address proof', 'Identity proof'],
+        },
+        {
+            'id': 'gst-registration',
+            'title': 'GST Registration',
+            'icon': 'bi-receipt-cutoff',
+            'summary': 'GST registration for businesses.',
+            'form_fields': [
+                {'label': 'Legal Entity Name', 'type': 'text', 'placeholder': 'Legal entity name', 'col': 6},
+                {'label': 'Trade Name', 'type': 'text', 'placeholder': 'Trade name', 'col': 6},
+                {'label': 'Business Type', 'type': 'select', 'options': ['Proprietorship', 'Partnership', 'LLP', 'Company', 'HUF', 'Other'], 'col': 6},
+                {'label': 'PAN Number', 'type': 'text', 'placeholder': 'ABCDE1234F', 'col': 6},
+                {'label': 'Principal Place Address', 'type': 'textarea', 'placeholder': 'Principal place address', 'col': 12},
+                {'label': 'Nature of Business', 'type': 'textarea', 'placeholder': 'Nature of business', 'col': 12},
+            ],
+            'documents': ['PAN card', 'Aadhaar card', 'Address proof', 'Bank account proof', 'Business registration certificate'],
+        },
+        {
+            'id': 'gst-filing',
+            'title': 'GST Filing',
+            'icon': 'bi-file-earmark-spreadsheet',
+            'summary': 'GST return filing services.',
+            'form_fields': [
+                {'label': 'GSTIN Number', 'type': 'text', 'placeholder': 'GSTIN number', 'col': 6},
+                {'label': 'Return Type', 'type': 'select', 'options': ['GSTR-1', 'GSTR-3B', 'GSTR-9', 'GSTR-9C'], 'col': 6},
+                {'label': 'Return Period', 'type': 'text', 'placeholder': 'e.g., 04-2024', 'col': 6},
+                {'label': 'Total Sales', 'type': 'number', 'placeholder': 'Total sales', 'col': 6},
+                {'label': 'Total Purchases', 'type': 'number', 'placeholder': 'Total purchases', 'col': 6},
+                {'label': 'Filing Date', 'type': 'date', 'placeholder': '', 'col': 6},
+            ],
+            'documents': ['GST registration certificate', 'Sales invoices', 'Purchase invoices', 'Bank statements', 'Payment challans'],
+        },
+        {
+            'id': 'company-compliance-roc-llp',
+            'title': 'Company Compliance (ROC) LLP',
+            'icon': 'bi-file-check',
+            'summary': 'ROC compliance filing for companies and LLPs.',
+            'form_fields': [
+                {'label': 'Company Name', 'type': 'text', 'placeholder': 'Company name', 'col': 6},
+                {'label': 'Registration Number', 'type': 'text', 'placeholder': 'Registration number', 'col': 6},
+                {'label': 'Filing Type', 'type': 'select', 'options': ['AOC-4', 'MGT-7', 'ADT-1', 'DIR-3 KYC'], 'col': 6},
+                {'label': 'Financial Year', 'type': 'text', 'placeholder': 'e.g., 2023-24', 'col': 6},
+                {'label': 'Due Date', 'type': 'date', 'placeholder': '', 'col': 6},
+            ],
+            'documents': ['Financial statements', 'Board resolution', 'Audit report', 'DSC', 'ROC forms'],
+        },
+        {
+            'id': 'authorized-paidup-capital-increase',
+            'title': 'Authorized Capital & Paidup capital increase',
+            'icon': 'bi-arrow-up-circle',
+            'summary': 'Increase authorized and paid-up capital of company.',
+            'form_fields': [
+                {'label': 'Company Name', 'type': 'text', 'placeholder': 'Company name', 'col': 6},
+                {'label': 'CIN Number', 'type': 'text', 'placeholder': 'CIN number', 'col': 6},
+                {'label': 'Current Authorized Capital', 'type': 'number', 'placeholder': 'Current authorized capital', 'col': 6},
+                {'label': 'New Authorized Capital', 'type': 'number', 'placeholder': 'New authorized capital', 'col': 6},
+                {'label': 'Current Paid-up Capital', 'type': 'number', 'placeholder': 'Current paid-up capital', 'col': 6},
+                {'label': 'New Paid-up Capital', 'type': 'number', 'placeholder': 'New paid-up capital', 'col': 6},
+            ],
+            'documents': ['Board resolution', 'Shareholder resolution', 'Altered MOA/AOA', 'Bank certificate', 'ROC forms'],
+        },
+        {
+            'id': 'din-kyc',
+            'title': 'DIN KYC',
+            'icon': 'bi-person-check',
+            'summary': 'DIN KYC compliance for directors.',
+            'form_fields': [
+                {'label': 'DIN Number', 'type': 'text', 'placeholder': 'DIN number', 'col': 6},
+                {'label': 'Director Name', 'type': 'text', 'placeholder': 'Director name', 'col': 6},
+                {'label': 'PAN Number', 'type': 'text', 'placeholder': 'ABCDE1234F', 'col': 6},
+                {'label': 'Aadhaar Number', 'type': 'text', 'placeholder': 'Aadhaar number', 'col': 6},
+                {'label': 'Email', 'type': 'email', 'placeholder': 'Email', 'col': 6},
+                {'label': 'Phone', 'type': 'tel', 'placeholder': 'Phone', 'col': 6},
+                {'label': 'Address', 'type': 'textarea', 'placeholder': 'Address', 'col': 12},
+            ],
+            'documents': ['DIN certificate', 'PAN card', 'Aadhaar card', 'Address proof', 'Photo'],
+        },
+        {
+            'id': 'ngo-darpan',
+            'title': 'NGO Darpan',
+            'icon': 'bi-people-fill',
+            'summary': 'NGO Darpan registration for NGOs.',
+            'form_fields': [
+                {'label': 'Organization Name', 'type': 'text', 'placeholder': 'Organization name', 'col': 6},
+                {'label': 'Registration Number', 'type': 'text', 'placeholder': 'Registration number', 'col': 6},
+                {'label': 'Registration Type', 'type': 'text', 'placeholder': 'Registration type', 'col': 6},
+                {'label': 'Registration Date', 'type': 'date', 'placeholder': '', 'col': 6},
+                {'label': 'Address', 'type': 'textarea', 'placeholder': 'Address', 'col': 12},
+                {'label': 'Contact Person', 'type': 'text', 'placeholder': 'Contact person', 'col': 6},
+                {'label': 'Email', 'type': 'email', 'placeholder': 'Email', 'col': 6},
+            ],
+            'documents': ['Registration certificate', 'Trust deed/Society registration', 'Address proof', 'Board resolution', 'PAN card'],
+        },
+        {
+            'id': 'itr-filing',
+            'title': 'ITR Filing',
+            'icon': 'bi-file-earmark-text',
+            'summary': 'Income Tax Return filing services.',
+            'form_fields': [
+                {'label': 'PAN Number', 'type': 'text', 'placeholder': 'ABCDE1234F', 'col': 6},
+                {'label': 'Assessment Year', 'type': 'text', 'placeholder': 'e.g., 2024-25', 'col': 6},
+                {'label': 'ITR Type', 'type': 'select', 'options': ['ITR-1', 'ITR-2', 'ITR-3', 'ITR-4', 'ITR-6'], 'col': 6},
+                {'label': 'Total Income', 'type': 'number', 'placeholder': 'Total income', 'col': 6},
+                {'label': 'Filing Date', 'type': 'date', 'placeholder': '', 'col': 6},
+            ],
+            'documents': ['PAN card', 'Aadhaar card', 'Form 16/16A', 'Bank statements', 'Investment proofs', 'TDS certificates'],
+        },
+        {
+            'id': 'inc-20a',
+            'title': 'INC-20A (Business Commencement)',
+            'icon': 'bi-play-circle',
+            'summary': 'Business commencement certificate filing.',
+            'form_fields': [
+                {'label': 'Company Name', 'type': 'text', 'placeholder': 'Company name', 'col': 6},
+                {'label': 'CIN Number', 'type': 'text', 'placeholder': 'CIN number', 'col': 6},
+                {'label': 'Incorporation Date', 'type': 'date', 'placeholder': '', 'col': 6},
+                {'label': 'Commencement Date', 'type': 'date', 'placeholder': '', 'col': 6},
+                {'label': 'Business Activity', 'type': 'textarea', 'placeholder': 'Business activity', 'col': 12},
+            ],
+            'documents': ['Certificate of incorporation', 'Board resolution', 'Business commencement proof', 'ROC forms'],
+        },
+        {
+            'id': 'gem-registration',
+            'title': 'GEM Registration',
+            'icon': 'bi-building',
+            'summary': 'Government e-Marketplace registration.',
+            'form_fields': [
+                {'label': 'Business Name', 'type': 'text', 'placeholder': 'Business name', 'col': 6},
+                {'label': 'Business Type', 'type': 'text', 'placeholder': 'Business type', 'col': 6},
+                {'label': 'PAN Number', 'type': 'text', 'placeholder': 'ABCDE1234F', 'col': 6},
+                {'label': 'GSTIN Number', 'type': 'text', 'placeholder': 'GSTIN number', 'col': 6},
+                {'label': 'Address', 'type': 'textarea', 'placeholder': 'Address', 'col': 12},
+                {'label': 'Contact Person', 'type': 'text', 'placeholder': 'Contact person', 'col': 6},
+                {'label': 'Email', 'type': 'email', 'placeholder': 'Email', 'col': 6},
+            ],
+            'documents': ['PAN card', 'GST certificate', 'Business registration certificate', 'Bank account proof', 'Address proof'],
+        },
+        {
+            'id': 'startup-india-seed-funding',
+            'title': 'Start-up INDIA – SEED FUNDING',
+            'icon': 'bi-cash-stack',
+            'summary': 'Startup India seed funding application.',
+            'form_fields': [
+                {'label': 'Startup Name', 'type': 'text', 'placeholder': 'Startup name', 'col': 6},
+                {'label': 'CIN Number', 'type': 'text', 'placeholder': 'CIN number', 'col': 6},
+                {'label': 'Startup India Registration Number', 'type': 'text', 'placeholder': 'Startup India registration number', 'col': 6},
+                {'label': 'Funding Amount Requested', 'type': 'number', 'placeholder': 'Funding amount requested', 'col': 6},
+                {'label': 'Business Description', 'type': 'textarea', 'placeholder': 'Business description', 'col': 12},
+                {'label': 'Innovation USP', 'type': 'textarea', 'placeholder': 'Innovation USP', 'col': 12},
+            ],
+            'documents': ['Startup India certificate', 'Certificate of incorporation', 'Business plan', 'Financial projections', 'Founder KYC'],
+        },
+        {
+            'id': 'csr-1-ngo',
+            'title': 'CSR-1 (NGO)',
+            'icon': 'bi-heart',
+            'summary': 'CSR-1 registration for NGOs.',
+            'form_fields': [
+                {'label': 'NGO Name', 'type': 'text', 'placeholder': 'NGO name', 'col': 6},
+                {'label': 'Registration Number', 'type': 'text', 'placeholder': 'Registration number', 'col': 6},
+                {'label': 'Registration Type', 'type': 'text', 'placeholder': 'Registration type', 'col': 6},
+                {'label': 'Address', 'type': 'textarea', 'placeholder': 'Address', 'col': 12},
+                {'label': 'Contact Person', 'type': 'text', 'placeholder': 'Contact person', 'col': 6},
+                {'label': 'Email', 'type': 'email', 'placeholder': 'Email', 'col': 6},
+                {'label': 'CSR Activities', 'type': 'textarea', 'placeholder': 'CSR activities', 'col': 12},
+            ],
+            'documents': ['Registration certificate', 'Trust deed/Society registration', 'Address proof', 'Board resolution', 'CSR activities report'],
+        },
+        {
+            'id': '12a-80g-registration',
+            'title': '12A & 80G Registration',
+            'icon': 'bi-file-earmark-medical',
+            'summary': 'Income tax exemption registration for NGOs.',
+            'form_fields': [
+                {'label': 'Organization Name', 'type': 'text', 'placeholder': 'Organization name', 'col': 6},
+                {'label': 'Registration Number', 'type': 'text', 'placeholder': 'Registration number', 'col': 6},
+                {'label': 'Registration Type', 'type': 'text', 'placeholder': 'Registration type', 'col': 6},
+                {'label': 'Address', 'type': 'textarea', 'placeholder': 'Address', 'col': 12},
+                {'label': 'Contact Person', 'type': 'text', 'placeholder': 'Contact person', 'col': 6},
+                {'label': 'Email', 'type': 'email', 'placeholder': 'Email', 'col': 6},
+            ],
+            'documents': ['Registration certificate', 'Trust deed/Society registration', 'Address proof', 'Board resolution', 'Activities report', 'Financial statements'],
+        },
+        {
+            'id': 'partnership-registration',
+            'title': 'Partnership Registration',
+            'icon': 'bi-people-fill',
+            'summary': 'Partnership firm registration.',
+            'form_fields': [
+                {'label': 'Firm Name', 'type': 'text', 'placeholder': 'Firm name', 'col': 6},
+                {'label': 'Principal Place of Business', 'type': 'textarea', 'placeholder': 'Principal place of business', 'col': 12},
+                {'label': 'Business Activity', 'type': 'textarea', 'placeholder': 'Business activity', 'col': 12},
+                {'label': 'Partner Details', 'type': 'textarea', 'placeholder': 'Partner details', 'col': 12},
+                {'label': 'Capital Contribution', 'type': 'number', 'placeholder': 'Capital contribution', 'col': 6},
+                {'label': 'Profit Sharing Ratio', 'type': 'text', 'placeholder': 'e.g., 50:50 or 60:40', 'col': 6},
+            ],
+            'documents': ['Partnership deed', 'Partner KYC (PAN, Aadhaar)', 'Address proof', 'Bank account proof', 'Business address proof'],
+        },
     ]
 
     highlights = [
@@ -9792,6 +10551,12 @@ def employee_backoffice(request):
                 'status_badge_class': record.get_status_badge_class() if hasattr(record, 'get_status_badge_class') else 'secondary',
                 'created_at': record.created_at,
                 'lead_source': getattr(record, 'lead_source', 'website'),
+                # Applicant/Client Information
+                'applicant_name': record.applicant_name or 'N/A',
+                'applicant_phone': record.applicant_phone or 'N/A',
+                'applicant_email': record.applicant_email or 'N/A',
+                'applicant_whatsapp': record.applicant_whatsapp or 'N/A',
+                'applicant_address': record.applicant_address or 'N/A',
                 # Startup specific fields
                 'incorporation_date': record.incorporation_date,
                 'authorised_contact': record.authorised_contact or 'N/A',
@@ -9814,6 +10579,12 @@ def employee_backoffice(request):
                 'status_badge_class': record.get_status_badge_class() if hasattr(record, 'get_status_badge_class') else 'secondary',
                 'created_at': record.created_at,
                 'lead_source': getattr(record, 'lead_source', 'website'),
+                # Applicant/Client Information
+                'applicant_name': record.applicant_name or 'N/A',
+                'applicant_phone': record.applicant_phone or 'N/A',
+                'applicant_email': record.applicant_email or 'N/A',
+                'applicant_whatsapp': record.applicant_whatsapp or 'N/A',
+                'applicant_address': record.applicant_address or 'N/A',
                 # FSSAI specific fields
                 'premises_address': record.premises_address or 'N/A',
                 'employees': record.employees or 'N/A',
@@ -9836,6 +10607,12 @@ def employee_backoffice(request):
                 'status_badge_class': record.get_status_badge_class() if hasattr(record, 'get_status_badge_class') else 'secondary',
                 'created_at': record.created_at,
                 'lead_source': getattr(record, 'lead_source', 'website'),
+                # Applicant/Client Information
+                'applicant_name': record.applicant_name or 'N/A',
+                'applicant_phone': record.applicant_phone or 'N/A',
+                'applicant_email': record.applicant_email or 'N/A',
+                'applicant_whatsapp': record.applicant_whatsapp or 'N/A',
+                'applicant_address': record.applicant_address or 'N/A',
                 # MSME specific fields
                 'annual_turnover': record.annual_turnover or 0,
             })
@@ -9856,6 +10633,12 @@ def employee_backoffice(request):
                 'status_badge_class': record.get_status_badge_class() if hasattr(record, 'get_status_badge_class') else 'secondary',
                 'created_at': record.created_at,
                 'lead_source': getattr(record, 'lead_source', 'website'),
+                # Applicant/Client Information
+                'applicant_name': record.applicant_name or 'N/A',
+                'applicant_phone': record.applicant_phone or 'N/A',
+                'applicant_email': record.applicant_email or 'N/A',
+                'applicant_whatsapp': record.applicant_whatsapp or 'N/A',
+                'applicant_address': record.applicant_address or 'N/A',
                 # Company/LLP specific fields
                 'directors_partners': record.directors_partners or 'N/A',
                 'authorised_capital': record.authorised_capital or 0,
@@ -9877,6 +10660,12 @@ def employee_backoffice(request):
                 'status_badge_class': record.get_status_badge_class() if hasattr(record, 'get_status_badge_class') else 'secondary',
                 'created_at': record.created_at,
                 'lead_source': getattr(record, 'lead_source', 'website'),
+                # Applicant/Client Information
+                'applicant_name': record.applicant_name or 'N/A',
+                'applicant_phone': record.applicant_phone or 'N/A',
+                'applicant_email': record.applicant_email or 'N/A',
+                'applicant_whatsapp': record.applicant_whatsapp or 'N/A',
+                'applicant_address': record.applicant_address or 'N/A',
                 # Fire/Pollution specific fields
                 'built_up_area': record.built_up_area or 'N/A',
             })
@@ -9897,6 +10686,12 @@ def employee_backoffice(request):
                 'status_badge_class': record.get_status_badge_class() if hasattr(record, 'get_status_badge_class') else 'secondary',
                 'created_at': record.created_at,
                 'lead_source': getattr(record, 'lead_source', 'website'),
+                # Applicant/Client Information
+                'applicant_name': record.applicant_name or 'N/A',
+                'applicant_phone': record.applicant_phone or 'N/A',
+                'applicant_email': record.applicant_email or 'N/A',
+                'applicant_whatsapp': record.applicant_whatsapp or 'N/A',
+                'applicant_address': record.applicant_address or 'N/A',
                 # ISO specific fields
                 'employee_strength': record.employee_strength or 'N/A',
             })
@@ -9917,6 +10712,12 @@ def employee_backoffice(request):
                 'status_badge_class': record.get_status_badge_class() if hasattr(record, 'get_status_badge_class') else 'secondary',
                 'created_at': record.created_at,
                 'lead_source': getattr(record, 'lead_source', 'website'),
+                # Applicant/Client Information
+                'applicant_name': record.applicant_name or 'N/A',
+                'applicant_phone': record.applicant_phone or 'N/A',
+                'applicant_email': record.applicant_email or 'N/A',
+                'applicant_whatsapp': record.applicant_whatsapp or 'N/A',
+                'applicant_address': record.applicant_address or 'N/A',
                 # Trademark specific fields
                 'brand_logo': record.brand_logo or 'N/A',
             })
@@ -9937,6 +10738,12 @@ def employee_backoffice(request):
                 'status_badge_class': record.get_status_badge_class() if hasattr(record, 'get_status_badge_class') else 'secondary',
                 'created_at': record.created_at,
                 'lead_source': getattr(record, 'lead_source', 'website'),
+                # Applicant/Client Information
+                'applicant_name': record.applicant_name or 'N/A',
+                'applicant_phone': record.applicant_phone or 'N/A',
+                'applicant_email': record.applicant_email or 'N/A',
+                'applicant_whatsapp': record.applicant_whatsapp or 'N/A',
+                'applicant_address': record.applicant_address or 'N/A',
                 # Trademark Compliance specific fields
                 'existing_tm_numbers': record.existing_tm_numbers or 'N/A',
                 'watch_scope': record.watch_scope or 'N/A',
@@ -9958,6 +10765,12 @@ def employee_backoffice(request):
                 'status_badge_class': record.get_status_badge_class() if hasattr(record, 'get_status_badge_class') else 'secondary',
                 'created_at': record.created_at,
                 'lead_source': getattr(record, 'lead_source', 'website'),
+                # Applicant/Client Information
+                'applicant_name': record.applicant_name or 'N/A',
+                'applicant_phone': record.applicant_phone or 'N/A',
+                'applicant_email': record.applicant_email or 'N/A',
+                'applicant_whatsapp': record.applicant_whatsapp or 'N/A',
+                'applicant_address': record.applicant_address or 'N/A',
                 # Trademark Instant specific fields
                 'urgency_reason': record.urgency_reason or 'N/A',
                 'contact_mobile': record.contact_mobile or 'N/A',
@@ -9979,6 +10792,12 @@ def employee_backoffice(request):
                 'status_badge_class': record.get_status_badge_class() if hasattr(record, 'get_status_badge_class') else 'secondary',
                 'created_at': record.created_at,
                 'lead_source': getattr(record, 'lead_source', 'website'),
+                # Applicant/Client Information
+                'applicant_name': record.applicant_name or 'N/A',
+                'applicant_phone': record.applicant_phone or 'N/A',
+                'applicant_email': record.applicant_email or 'N/A',
+                'applicant_whatsapp': record.applicant_whatsapp or 'N/A',
+                'applicant_address': record.applicant_address or 'N/A',
                 # Address Change specific fields
                 'effective_date': record.effective_date,
             })
@@ -9999,9 +10818,274 @@ def employee_backoffice(request):
                 'status_badge_class': record.get_status_badge_class() if hasattr(record, 'get_status_badge_class') else 'secondary',
                 'created_at': record.created_at,
                 'lead_source': getattr(record, 'lead_source', 'website'),
+                # Applicant/Client Information
+                'applicant_name': record.applicant_name or 'N/A',
+                'applicant_phone': record.applicant_phone or 'N/A',
+                'applicant_email': record.applicant_email or 'N/A',
+                'applicant_whatsapp': record.applicant_whatsapp or 'N/A',
+                'applicant_address': record.applicant_address or 'N/A',
                 # MOA Alteration specific fields
                 'proposed_object_name': record.proposed_object_name or 'N/A',
                 'effective_date': record.effective_date,
+            })
+        
+        # Add 14 new services assigned leads
+        din_app_assigned = DINApplication.objects.filter(assigned_to=employee_obj).order_by('-created_at')
+        for record in din_app_assigned:
+            assigned_leads.append({
+                'id': record.id,
+                'service_type': 'din-application',
+                'service_name': 'DIN Application',
+                'legal_entity_name': record.applicant_name or 'N/A',
+                'entity_type': 'N/A',
+                'industry_sector': 'N/A',
+                'email': record.email or 'N/A',
+                'status': record.status,
+                'status_display': record.get_status_display(),
+                'status_choices': DINApplication.STATUS_CHOICES,
+                'status_badge_class': record.get_status_badge_class() if hasattr(record, 'get_status_badge_class') else 'secondary',
+                'created_at': record.created_at,
+                'lead_source': getattr(record, 'lead_source', 'website'),
+            })
+        
+        gst_reg_assigned = GSTRegistration.objects.filter(assigned_to=employee_obj).order_by('-created_at')
+        for record in gst_reg_assigned:
+            assigned_leads.append({
+                'id': record.id,
+                'service_type': 'gst-registration',
+                'service_name': 'GST Registration',
+                'legal_entity_name': record.legal_entity_name or 'N/A',
+                'entity_type': record.business_type or 'N/A',
+                'industry_sector': 'N/A',
+                'email': record.email or 'N/A',
+                'status': record.status,
+                'status_display': record.get_status_display(),
+                'status_choices': GSTRegistration.STATUS_CHOICES,
+                'status_badge_class': record.get_status_badge_class() if hasattr(record, 'get_status_badge_class') else 'secondary',
+                'created_at': record.created_at,
+                'lead_source': getattr(record, 'lead_source', 'website'),
+            })
+        
+        gst_filing_assigned = GSTFiling.objects.filter(assigned_to=employee_obj).order_by('-created_at')
+        for record in gst_filing_assigned:
+            assigned_leads.append({
+                'id': record.id,
+                'service_type': 'gst-filing',
+                'service_name': 'GST Filing',
+                'legal_entity_name': record.gstin_number or 'N/A',
+                'entity_type': record.return_type or 'N/A',
+                'industry_sector': record.return_period or 'N/A',
+                'email': 'N/A',
+                'status': record.status,
+                'status_display': record.get_status_display(),
+                'status_choices': GSTFiling.STATUS_CHOICES,
+                'status_badge_class': record.get_status_badge_class() if hasattr(record, 'get_status_badge_class') else 'secondary',
+                'created_at': record.created_at,
+                'lead_source': getattr(record, 'lead_source', 'website'),
+            })
+        
+        roc_llp_assigned = CompanyComplianceROCLLP.objects.filter(assigned_to=employee_obj).order_by('-created_at')
+        for record in roc_llp_assigned:
+            assigned_leads.append({
+                'id': record.id,
+                'service_type': 'company-compliance-roc-llp',
+                'service_name': 'Company Compliance (ROC) LLP',
+                'legal_entity_name': record.company_name or 'N/A',
+                'entity_type': record.filing_type or 'N/A',
+                'industry_sector': record.financial_year or 'N/A',
+                'email': 'N/A',
+                'status': record.status,
+                'status_display': record.get_status_display(),
+                'status_choices': CompanyComplianceROCLLP.STATUS_CHOICES,
+                'status_badge_class': record.get_status_badge_class() if hasattr(record, 'get_status_badge_class') else 'secondary',
+                'created_at': record.created_at,
+                'lead_source': getattr(record, 'lead_source', 'website'),
+            })
+        
+        capital_increase_assigned = AuthorizedPaidupCapitalIncrease.objects.filter(assigned_to=employee_obj).order_by('-created_at')
+        for record in capital_increase_assigned:
+            assigned_leads.append({
+                'id': record.id,
+                'service_type': 'authorized-paidup-capital-increase',
+                'service_name': 'Authorized Capital & Paidup capital increase',
+                'legal_entity_name': record.company_name or 'N/A',
+                'entity_type': 'N/A',
+                'industry_sector': 'N/A',
+                'email': 'N/A',
+                'status': record.status,
+                'status_display': record.get_status_display(),
+                'status_choices': AuthorizedPaidupCapitalIncrease.STATUS_CHOICES,
+                'status_badge_class': record.get_status_badge_class() if hasattr(record, 'get_status_badge_class') else 'secondary',
+                'created_at': record.created_at,
+                'lead_source': getattr(record, 'lead_source', 'website'),
+            })
+        
+        din_kyc_assigned = DINKYC.objects.filter(assigned_to=employee_obj).order_by('-created_at')
+        for record in din_kyc_assigned:
+            assigned_leads.append({
+                'id': record.id,
+                'service_type': 'din-kyc',
+                'service_name': 'DIN KYC',
+                'legal_entity_name': record.director_name or 'N/A',
+                'entity_type': record.din_number or 'N/A',
+                'industry_sector': 'N/A',
+                'email': record.email or 'N/A',
+                'status': record.status,
+                'status_display': record.get_status_display(),
+                'status_choices': DINKYC.STATUS_CHOICES,
+                'status_badge_class': record.get_status_badge_class() if hasattr(record, 'get_status_badge_class') else 'secondary',
+                'created_at': record.created_at,
+                'lead_source': getattr(record, 'lead_source', 'website'),
+            })
+        
+        ngo_darpan_assigned = NGODarpan.objects.filter(assigned_to=employee_obj).order_by('-created_at')
+        for record in ngo_darpan_assigned:
+            assigned_leads.append({
+                'id': record.id,
+                'service_type': 'ngo-darpan',
+                'service_name': 'NGO Darpan',
+                'legal_entity_name': record.organization_name or 'N/A',
+                'entity_type': record.registration_type or 'N/A',
+                'industry_sector': 'N/A',
+                'email': record.email or 'N/A',
+                'status': record.status,
+                'status_display': record.get_status_display(),
+                'status_choices': NGODarpan.STATUS_CHOICES,
+                'status_badge_class': record.get_status_badge_class() if hasattr(record, 'get_status_badge_class') else 'secondary',
+                'created_at': record.created_at,
+                'lead_source': getattr(record, 'lead_source', 'website'),
+            })
+        
+        itr_filing_assigned = ITRFiling.objects.filter(assigned_to=employee_obj).order_by('-created_at')
+        for record in itr_filing_assigned:
+            assigned_leads.append({
+                'id': record.id,
+                'service_type': 'itr-filing',
+                'service_name': 'ITR Filing',
+                'legal_entity_name': record.pan_number or 'N/A',
+                'entity_type': record.itr_type or 'N/A',
+                'industry_sector': record.assessment_year or 'N/A',
+                'email': 'N/A',
+                'status': record.status,
+                'status_display': record.get_status_display(),
+                'status_choices': ITRFiling.STATUS_CHOICES,
+                'status_badge_class': record.get_status_badge_class() if hasattr(record, 'get_status_badge_class') else 'secondary',
+                'created_at': record.created_at,
+                'lead_source': getattr(record, 'lead_source', 'website'),
+            })
+        
+        inc20a_assigned = INC20ABusinessCommencement.objects.filter(assigned_to=employee_obj).order_by('-created_at')
+        for record in inc20a_assigned:
+            assigned_leads.append({
+                'id': record.id,
+                'service_type': 'inc-20a',
+                'service_name': 'INC-20A (Business Commencement)',
+                'legal_entity_name': record.company_name or 'N/A',
+                'entity_type': record.cin_number or 'N/A',
+                'industry_sector': 'N/A',
+                'email': 'N/A',
+                'status': record.status,
+                'status_display': record.get_status_display(),
+                'status_choices': INC20ABusinessCommencement.STATUS_CHOICES,
+                'status_badge_class': record.get_status_badge_class() if hasattr(record, 'get_status_badge_class') else 'secondary',
+                'created_at': record.created_at,
+                'lead_source': getattr(record, 'lead_source', 'website'),
+            })
+        
+        gem_reg_assigned = GEMRegistration.objects.filter(assigned_to=employee_obj).order_by('-created_at')
+        for record in gem_reg_assigned:
+            assigned_leads.append({
+                'id': record.id,
+                'service_type': 'gem-registration',
+                'service_name': 'GEM Registration',
+                'legal_entity_name': record.business_name or 'N/A',
+                'entity_type': record.business_type or 'N/A',
+                'industry_sector': 'N/A',
+                'email': record.email or 'N/A',
+                'status': record.status,
+                'status_display': record.get_status_display(),
+                'status_choices': GEMRegistration.STATUS_CHOICES,
+                'status_badge_class': record.get_status_badge_class() if hasattr(record, 'get_status_badge_class') else 'secondary',
+                'created_at': record.created_at,
+                'lead_source': getattr(record, 'lead_source', 'website'),
+            })
+        
+        seed_funding_assigned = StartupIndiaSeedFunding.objects.filter(assigned_to=employee_obj).order_by('-created_at')
+        for record in seed_funding_assigned:
+            assigned_leads.append({
+                'id': record.id,
+                'service_type': 'startup-india-seed-funding',
+                'service_name': 'Start-up INDIA – SEED FUNDING',
+                'legal_entity_name': record.startup_name or 'N/A',
+                'entity_type': record.cin_number or 'N/A',
+                'industry_sector': 'N/A',
+                'email': record.contact_email or 'N/A',
+                'status': record.status,
+                'status_display': record.get_status_display(),
+                'status_choices': StartupIndiaSeedFunding.STATUS_CHOICES,
+                'status_badge_class': record.get_status_badge_class() if hasattr(record, 'get_status_badge_class') else 'secondary',
+                'created_at': record.created_at,
+                'lead_source': getattr(record, 'lead_source', 'website'),
+            })
+        
+        csr1_assigned = CSR1NGO.objects.filter(assigned_to=employee_obj).order_by('-created_at')
+        for record in csr1_assigned:
+            assigned_leads.append({
+                'id': record.id,
+                'service_type': 'csr-1-ngo',
+                'service_name': 'CSR-1 (NGO)',
+                'legal_entity_name': record.ngo_name or 'N/A',
+                'entity_type': record.registration_type or 'N/A',
+                'industry_sector': 'N/A',
+                'email': record.email or 'N/A',
+                'status': record.status,
+                'status_display': record.get_status_display(),
+                'status_choices': CSR1NGO.STATUS_CHOICES,
+                'status_badge_class': record.get_status_badge_class() if hasattr(record, 'get_status_badge_class') else 'secondary',
+                'created_at': record.created_at,
+                'lead_source': getattr(record, 'lead_source', 'website'),
+            })
+        
+        reg_12a_80g_assigned = Registration12A80G.objects.filter(assigned_to=employee_obj).order_by('-created_at')
+        for record in reg_12a_80g_assigned:
+            assigned_leads.append({
+                'id': record.id,
+                'service_type': '12a-80g-registration',
+                'service_name': '12A & 80G Registration',
+                'legal_entity_name': record.organization_name or 'N/A',
+                'entity_type': record.registration_type or 'N/A',
+                'industry_sector': 'N/A',
+                'email': record.email or 'N/A',
+                'status': record.status,
+                'status_display': record.get_status_display(),
+                'status_choices': Registration12A80G.STATUS_CHOICES,
+                'status_badge_class': record.get_status_badge_class() if hasattr(record, 'get_status_badge_class') else 'secondary',
+                'created_at': record.created_at,
+                'lead_source': getattr(record, 'lead_source', 'website'),
+            })
+        
+        partnership_assigned = PartnershipRegistration.objects.filter(assigned_to=employee_obj).order_by('-created_at')
+        for record in partnership_assigned:
+            assigned_leads.append({
+                'id': record.id,
+                'service_type': 'partnership-registration',
+                'service_name': 'Partnership Registration',
+                'legal_entity_name': record.firm_name or 'N/A',
+                'entity_type': 'N/A',
+                'industry_sector': record.business_activity[:50] if record.business_activity else 'N/A',
+                'email': record.contact_email or 'N/A',
+                'status': record.status,
+                'status_display': record.get_status_display(),
+                'status_choices': PartnershipRegistration.STATUS_CHOICES,
+                'status_badge_class': record.get_status_badge_class() if hasattr(record, 'get_status_badge_class') else 'secondary',
+                'created_at': record.created_at,
+                'lead_source': getattr(record, 'lead_source', 'website'),
+                # Applicant/Client Information - Use contact fields since applicant fields don't exist
+                'applicant_name': getattr(record, 'applicant_name', None) or record.firm_name or 'N/A',
+                'applicant_phone': getattr(record, 'applicant_phone', None) or record.contact_phone or 'N/A',
+                'applicant_email': getattr(record, 'applicant_email', None) or record.contact_email or 'N/A',
+                'applicant_whatsapp': getattr(record, 'applicant_whatsapp', None) or 'N/A',
+                'applicant_address': getattr(record, 'applicant_address', None) or getattr(record, 'principal_place_of_business', None) or 'N/A',
             })
         
         # Sort all assigned leads by created_at (newest first)
@@ -10081,6 +11165,20 @@ def get_lead_details(request):
                 'trademark-instant': TrademarkFilingInstant,
                 'address-change': CompanyAddressChange,
                 'moa-alteration': MOAAlteration,
+                'din-application': DINApplication,
+                'gst-registration': GSTRegistration,
+                'gst-filing': GSTFiling,
+                'company-compliance-roc-llp': CompanyComplianceROCLLP,
+                'authorized-paidup-capital-increase': AuthorizedPaidupCapitalIncrease,
+                'din-kyc': DINKYC,
+                'ngo-darpan': NGODarpan,
+                'itr-filing': ITRFiling,
+                'inc-20a': INC20ABusinessCommencement,
+                'gem-registration': GEMRegistration,
+                'startup-india-seed-funding': StartupIndiaSeedFunding,
+                'csr-1-ngo': CSR1NGO,
+                '12a-80g-registration': Registration12A80G,
+                'partnership-registration': PartnershipRegistration,
             }
             
             if service_type not in service_models:
@@ -10104,6 +11202,12 @@ def get_lead_details(request):
                 'status_badge_class': record.get_status_badge_class() if hasattr(record, 'get_status_badge_class') else 'secondary',
                 'created_at': record.created_at.strftime('%d %b %Y, %I:%M %p') if record.created_at else 'N/A',
                 'lead_source': getattr(record, 'lead_source', 'website'),
+                # Applicant/Client Information - Add for all services that have these fields
+                'applicant_name': getattr(record, 'applicant_name', None) or 'N/A',
+                'applicant_phone': getattr(record, 'applicant_phone', None) or 'N/A',
+                'applicant_email': getattr(record, 'applicant_email', None) or 'N/A',
+                'applicant_whatsapp': getattr(record, 'applicant_whatsapp', None) or 'N/A',
+                'applicant_address': getattr(record, 'applicant_address', None) or 'N/A',
             }
             
             # Add service-specific fields
@@ -10179,6 +11283,101 @@ def get_lead_details(request):
                     'alteration_type': record.alteration_type or 'N/A',
                     'proposed_object_name': record.proposed_object_name or 'N/A',
                     'effective_date': record.effective_date.strftime('%d %b %Y') if record.effective_date else 'N/A',
+                })
+            elif service_type == 'din-application':
+                data.update({
+                    'applicant_name': record.applicant_name or 'N/A',
+                    'pan_number': record.pan_number or 'N/A',
+                    'email': record.email or 'N/A',
+                    'phone': record.phone or 'N/A',
+                })
+            elif service_type == 'gst-registration':
+                data.update({
+                    'legal_entity_name': record.legal_entity_name or 'N/A',
+                    'business_type': record.business_type or 'N/A',
+                    'pan_number': record.pan_number or 'N/A',
+                    'email': record.email or 'N/A',
+                })
+            elif service_type == 'gst-filing':
+                data.update({
+                    'gstin_number': record.gstin_number or 'N/A',
+                    'return_type': record.return_type or 'N/A',
+                    'return_period': record.return_period or 'N/A',
+                })
+            elif service_type == 'company-compliance-roc-llp':
+                data.update({
+                    'company_name': record.company_name or 'N/A',
+                    'filing_type': record.filing_type or 'N/A',
+                    'financial_year': record.financial_year or 'N/A',
+                })
+            elif service_type == 'authorized-paidup-capital-increase':
+                data.update({
+                    'company_name': record.company_name or 'N/A',
+                    'new_authorized_capital': str(record.new_authorized_capital or 0),
+                    'new_paidup_capital': str(record.new_paidup_capital or 0),
+                })
+            elif service_type == 'din-kyc':
+                data.update({
+                    'director_name': record.director_name or 'N/A',
+                    'din_number': record.din_number or 'N/A',
+                    'pan_number': record.pan_number or 'N/A',
+                })
+            elif service_type == 'ngo-darpan':
+                data.update({
+                    'organization_name': record.organization_name or 'N/A',
+                    'registration_type': record.registration_type or 'N/A',
+                    'contact_person': record.contact_person or 'N/A',
+                })
+            elif service_type == 'itr-filing':
+                data.update({
+                    'pan_number': record.pan_number or 'N/A',
+                    'assessment_year': record.assessment_year or 'N/A',
+                    'itr_type': record.itr_type or 'N/A',
+                })
+            elif service_type == 'inc-20a':
+                data.update({
+                    'company_name': record.company_name or 'N/A',
+                    'cin_number': record.cin_number or 'N/A',
+                    'commencement_date': record.commencement_date.strftime('%d %b %Y') if record.commencement_date else 'N/A',
+                })
+            elif service_type == 'gem-registration':
+                data.update({
+                    'business_name': record.business_name or 'N/A',
+                    'business_type': record.business_type or 'N/A',
+                    'gstin_number': record.gstin_number or 'N/A',
+                })
+            elif service_type == 'startup-india-seed-funding':
+                data.update({
+                    'startup_name': record.startup_name or 'N/A',
+                    'cin_number': record.cin_number or 'N/A',
+                    'funding_amount_requested': str(record.funding_amount_requested or 0),
+                })
+            elif service_type == 'csr-1-ngo':
+                data.update({
+                    'ngo_name': record.ngo_name or 'N/A',
+                    'registration_type': record.registration_type or 'N/A',
+                    'contact_person': record.contact_person or 'N/A',
+                })
+            elif service_type == '12a-80g-registration':
+                data.update({
+                    'organization_name': record.organization_name or 'N/A',
+                    'registration_type': record.registration_type or 'N/A',
+                    'registration_12a_required': record.registration_12a_required,
+                    'registration_80g_required': record.registration_80g_required,
+                })
+            elif service_type == 'partnership-registration':
+                data.update({
+                    'firm_name': record.firm_name or 'N/A',
+                    'business_activity': record.business_activity or 'N/A',
+                    'capital_contribution': str(record.capital_contribution or 0),
+                    'principal_place_of_business': getattr(record, 'principal_place_of_business', None) or 'N/A',
+                    'partner_details': getattr(record, 'partner_details', None) or 'N/A',
+                    'profit_sharing_ratio': getattr(record, 'profit_sharing_ratio', None) or 'N/A',
+                    # Use contact fields as applicant info if applicant fields don't exist
+                    'applicant_email': getattr(record, 'applicant_email', None) or getattr(record, 'contact_email', None) or 'N/A',
+                    'applicant_phone': getattr(record, 'applicant_phone', None) or getattr(record, 'contact_phone', None) or 'N/A',
+                    'applicant_name': getattr(record, 'applicant_name', None) or getattr(record, 'firm_name', None) or 'N/A',
+                    'applicant_address': getattr(record, 'applicant_address', None) or getattr(record, 'principal_place_of_business', None) or 'N/A',
                 })
             
             return JsonResponse(data)
@@ -10526,6 +11725,258 @@ def update_moa_alteration_status(request, record_id):
             'status': new_status,
             'status_display': record.get_status_display()
         })
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': str(e)}, status=500)
+
+
+@login_required
+@require_POST
+@csrf_exempt
+def update_din_application_status(request, record_id):
+    """Update status of DIN Application record via AJAX."""
+    try:
+        employee_obj = Employee.objects.get(email=request.user.email)
+        record = get_object_or_404(DINApplication, id=record_id, assigned_to=employee_obj)
+        new_status = request.POST.get('status')
+        if new_status not in dict(DINApplication.STATUS_CHOICES):
+            return JsonResponse({'success': False, 'error': 'Invalid status'}, status=400)
+        record.status = new_status
+        record.save()
+        return JsonResponse({'success': True, 'status': new_status, 'status_display': record.get_status_display()})
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': str(e)}, status=500)
+
+
+@login_required
+@require_POST
+@csrf_exempt
+def update_gst_registration_status(request, record_id):
+    """Update status of GST Registration record via AJAX."""
+    try:
+        employee_obj = Employee.objects.get(email=request.user.email)
+        record = get_object_or_404(GSTRegistration, id=record_id, assigned_to=employee_obj)
+        new_status = request.POST.get('status')
+        if new_status not in dict(GSTRegistration.STATUS_CHOICES):
+            return JsonResponse({'success': False, 'error': 'Invalid status'}, status=400)
+        record.status = new_status
+        record.save()
+        return JsonResponse({'success': True, 'status': new_status, 'status_display': record.get_status_display()})
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': str(e)}, status=500)
+
+
+@login_required
+@require_POST
+@csrf_exempt
+def update_gst_filing_status(request, record_id):
+    """Update status of GST Filing record via AJAX."""
+    try:
+        employee_obj = Employee.objects.get(email=request.user.email)
+        record = get_object_or_404(GSTFiling, id=record_id, assigned_to=employee_obj)
+        new_status = request.POST.get('status')
+        if new_status not in dict(GSTFiling.STATUS_CHOICES):
+            return JsonResponse({'success': False, 'error': 'Invalid status'}, status=400)
+        record.status = new_status
+        record.save()
+        return JsonResponse({'success': True, 'status': new_status, 'status_display': record.get_status_display()})
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': str(e)}, status=500)
+
+
+@login_required
+@require_POST
+@csrf_exempt
+def update_company_compliance_roc_llp_status(request, record_id):
+    """Update status of Company Compliance (ROC) LLP record via AJAX."""
+    try:
+        employee_obj = Employee.objects.get(email=request.user.email)
+        record = get_object_or_404(CompanyComplianceROCLLP, id=record_id, assigned_to=employee_obj)
+        new_status = request.POST.get('status')
+        if new_status not in dict(CompanyComplianceROCLLP.STATUS_CHOICES):
+            return JsonResponse({'success': False, 'error': 'Invalid status'}, status=400)
+        record.status = new_status
+        record.save()
+        return JsonResponse({'success': True, 'status': new_status, 'status_display': record.get_status_display()})
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': str(e)}, status=500)
+
+
+@login_required
+@require_POST
+@csrf_exempt
+def update_authorized_paidup_capital_increase_status(request, record_id):
+    """Update status of Authorized & Paid-up Capital Increase record via AJAX."""
+    try:
+        employee_obj = Employee.objects.get(email=request.user.email)
+        record = get_object_or_404(AuthorizedPaidupCapitalIncrease, id=record_id, assigned_to=employee_obj)
+        new_status = request.POST.get('status')
+        if new_status not in dict(AuthorizedPaidupCapitalIncrease.STATUS_CHOICES):
+            return JsonResponse({'success': False, 'error': 'Invalid status'}, status=400)
+        record.status = new_status
+        record.save()
+        return JsonResponse({'success': True, 'status': new_status, 'status_display': record.get_status_display()})
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': str(e)}, status=500)
+
+
+@login_required
+@require_POST
+@csrf_exempt
+def update_din_kyc_status(request, record_id):
+    """Update status of DIN KYC record via AJAX."""
+    try:
+        employee_obj = Employee.objects.get(email=request.user.email)
+        record = get_object_or_404(DINKYC, id=record_id, assigned_to=employee_obj)
+        new_status = request.POST.get('status')
+        if new_status not in dict(DINKYC.STATUS_CHOICES):
+            return JsonResponse({'success': False, 'error': 'Invalid status'}, status=400)
+        record.status = new_status
+        record.save()
+        return JsonResponse({'success': True, 'status': new_status, 'status_display': record.get_status_display()})
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': str(e)}, status=500)
+
+
+@login_required
+@require_POST
+@csrf_exempt
+def update_ngo_darpan_status(request, record_id):
+    """Update status of NGO Darpan record via AJAX."""
+    try:
+        employee_obj = Employee.objects.get(email=request.user.email)
+        record = get_object_or_404(NGODarpan, id=record_id, assigned_to=employee_obj)
+        new_status = request.POST.get('status')
+        if new_status not in dict(NGODarpan.STATUS_CHOICES):
+            return JsonResponse({'success': False, 'error': 'Invalid status'}, status=400)
+        record.status = new_status
+        record.save()
+        return JsonResponse({'success': True, 'status': new_status, 'status_display': record.get_status_display()})
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': str(e)}, status=500)
+
+
+@login_required
+@require_POST
+@csrf_exempt
+def update_itr_filing_status(request, record_id):
+    """Update status of ITR Filing record via AJAX."""
+    try:
+        employee_obj = Employee.objects.get(email=request.user.email)
+        record = get_object_or_404(ITRFiling, id=record_id, assigned_to=employee_obj)
+        new_status = request.POST.get('status')
+        if new_status not in dict(ITRFiling.STATUS_CHOICES):
+            return JsonResponse({'success': False, 'error': 'Invalid status'}, status=400)
+        record.status = new_status
+        record.save()
+        return JsonResponse({'success': True, 'status': new_status, 'status_display': record.get_status_display()})
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': str(e)}, status=500)
+
+
+@login_required
+@require_POST
+@csrf_exempt
+def update_inc_20a_status(request, record_id):
+    """Update status of INC-20A (Business Commencement) record via AJAX."""
+    try:
+        employee_obj = Employee.objects.get(email=request.user.email)
+        record = get_object_or_404(INC20ABusinessCommencement, id=record_id, assigned_to=employee_obj)
+        new_status = request.POST.get('status')
+        if new_status not in dict(INC20ABusinessCommencement.STATUS_CHOICES):
+            return JsonResponse({'success': False, 'error': 'Invalid status'}, status=400)
+        record.status = new_status
+        record.save()
+        return JsonResponse({'success': True, 'status': new_status, 'status_display': record.get_status_display()})
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': str(e)}, status=500)
+
+
+@login_required
+@require_POST
+@csrf_exempt
+def update_gem_registration_status(request, record_id):
+    """Update status of GEM Registration record via AJAX."""
+    try:
+        employee_obj = Employee.objects.get(email=request.user.email)
+        record = get_object_or_404(GEMRegistration, id=record_id, assigned_to=employee_obj)
+        new_status = request.POST.get('status')
+        if new_status not in dict(GEMRegistration.STATUS_CHOICES):
+            return JsonResponse({'success': False, 'error': 'Invalid status'}, status=400)
+        record.status = new_status
+        record.save()
+        return JsonResponse({'success': True, 'status': new_status, 'status_display': record.get_status_display()})
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': str(e)}, status=500)
+
+
+@login_required
+@require_POST
+@csrf_exempt
+def update_startup_india_seed_funding_status(request, record_id):
+    """Update status of Start-up INDIA – SEED FUNDING record via AJAX."""
+    try:
+        employee_obj = Employee.objects.get(email=request.user.email)
+        record = get_object_or_404(StartupIndiaSeedFunding, id=record_id, assigned_to=employee_obj)
+        new_status = request.POST.get('status')
+        if new_status not in dict(StartupIndiaSeedFunding.STATUS_CHOICES):
+            return JsonResponse({'success': False, 'error': 'Invalid status'}, status=400)
+        record.status = new_status
+        record.save()
+        return JsonResponse({'success': True, 'status': new_status, 'status_display': record.get_status_display()})
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': str(e)}, status=500)
+
+
+@login_required
+@require_POST
+@csrf_exempt
+def update_csr_1_ngo_status(request, record_id):
+    """Update status of CSR-1 (NGO) record via AJAX."""
+    try:
+        employee_obj = Employee.objects.get(email=request.user.email)
+        record = get_object_or_404(CSR1NGO, id=record_id, assigned_to=employee_obj)
+        new_status = request.POST.get('status')
+        if new_status not in dict(CSR1NGO.STATUS_CHOICES):
+            return JsonResponse({'success': False, 'error': 'Invalid status'}, status=400)
+        record.status = new_status
+        record.save()
+        return JsonResponse({'success': True, 'status': new_status, 'status_display': record.get_status_display()})
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': str(e)}, status=500)
+
+
+@login_required
+@require_POST
+@csrf_exempt
+def update_12a_80g_registration_status(request, record_id):
+    """Update status of 12A & 80G Registration record via AJAX."""
+    try:
+        employee_obj = Employee.objects.get(email=request.user.email)
+        record = get_object_or_404(Registration12A80G, id=record_id, assigned_to=employee_obj)
+        new_status = request.POST.get('status')
+        if new_status not in dict(Registration12A80G.STATUS_CHOICES):
+            return JsonResponse({'success': False, 'error': 'Invalid status'}, status=400)
+        record.status = new_status
+        record.save()
+        return JsonResponse({'success': True, 'status': new_status, 'status_display': record.get_status_display()})
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': str(e)}, status=500)
+
+
+@login_required
+@require_POST
+@csrf_exempt
+def update_partnership_registration_status(request, record_id):
+    """Update status of Partnership Registration record via AJAX."""
+    try:
+        employee_obj = Employee.objects.get(email=request.user.email)
+        record = get_object_or_404(PartnershipRegistration, id=record_id, assigned_to=employee_obj)
+        new_status = request.POST.get('status')
+        if new_status not in dict(PartnershipRegistration.STATUS_CHOICES):
+            return JsonResponse({'success': False, 'error': 'Invalid status'}, status=400)
+        record.status = new_status
+        record.save()
+        return JsonResponse({'success': True, 'status': new_status, 'status_display': record.get_status_display()})
     except Exception as e:
         return JsonResponse({'success': False, 'error': str(e)}, status=500)
 

@@ -28,6 +28,20 @@ from .models import (
     CompanyClosure,
     RCMCRegistration,
     ShopEstablishmentRegistration,
+    DINApplication,
+    GSTRegistration,
+    GSTFiling,
+    CompanyComplianceROCLLP,
+    AuthorizedPaidupCapitalIncrease,
+    DINKYC,
+    NGODarpan,
+    ITRFiling,
+    INC20ABusinessCommencement,
+    GEMRegistration,
+    StartupIndiaSeedFunding,
+    CSR1NGO,
+    Registration12A80G,
+    PartnershipRegistration,
 )
 
 class LeadForm(forms.ModelForm):
@@ -1180,6 +1194,532 @@ class ShopEstablishmentRegistrationForm(forms.ModelForm):
             'working_hours': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'e.g. 9 AM - 6 PM'}),
             'weekly_holiday': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'e.g. Sunday'}),
             'municipal_area': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Municipal area'}),
+        }
+
+
+class DINApplicationForm(forms.ModelForm):
+    """Form for DIN Application intake."""
+    
+    lead_source = forms.CharField(
+        initial='website',
+        widget=forms.HiddenInput(),
+        required=False
+    )
+    
+    class Meta:
+        model = DINApplication
+        fields = [
+            'lead_source',
+            'applicant_name',
+            'father_name',
+            'date_of_birth',
+            'address',
+            'pan_number',
+            'aadhaar_number',
+            'email',
+            'phone',
+            'whatsapp',
+        ]
+        widgets = {
+            'applicant_name': forms.TextInput(attrs={'class': 'form-control'}),
+            'father_name': forms.TextInput(attrs={'class': 'form-control'}),
+            'date_of_birth': forms.DateInput(attrs={'class': 'form-control', 'type': 'date'}),
+            'address': forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
+            'pan_number': forms.TextInput(attrs={'class': 'form-control', 'maxlength': '10'}),
+            'aadhaar_number': forms.TextInput(attrs={'class': 'form-control', 'maxlength': '12'}),
+            'email': forms.EmailInput(attrs={'class': 'form-control'}),
+            'phone': forms.TextInput(attrs={'class': 'form-control'}),
+            'whatsapp': forms.TextInput(attrs={'class': 'form-control'}),
+        }
+
+
+class GSTRegistrationForm(forms.ModelForm):
+    """Form for GST Registration intake."""
+    
+    lead_source = forms.CharField(
+        initial='website',
+        widget=forms.HiddenInput(),
+        required=False
+    )
+    
+    business_type = forms.ChoiceField(
+        choices=GSTRegistration.BUSINESS_TYPE_CHOICES,
+        widget=forms.Select(attrs={'class': 'form-select'}),
+    )
+    
+    class Meta:
+        model = GSTRegistration
+        fields = [
+            'lead_source',
+            'legal_entity_name',
+            'trade_name',
+            'business_type',
+            'pan_number',
+            'aadhaar_number',
+            'principal_place_address',
+            'additional_places',
+            'bank_account_number',
+            'bank_ifsc',
+            'bank_name',
+            'authorized_signatory_name',
+            'authorized_signatory_designation',
+            'nature_of_business',
+            'email',
+            'phone',
+        ]
+        widgets = {
+            'legal_entity_name': forms.TextInput(attrs={'class': 'form-control'}),
+            'trade_name': forms.TextInput(attrs={'class': 'form-control'}),
+            'pan_number': forms.TextInput(attrs={'class': 'form-control', 'maxlength': '10'}),
+            'aadhaar_number': forms.TextInput(attrs={'class': 'form-control', 'maxlength': '12'}),
+            'principal_place_address': forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
+            'additional_places': forms.Textarea(attrs={'class': 'form-control', 'rows': 2}),
+            'bank_account_number': forms.TextInput(attrs={'class': 'form-control'}),
+            'bank_ifsc': forms.TextInput(attrs={'class': 'form-control', 'maxlength': '11'}),
+            'bank_name': forms.TextInput(attrs={'class': 'form-control'}),
+            'authorized_signatory_name': forms.TextInput(attrs={'class': 'form-control'}),
+            'authorized_signatory_designation': forms.TextInput(attrs={'class': 'form-control'}),
+            'nature_of_business': forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
+            'email': forms.EmailInput(attrs={'class': 'form-control'}),
+            'phone': forms.TextInput(attrs={'class': 'form-control'}),
+        }
+
+
+class GSTFilingForm(forms.ModelForm):
+    """Form for GST Filing intake."""
+    
+    lead_source = forms.CharField(
+        initial='website',
+        widget=forms.HiddenInput(),
+        required=False
+    )
+    
+    return_type = forms.ChoiceField(
+        choices=GSTFiling.RETURN_TYPE_CHOICES,
+        widget=forms.Select(attrs={'class': 'form-select'}),
+    )
+    
+    class Meta:
+        model = GSTFiling
+        fields = [
+            'lead_source',
+            'gstin_number',
+            'return_type',
+            'return_period',
+            'total_sales',
+            'total_purchases',
+            'output_tax',
+            'input_tax_credit',
+            'net_tax_payable',
+            'payment_details',
+            'filing_date',
+        ]
+        widgets = {
+            'gstin_number': forms.TextInput(attrs={'class': 'form-control', 'maxlength': '15'}),
+            'return_period': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'e.g., 04-2024'}),
+            'total_sales': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.01'}),
+            'total_purchases': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.01'}),
+            'output_tax': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.01'}),
+            'input_tax_credit': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.01'}),
+            'net_tax_payable': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.01'}),
+            'payment_details': forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
+            'filing_date': forms.DateInput(attrs={'class': 'form-control', 'type': 'date'}),
+        }
+
+
+class CompanyComplianceROCLLPForm(forms.ModelForm):
+    """Form for Company Compliance (ROC) LLP intake."""
+    
+    lead_source = forms.CharField(
+        initial='website',
+        widget=forms.HiddenInput(),
+        required=False
+    )
+    
+    filing_type = forms.ChoiceField(
+        choices=CompanyComplianceROCLLP.FILING_TYPE_CHOICES,
+        widget=forms.Select(attrs={'class': 'form-select'}),
+    )
+    
+    class Meta:
+        model = CompanyComplianceROCLLP
+        fields = [
+            'lead_source',
+            'company_name',
+            'registration_number',
+            'filing_type',
+            'financial_year',
+            'due_date',
+            'filing_date',
+            'notes',
+        ]
+        widgets = {
+            'company_name': forms.TextInput(attrs={'class': 'form-control'}),
+            'registration_number': forms.TextInput(attrs={'class': 'form-control'}),
+            'financial_year': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'e.g., 2023-24'}),
+            'due_date': forms.DateInput(attrs={'class': 'form-control', 'type': 'date'}),
+            'filing_date': forms.DateInput(attrs={'class': 'form-control', 'type': 'date'}),
+            'notes': forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
+        }
+
+
+class AuthorizedPaidupCapitalIncreaseForm(forms.ModelForm):
+    """Form for Authorized & Paid-up Capital Increase intake."""
+    
+    lead_source = forms.CharField(
+        initial='website',
+        widget=forms.HiddenInput(),
+        required=False
+    )
+    
+    class Meta:
+        model = AuthorizedPaidupCapitalIncrease
+        fields = [
+            'lead_source',
+            'company_name',
+            'cin_number',
+            'current_authorized_capital',
+            'new_authorized_capital',
+            'current_paidup_capital',
+            'new_paidup_capital',
+            'reason_for_increase',
+        ]
+        widgets = {
+            'company_name': forms.TextInput(attrs={'class': 'form-control'}),
+            'cin_number': forms.TextInput(attrs={'class': 'form-control', 'maxlength': '21'}),
+            'current_authorized_capital': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.01'}),
+            'new_authorized_capital': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.01'}),
+            'current_paidup_capital': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.01'}),
+            'new_paidup_capital': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.01'}),
+            'reason_for_increase': forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
+        }
+
+
+class DINKYCForm(forms.ModelForm):
+    """Form for DIN KYC intake."""
+    
+    lead_source = forms.CharField(
+        initial='website',
+        widget=forms.HiddenInput(),
+        required=False
+    )
+    
+    class Meta:
+        model = DINKYC
+        fields = [
+            'lead_source',
+            'din_number',
+            'director_name',
+            'pan_number',
+            'aadhaar_number',
+            'email',
+            'phone',
+            'address',
+        ]
+        widgets = {
+            'din_number': forms.TextInput(attrs={'class': 'form-control', 'maxlength': '8'}),
+            'director_name': forms.TextInput(attrs={'class': 'form-control'}),
+            'pan_number': forms.TextInput(attrs={'class': 'form-control', 'maxlength': '10'}),
+            'aadhaar_number': forms.TextInput(attrs={'class': 'form-control', 'maxlength': '12'}),
+            'email': forms.EmailInput(attrs={'class': 'form-control'}),
+            'phone': forms.TextInput(attrs={'class': 'form-control'}),
+            'address': forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
+        }
+
+
+class NGODarpanForm(forms.ModelForm):
+    """Form for NGO Darpan Registration intake."""
+    
+    lead_source = forms.CharField(
+        initial='website',
+        widget=forms.HiddenInput(),
+        required=False
+    )
+    
+    class Meta:
+        model = NGODarpan
+        fields = [
+            'lead_source',
+            'organization_name',
+            'registration_number',
+            'registration_type',
+            'registration_date',
+            'address',
+            'contact_person',
+            'email',
+            'phone',
+            'objectives',
+        ]
+        widgets = {
+            'organization_name': forms.TextInput(attrs={'class': 'form-control'}),
+            'registration_number': forms.TextInput(attrs={'class': 'form-control'}),
+            'registration_type': forms.TextInput(attrs={'class': 'form-control'}),
+            'registration_date': forms.DateInput(attrs={'class': 'form-control', 'type': 'date'}),
+            'address': forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
+            'contact_person': forms.TextInput(attrs={'class': 'form-control'}),
+            'email': forms.EmailInput(attrs={'class': 'form-control'}),
+            'phone': forms.TextInput(attrs={'class': 'form-control'}),
+            'objectives': forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
+        }
+
+
+class ITRFilingForm(forms.ModelForm):
+    """Form for ITR Filing intake."""
+    
+    lead_source = forms.CharField(
+        initial='website',
+        widget=forms.HiddenInput(),
+        required=False
+    )
+    
+    itr_type = forms.ChoiceField(
+        choices=ITRFiling.ITR_TYPE_CHOICES,
+        widget=forms.Select(attrs={'class': 'form-select'}),
+    )
+    
+    class Meta:
+        model = ITRFiling
+        fields = [
+            'lead_source',
+            'pan_number',
+            'assessment_year',
+            'itr_type',
+            'total_income',
+            'total_deductions',
+            'taxable_income',
+            'tax_amount',
+            'advance_tax_paid',
+            'tds_amount',
+            'refund_or_balance_tax',
+            'filing_date',
+        ]
+        widgets = {
+            'pan_number': forms.TextInput(attrs={'class': 'form-control', 'maxlength': '10'}),
+            'assessment_year': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'e.g., 2024-25'}),
+            'total_income': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.01'}),
+            'total_deductions': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.01'}),
+            'taxable_income': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.01'}),
+            'tax_amount': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.01'}),
+            'advance_tax_paid': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.01'}),
+            'tds_amount': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.01'}),
+            'refund_or_balance_tax': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.01'}),
+            'filing_date': forms.DateInput(attrs={'class': 'form-control', 'type': 'date'}),
+        }
+
+
+class INC20ABusinessCommencementForm(forms.ModelForm):
+    """Form for INC-20A (Business Commencement) intake."""
+    
+    lead_source = forms.CharField(
+        initial='website',
+        widget=forms.HiddenInput(),
+        required=False
+    )
+    
+    class Meta:
+        model = INC20ABusinessCommencement
+        fields = [
+            'lead_source',
+            'company_name',
+            'cin_number',
+            'incorporation_date',
+            'commencement_date',
+            'business_activity',
+            'registered_office_address',
+        ]
+        widgets = {
+            'company_name': forms.TextInput(attrs={'class': 'form-control'}),
+            'cin_number': forms.TextInput(attrs={'class': 'form-control', 'maxlength': '21'}),
+            'incorporation_date': forms.DateInput(attrs={'class': 'form-control', 'type': 'date'}),
+            'commencement_date': forms.DateInput(attrs={'class': 'form-control', 'type': 'date'}),
+            'business_activity': forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
+            'registered_office_address': forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
+        }
+
+
+class GEMRegistrationForm(forms.ModelForm):
+    """Form for GEM Registration intake."""
+    
+    lead_source = forms.CharField(
+        initial='website',
+        widget=forms.HiddenInput(),
+        required=False
+    )
+    
+    class Meta:
+        model = GEMRegistration
+        fields = [
+            'lead_source',
+            'business_name',
+            'business_type',
+            'pan_number',
+            'gstin_number',
+            'address',
+            'contact_person',
+            'email',
+            'phone',
+            'products_services',
+            'bank_account_number',
+            'bank_ifsc',
+        ]
+        widgets = {
+            'business_name': forms.TextInput(attrs={'class': 'form-control'}),
+            'business_type': forms.TextInput(attrs={'class': 'form-control'}),
+            'pan_number': forms.TextInput(attrs={'class': 'form-control', 'maxlength': '10'}),
+            'gstin_number': forms.TextInput(attrs={'class': 'form-control', 'maxlength': '15'}),
+            'address': forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
+            'contact_person': forms.TextInput(attrs={'class': 'form-control'}),
+            'email': forms.EmailInput(attrs={'class': 'form-control'}),
+            'phone': forms.TextInput(attrs={'class': 'form-control'}),
+            'products_services': forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
+            'bank_account_number': forms.TextInput(attrs={'class': 'form-control'}),
+            'bank_ifsc': forms.TextInput(attrs={'class': 'form-control', 'maxlength': '11'}),
+        }
+
+
+class StartupIndiaSeedFundingForm(forms.ModelForm):
+    """Form for Start-up INDIA – SEED FUNDING intake."""
+    
+    lead_source = forms.CharField(
+        initial='website',
+        widget=forms.HiddenInput(),
+        required=False
+    )
+    
+    class Meta:
+        model = StartupIndiaSeedFunding
+        fields = [
+            'lead_source',
+            'startup_name',
+            'cin_number',
+            'startup_india_registration_number',
+            'funding_amount_requested',
+            'business_description',
+            'innovation_usp',
+            'market_potential',
+            'founder_details',
+            'contact_email',
+            'contact_phone',
+        ]
+        widgets = {
+            'startup_name': forms.TextInput(attrs={'class': 'form-control'}),
+            'cin_number': forms.TextInput(attrs={'class': 'form-control', 'maxlength': '21'}),
+            'startup_india_registration_number': forms.TextInput(attrs={'class': 'form-control'}),
+            'funding_amount_requested': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.01'}),
+            'business_description': forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
+            'innovation_usp': forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
+            'market_potential': forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
+            'founder_details': forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
+            'contact_email': forms.EmailInput(attrs={'class': 'form-control'}),
+            'contact_phone': forms.TextInput(attrs={'class': 'form-control'}),
+        }
+
+
+class CSR1NGOForm(forms.ModelForm):
+    """Form for CSR-1 (NGO) intake."""
+    
+    lead_source = forms.CharField(
+        initial='website',
+        widget=forms.HiddenInput(),
+        required=False
+    )
+    
+    class Meta:
+        model = CSR1NGO
+        fields = [
+            'lead_source',
+            'ngo_name',
+            'registration_number',
+            'registration_type',
+            'address',
+            'contact_person',
+            'email',
+            'phone',
+            'objectives',
+            'csr_activities',
+        ]
+        widgets = {
+            'ngo_name': forms.TextInput(attrs={'class': 'form-control'}),
+            'registration_number': forms.TextInput(attrs={'class': 'form-control'}),
+            'registration_type': forms.TextInput(attrs={'class': 'form-control'}),
+            'address': forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
+            'contact_person': forms.TextInput(attrs={'class': 'form-control'}),
+            'email': forms.EmailInput(attrs={'class': 'form-control'}),
+            'phone': forms.TextInput(attrs={'class': 'form-control'}),
+            'objectives': forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
+            'csr_activities': forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
+        }
+
+
+class Registration12A80GForm(forms.ModelForm):
+    """Form for 12A & 80G Registration intake."""
+    
+    lead_source = forms.CharField(
+        initial='website',
+        widget=forms.HiddenInput(),
+        required=False
+    )
+    
+    class Meta:
+        model = Registration12A80G
+        fields = [
+            'lead_source',
+            'organization_name',
+            'registration_number',
+            'registration_type',
+            'address',
+            'contact_person',
+            'email',
+            'phone',
+            'objectives',
+            'registration_12a_required',
+            'registration_80g_required',
+        ]
+        widgets = {
+            'organization_name': forms.TextInput(attrs={'class': 'form-control'}),
+            'registration_number': forms.TextInput(attrs={'class': 'form-control'}),
+            'registration_type': forms.TextInput(attrs={'class': 'form-control'}),
+            'address': forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
+            'contact_person': forms.TextInput(attrs={'class': 'form-control'}),
+            'email': forms.EmailInput(attrs={'class': 'form-control'}),
+            'phone': forms.TextInput(attrs={'class': 'form-control'}),
+            'objectives': forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
+            'registration_12a_required': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
+            'registration_80g_required': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
+        }
+
+
+class PartnershipRegistrationForm(forms.ModelForm):
+    """Form for Partnership Registration intake."""
+    
+    lead_source = forms.CharField(
+        initial='website',
+        widget=forms.HiddenInput(),
+        required=False
+    )
+    
+    class Meta:
+        model = PartnershipRegistration
+        fields = [
+            'lead_source',
+            'firm_name',
+            'principal_place_of_business',
+            'business_activity',
+            'partner_details',
+            'capital_contribution',
+            'profit_sharing_ratio',
+            'contact_email',
+            'contact_phone',
+        ]
+        widgets = {
+            'firm_name': forms.TextInput(attrs={'class': 'form-control'}),
+            'principal_place_of_business': forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
+            'business_activity': forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
+            'partner_details': forms.Textarea(attrs={'class': 'form-control', 'rows': 4}),
+            'capital_contribution': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.01'}),
+            'profit_sharing_ratio': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'e.g., 50:50 or 60:40'}),
+            'contact_email': forms.EmailInput(attrs={'class': 'form-control'}),
+            'contact_phone': forms.TextInput(attrs={'class': 'form-control'}),
         }
 
 

@@ -749,6 +749,41 @@
                         <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
                       </div>
                       <div class="modal-body">
+                        <!-- Client/Applicant Information Section -->
+                        <div class="card mb-4 border-primary">
+                          <div class="card-header bg-primary text-white">
+                            <h6 class="mb-0"><i class="bi bi-person-circle me-2"></i>Client Information</h6>
+                          </div>
+                          <div class="card-body">
+                            <div class="row mb-2">
+                              <div class="col-md-6"><strong>Name:</strong></div>
+                              <div class="col-md-6">{{ lead.applicant_name|default:"N/A" }}</div>
+                            </div>
+                            <div class="row mb-2">
+                              <div class="col-md-6"><strong>Phone Number:</strong></div>
+                              <div class="col-md-6">{{ lead.applicant_phone|default:"N/A" }}</div>
+                            </div>
+                            <div class="row mb-2">
+                              <div class="col-md-6"><strong>Email:</strong></div>
+                              <div class="col-md-6">{{ lead.applicant_email|default:"N/A" }}</div>
+                            </div>
+                            <div class="row mb-2">
+                              <div class="col-md-6"><strong>WhatsApp Number:</strong></div>
+                              <div class="col-md-6">{{ lead.applicant_whatsapp|default:"N/A" }}</div>
+                            </div>
+                            <div class="row mb-2">
+                              <div class="col-md-6"><strong>Address:</strong></div>
+                              <div class="col-md-6">{{ lead.applicant_address|default:"N/A" }}</div>
+                            </div>
+                          </div>
+                        </div>
+                        
+                        <!-- Service Specific Information -->
+                        <div class="card mb-3">
+                          <div class="card-header bg-secondary text-white">
+                            <h6 class="mb-0"><i class="bi bi-info-circle me-2"></i>Service Details</h6>
+                          </div>
+                          <div class="card-body">
                         {% if lead.service_type == 'startup' %}
                           <div class="row mb-3">
                             <div class="col-md-6"><strong>Legal Entity Name:</strong></div>
@@ -1075,6 +1110,8 @@
                             <div class="col-md-6">{{ lead.created_at|date:"d M Y, h:i A" }}</div>
                           </div>
                         {% endif %}
+                          </div>
+                        </div>
                       </div>
                       <div class="modal-footer">
                         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
@@ -5247,6 +5284,29 @@ document.addEventListener('DOMContentLoaded', function() {
             existingModal.dispose();
           }
           
+          // Fetch fresh data from database via AJAX
+          const modalBody = modalElement.querySelector('.modal-body');
+          if (modalBody) {
+            // Show loading state
+            modalBody.innerHTML = '<div class="text-center p-5"><div class="spinner-border text-primary" role="status"><span class="visually-hidden">Loading...</span></div><p class="mt-3">Loading client information...</p></div>';
+            
+            // Fetch data from server
+            fetch(`/employee/backoffice/get-lead-details/?service_type=${serviceType}&record_id=${leadId}`)
+              .then(response => response.json())
+              .then(data => {
+                if (data.success) {
+                  // Update modal with fresh data
+                  updateModalContent(modalElement, data, serviceType);
+                } else {
+                  modalBody.innerHTML = `<div class="alert alert-danger">Error: ${data.error || 'Failed to load data'}</div>`;
+                }
+              })
+              .catch(error => {
+                console.error('Error fetching lead details:', error);
+                modalBody.innerHTML = `<div class="alert alert-danger">Error loading data. Please try again.</div>`;
+              });
+          }
+          
           // Create new modal instance
           const modal = new bootstrap.Modal(modalElement, {
             backdrop: 'static',
@@ -5264,6 +5324,286 @@ document.addEventListener('DOMContentLoaded', function() {
         }
       });
     });
+    
+    // Function to update modal content with fresh data
+    function updateModalContent(modalElement, data, serviceType) {
+      const modalBody = modalElement.querySelector('.modal-body');
+      if (!modalBody) return;
+      
+      // Build client information HTML
+      let clientInfoHtml = `
+        <div class="card mb-4 border-primary">
+          <div class="card-header bg-primary text-white">
+            <h6 class="mb-0"><i class="bi bi-person-circle me-2"></i>Client Information</h6>
+          </div>
+          <div class="card-body">
+            <div class="row mb-2">
+              <div class="col-md-6"><strong>Name:</strong></div>
+              <div class="col-md-6">${data.applicant_name || 'N/A'}</div>
+            </div>
+            <div class="row mb-2">
+              <div class="col-md-6"><strong>Phone Number:</strong></div>
+              <div class="col-md-6">${data.applicant_phone || 'N/A'}</div>
+            </div>
+            <div class="row mb-2">
+              <div class="col-md-6"><strong>Email:</strong></div>
+              <div class="col-md-6">${data.applicant_email || 'N/A'}</div>
+            </div>
+            <div class="row mb-2">
+              <div class="col-md-6"><strong>WhatsApp Number:</strong></div>
+              <div class="col-md-6">${data.applicant_whatsapp || 'N/A'}</div>
+            </div>
+            <div class="row mb-2">
+              <div class="col-md-6"><strong>Address:</strong></div>
+              <div class="col-md-6">${data.applicant_address || 'N/A'}</div>
+            </div>
+          </div>
+        </div>
+      `;
+      
+      // Build service details HTML based on service type
+      let serviceDetailsHtml = `
+        <div class="card mb-3">
+          <div class="card-header bg-secondary text-white">
+            <h6 class="mb-0"><i class="bi bi-info-circle me-2"></i>Service Details</h6>
+          </div>
+          <div class="card-body">
+      `;
+      
+      // Add service-specific fields
+      if (serviceType === 'startup') {
+        serviceDetailsHtml += `
+          <div class="row mb-3">
+            <div class="col-md-6"><strong>Legal Entity Name:</strong></div>
+            <div class="col-md-6">${data.legal_entity_name || 'N/A'}</div>
+          </div>
+          <div class="row mb-3">
+            <div class="col-md-6"><strong>Incorporation Date:</strong></div>
+            <div class="col-md-6">${data.incorporation_date || 'N/A'}</div>
+          </div>
+          <div class="row mb-3">
+            <div class="col-md-6"><strong>Entity Type:</strong></div>
+            <div class="col-md-6">${data.entity_type || 'N/A'}</div>
+          </div>
+          <div class="row mb-3">
+            <div class="col-md-6"><strong>Industry Sector:</strong></div>
+            <div class="col-md-6">${data.industry_sector || 'N/A'}</div>
+          </div>
+          <div class="row mb-3">
+            <div class="col-md-6"><strong>Authorised Contact:</strong></div>
+            <div class="col-md-6">${data.authorised_contact || 'N/A'}</div>
+          </div>
+          <div class="row mb-3">
+            <div class="col-md-6"><strong>Email:</strong></div>
+            <div class="col-md-6">${data.email || 'N/A'}</div>
+          </div>
+          <div class="row mb-3">
+            <div class="col-md-6"><strong>Innovation / USP:</strong></div>
+            <div class="col-md-6">${data.innovation_usp || 'N/A'}</div>
+          </div>
+        `;
+      } else if (serviceType === 'fssai') {
+        serviceDetailsHtml += `
+          <div class="row mb-3">
+            <div class="col-md-6"><strong>Business/Brand Name:</strong></div>
+            <div class="col-md-6">${data.business_brand_name || 'N/A'}</div>
+          </div>
+          <div class="row mb-3">
+            <div class="col-md-6"><strong>Licence Type:</strong></div>
+            <div class="col-md-6">${data.licence_type || 'N/A'}</div>
+          </div>
+          <div class="row mb-3">
+            <div class="col-md-6"><strong>Business Nature:</strong></div>
+            <div class="col-md-6">${data.business_nature || 'N/A'}</div>
+          </div>
+          <div class="row mb-3">
+            <div class="col-md-6"><strong>Premises Address:</strong></div>
+            <div class="col-md-6">${data.premises_address || 'N/A'}</div>
+          </div>
+          <div class="row mb-3">
+            <div class="col-md-6"><strong>Employees:</strong></div>
+            <div class="col-md-6">${data.employees || 'N/A'}</div>
+          </div>
+          <div class="row mb-3">
+            <div class="col-md-6"><strong>Licence Tenure:</strong></div>
+            <div class="col-md-6">${data.licence_tenure || 'N/A'}</div>
+          </div>
+        `;
+      } else if (serviceType === 'msme') {
+        serviceDetailsHtml += `
+          <div class="row mb-3">
+            <div class="col-md-6"><strong>Entity Name:</strong></div>
+            <div class="col-md-6">${data.entity_name || 'N/A'}</div>
+          </div>
+          <div class="row mb-3">
+            <div class="col-md-6"><strong>Organisation Type:</strong></div>
+            <div class="col-md-6">${data.organisation_type || 'N/A'}</div>
+          </div>
+          <div class="row mb-3">
+            <div class="col-md-6"><strong>Annual Turnover:</strong></div>
+            <div class="col-md-6">₹${data.annual_turnover || '0'}</div>
+          </div>
+        `;
+      } else if (serviceType === 'company-llp') {
+        serviceDetailsHtml += `
+          <div class="row mb-3">
+            <div class="col-md-6"><strong>Entity Type:</strong></div>
+            <div class="col-md-6">${data.entity_type || 'N/A'}</div>
+          </div>
+          <div class="row mb-3">
+            <div class="col-md-6"><strong>Directors/Partners:</strong></div>
+            <div class="col-md-6">${data.directors_partners || 'N/A'}</div>
+          </div>
+          <div class="row mb-3">
+            <div class="col-md-6"><strong>Authorised Capital:</strong></div>
+            <div class="col-md-6">₹${data.authorised_capital || '0'}</div>
+          </div>
+        `;
+      } else if (serviceType === 'fire-pollution') {
+        serviceDetailsHtml += `
+          <div class="row mb-3">
+            <div class="col-md-6"><strong>Establishment Type:</strong></div>
+            <div class="col-md-6">${data.establishment_type || 'N/A'}</div>
+          </div>
+          <div class="row mb-3">
+            <div class="col-md-6"><strong>Built-up Area:</strong></div>
+            <div class="col-md-6">${data.built_up_area || 'N/A'} sq.ft</div>
+          </div>
+          <div class="row mb-3">
+            <div class="col-md-6"><strong>Pollution Category:</strong></div>
+            <div class="col-md-6">${data.pollution_category || 'N/A'}</div>
+          </div>
+        `;
+      } else if (serviceType === 'iso') {
+        serviceDetailsHtml += `
+          <div class="row mb-3">
+            <div class="col-md-6"><strong>Standard:</strong></div>
+            <div class="col-md-6">${data.standard || 'N/A'}</div>
+          </div>
+          <div class="row mb-3">
+            <div class="col-md-6"><strong>Locations:</strong></div>
+            <div class="col-md-6">${data.locations || 'N/A'}</div>
+          </div>
+          <div class="row mb-3">
+            <div class="col-md-6"><strong>Employee Strength:</strong></div>
+            <div class="col-md-6">${data.employee_strength || 'N/A'}</div>
+          </div>
+        `;
+      } else if (serviceType === 'trademark') {
+        serviceDetailsHtml += `
+          <div class="row mb-3">
+            <div class="col-md-6"><strong>Brand/Logo:</strong></div>
+            <div class="col-md-6">${data.brand_logo || 'N/A'}</div>
+          </div>
+          <div class="row mb-3">
+            <div class="col-md-6"><strong>Applicant Type:</strong></div>
+            <div class="col-md-6">${data.applicant_type || 'N/A'}</div>
+          </div>
+          <div class="row mb-3">
+            <div class="col-md-6"><strong>Classes:</strong></div>
+            <div class="col-md-6">${data.classes || 'N/A'}</div>
+          </div>
+        `;
+      } else if (serviceType === 'trademark-compliance') {
+        serviceDetailsHtml += `
+          <div class="row mb-3">
+            <div class="col-md-6"><strong>Existing TM Numbers:</strong></div>
+            <div class="col-md-6">${data.existing_tm_numbers || 'N/A'}</div>
+          </div>
+          <div class="row mb-3">
+            <div class="col-md-6"><strong>Portfolio Size:</strong></div>
+            <div class="col-md-6">${data.portfolio_size || 'N/A'}</div>
+          </div>
+          <div class="row mb-3">
+            <div class="col-md-6"><strong>Watch Scope:</strong></div>
+            <div class="col-md-6">${data.watch_scope || 'N/A'}</div>
+          </div>
+        `;
+      } else if (serviceType === 'trademark-instant') {
+        serviceDetailsHtml += `
+          <div class="row mb-3">
+            <div class="col-md-6"><strong>Urgency Reason:</strong></div>
+            <div class="col-md-6">${data.urgency_reason || 'N/A'}</div>
+          </div>
+          <div class="row mb-3">
+            <div class="col-md-6"><strong>Filing Window:</strong></div>
+            <div class="col-md-6">${data.filing_window || 'N/A'}</div>
+          </div>
+          <div class="row mb-3">
+            <div class="col-md-6"><strong>Contact Mobile:</strong></div>
+            <div class="col-md-6">${data.contact_mobile || 'N/A'}</div>
+          </div>
+        `;
+      } else if (serviceType === 'address-change') {
+        serviceDetailsHtml += `
+          <div class="row mb-3">
+            <div class="col-md-6"><strong>Entity Type:</strong></div>
+            <div class="col-md-6">${data.entity_type || 'N/A'}</div>
+          </div>
+          <div class="row mb-3">
+            <div class="col-md-6"><strong>Shift Type:</strong></div>
+            <div class="col-md-6">${data.shift_type || 'N/A'}</div>
+          </div>
+          <div class="row mb-3">
+            <div class="col-md-6"><strong>Effective Date:</strong></div>
+            <div class="col-md-6">${data.effective_date || 'N/A'}</div>
+          </div>
+        `;
+      } else if (serviceType === 'moa-alteration') {
+        serviceDetailsHtml += `
+          <div class="row mb-3">
+            <div class="col-md-6"><strong>Alteration Type:</strong></div>
+            <div class="col-md-6">${data.alteration_type || 'N/A'}</div>
+          </div>
+          <div class="row mb-3">
+            <div class="col-md-6"><strong>Proposed Object/Name:</strong></div>
+            <div class="col-md-6">${data.proposed_object_name || 'N/A'}</div>
+          </div>
+          <div class="row mb-3">
+            <div class="col-md-6"><strong>Effective Date:</strong></div>
+            <div class="col-md-6">${data.effective_date || 'N/A'}</div>
+          </div>
+        `;
+      } else if (serviceType === 'partnership-registration') {
+        serviceDetailsHtml += `
+          <div class="row mb-3">
+            <div class="col-md-6"><strong>Firm Name:</strong></div>
+            <div class="col-md-6">${data.firm_name || 'N/A'}</div>
+          </div>
+          <div class="row mb-3">
+            <div class="col-md-6"><strong>Business Activity:</strong></div>
+            <div class="col-md-6">${data.business_activity || 'N/A'}</div>
+          </div>
+          <div class="row mb-3">
+            <div class="col-md-6"><strong>Capital Contribution:</strong></div>
+            <div class="col-md-6">₹${data.capital_contribution || '0'}</div>
+          </div>
+        `;
+      }
+      
+      // Add common fields
+      serviceDetailsHtml += `
+          <div class="row mb-3">
+            <div class="col-md-6"><strong>Status:</strong></div>
+            <div class="col-md-6">
+              <span class="badge bg-${data.status_badge_class}">${data.status_display}</span>
+            </div>
+          </div>
+          <div class="row mb-3">
+            <div class="col-md-6"><strong>Lead Source:</strong></div>
+            <div class="col-md-6">${data.lead_source || 'website'}</div>
+          </div>
+          <div class="row mb-3">
+            <div class="col-md-6"><strong>Created At:</strong></div>
+            <div class="col-md-6">${data.created_at || 'N/A'}</div>
+          </div>
+          </div>
+        </div>
+      `;
+      
+      // Update modal body
+      modalBody.innerHTML = clientInfoHtml + serviceDetailsHtml;
+    }
     
     // Ensure modals don't flicker on show
     document.querySelectorAll('.modal').forEach(function(modal) {

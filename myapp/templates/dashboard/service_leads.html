@@ -437,6 +437,77 @@
                                 <div class="mb-2"><strong>Proposed Object/Name:</strong> {{ record.proposed_object_name|truncatewords:5 }}</div>
                                 <div class="mb-2"><strong>Effective Date:</strong> {{ record.effective_date|date:"d M Y"|default:"N/A" }}</div>
                                 <div class="mb-2"><strong>Status:</strong> <span class="badge bg-{{ record.get_status_badge_class }}">{{ record.get_status_display }}</span></div>
+                              {% elif service_id == 'din-application' %}
+                                <div class="mb-2"><strong>Applicant Name:</strong> {{ record.applicant_name|default:"N/A" }}</div>
+                                <div class="mb-2"><strong>PAN Number:</strong> {{ record.pan_number|default:"N/A" }}</div>
+                                <div class="mb-2"><strong>Email:</strong> {{ record.email|default:"N/A" }}</div>
+                                <div class="mb-2"><strong>Phone:</strong> {{ record.phone|default:"N/A" }}</div>
+                                <div class="mb-2"><strong>Status:</strong> <span class="badge bg-{{ record.get_status_badge_class }}">{{ record.get_status_display }}</span></div>
+                              {% elif service_id == 'gst-registration' %}
+                                <div class="mb-2"><strong>Legal Entity Name:</strong> {{ record.legal_entity_name|default:"N/A" }}</div>
+                                <div class="mb-2"><strong>Business Type:</strong> {{ record.business_type|default:"N/A" }}</div>
+                                <div class="mb-2"><strong>PAN Number:</strong> {{ record.pan_number|default:"N/A" }}</div>
+                                <div class="mb-2"><strong>Status:</strong> <span class="badge bg-{{ record.get_status_badge_class }}">{{ record.get_status_display }}</span></div>
+                              {% elif service_id == 'gst-filing' %}
+                                <div class="mb-2"><strong>GSTIN Number:</strong> {{ record.gstin_number|default:"N/A" }}</div>
+                                <div class="mb-2"><strong>Return Type:</strong> {{ record.return_type|default:"N/A" }}</div>
+                                <div class="mb-2"><strong>Return Period:</strong> {{ record.return_period|default:"N/A" }}</div>
+                                <div class="mb-2"><strong>Status:</strong> <span class="badge bg-{{ record.get_status_badge_class }}">{{ record.get_status_display }}</span></div>
+                              {% elif service_id == 'company-compliance-roc-llp' %}
+                                <div class="mb-2"><strong>Company Name:</strong> {{ record.company_name|default:"N/A" }}</div>
+                                <div class="mb-2"><strong>Filing Type:</strong> {{ record.filing_type|default:"N/A" }}</div>
+                                <div class="mb-2"><strong>Financial Year:</strong> {{ record.financial_year|default:"N/A" }}</div>
+                                <div class="mb-2"><strong>Status:</strong> <span class="badge bg-{{ record.get_status_badge_class }}">{{ record.get_status_display }}</span></div>
+                              {% elif service_id == 'authorized-paidup-capital-increase' %}
+                                <div class="mb-2"><strong>Company Name:</strong> {{ record.company_name|default:"N/A" }}</div>
+                                <div class="mb-2"><strong>New Authorized Capital:</strong> ₹{{ record.new_authorized_capital|default:"0" }}</div>
+                                <div class="mb-2"><strong>New Paid-up Capital:</strong> ₹{{ record.new_paidup_capital|default:"0" }}</div>
+                                <div class="mb-2"><strong>Status:</strong> <span class="badge bg-{{ record.get_status_badge_class }}">{{ record.get_status_display }}</span></div>
+                              {% elif service_id == 'din-kyc' %}
+                                <div class="mb-2"><strong>Director Name:</strong> {{ record.director_name|default:"N/A" }}</div>
+                                <div class="mb-2"><strong>DIN Number:</strong> {{ record.din_number|default:"N/A" }}</div>
+                                <div class="mb-2"><strong>PAN Number:</strong> {{ record.pan_number|default:"N/A" }}</div>
+                                <div class="mb-2"><strong>Status:</strong> <span class="badge bg-{{ record.get_status_badge_class }}">{{ record.get_status_display }}</span></div>
+                              {% elif service_id == 'ngo-darpan' %}
+                                <div class="mb-2"><strong>Organization Name:</strong> {{ record.organization_name|default:"N/A" }}</div>
+                                <div class="mb-2"><strong>Registration Type:</strong> {{ record.registration_type|default:"N/A" }}</div>
+                                <div class="mb-2"><strong>Contact Person:</strong> {{ record.contact_person|default:"N/A" }}</div>
+                                <div class="mb-2"><strong>Status:</strong> <span class="badge bg-{{ record.get_status_badge_class }}">{{ record.get_status_display }}</span></div>
+                              {% elif service_id == 'itr-filing' %}
+                                <div class="mb-2"><strong>PAN Number:</strong> {{ record.pan_number|default:"N/A" }}</div>
+                                <div class="mb-2"><strong>Assessment Year:</strong> {{ record.assessment_year|default:"N/A" }}</div>
+                                <div class="mb-2"><strong>ITR Type:</strong> {{ record.itr_type|default:"N/A" }}</div>
+                                <div class="mb-2"><strong>Status:</strong> <span class="badge bg-{{ record.get_status_badge_class }}">{{ record.get_status_display }}</span></div>
+                              {% elif service_id == 'inc-20a' %}
+                                <div class="mb-2"><strong>Company Name:</strong> {{ record.company_name|default:"N/A" }}</div>
+                                <div class="mb-2"><strong>CIN Number:</strong> {{ record.cin_number|default:"N/A" }}</div>
+                                <div class="mb-2"><strong>Commencement Date:</strong> {{ record.commencement_date|date:"d M Y"|default:"N/A" }}</div>
+                                <div class="mb-2"><strong>Status:</strong> <span class="badge bg-{{ record.get_status_badge_class }}">{{ record.get_status_display }}</span></div>
+                              {% elif service_id == 'gem-registration' %}
+                                <div class="mb-2"><strong>Business Name:</strong> {{ record.business_name|default:"N/A" }}</div>
+                                <div class="mb-2"><strong>Business Type:</strong> {{ record.business_type|default:"N/A" }}</div>
+                                <div class="mb-2"><strong>GSTIN Number:</strong> {{ record.gstin_number|default:"N/A" }}</div>
+                                <div class="mb-2"><strong>Status:</strong> <span class="badge bg-{{ record.get_status_badge_class }}">{{ record.get_status_display }}</span></div>
+                              {% elif service_id == 'startup-india-seed-funding' %}
+                                <div class="mb-2"><strong>Startup Name:</strong> {{ record.startup_name|default:"N/A" }}</div>
+                                <div class="mb-2"><strong>CIN Number:</strong> {{ record.cin_number|default:"N/A" }}</div>
+                                <div class="mb-2"><strong>Funding Amount:</strong> ₹{{ record.funding_amount_requested|default:"0" }}</div>
+                                <div class="mb-2"><strong>Status:</strong> <span class="badge bg-{{ record.get_status_badge_class }}">{{ record.get_status_display }}</span></div>
+                              {% elif service_id == 'csr-1-ngo' %}
+                                <div class="mb-2"><strong>NGO Name:</strong> {{ record.ngo_name|default:"N/A" }}</div>
+                                <div class="mb-2"><strong>Registration Type:</strong> {{ record.registration_type|default:"N/A" }}</div>
+                                <div class="mb-2"><strong>Contact Person:</strong> {{ record.contact_person|default:"N/A" }}</div>
+                                <div class="mb-2"><strong>Status:</strong> <span class="badge bg-{{ record.get_status_badge_class }}">{{ record.get_status_display }}</span></div>
+                              {% elif service_id == '12a-80g-registration' %}
+                                <div class="mb-2"><strong>Organization Name:</strong> {{ record.organization_name|default:"N/A" }}</div>
+                                <div class="mb-2"><strong>Registration Type:</strong> {{ record.registration_type|default:"N/A" }}</div>
+                                <div class="mb-2"><strong>12A Required:</strong> {% if record.registration_12a_required %}<i class="bi bi-check-circle text-success"></i> Yes{% else %}<i class="bi bi-x-circle text-danger"></i> No{% endif %}</div>
+                                <div class="mb-2"><strong>Status:</strong> <span class="badge bg-{{ record.get_status_badge_class }}">{{ record.get_status_display }}</span></div>
+                              {% elif service_id == 'partnership-registration' %}
+                                <div class="mb-2"><strong>Firm Name:</strong> {{ record.firm_name|default:"N/A" }}</div>
+                                <div class="mb-2"><strong>Business Activity:</strong> {{ record.business_activity|truncatewords:5|default:"N/A" }}</div>
+                                <div class="mb-2"><strong>Capital Contribution:</strong> ₹{{ record.capital_contribution|default:"0" }}</div>
+                                <div class="mb-2"><strong>Status:</strong> <span class="badge bg-{{ record.get_status_badge_class }}">{{ record.get_status_display }}</span></div>
                               {% endif %}
                               
                               <hr class="my-2">
@@ -530,6 +601,77 @@
                                 <th class="text-nowrap">Proposed Object/Name</th>
                                 <th class="text-nowrap">Effective Date</th>
                                 <th class="text-nowrap">Status</th>
+                              {% elif service_id == 'din-application' %}
+                                <th class="text-nowrap">Applicant Name</th>
+                                <th class="text-nowrap">PAN Number</th>
+                                <th class="text-nowrap">Email</th>
+                                <th class="text-nowrap">Phone</th>
+                                <th class="text-nowrap">Status</th>
+                              {% elif service_id == 'gst-registration' %}
+                                <th class="text-nowrap">Legal Entity Name</th>
+                                <th class="text-nowrap">Business Type</th>
+                                <th class="text-nowrap">PAN Number</th>
+                                <th class="text-nowrap">Status</th>
+                              {% elif service_id == 'gst-filing' %}
+                                <th class="text-nowrap">GSTIN Number</th>
+                                <th class="text-nowrap">Return Type</th>
+                                <th class="text-nowrap">Return Period</th>
+                                <th class="text-nowrap">Status</th>
+                              {% elif service_id == 'company-compliance-roc-llp' %}
+                                <th class="text-nowrap">Company Name</th>
+                                <th class="text-nowrap">Filing Type</th>
+                                <th class="text-nowrap">Financial Year</th>
+                                <th class="text-nowrap">Status</th>
+                              {% elif service_id == 'authorized-paidup-capital-increase' %}
+                                <th class="text-nowrap">Company Name</th>
+                                <th class="text-nowrap">New Authorized Capital</th>
+                                <th class="text-nowrap">New Paid-up Capital</th>
+                                <th class="text-nowrap">Status</th>
+                              {% elif service_id == 'din-kyc' %}
+                                <th class="text-nowrap">Director Name</th>
+                                <th class="text-nowrap">DIN Number</th>
+                                <th class="text-nowrap">PAN Number</th>
+                                <th class="text-nowrap">Status</th>
+                              {% elif service_id == 'ngo-darpan' %}
+                                <th class="text-nowrap">Organization Name</th>
+                                <th class="text-nowrap">Registration Type</th>
+                                <th class="text-nowrap">Contact Person</th>
+                                <th class="text-nowrap">Status</th>
+                              {% elif service_id == 'itr-filing' %}
+                                <th class="text-nowrap">PAN Number</th>
+                                <th class="text-nowrap">Assessment Year</th>
+                                <th class="text-nowrap">ITR Type</th>
+                                <th class="text-nowrap">Status</th>
+                              {% elif service_id == 'inc-20a' %}
+                                <th class="text-nowrap">Company Name</th>
+                                <th class="text-nowrap">CIN Number</th>
+                                <th class="text-nowrap">Commencement Date</th>
+                                <th class="text-nowrap">Status</th>
+                              {% elif service_id == 'gem-registration' %}
+                                <th class="text-nowrap">Business Name</th>
+                                <th class="text-nowrap">Business Type</th>
+                                <th class="text-nowrap">GSTIN Number</th>
+                                <th class="text-nowrap">Status</th>
+                              {% elif service_id == 'startup-india-seed-funding' %}
+                                <th class="text-nowrap">Startup Name</th>
+                                <th class="text-nowrap">CIN Number</th>
+                                <th class="text-nowrap">Funding Amount</th>
+                                <th class="text-nowrap">Status</th>
+                              {% elif service_id == 'csr-1-ngo' %}
+                                <th class="text-nowrap">NGO Name</th>
+                                <th class="text-nowrap">Registration Type</th>
+                                <th class="text-nowrap">Contact Person</th>
+                                <th class="text-nowrap">Status</th>
+                              {% elif service_id == '12a-80g-registration' %}
+                                <th class="text-nowrap">Organization Name</th>
+                                <th class="text-nowrap">Registration Type</th>
+                                <th class="text-nowrap">12A Required</th>
+                                <th class="text-nowrap">Status</th>
+                              {% elif service_id == 'partnership-registration' %}
+                                <th class="text-nowrap">Firm Name</th>
+                                <th class="text-nowrap">Business Activity</th>
+                                <th class="text-nowrap">Capital Contribution</th>
+                                <th class="text-nowrap">Status</th>
                               {% endif %}
                               <th class="text-nowrap">Lead Source</th>
                               <th class="text-nowrap">Assigned To</th>
@@ -601,6 +743,77 @@
                                   <td>{{ record.alteration_type }}</td>
                                   <td>{{ record.proposed_object_name|truncatewords:5 }}</td>
                                   <td>{{ record.effective_date|date:"d M Y"|default:"N/A" }}</td>
+                                  <td><span class="badge bg-{{ record.get_status_badge_class }}">{{ record.get_status_display }}</span></td>
+                                {% elif service_id == 'din-application' %}
+                                  <td>{{ record.applicant_name|default:"N/A" }}</td>
+                                  <td>{{ record.pan_number|default:"N/A" }}</td>
+                                  <td>{{ record.email|default:"N/A" }}</td>
+                                  <td>{{ record.phone|default:"N/A" }}</td>
+                                  <td><span class="badge bg-{{ record.get_status_badge_class }}">{{ record.get_status_display }}</span></td>
+                                {% elif service_id == 'gst-registration' %}
+                                  <td>{{ record.legal_entity_name|default:"N/A" }}</td>
+                                  <td>{{ record.business_type|default:"N/A" }}</td>
+                                  <td>{{ record.pan_number|default:"N/A" }}</td>
+                                  <td><span class="badge bg-{{ record.get_status_badge_class }}">{{ record.get_status_display }}</span></td>
+                                {% elif service_id == 'gst-filing' %}
+                                  <td>{{ record.gstin_number|default:"N/A" }}</td>
+                                  <td>{{ record.return_type|default:"N/A" }}</td>
+                                  <td>{{ record.return_period|default:"N/A" }}</td>
+                                  <td><span class="badge bg-{{ record.get_status_badge_class }}">{{ record.get_status_display }}</span></td>
+                                {% elif service_id == 'company-compliance-roc-llp' %}
+                                  <td>{{ record.company_name|default:"N/A" }}</td>
+                                  <td>{{ record.filing_type|default:"N/A" }}</td>
+                                  <td>{{ record.financial_year|default:"N/A" }}</td>
+                                  <td><span class="badge bg-{{ record.get_status_badge_class }}">{{ record.get_status_display }}</span></td>
+                                {% elif service_id == 'authorized-paidup-capital-increase' %}
+                                  <td>{{ record.company_name|default:"N/A" }}</td>
+                                  <td>₹{{ record.new_authorized_capital|default:"0" }}</td>
+                                  <td>₹{{ record.new_paidup_capital|default:"0" }}</td>
+                                  <td><span class="badge bg-{{ record.get_status_badge_class }}">{{ record.get_status_display }}</span></td>
+                                {% elif service_id == 'din-kyc' %}
+                                  <td>{{ record.director_name|default:"N/A" }}</td>
+                                  <td>{{ record.din_number|default:"N/A" }}</td>
+                                  <td>{{ record.pan_number|default:"N/A" }}</td>
+                                  <td><span class="badge bg-{{ record.get_status_badge_class }}">{{ record.get_status_display }}</span></td>
+                                {% elif service_id == 'ngo-darpan' %}
+                                  <td>{{ record.organization_name|default:"N/A" }}</td>
+                                  <td>{{ record.registration_type|default:"N/A" }}</td>
+                                  <td>{{ record.contact_person|default:"N/A" }}</td>
+                                  <td><span class="badge bg-{{ record.get_status_badge_class }}">{{ record.get_status_display }}</span></td>
+                                {% elif service_id == 'itr-filing' %}
+                                  <td>{{ record.pan_number|default:"N/A" }}</td>
+                                  <td>{{ record.assessment_year|default:"N/A" }}</td>
+                                  <td>{{ record.itr_type|default:"N/A" }}</td>
+                                  <td><span class="badge bg-{{ record.get_status_badge_class }}">{{ record.get_status_display }}</span></td>
+                                {% elif service_id == 'inc-20a' %}
+                                  <td>{{ record.company_name|default:"N/A" }}</td>
+                                  <td>{{ record.cin_number|default:"N/A" }}</td>
+                                  <td>{{ record.commencement_date|date:"d M Y"|default:"N/A" }}</td>
+                                  <td><span class="badge bg-{{ record.get_status_badge_class }}">{{ record.get_status_display }}</span></td>
+                                {% elif service_id == 'gem-registration' %}
+                                  <td>{{ record.business_name|default:"N/A" }}</td>
+                                  <td>{{ record.business_type|default:"N/A" }}</td>
+                                  <td>{{ record.gstin_number|default:"N/A" }}</td>
+                                  <td><span class="badge bg-{{ record.get_status_badge_class }}">{{ record.get_status_display }}</span></td>
+                                {% elif service_id == 'startup-india-seed-funding' %}
+                                  <td>{{ record.startup_name|default:"N/A" }}</td>
+                                  <td>{{ record.cin_number|default:"N/A" }}</td>
+                                  <td>₹{{ record.funding_amount_requested|default:"0" }}</td>
+                                  <td><span class="badge bg-{{ record.get_status_badge_class }}">{{ record.get_status_display }}</span></td>
+                                {% elif service_id == 'csr-1-ngo' %}
+                                  <td>{{ record.ngo_name|default:"N/A" }}</td>
+                                  <td>{{ record.registration_type|default:"N/A" }}</td>
+                                  <td>{{ record.contact_person|default:"N/A" }}</td>
+                                  <td><span class="badge bg-{{ record.get_status_badge_class }}">{{ record.get_status_display }}</span></td>
+                                {% elif service_id == '12a-80g-registration' %}
+                                  <td>{{ record.organization_name|default:"N/A" }}</td>
+                                  <td>{{ record.registration_type|default:"N/A" }}</td>
+                                  <td>{% if record.registration_12a_required %}<i class="bi bi-check-circle text-success"></i>{% else %}<i class="bi bi-x-circle text-danger"></i>{% endif %}</td>
+                                  <td><span class="badge bg-{{ record.get_status_badge_class }}">{{ record.get_status_display }}</span></td>
+                                {% elif service_id == 'partnership-registration' %}
+                                  <td>{{ record.firm_name|default:"N/A" }}</td>
+                                  <td>{{ record.business_activity|truncatewords:5|default:"N/A" }}</td>
+                                  <td>₹{{ record.capital_contribution|default:"0" }}</td>
                                   <td><span class="badge bg-{{ record.get_status_badge_class }}">{{ record.get_status_display }}</span></td>
                                 {% endif %}
                                 <td><span class="badge bg-info">{{ record.lead_source|default:"website" }}</span></td>
