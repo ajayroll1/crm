@@ -21,6 +21,8 @@ def employee_sidebar_counts(request):
         'employee_email': '',
         'employee_photo_url': '',
         'employee_id': 'N/A',
+        'is_admin': False,
+        'employee_actual_role': 'Employee',
     }
     
     if request.user.is_authenticated:
@@ -79,6 +81,9 @@ def employee_sidebar_counts(request):
                 except Exception:
                     employee_info['employee_photo_url'] = ''
                 employee_info['employee_id'] = employee_obj.emp_code or 'N/A'
+                # Set actual role and is_admin flag
+                employee_info['employee_actual_role'] = employee_obj.role or 'Employee'
+                employee_info['is_admin'] = (employee_obj.role == 'Admin') or request.user.is_staff
                 user_name = employee_obj.get_full_name()
             else:
                 employee_info['employee_name'] = user_full_name
@@ -86,6 +91,9 @@ def employee_sidebar_counts(request):
                 employee_info['employee_initials'] = (employee_info['employee_first_name'][0] + (last_name[0] if last_name else employee_info['employee_first_name'][0])).upper() if employee_info['employee_first_name'] else 'GU'
                 employee_info['employee_department'] = ''
                 employee_info['employee_email'] = getattr(request.user, 'email', '') or ''
+                # Check if user is staff/admin (Django User model)
+                employee_info['is_admin'] = request.user.is_staff or request.user.is_superuser
+                employee_info['employee_actual_role'] = 'Admin' if employee_info['is_admin'] else 'Employee'
                 user_name = user_full_name
             
             # Unread Messages Count

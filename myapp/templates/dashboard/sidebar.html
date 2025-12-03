@@ -177,6 +177,7 @@
       </ul>
     </div>
 
+    {% if is_admin or employee_actual_role == 'Admin' or user.is_staff %}
     <div class="nav-section">
       <h3 class="nav-section-title">PASSWORD</h3>
       <ul class="nav-list">
@@ -188,6 +189,7 @@
         </li>
       </ul>
     </div>
+    {% endif %}
   </nav>
   
   <div class="sidebar-footer">
