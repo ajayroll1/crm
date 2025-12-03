@@ -338,6 +338,13 @@ def home(request):
         return redirect('employee_dashboard')
   return render(request,'pages/homepage.html')
 
+# Custom CSRF failure view
+def csrf_failure_view(request, reason=""):
+    """Custom CSRF failure handler that redirects to home with error message"""
+    messages.error(request, 'Session expired or cookies are disabled. Please enable cookies and try again.')
+    return redirect('home')
+
+@ensure_csrf_cookie
 def login_view(request):
   """Login view - authenticate user with email and password/phone based on whether password is set"""
   if request.method == 'POST':
@@ -7952,11 +7959,13 @@ def password_management(request):
     # Check if user has Admin role
     try:
         employee = Employee.objects.get(email=request.user.email)
-        if employee.role != 'Admin':
-            messages.warning(request, 'You do not have permission to access this page.')
-            return redirect('employee_dashboard')
+        employee_role = (employee.role or '').strip() if employee.role else ''
+        if not employee_role or employee_role.lower() != 'admin':
+            if not (request.user.is_staff or request.user.is_superuser):
+                messages.warning(request, 'You do not have permission to access this page.')
+                return redirect('employee_dashboard')
     except Employee.DoesNotExist:
-        if not request.user.is_staff:
+        if not (request.user.is_staff or request.user.is_superuser):
             messages.warning(request, 'You do not have permission to access this page.')
             return redirect('employee_dashboard')
     

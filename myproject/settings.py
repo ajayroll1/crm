@@ -146,3 +146,6 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 # Login URL - redirect to home page for login
 LOGIN_URL = '/'
 LOGIN_REDIRECT_URL = '/'
+
+# Custom CSRF failure view
+CSRF_FAILURE_VIEW = 'myapp.views.csrf_failure_view'

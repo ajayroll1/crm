@@ -82,8 +82,10 @@ def employee_sidebar_counts(request):
                     employee_info['employee_photo_url'] = ''
                 employee_info['employee_id'] = employee_obj.emp_code or 'N/A'
                 # Set actual role and is_admin flag
-                employee_info['employee_actual_role'] = employee_obj.role or 'Employee'
-                employee_info['is_admin'] = (employee_obj.role == 'Admin') or request.user.is_staff
+                employee_role = (employee_obj.role or '').strip() if employee_obj.role else ''
+                employee_info['employee_actual_role'] = employee_role or 'Employee'
+                # Check if admin (case-insensitive and handle None/empty)
+                employee_info['is_admin'] = (employee_role and employee_role.lower() == 'admin') or request.user.is_staff or request.user.is_superuser
                 user_name = employee_obj.get_full_name()
             else:
                 employee_info['employee_name'] = user_full_name
