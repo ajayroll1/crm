@@ -1,0 +1,7 @@
+ID,Name,Email,Phone,Password (Hashed),Password Set,Status,Role
+10,Admin Test,admin@test.com,1234567890,pbkdf2_sha256$1000000$o7BWlCUegc1H2xUVBya2oB$7Chyf/XVV1p83wwAionV6TvDKhAtJyOMiccp4yibhV8=,Yes,active,Admin
+12,Ajay Kumar,ajaymahto2580@gmail.com,7992300726,,No,active,Employee
+15,Chanda Morales,gojawar@mailinator.com,3213213213,,No,active,Employee
+14,Aurora Long,niqifip@mailinator.com,21323121312,,No,active,Employee
+13,Stone Vaughan,sebiwej@mailinator.com,1325641235,pbkdf2_sha256$1000000$sDKRR3FTnQ7lKyRs0pJ2EH$oudIIaeEnyyVokoDjpHxDr1IjUYgiuTtib2XiWh+N+k=,Yes,active,Employee
+16,Thaddeus Hurst,zevakomozo@mailinator.com,13245679865,,No,active,Employee

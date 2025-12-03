@@ -291,6 +291,7 @@ def _get_section_config(section):
         raise Http404("Invalid section")
     return config
 
+@ensure_csrf_cookie
 def home(request):
   """Home page - show login form if not authenticated, else redirect to dashboard"""
   if request.user.is_authenticated:
@@ -347,6 +348,14 @@ def login_view(request):
     
     # Check if password is set in Employee model
     if employee.password and employee.password.strip():
+      # Password is set - authenticate using password only (not phone)
+      # Check if user is trying to use phone number instead of password
+      input_phone_digits = ''.join(filter(str.isdigit, password_input))
+      # If input contains only digits (likely a phone number), reject it
+      if len(input_phone_digits) > 0 and input_phone_digits == password_input.strip():
+        messages.error(request, 'Password is set for your account. Please use your password to login, not phone number.')
+        return redirect('home')
+      
       # Password is set - authenticate using password
       from django.contrib.auth.hashers import check_password
       if not check_password(password_input, employee.password):
@@ -356,7 +365,7 @@ def login_view(request):
       # Password is correct, proceed with login
       login_password = password_input
     else:
-      # Password is not set - use phone number authentication (old method)
+      # Password is not set - use phone number authentication
       if not employee.phone:
         messages.error(request, 'Your account does not have a phone number registered. Please contact administrator.')
         return redirect('home')
@@ -367,12 +376,12 @@ def login_view(request):
       input_phone = ''.join(filter(str.isdigit, password_input))
       
       if not input_phone:
-        messages.error(request, 'Wrong password or email.')
+        messages.error(request, 'Please enter your phone number to login.')
         return redirect('home')
       
       if employee_phone != input_phone:
         # Phone doesn't match - show unified error message
-        messages.error(request, 'Wrong password or email.')
+        messages.error(request, 'Wrong phone number or email.')
         return redirect('home')
       
       # Phone matches, use phone as login password

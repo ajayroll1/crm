@@ -2196,11 +2196,18 @@
         });
     }
     
-    // Show success/error messages
+    // Show success/error messages (excluding welcome/check-in messages)
     {% if messages %}
+      var messagesToShow = [];
       {% for message in messages %}
-        alert('{{ message }}');
+        var msg = '{{ message }}';
+        if (msg.indexOf('Welcome back') === -1 && msg.toLowerCase().indexOf('check-in') === -1) {
+          messagesToShow.push(msg);
+        }
       {% endfor %}
+      messagesToShow.forEach(function(msg) {
+        alert(msg);
+      });
     {% endif %}
   });
   
