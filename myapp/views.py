@@ -3543,6 +3543,7 @@ def lead_get_data(request, lead_id):
             'email': lead.email or '',
             'phone': lead.phone or '',
             'company': lead.company or '',
+            'address': lead.address or '',
             'owner': str(lead.owner) if lead.owner else '',
             'source': lead.source or '',
             'priority': lead.priority or '',
@@ -3555,16 +3556,24 @@ def lead_get_data(request, lead_id):
             'city': lead.city or '',
             'country': lead.country or '',
             'budget': lead.budget or '',
+            'amount': str(lead.amount) if lead.amount else '',
             'timeline': lead.timeline or '',
             'tags': lead.tags or '',
             'notes': (lead.notes or '').strip(),  # Return empty string if notes is None or empty, and strip whitespace
             'status': lead.conversion_status or 'Pending',
+            'is_active': lead.is_active,
             'created_at': lead.created_at.strftime('%d-%b-%Y %H:%M') if lead.created_at else '',
             'updated_at': lead.updated_at.strftime('%d-%b-%Y %H:%M') if lead.updated_at else '',
             'assigned_to': {
                 'id': lead.assigned_to.id if lead.assigned_to else None,
                 'name': lead.assigned_to.get_full_name() if lead.assigned_to else None,
+                'email': lead.assigned_to.email if lead.assigned_to else None,
             } if lead.assigned_to else None,
+            'imported_by': {
+                'id': lead.imported_by.id if lead.imported_by else None,
+                'name': lead.imported_by.get_full_name() if lead.imported_by else None,
+                'email': lead.imported_by.email if lead.imported_by else None,
+            } if lead.imported_by else None,
         }
         
         return JsonResponse(data)
@@ -3575,7 +3584,7 @@ def lead_get_data(request, lead_id):
 @login_required
 @require_POST
 def update_lead_status(request):
-    """Update lead status"""
+    """Update lead status - updates conversion_status field in myapp_lead table"""
     try:
         lead_id = request.POST.get('lead_id')
         status = request.POST.get('status', '').strip()
@@ -3586,11 +3595,22 @@ def update_lead_status(request):
         if not status:
             return JsonResponse({'success': False, 'error': 'Status is required'}, status=400)
         
+        # Validate status value
+        valid_statuses = ['Pending', 'Contacted', 'Qualified', 'Proposal', 'Negotiation', 'Won', 'Lost']
+        if status not in valid_statuses:
+            return JsonResponse({
+                'success': False, 
+                'error': f'Invalid status. Must be one of: {", ".join(valid_statuses)}'
+            }, status=400)
+        
         lead = get_object_or_404(Lead, id=lead_id, is_active=True)
         
-        # Update conversion_status field
+        # Store old status for logging
+        old_status = lead.conversion_status or 'Pending'
+        
+        # Update conversion_status field in myapp_lead table
         lead.conversion_status = status
-        lead.save(update_fields=['conversion_status'])
+        lead.save(update_fields=['conversion_status', 'updated_at'])
         
         # Get badge class for the status
         status_badge_map = {
@@ -3606,13 +3626,19 @@ def update_lead_status(request):
         
         return JsonResponse({
             'success': True,
-            'message': f'Lead status updated to "{status}" successfully!',
+            'message': f'Lead status updated from "{old_status}" to "{status}" successfully!',
             'status': status,
+            'old_status': old_status,
             'badge_class': badge_class,
             'status_display': status
         })
         
+    except Lead.DoesNotExist:
+        return JsonResponse({'success': False, 'error': 'Lead not found'}, status=404)
     except Exception as e:
+        import traceback
+        print(f"Error updating lead status: {str(e)}")
+        print(traceback.format_exc())
         return JsonResponse({'success': False, 'error': str(e)}, status=500)
 
 @login_required
@@ -7920,6 +7946,70 @@ def reports(request):
 
     return render(request, 'dashboard/reports.html', context)
 
+@login_required
+def password_management(request):
+    """Password Management - View all employees and create/update passwords"""
+    # Check if user has Admin role
+    try:
+        employee = Employee.objects.get(email=request.user.email)
+        if employee.role != 'Admin':
+            messages.warning(request, 'You do not have permission to access this page.')
+            return redirect('employee_dashboard')
+    except Employee.DoesNotExist:
+        if not request.user.is_staff:
+            messages.warning(request, 'You do not have permission to access this page.')
+            return redirect('employee_dashboard')
+    
+    # Get all employees with pagination
+    employees_list = Employee.objects.all().order_by('first_name', 'last_name')
+    
+    # Pagination
+    paginator = Paginator(employees_list, 10)  # Show 10 employees per page
+    page_number = request.GET.get('page', 1)
+    try:
+        employees = paginator.page(page_number)
+    except PageNotAnInteger:
+        employees = paginator.page(1)
+    except EmptyPage:
+        employees = paginator.page(paginator.num_pages)
+    
+    # Get unique departments for filter
+    departments = Employee.objects.exclude(department__isnull=True).exclude(department='').values_list('department', flat=True).distinct().order_by('department')
+    
+    # Handle password update via POST
+    if request.method == 'POST':
+        employee_id = request.POST.get('employee_id')
+        new_password = request.POST.get('new_password', '').strip()
+        confirm_password = request.POST.get('confirm_password', '').strip()
+        
+        if not employee_id or not new_password:
+            messages.error(request, 'Employee ID and password are required.')
+        elif new_password != confirm_password:
+            messages.error(request, 'Passwords do not match.')
+        elif len(new_password) < 6:
+            messages.error(request, 'Password must be at least 6 characters long.')
+        else:
+            try:
+                employee = Employee.objects.get(id=employee_id)
+                # Hash the password using Django's password hasher
+                from django.contrib.auth.hashers import make_password
+                employee.password = make_password(new_password)
+                employee.save()
+                messages.success(request, f'Password updated successfully for {employee.get_full_name()}.')
+            except Employee.DoesNotExist:
+                messages.error(request, 'Employee not found.')
+            except Exception as e:
+                messages.error(request, f'Error updating password: {str(e)}')
+        
+        return redirect('password_management')
+    
+    context = {
+        'employees': employees,
+        'departments': departments,
+        'paginator': paginator,
+    }
+    
+    return render(request, 'dashboard/password_management.html', context)
 
 @login_required
 def settings_view(request):

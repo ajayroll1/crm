@@ -144,6 +144,17 @@
       color: var(--sidebar-text);
     }
     
+    .nav-link.active {
+      background-color: var(--sidebar-hover);
+      border-left-color: var(--secondary-color);
+      color: var(--sidebar-text);
+      font-weight: 600;
+    }
+    
+    .nav-link.active i {
+      color: var(--secondary-color);
+    }
+    
     .nav-link i {
       width: 20px;
       text-align: center;
@@ -611,7 +622,44 @@
   
   <!-- Mobile Sidebar Toggle Script -->
   <script>
+    // Function to update active state in sidebar (defined globally so it can be called from anywhere)
+    function updateActiveSidebarLink() {
+      const currentPath = window.location.pathname;
+      const allNavLinks = document.querySelectorAll('.sidebar .nav-link');
+      
+      // Remove active class from all links
+      allNavLinks.forEach(link => {
+        link.classList.remove('active');
+      });
+      
+      // Find and activate the matching link
+      allNavLinks.forEach(link => {
+        const href = link.getAttribute('href');
+        if (href) {
+          // Check if current path matches the link's href
+          // Handle both absolute paths and relative paths
+          let linkPath = href;
+          if (!linkPath.startsWith('/') && !linkPath.startsWith('http')) {
+            linkPath = '/' + linkPath;
+          }
+          
+          // Remove query parameters for comparison
+          const currentPathClean = currentPath.split('?')[0];
+          const linkPathClean = linkPath.split('?')[0];
+          
+          // Check exact match or if current path starts with link path
+          if (currentPathClean === linkPathClean || 
+              (linkPathClean !== '/' && currentPathClean.startsWith(linkPathClean + '/'))) {
+            link.classList.add('active');
+          }
+        }
+      });
+    }
+    
     document.addEventListener('DOMContentLoaded', function() {
+      // Update active link on page load
+      updateActiveSidebarLink();
+      
       // Safety: remove unwanted sidebar sections if still present
       try {
         document.querySelectorAll('.sidebar .nav-section').forEach(sec => {
@@ -631,6 +679,146 @@
       const hamburgerBtn = document.getElementById('hamburgerBtn');
       const sidebar = document.querySelector('.sidebar');
       const sidebarOverlay = document.getElementById('sidebarOverlay');
+      
+      // Shared function to handle AJAX navigation
+      function handleAjaxNavigation(href) {
+        // Show loading indicator
+        const mainContent = document.querySelector('.main-content');
+        if (mainContent) {
+          mainContent.classList.add('loading');
+        }
+        
+        // Fetch the page content
+        return fetch(href, {
+          headers: {
+            'X-Requested-With': 'XMLHttpRequest'
+          }
+        })
+          .then(response => {
+            if (!response.ok) {
+              throw new Error('Network response was not ok');
+            }
+            return response.text();
+          })
+          .then(html => {
+            // Create a temporary container to parse the HTML
+            const tempDiv = document.createElement('div');
+            tempDiv.innerHTML = html;
+            
+            // Extract the main content area from the response
+            // Try multiple selectors to find the content
+            let fetchedMainContent = tempDiv.querySelector('main.main-content');
+            if (!fetchedMainContent) {
+              fetchedMainContent = tempDiv.querySelector('.main-content');
+            }
+            if (!fetchedMainContent) {
+              // If still not found, try to find the container-fluid div
+              fetchedMainContent = tempDiv.querySelector('.container-fluid');
+            }
+            
+            if (fetchedMainContent) {
+              // Get the current main content element
+              const currentMainContent = document.querySelector('.main-content');
+              
+              if (currentMainContent) {
+                // Preserve mobile header
+                const mobileHeader = currentMainContent.querySelector('.mobile-header');
+                
+                // Get all content from fetched page (everything inside main-content except mobile-header)
+                const fetchedContent = fetchedMainContent.cloneNode(true);
+                const fetchedMobileHeader = fetchedContent.querySelector('.mobile-header');
+                if (fetchedMobileHeader) {
+                  fetchedMobileHeader.remove();
+                }
+                
+                // Replace content while preserving mobile header
+                if (mobileHeader) {
+                  currentMainContent.innerHTML = '';
+                  currentMainContent.appendChild(mobileHeader);
+                  // Update mobile title if it exists in fetched content
+                  const fetchedMobileTitle = fetchedContent.querySelector('.mobile-title');
+                  if (fetchedMobileTitle) {
+                    const currentMobileTitle = mobileHeader.querySelector('.mobile-title');
+                    if (currentMobileTitle) {
+                      currentMobileTitle.textContent = fetchedMobileTitle.textContent;
+                    }
+                  }
+                  // Append the rest of the content
+                  currentMainContent.insertAdjacentHTML('beforeend', fetchedContent.innerHTML);
+                } else {
+                  // No mobile header, just replace everything
+                  currentMainContent.innerHTML = fetchedContent.innerHTML;
+                }
+                
+                // Update URL without page refresh
+                window.history.pushState({}, '', href);
+                
+                // Update page title
+                const newTitle = tempDiv.querySelector('title');
+                if (newTitle) {
+                  document.title = newTitle.textContent;
+                }
+                
+                // Remove old scripts from the page before adding new ones
+                const oldScripts = document.querySelectorAll('script[data-ajax-loaded]');
+                oldScripts.forEach(script => script.remove());
+                
+                // Execute any scripts in the fetched content
+                const scripts = fetchedContent.querySelectorAll('script');
+                scripts.forEach(oldScript => {
+                  const newScript = document.createElement('script');
+                  Array.from(oldScript.attributes).forEach(attr => {
+                    newScript.setAttribute(attr.name, attr.value);
+                  });
+                  newScript.setAttribute('data-ajax-loaded', 'true');
+                  newScript.appendChild(document.createTextNode(oldScript.innerHTML));
+                  document.body.appendChild(newScript);
+                });
+                
+                // Reinitialize any page-specific functionality
+                if (typeof window.reinitializePage === 'function') {
+                  window.reinitializePage();
+                }
+                
+                // Trigger DOMContentLoaded for scripts that depend on it
+                const event = new Event('DOMContentLoaded', {
+                  bubbles: true,
+                  cancelable: true
+                });
+                document.dispatchEvent(event);
+              }
+            } else {
+              console.warn('Could not find main content in fetched HTML');
+              // Fallback to normal navigation
+              window.location.href = href;
+              return;
+            }
+            
+            // Restore main content
+            if (mainContent) {
+              mainContent.classList.remove('loading');
+            }
+            
+            // Close sidebar on mobile
+            if (window.innerWidth <= 768) {
+              sidebar.classList.remove('open');
+              sidebarOverlay.classList.remove('active');
+              hamburgerBtn.classList.remove('active');
+            }
+            
+            // Scroll to top
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+          })
+          .catch(error => {
+            console.error('Error loading page:', error);
+            // Restore main content
+            if (mainContent) {
+              mainContent.classList.remove('loading');
+            }
+            // Fallback to normal navigation
+            window.location.href = href;
+          });
+      }
       
       if (hamburgerBtn && sidebar && sidebarOverlay) {
         // Toggle sidebar when hamburger button is clicked
@@ -656,145 +844,228 @@
           }
         });
         
-        // Close sidebar when navigation links are clicked (mobile only)
-        const navLinks = document.querySelectorAll('.sidebar .nav-link');
-        navLinks.forEach(link => {
-          link.addEventListener('click', function(e) {
-            // Check if this is In/Out, Leave Requests, or Reports link
-            const href = this.getAttribute('href');
-            const isInOutLink = href && (href.includes('in-out') || href.includes('in_out'));
-            const isLeaveLink = href && (href.includes('leaves') || href.includes('leave'));
-            const isReportsLink = href && href.includes('reports');
+        // Close sidebar when navigation links are clicked - Use AJAX for all internal links to prevent sidebar refresh
+        // Use event delegation to handle all current and future links
+        const sidebarNav = document.querySelector('.sidebar-nav');
+        if (sidebarNav) {
+          sidebarNav.addEventListener('click', function(e) {
+            const link = e.target.closest('.nav-link');
+            if (!link) return;
             
-            // Handle AJAX navigation for selected sections
-            if (isInOutLink || isLeaveLink || isReportsLink) {
-              e.preventDefault();
-              
-              // Show loading indicator
-              const mainContent = document.querySelector('.main-content');
-              if (mainContent) {
-                mainContent.classList.add('loading');
+            const href = link.getAttribute('href');
+            
+            // Skip AJAX for external links, logout, and special links
+            if (!href || href.startsWith('http') || href.startsWith('#') || href.includes('logout')) {
+              // For logout and external links, use normal navigation
+              if (window.innerWidth <= 768) {
+                sidebar.classList.remove('open');
+                sidebarOverlay.classList.remove('active');
+                hamburgerBtn.classList.remove('active');
               }
-              
-              // Fetch the page content
-              fetch(href)
-                .then(response => response.text())
-                .then(html => {
-                  // Create a temporary container to parse the HTML
-                  const tempDiv = document.createElement('div');
-                  tempDiv.innerHTML = html;
+              return true; // Allow normal navigation
+            }
+            
+            // Prevent default for all internal links to use AJAX navigation
+            e.preventDefault();
+            e.stopPropagation();
+            e.stopImmediatePropagation();
+            
+            // Show loading indicator
+            const mainContent = document.querySelector('.main-content');
+            if (mainContent) {
+              mainContent.classList.add('loading');
+            }
+            
+            // Fetch the page content
+            fetch(href, {
+              headers: {
+                'X-Requested-With': 'XMLHttpRequest'
+              }
+            })
+              .then(response => {
+                if (!response.ok) {
+                  throw new Error('Network response was not ok');
+                }
+                return response.text();
+              })
+              .then(html => {
+                // Create a temporary container to parse the HTML
+                const tempDiv = document.createElement('div');
+                tempDiv.innerHTML = html;
+                
+                // Extract the main content area from the response
+                // Try multiple selectors to find the content
+                let fetchedMainContent = tempDiv.querySelector('main.main-content');
+                if (!fetchedMainContent) {
+                  fetchedMainContent = tempDiv.querySelector('.main-content');
+                }
+                if (!fetchedMainContent) {
+                  // If still not found, try to find the container-fluid div
+                  fetchedMainContent = tempDiv.querySelector('.container-fluid');
+                }
+                
+                if (fetchedMainContent) {
+                  // Get the current main content element
+                  const currentMainContent = document.querySelector('.main-content');
                   
-                  // Extract the main content area from the response
-                  const fetchedMainContent = tempDiv.querySelector('main.main-content') || tempDiv.querySelector('.main-content');
-                  
-                  if (fetchedMainContent) {
-                    // Get the current main content element
-                    const currentMainContent = document.querySelector('.main-content');
+                  if (currentMainContent) {
+                    // Preserve mobile header
+                    const mobileHeader = currentMainContent.querySelector('.mobile-header');
                     
-                    if (currentMainContent) {
-                      // Preserve mobile header
-                      const mobileHeader = currentMainContent.querySelector('.mobile-header');
-                      
-                      // Get all content from fetched page (everything inside main-content except mobile-header)
-                      const fetchedContent = fetchedMainContent.cloneNode(true);
-                      const fetchedMobileHeader = fetchedContent.querySelector('.mobile-header');
-                      if (fetchedMobileHeader) {
-                        fetchedMobileHeader.remove();
-                      }
-                      
-                      // Replace content while preserving mobile header
-                      if (mobileHeader) {
-                        currentMainContent.innerHTML = '';
-                        currentMainContent.appendChild(mobileHeader);
-                        // Update mobile title if it exists in fetched content
-                        const fetchedMobileTitle = fetchedContent.querySelector('.mobile-title');
-                        if (fetchedMobileTitle) {
-                          const currentMobileTitle = mobileHeader.querySelector('.mobile-title');
-                          if (currentMobileTitle) {
-                            currentMobileTitle.textContent = fetchedMobileTitle.textContent;
-                          }
-                        }
-                        // Append the rest of the content
-                        currentMainContent.insertAdjacentHTML('beforeend', fetchedContent.innerHTML);
-                      } else {
-                        // No mobile header, just replace everything
-                        currentMainContent.innerHTML = fetchedContent.innerHTML;
-                      }
-                      
-                      // Update URL without page refresh
-                      window.history.pushState({}, '', href);
-                      
-                      // Update page title
-                      const newTitle = tempDiv.querySelector('title');
-                      if (newTitle) {
-                        document.title = newTitle.textContent;
-                      }
-                      
-                      // Execute any scripts in the fetched content
-                      const scripts = fetchedContent.querySelectorAll('script');
-                      scripts.forEach(oldScript => {
-                        const newScript = document.createElement('script');
-                        Array.from(oldScript.attributes).forEach(attr => {
-                          newScript.setAttribute(attr.name, attr.value);
-                        });
-                        newScript.appendChild(document.createTextNode(oldScript.innerHTML));
-                        document.body.appendChild(newScript);
-                      });
-                      
-                      // Reinitialize any page-specific functionality
-                      if (typeof window.reinitializePage === 'function') {
-                        window.reinitializePage();
-                      }
+                    // Get all content from fetched page (everything inside main-content except mobile-header)
+                    const fetchedContent = fetchedMainContent.cloneNode(true);
+                    const fetchedMobileHeader = fetchedContent.querySelector('.mobile-header');
+                    if (fetchedMobileHeader) {
+                      fetchedMobileHeader.remove();
                     }
+                    
+                    // Replace content while preserving mobile header
+                    if (mobileHeader) {
+                      currentMainContent.innerHTML = '';
+                      currentMainContent.appendChild(mobileHeader);
+                      // Update mobile title if it exists in fetched content
+                      const fetchedMobileTitle = fetchedContent.querySelector('.mobile-title');
+                      if (fetchedMobileTitle) {
+                        const currentMobileTitle = mobileHeader.querySelector('.mobile-title');
+                        if (currentMobileTitle) {
+                          currentMobileTitle.textContent = fetchedMobileTitle.textContent;
+                        }
+                      }
+                      // Append the rest of the content
+                      currentMainContent.insertAdjacentHTML('beforeend', fetchedContent.innerHTML);
+                    } else {
+                      // No mobile header, just replace everything
+                      currentMainContent.innerHTML = fetchedContent.innerHTML;
+                    }
+                    
+                    // Update URL without page refresh
+                    window.history.pushState({}, '', href);
+                    
+                    // Update active sidebar link
+                    updateActiveSidebarLink();
+                    
+                    // Update page title
+                    const newTitle = tempDiv.querySelector('title');
+                    if (newTitle) {
+                      document.title = newTitle.textContent;
+                    }
+                    
+                    // Remove old scripts from the page before adding new ones
+                    const oldScripts = document.querySelectorAll('script[data-ajax-loaded]');
+                    oldScripts.forEach(script => script.remove());
+                    
+                    // Execute any scripts in the fetched content
+                    const scripts = fetchedContent.querySelectorAll('script');
+                    scripts.forEach(oldScript => {
+                      const newScript = document.createElement('script');
+                      Array.from(oldScript.attributes).forEach(attr => {
+                        newScript.setAttribute(attr.name, attr.value);
+                      });
+                      newScript.setAttribute('data-ajax-loaded', 'true');
+                      newScript.appendChild(document.createTextNode(oldScript.innerHTML));
+                      document.body.appendChild(newScript);
+                    });
+                    
+                    // Reinitialize any page-specific functionality
+                    if (typeof window.reinitializePage === 'function') {
+                      window.reinitializePage();
+                    }
+                    
+                    // Trigger DOMContentLoaded for scripts that depend on it
+                    const event = new Event('DOMContentLoaded', {
+                      bubbles: true,
+                      cancelable: true
+                    });
+                    document.dispatchEvent(event);
                   }
-                  
-                  // Restore main content
-                  if (mainContent) {
-                    mainContent.classList.remove('loading');
-                  }
-                  
-                  // Close sidebar on mobile
-                  if (window.innerWidth <= 768) {
-                    sidebar.classList.remove('open');
-                    sidebarOverlay.classList.remove('active');
-                    hamburgerBtn.classList.remove('active');
-                  }
-                  
-                  // Scroll to top
-                  window.scrollTo({ top: 0, behavior: 'smooth' });
-                })
-                .catch(error => {
-                  console.error('Error loading page:', error);
-                  // Restore main content
-                  if (mainContent) {
-                    mainContent.classList.remove('loading');
-                  }
+                } else {
+                  console.warn('Could not find main content in fetched HTML');
                   // Fallback to normal navigation
                   window.location.href = href;
-                });
-              
-              return false;
+                  return;
+                }
+                
+                // Restore main content
+                if (mainContent) {
+                  mainContent.classList.remove('loading');
+                }
+                
+                // Close sidebar on mobile
+                if (window.innerWidth <= 768) {
+                  sidebar.classList.remove('open');
+                  sidebarOverlay.classList.remove('active');
+                  hamburgerBtn.classList.remove('active');
+                }
+                
+                // Scroll to top
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+              })
+              .catch(error => {
+                console.error('Error loading page:', error);
+                // Restore main content
+                if (mainContent) {
+                  mainContent.classList.remove('loading');
+                }
+                // Fallback to normal navigation
+                window.location.href = href;
+              });
+            
+            return false;
+          }, true); // Use capture phase to ensure we catch the event first
+        }
+        
+        // Also handle footer links
+        const sidebarFooter = document.querySelector('.sidebar-footer');
+        if (sidebarFooter) {
+          sidebarFooter.addEventListener('click', function(e) {
+            const link = e.target.closest('.nav-link');
+            if (!link) return;
+            
+            const href = link.getAttribute('href');
+            
+            // Skip AJAX for external links, logout, and special links
+            if (!href || href.startsWith('http') || href.startsWith('#') || href.includes('logout')) {
+              // For logout and external links, use normal navigation
+              if (window.innerWidth <= 768) {
+                sidebar.classList.remove('open');
+                sidebarOverlay.classList.remove('active');
+                hamburgerBtn.classList.remove('active');
+              }
+              return true; // Allow normal navigation
             }
             
-            // For other links, just close sidebar on mobile
-            if (window.innerWidth <= 768) {
-              sidebar.classList.remove('open');
-              sidebarOverlay.classList.remove('active');
-              hamburgerBtn.classList.remove('active');
-            }
-          });
-        });
+            // Prevent default for all internal links to use AJAX navigation
+            e.preventDefault();
+            e.stopPropagation();
+            e.stopImmediatePropagation();
+            
+            // Update active state immediately for better UX
+            document.querySelectorAll('.sidebar .nav-link').forEach(l => l.classList.remove('active'));
+            link.classList.add('active');
+            
+            // Use shared AJAX navigation function
+            handleAjaxNavigation(href);
+            
+            return false;
+          }, true); // Use capture phase
+        }
       }
       
       // Handle browser back/forward buttons for AJAX navigation
       window.addEventListener('popstate', function(event) {
-        // Reload the current page content via AJAX
-        const currentPath = window.location.pathname;
-        const isInOutLink = currentPath.includes('in-out') || currentPath.includes('in_out');
-        const isLeaveLink = currentPath.includes('leaves') || currentPath.includes('leave');
-        const isReportsLink = currentPath.includes('reports');
+        // Update active sidebar link when browser back/forward is used
+        updateActiveSidebarLink();
         
-        if (isInOutLink || isLeaveLink || isReportsLink) {
+        // Reload the current page content via AJAX for all internal pages
+        const currentPath = window.location.pathname;
+        
+        // Skip AJAX for external paths
+        if (currentPath && !currentPath.startsWith('/')) {
+          return;
+        }
+        
+        // Use AJAX for all internal dashboard pages
+        {
           const mainContent = document.querySelector('.main-content');
           if (mainContent) {
             mainContent.classList.add('loading');
@@ -866,7 +1137,6 @@
               }
               window.location.reload();
             });
-        }
       });
     });
   </script>

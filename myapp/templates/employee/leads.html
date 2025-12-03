@@ -27,45 +27,31 @@
   .nav-tabs .nav-link.active { color: #000 !important; }
   .nav-tabs .nav-link:hover { color: #fff !important; background-color: var(--primary-color) !important; }
   
-  /* Status badge styling */
+  /* Status badge dropdown styling */
   .status-badge-btn {
     cursor: pointer;
-    border: none;
-    padding: 0.35em 0.65em;
+    border: none !important;
+    padding: 0.35em 0.65em !important;
     font-size: 0.875em;
-    border-radius: 0.25rem;
     transition: opacity 0.2s;
   }
   
   .status-badge-btn:hover {
-    opacity: 0.9;
-    transform: scale(1.05);
+    opacity: 0.8;
   }
   
-  .status-badge-btn:disabled {
-    opacity: 0.6;
-    cursor: not-allowed;
+  .status-badge-btn:focus {
+    box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
   }
   
-  /* Status popup modal styling */
-  .status-option-popup {
-    cursor: pointer;
-    transition: background-color 0.2s;
+  .status-badge-btn.dropdown-toggle::after {
+    margin-left: 0.5em;
+    vertical-align: 0.15em;
   }
   
-  .status-option-popup:hover {
-    background-color: #f8f9fa;
-  }
-  
-  .status-option-popup.active {
-    background-color: #e7f3ff;
-    border-left: 3px solid #0d6efd;
-  }
-  
-  .status-option-popup.selected {
-    background-color: #d1ecf1;
-    border-left: 3px solid #0dcaf0;
-    font-weight: 600;
+  .dropdown-menu .status-option.active {
+    background-color: #0d6efd;
+    color: white;
   }
   
   /* Better visibility for search, filter, and export buttons */
@@ -111,22 +97,54 @@
 
   /* Actions buttons - horizontal layout with icons only */
   .leads-table td[data-label="Actions"] {
-    display: flex;
-    gap: 0.25rem;
-    align-items: center;
     white-space: nowrap;
+    width: 1%;
   }
   
-  .leads-table td[data-label="Actions"] .btn {
-    padding: 0.25rem 0.5rem;
-    min-width: auto;
-    display: inline-flex;
+  .leads-table td[data-label="Actions"] .d-flex {
+    gap: 0.25rem;
     align-items: center;
     justify-content: center;
   }
   
+  .leads-table td[data-label="Actions"] .btn {
+    padding: 0.25rem 0.5rem;
+    min-width: 32px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 0.25rem;
+    transition: all 0.2s ease;
+  }
+  
+  .leads-table td[data-label="Actions"] .btn:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  }
+  
   .leads-table td[data-label="Actions"] .btn i {
     margin: 0;
+    font-size: 0.9rem;
+  }
+  
+  .leads-table td[data-label="Actions"] .btn-view {
+    color: #0d6efd;
+    border-color: #0d6efd;
+  }
+  
+  .leads-table td[data-label="Actions"] .btn-view:hover {
+    background-color: #0d6efd;
+    color: white;
+  }
+  
+  .leads-table td[data-label="Actions"] .btn-notes {
+    color: #ffc107;
+    border-color: #ffc107;
+  }
+  
+  .leads-table td[data-label="Actions"] .btn-notes:hover {
+    background-color: #ffc107;
+    color: #000;
   }
 
   /* Tablet and medium screens */
@@ -392,24 +410,46 @@
                   {% endif %}
                 </td>
                 <td data-label="Status">
-                  <button class="badge {{ lead.conversion_badge|default:'bg-secondary' }} status-badge-btn" 
-                          type="button" 
-                          data-bs-toggle="modal" 
-                          data-bs-target="#statusPopupModal"
-                          data-lead-id="{{ lead.id }}"
-                          data-lead-name="{{ lead.name }}"
-                          data-current-status="{{ lead.conversion_status|default:'Pending' }}"
-                          style="cursor: pointer; border: none;">
-                    {{ lead.conversion_status|default:"Pending" }}
-                  </button>
+                  <div class="dropdown">
+                    <button class="btn badge {{ lead.conversion_badge|default:'bg-secondary' }} dropdown-toggle status-badge-btn" 
+                            type="button" 
+                            id="statusDropdown{{ lead.id }}" 
+                            data-bs-toggle="dropdown" 
+                            aria-expanded="false"
+                            data-lead-id="{{ lead.id }}"
+                            data-current-status="{{ lead.conversion_status|default:'Pending' }}"
+                            style="cursor: pointer; border: none; padding: 0.35em 0.65em;">
+                      {{ lead.conversion_status|default:"Pending" }}
+                    </button>
+                    <ul class="dropdown-menu" aria-labelledby="statusDropdown{{ lead.id }}">
+                      <li><a class="dropdown-item status-option" href="#" data-status="Pending" data-lead-id="{{ lead.id }}">Pending</a></li>
+                      <li><a class="dropdown-item status-option" href="#" data-status="Contacted" data-lead-id="{{ lead.id }}">Contacted</a></li>
+                      <li><a class="dropdown-item status-option" href="#" data-status="Qualified" data-lead-id="{{ lead.id }}">Qualified</a></li>
+                      <li><a class="dropdown-item status-option" href="#" data-status="Proposal" data-lead-id="{{ lead.id }}">Proposal</a></li>
+                      <li><a class="dropdown-item status-option" href="#" data-status="Negotiation" data-lead-id="{{ lead.id }}">Negotiation</a></li>
+                      <li><a class="dropdown-item status-option" href="#" data-status="Won" data-lead-id="{{ lead.id }}">Won</a></li>
+                      <li><a class="dropdown-item status-option" href="#" data-status="Lost" data-lead-id="{{ lead.id }}">Lost</a></li>
+                    </ul>
+                  </div>
                 </td>
                 <td data-label="Actions">
-                  <button class="btn btn-sm btn-outline-primary btn-view" data-bs-toggle="modal" data-bs-target="#viewLeadModal" data-lead-id="{{ lead.id }}">
+                  <div class="d-flex gap-1 align-items-center">
+                    <button type="button" class="btn btn-sm btn-outline-primary btn-view" 
+                            data-bs-toggle="modal" 
+                            data-bs-target="#viewLeadModal" 
+                            data-lead-id="{{ lead.id }}"
+                            title="View Lead Details">
                     <i class="bi bi-eye"></i>
                   </button>
-                  <button class="btn btn-sm btn-outline-warning btn-notes" data-bs-toggle="modal" data-bs-target="#notesLeadModal" data-lead-id="{{ lead.id }}" data-lead-name="{{ lead.name }}" title="Add/Update Notes">
+                    <button type="button" class="btn btn-sm btn-outline-warning btn-notes" 
+                            data-bs-toggle="modal" 
+                            data-bs-target="#notesLeadModal" 
+                            data-lead-id="{{ lead.id }}" 
+                            data-lead-name="{{ lead.name }}" 
+                            title="Add/Update Notes">
                     <i class="bi bi-journal-text"></i>
                   </button>
+                  </div>
                 </td>
               </tr>
               {% empty %}
@@ -643,55 +683,6 @@
   </div>
 </div>
 
-<!-- Status Popup Modal -->
-<div class="modal fade" id="statusPopupModal" tabindex="-1" aria-hidden="true">
-  <div class="modal-dialog modal-dialog-centered">
-    <div class="modal-content">
-      <div class="modal-header">
-        <h5 class="modal-title"><i class="bi bi-flag"></i> Update Lead Status</h5>
-        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-      </div>
-        <div class="modal-body">
-          <div class="mb-3">
-            <label class="form-label">Lead Name</label>
-            <input type="text" class="form-control" id="popup_lead_name" readonly>
-          </div>
-          <div class="mb-3">
-            <label class="form-label">Select Status<span class="text-danger">*</span></label>
-            <div class="list-group" id="statusOptionsList">
-              <button type="button" class="list-group-item list-group-item-action status-option-popup" data-status="Pending">
-                <span class="badge bg-secondary me-2">Pending</span> Pending
-              </button>
-              <button type="button" class="list-group-item list-group-item-action status-option-popup" data-status="Contacted">
-                <span class="badge bg-info me-2">Contacted</span> Contacted
-              </button>
-              <button type="button" class="list-group-item list-group-item-action status-option-popup" data-status="Qualified">
-                <span class="badge bg-primary me-2">Qualified</span> Qualified
-              </button>
-              <button type="button" class="list-group-item list-group-item-action status-option-popup" data-status="Proposal">
-                <span class="badge bg-warning text-dark me-2">Proposal</span> Proposal
-              </button>
-              <button type="button" class="list-group-item list-group-item-action status-option-popup" data-status="Negotiation">
-                <span class="badge bg-warning text-dark me-2">Negotiation</span> Negotiation
-              </button>
-              <button type="button" class="list-group-item list-group-item-action status-option-popup" data-status="Won">
-                <span class="badge bg-success me-2">Won</span> Won
-              </button>
-              <button type="button" class="list-group-item list-group-item-action status-option-popup" data-status="Lost">
-                <span class="badge bg-danger me-2">Lost</span> Lost
-              </button>
-            </div>
-          </div>
-        </div>
-        <div class="modal-footer">
-          <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
-          <button type="button" class="btn btn-primary" id="saveStatusBtn" style="display: none;">
-            <i class="bi bi-check-circle me-1"></i> Save Status
-          </button>
-        </div>
-    </div>
-  </div>
-</div>
 
 <!-- Notes Update Modal -->
 <div class="modal fade" id="notesLeadModal" tabindex="-1" aria-hidden="true">
@@ -900,193 +891,147 @@
     }
 
 
-    // Status Popup Modal - Load lead info when modal opens
-    const statusPopupModal = document.getElementById('statusPopupModal');
-    if (statusPopupModal) {
-      statusPopupModal.addEventListener('show.bs.modal', function(event) {
-        const button = event.relatedTarget;
-        let leadId = null;
-        let leadName = null;
-        let currentStatus = null;
-        
-        if (button) {
-          leadId = button.getAttribute('data-lead-id');
-          leadName = button.getAttribute('data-lead-name');
-          currentStatus = button.getAttribute('data-current-status');
-        }
-        
-        // Hide save button initially
-        const saveBtn = document.getElementById('saveStatusBtn');
-        if (saveBtn) {
-          saveBtn.style.display = 'none';
-        }
-        
-        // Set lead name - try to fetch from API if not available
-        const leadNameField = document.getElementById('popup_lead_name');
-        if (leadNameField) {
-          if (leadName) {
-            leadNameField.value = leadName;
-          } else if (leadId) {
-            // Fetch lead name from API
-            leadNameField.value = 'Loading...';
-          fetch(`/leads/${leadId}/get-data/`)
-              .then(response => response.json())
-              .then(data => {
-                if (data.name) {
-                  leadNameField.value = data.name;
-                } else {
-                  leadNameField.value = 'Unknown';
-                }
-              })
-              .catch(error => {
-                console.error('Error fetching lead name:', error);
-                leadNameField.value = leadName || 'Unknown';
-              });
-          } else {
-            leadNameField.value = 'Unknown';
-          }
-        }
-        
-        // Highlight current status
-        const statusOptions = statusPopupModal.querySelectorAll('.status-option-popup');
-        statusOptions.forEach(option => {
-          option.classList.remove('active', 'selected');
-          if (option.getAttribute('data-status') === currentStatus) {
-            option.classList.add('active');
-          }
-        });
-        
-        // Store lead ID and current status in modal for later use
-        statusPopupModal.setAttribute('data-current-lead-id', leadId);
-        statusPopupModal.setAttribute('data-current-status', currentStatus);
-        statusPopupModal.setAttribute('data-selected-status', ''); // Clear selected status
-      });
-      
-      // Handle status selection from popup - just highlight, don't save yet
-      const statusOptions = statusPopupModal.querySelectorAll('.status-option-popup');
-      statusOptions.forEach(option => {
-        option.addEventListener('click', function() {
-          const newStatus = this.getAttribute('data-status');
-          const currentStatus = statusPopupModal.getAttribute('data-current-status');
-          
-          // Remove selected class from all options
-          statusOptions.forEach(opt => opt.classList.remove('selected'));
-          
-          // Add selected class to clicked option
-          this.classList.add('selected');
-          
-          // Store selected status
-          statusPopupModal.setAttribute('data-selected-status', newStatus);
-          
-          // Show save button if status changed
-          const saveBtn = document.getElementById('saveStatusBtn');
-          if (saveBtn) {
-            if (newStatus !== currentStatus) {
-              saveBtn.style.display = 'inline-block';
-            } else {
-              saveBtn.style.display = 'none';
-            }
-          }
-        });
-      });
-      
-      // Handle save button click
-      const saveStatusBtn = document.getElementById('saveStatusBtn');
-      if (saveStatusBtn) {
-        saveStatusBtn.addEventListener('click', function() {
-          const selectedStatus = statusPopupModal.getAttribute('data-selected-status');
-          const leadId = statusPopupModal.getAttribute('data-current-lead-id');
-          const currentStatus = statusPopupModal.getAttribute('data-current-status');
-          
-          if (!selectedStatus || selectedStatus === '') {
-            alert('Please select a status first.');
-            return;
-          }
-          
-          if (selectedStatus === currentStatus) {
-            const modal = bootstrap.Modal.getInstance(statusPopupModal);
-            if (modal) modal.hide();
-            return;
-          }
-          
-          // Find the status button in the table
-          const statusBtn = document.querySelector(`.status-badge-btn[data-lead-id="${leadId}"]`);
-          if (!statusBtn) {
-            alert('Error: Could not find lead in table.');
-            return;
-          }
-          
-          // Disable save button and show loading
-          saveStatusBtn.disabled = true;
-          saveStatusBtn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Saving...';
-          
-          // Show loading state on badge
-          const originalText = statusBtn.textContent;
-          statusBtn.disabled = true;
-          statusBtn.innerHTML = '<span class="spinner-border spinner-border-sm"></span>';
-          
-          // Prepare form data
-          const formData = new FormData();
-          formData.append('lead_id', leadId);
-          formData.append('status', selectedStatus);
-          formData.append('csrfmiddlewaretoken', document.querySelector('[name=csrfmiddlewaretoken]').value);
-          
-          // Update status via API
-          fetch('{% url "update_lead_status" %}', {
-            method: 'POST',
-            body: formData,
-            headers: {
-              'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
-            }
-          })
-          .then(response => response.json())
-          .then(data => {
-            if (data.success) {
-              // Close modal
-              const modal = bootstrap.Modal.getInstance(statusPopupModal);
-              if (modal) modal.hide();
-              
-              // Update badge
-              const badgeClass = data.badge_class || 'bg-secondary';
-              statusBtn.className = `badge ${badgeClass} status-badge-btn`;
-              statusBtn.textContent = selectedStatus;
-              statusBtn.setAttribute('data-current-status', selectedStatus);
-              statusBtn.disabled = false;
-              statusBtn.style.cursor = 'pointer';
-              statusBtn.style.border = 'none';
-              
-              // Show success message
-              const alert = document.createElement('div');
-              alert.className = 'alert alert-success alert-dismissible fade show';
-              alert.innerHTML = `
-                <strong>Success!</strong> ${data.message}
-                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-              `;
-              document.querySelector('.dashboard-header').after(alert);
-              
-              // Auto-dismiss alert after 3 seconds
-              setTimeout(() => {
-                alert.remove();
-              }, 3000);
-            } else {
-              alert('Error: ' + data.error);
-              statusBtn.textContent = originalText;
-              statusBtn.disabled = false;
-              saveStatusBtn.disabled = false;
-              saveStatusBtn.innerHTML = '<i class="bi bi-check-circle me-1"></i> Save Status';
-            }
-          })
-          .catch(error => {
-            console.error('Error:', error);
-            alert('An error occurred while updating status.');
-            statusBtn.textContent = originalText;
-            statusBtn.disabled = false;
-            saveStatusBtn.disabled = false;
-            saveStatusBtn.innerHTML = '<i class="bi bi-check-circle me-1"></i> Save Status';
+    // Status dropdown - Same as admin leads page
+    // Highlight current status in dropdown when opened
+    document.querySelectorAll('.status-badge-btn').forEach(button => {
+      button.addEventListener('show.bs.dropdown', function() {
+        const currentStatus = this.getAttribute('data-current-status');
+        const dropdownMenu = this.nextElementSibling;
+        if (dropdownMenu) {
+          // Remove active class from all options
+          dropdownMenu.querySelectorAll('.status-option').forEach(option => {
+            option.classList.remove('active');
           });
+          // Add active class to current status
+          const currentOption = dropdownMenu.querySelector('[data-status="' + currentStatus + '"]');
+          if (currentOption) {
+            currentOption.classList.add('active');
+          }
+        }
+      });
+    });
+    
+    // Status dropdown click handler - Update lead status
+    // Use event delegation to catch clicks on status options
+    document.addEventListener('click', function(e) {
+      // Check if clicked element is a status option or inside one
+      const statusOption = e.target.closest('.status-option');
+      
+      if (statusOption) {
+        e.preventDefault();
+        e.stopPropagation();
+        
+        const leadId = statusOption.getAttribute('data-lead-id');
+        const newStatus = statusOption.getAttribute('data-status');
+        const statusButton = document.getElementById('statusDropdown' + leadId);
+        
+        console.log('Status option clicked:', { leadId: leadId, newStatus: newStatus, statusButton: !!statusButton });
+        
+        if (!leadId || !newStatus || !statusButton) {
+          console.error('Missing data for status update:', { leadId: leadId, newStatus: newStatus, statusButton: !!statusButton });
+          alert('Error: Missing data for status update. Please refresh the page.');
+          return;
+        }
+        
+        // Get current status
+        const currentStatus = statusButton.getAttribute('data-current-status');
+        if (currentStatus === newStatus) {
+          // Status is already set, just close dropdown
+          const dropdown = bootstrap.Dropdown.getInstance(statusButton);
+          if (dropdown) dropdown.hide();
+          return;
+        }
+        
+        // Show loading state
+        const originalText = statusButton.textContent.trim();
+        statusButton.disabled = true;
+        statusButton.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Updating...';
+        
+        // Get CSRF token
+        const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]');
+        if (!csrfToken) {
+          alert('Error: CSRF token not found. Please refresh the page.');
+          statusButton.textContent = originalText;
+          statusButton.disabled = false;
+          return;
+        }
+        
+        // Prepare form data
+        const formData = new FormData();
+        formData.append('lead_id', leadId);
+        formData.append('status', newStatus);
+        formData.append('csrfmiddlewaretoken', csrfToken.value);
+        
+        console.log('Sending status update request:', { lead_id: leadId, status: newStatus });
+        
+        // Update status via API
+        fetch('{% url "update_lead_status" %}', {
+          method: 'POST',
+          body: formData,
+          headers: {
+            'X-CSRFToken': csrfToken.value
+          }
+        })
+        .then(response => {
+          console.log('Response status:', response.status);
+          if (!response.ok) {
+            throw new Error('HTTP error! status: ' + response.status);
+          }
+          return response.json();
+        })
+        .then(data => {
+          console.log('Response data:', data);
+          if (data.success) {
+            // Update badge class and text
+            const badgeClassMap = {
+              'Pending': 'bg-secondary',
+              'Contacted': 'bg-info',
+              'Qualified': 'bg-primary',
+              'Proposal': 'bg-warning text-dark',
+              'Negotiation': 'bg-warning text-dark',
+              'Won': 'bg-success',
+              'Lost': 'bg-danger'
+            };
+            
+            const badgeClass = data.badge_class || badgeClassMap[newStatus] || 'bg-secondary';
+            
+            // Update button
+            statusButton.className = 'btn badge ' + badgeClass + ' dropdown-toggle status-badge-btn';
+            statusButton.textContent = newStatus;
+            statusButton.setAttribute('data-current-status', newStatus);
+            statusButton.disabled = false;
+            
+            // Close dropdown
+            const dropdown = bootstrap.Dropdown.getInstance(statusButton);
+            if (dropdown) dropdown.hide();
+            
+            // Show success message
+            const alert = document.createElement('div');
+            alert.className = 'alert alert-success alert-dismissible fade show position-fixed top-0 start-50 translate-middle-x mt-3';
+            alert.style.zIndex = '9999';
+            alert.innerHTML = '<strong>Success!</strong> Status updated to "' + newStatus + '"<button type="button" class="btn-close" data-bs-dismiss="alert"></button>';
+            document.body.appendChild(alert);
+            
+            // Remove alert after 3 seconds
+            setTimeout(() => {
+              alert.remove();
+            }, 3000);
+          } else {
+            // Error occurred
+            console.error('Status update failed:', data.error);
+            alert('Error: ' + (data.error || 'Failed to update status'));
+            statusButton.textContent = originalText;
+            statusButton.disabled = false;
+          }
+        })
+        .catch(error => {
+          console.error('Error updating status:', error);
+          alert('An error occurred while updating status. Please try again.');
+          statusButton.textContent = originalText;
+          statusButton.disabled = false;
         });
       }
-    }
+    });
     
     // Notes Modal - Load current notes when modal opens
     const notesLeadModal = document.getElementById('notesLeadModal');
@@ -1245,10 +1190,26 @@
       let currentLeadId = null;
       
       // Function to fetch and display lead data
-      function fetchAndDisplayLeadData(leadId) {
+      function fetchAndDisplayLeadData(leadId, rowData = null) {
         if (!leadId) {
           console.error('No lead ID provided');
-          return;
+          // Try to get leadId from row data if available
+          if (rowData && rowData.name && rowData.email) {
+            console.log('Attempting to find lead by Name, Email, Phone, Company...');
+            // This will be handled by the API endpoint
+          } else {
+            const leadDetails = document.getElementById('leadDetails');
+            if (leadDetails) {
+              leadDetails.innerHTML = `
+                <div class="alert alert-danger">
+                  <i class="bi bi-exclamation-triangle"></i>
+                  <strong>Error!</strong><br>
+                  Lead ID not found. Please try again.
+                </div>
+              `;
+            }
+            return;
+          }
         }
         
         const leadDetails = document.getElementById('leadDetails');
@@ -1257,42 +1218,58 @@
           return;
         }
         
-          // Show loading state
-          leadDetails.innerHTML = `
-            <div class="text-center py-4">
-              <div class="spinner-border text-primary" role="status">
-                <span class="visually-hidden">Loading...</span>
-              </div>
-              <p class="mt-2">Loading lead details...</p>
+        // Show loading state
+        leadDetails.innerHTML = `
+          <div class="text-center py-4">
+            <div class="spinner-border text-primary" role="status">
+              <span class="visually-hidden">Loading...</span>
             </div>
-          `;
+            <p class="mt-2 text-muted">Loading lead details...</p>
+          </div>
+        `;
 
-          // Fetch complete lead data from server
-          fetch(`/leads/${leadId}/get-data/`)
-            .then(response => {
+        // Fetch complete lead data from server
+        console.log('Fetching lead data for ID:', leadId);
+        fetch(`/leads/${leadId}/get-data/`, {
+          method: 'GET',
+          headers: {
+            'X-Requested-With': 'XMLHttpRequest',
+            'Content-Type': 'application/json',
+          },
+          credentials: 'same-origin'
+        })
+          .then(response => {
             console.log('API Response status:', response.status);
-              if (!response.ok) {
+            console.log('API Response URL:', response.url);
+            if (!response.ok) {
+              if (response.status === 404) {
+                throw new Error('Lead not found. It may have been deleted.');
+              } else if (response.status === 403) {
+                throw new Error('You do not have permission to view this lead.');
+              } else {
                 throw new Error(`HTTP error! status: ${response.status}`);
               }
-              return response.json();
-            })
-            .then(data => {
-            console.log('API Response data:', data);
+            }
+            return response.json();
+          })
+          .then(data => {
+            console.log('API Response data received:', data);
+            console.log('Data keys:', Object.keys(data));
             
-              // Check if response has error
-              if (data.error) {
-                console.error('API Error:', data.error);
-                throw new Error(data.error);
-              }
-              
-              // Escape HTML to prevent XSS
-              const escapeHtml = (text) => {
-              if (text === null || text === undefined) return '-';
-                const div = document.createElement('div');
+            // Check if response has error
+            if (data.error) {
+              console.error('API Error:', data.error);
+              throw new Error(data.error);
+            }
+            
+            // Escape HTML to prevent XSS
+            const escapeHtml = (text) => {
+              if (text === null || text === undefined || text === '') return '-';
+              const div = document.createElement('div');
               div.textContent = String(text);
-                return div.innerHTML;
-              };
-              
+              return div.innerHTML;
+            };
+            
             // Get priority badge class
             const getPriorityBadge = (priority) => {
               if (!priority) return 'bg-secondary';
@@ -1302,33 +1279,212 @@
               return 'bg-warning text-dark';
             };
             
-            // Populate modal with complete data (matching admin leads format)
-              leadDetails.innerHTML = `
-              <div class="col-md-6"><strong>Name:</strong> ${escapeHtml(data.name || '-')}</div>
-              <div class="col-md-6"><strong>Email:</strong> ${data.email ? `<a href="mailto:${escapeHtml(data.email)}">${escapeHtml(data.email)}</a>` : '-'}</div>
-              <div class="col-md-6"><strong>Phone:</strong> ${data.phone ? `<a href="tel:${escapeHtml(data.phone)}">${escapeHtml(data.phone)}</a>` : '-'}</div>
-              <div class="col-md-6"><strong>Company:</strong> ${escapeHtml(data.company || '-')}</div>
-              <div class="col-md-6"><strong>Source:</strong> ${escapeHtml(data.source || '-')}</div>
-              <div class="col-md-6"><strong>Priority:</strong> <span class="badge ${getPriorityBadge(data.priority)}">${escapeHtml(data.priority || '-')}</span></div>
-              <div class="col-md-6"><strong>Owner:</strong> ${escapeHtml(data.owner || '-')}</div>
-              <div class="col-md-6"><strong>Use Case:</strong> ${escapeHtml(data.use_case || '-')}</div>
-              <div class="col-md-6"><strong>Notes:</strong> ${escapeHtml(data.notes || '-')}</div>
-              <div class="col-md-6"><strong>Due Date:</strong> ${escapeHtml(data.due_date || '-')}</div>
-              <div class="col-md-6"><strong>Due Time:</strong> ${escapeHtml(data.due_time || '-')}</div>
-                <div class="col-md-6"><strong>Website:</strong> ${data.website ? `<a href="${escapeHtml(data.website)}" target="_blank" class="text-primary">${escapeHtml(data.website)}</a>` : '-'}</div>
-              <div class="col-md-6"><strong>Industry:</strong> ${escapeHtml(data.industry || '-')}</div>
-              <div class="col-md-6"><strong>City:</strong> ${escapeHtml(data.city || '-')}</div>
-              <div class="col-md-6"><strong>Country:</strong> ${escapeHtml(data.country || '-')}</div>
-              <div class="col-md-6"><strong>Budget:</strong> ${escapeHtml(data.budget || '-')}</div>
-              <div class="col-md-6"><strong>Timeline:</strong> ${escapeHtml(data.timeline || '-')}</div>
-              <div class="col-md-6"><strong>Tags:</strong> ${escapeHtml(data.tags || '-')}</div>
-                <div class="col-12"><strong>Notes:</strong> <div class="mt-1 p-2 bg-light rounded" style="white-space: pre-wrap; word-break: break-word;">${escapeHtml(data.notes || 'No notes available')}</div></div>
-              <div class="col-md-6"><strong>Created:</strong> ${escapeHtml(data.created_at || '-')}</div>
-              <div class="col-md-6"><strong>Updated:</strong> ${escapeHtml(data.updated_at || '-')}</div>
-              `;
-            })
-            .catch(error => {
-              console.error('Error fetching lead data:', error);
+            // Get status badge class
+            const getStatusBadge = (status) => {
+              if (!status) return 'bg-secondary';
+              const s = String(status).toLowerCase();
+              if (s === 'won') return 'bg-success';
+              if (s === 'lost') return 'bg-danger';
+              if (s === 'contacted') return 'bg-info';
+              if (s === 'qualified') return 'bg-primary';
+              if (s === 'proposal' || s === 'negotiation') return 'bg-warning text-dark';
+              return 'bg-secondary';
+            };
+            
+            // Populate modal with complete data in a well-organized format
+            leadDetails.innerHTML = `
+              <div class="row g-3">
+                <div class="col-12">
+                  <h6 class="text-primary border-bottom pb-2 mb-3"><i class="bi bi-person-badge me-2"></i>Basic Information</h6>
+                </div>
+                <div class="col-md-6">
+                  <div class="mb-2">
+                    <strong class="text-muted d-block mb-1">Name:</strong>
+                    <span class="fs-6">${escapeHtml(data.name || '-')}</span>
+                  </div>
+                </div>
+                <div class="col-md-6">
+                  <div class="mb-2">
+                    <strong class="text-muted d-block mb-1">Email:</strong>
+                    ${data.email ? `<a href="mailto:${escapeHtml(data.email)}" class="text-primary">${escapeHtml(data.email)}</a>` : '<span class="text-muted">-</span>'}
+                  </div>
+                </div>
+                <div class="col-md-6">
+                  <div class="mb-2">
+                    <strong class="text-muted d-block mb-1">Phone:</strong>
+                    ${data.phone ? `<a href="tel:${escapeHtml(data.phone)}" class="text-primary">${escapeHtml(data.phone)}</a>` : '<span class="text-muted">-</span>'}
+                  </div>
+                </div>
+                <div class="col-md-6">
+                  <div class="mb-2">
+                    <strong class="text-muted d-block mb-1">Company:</strong>
+                    <span class="fs-6">${escapeHtml(data.company || '-')}</span>
+                  </div>
+                </div>
+                <div class="col-12">
+                  <div class="mb-2">
+                    <strong class="text-muted d-block mb-1">Address:</strong>
+                    <span>${escapeHtml(data.address || '-')}</span>
+                  </div>
+                </div>
+                
+                <div class="col-12 mt-3">
+                  <h6 class="text-primary border-bottom pb-2 mb-3"><i class="bi bi-info-circle me-2"></i>Lead Details</h6>
+                </div>
+                <div class="col-md-6">
+                  <div class="mb-2">
+                    <strong class="text-muted d-block mb-1">Source:</strong>
+                    <span>${escapeHtml(data.source || '-')}</span>
+                  </div>
+                </div>
+                <div class="col-md-6">
+                  <div class="mb-2">
+                    <strong class="text-muted d-block mb-1">Priority:</strong>
+                    <span class="badge ${getPriorityBadge(data.priority)}">${escapeHtml(data.priority || '-')}</span>
+                  </div>
+                </div>
+                <div class="col-md-6">
+                  <div class="mb-2">
+                    <strong class="text-muted d-block mb-1">Status:</strong>
+                    <span class="badge ${getStatusBadge(data.status)}">${escapeHtml(data.status || 'Pending')}</span>
+                  </div>
+                </div>
+                <div class="col-md-6">
+                  <div class="mb-2">
+                    <strong class="text-muted d-block mb-1">Owner:</strong>
+                    <span>${escapeHtml(data.owner || '-')}</span>
+                  </div>
+                </div>
+                <div class="col-md-6">
+                  <div class="mb-2">
+                    <strong class="text-muted d-block mb-1">Assigned To:</strong>
+                    <span>${data.assigned_to && data.assigned_to.name ? escapeHtml(data.assigned_to.name) : '-'}</span>
+                    ${data.assigned_to && data.assigned_to.email ? `<br><small class="text-muted">${escapeHtml(data.assigned_to.email)}</small>` : ''}
+                  </div>
+                </div>
+                <div class="col-md-6">
+                  <div class="mb-2">
+                    <strong class="text-muted d-block mb-1">Imported By:</strong>
+                    <span>${data.imported_by && data.imported_by.name ? escapeHtml(data.imported_by.name) : '-'}</span>
+                    ${data.imported_by && data.imported_by.email ? `<br><small class="text-muted">${escapeHtml(data.imported_by.email)}</small>` : ''}
+                  </div>
+                </div>
+                <div class="col-md-12">
+                  <div class="mb-2">
+                    <strong class="text-muted d-block mb-1">Use Case:</strong>
+                    <div class="p-2 bg-light rounded" style="white-space: pre-wrap; word-break: break-word;">${escapeHtml(data.use_case || '-')}</div>
+                  </div>
+                </div>
+                <div class="col-md-6">
+                  <div class="mb-2">
+                    <strong class="text-muted d-block mb-1">Due Date:</strong>
+                    <span>${escapeHtml(data.due_date || '-')}</span>
+                  </div>
+                </div>
+                <div class="col-md-6">
+                  <div class="mb-2">
+                    <strong class="text-muted d-block mb-1">Due Time:</strong>
+                    <span>${escapeHtml(data.due_time || '-')}</span>
+                  </div>
+                </div>
+                <div class="col-md-6">
+                  <div class="mb-2">
+                    <strong class="text-muted d-block mb-1">Next Action:</strong>
+                    <span>${escapeHtml(data.next_action || '-')}</span>
+                  </div>
+                </div>
+                
+                <div class="col-12 mt-3">
+                  <h6 class="text-primary border-bottom pb-2 mb-3"><i class="bi bi-building me-2"></i>Additional Information</h6>
+                </div>
+                <div class="col-md-6">
+                  <div class="mb-2">
+                    <strong class="text-muted d-block mb-1">Website:</strong>
+                    ${data.website ? `<a href="${escapeHtml(data.website)}" target="_blank" class="text-primary" rel="noopener noreferrer">${escapeHtml(data.website)}</a>` : '<span class="text-muted">-</span>'}
+                  </div>
+                </div>
+                <div class="col-md-6">
+                  <div class="mb-2">
+                    <strong class="text-muted d-block mb-1">Industry:</strong>
+                    <span>${escapeHtml(data.industry || '-')}</span>
+                  </div>
+                </div>
+                <div class="col-md-6">
+                  <div class="mb-2">
+                    <strong class="text-muted d-block mb-1">City:</strong>
+                    <span>${escapeHtml(data.city || '-')}</span>
+                  </div>
+                </div>
+                <div class="col-md-6">
+                  <div class="mb-2">
+                    <strong class="text-muted d-block mb-1">Country:</strong>
+                    <span>${escapeHtml(data.country || '-')}</span>
+                  </div>
+                </div>
+                <div class="col-md-6">
+                  <div class="mb-2">
+                    <strong class="text-muted d-block mb-1">Budget:</strong>
+                    <span>${escapeHtml(data.budget || '-')}</span>
+                  </div>
+                </div>
+                <div class="col-md-6">
+                  <div class="mb-2">
+                    <strong class="text-muted d-block mb-1">Amount:</strong>
+                    <span>${data.amount ? '₹' + escapeHtml(data.amount) : '-'}</span>
+                  </div>
+                </div>
+                <div class="col-md-6">
+                  <div class="mb-2">
+                    <strong class="text-muted d-block mb-1">Timeline:</strong>
+                    <span>${escapeHtml(data.timeline || '-')}</span>
+                  </div>
+                </div>
+                <div class="col-md-6">
+                  <div class="mb-2">
+                    <strong class="text-muted d-block mb-1">Tags:</strong>
+                    <span>${escapeHtml(data.tags || '-')}</span>
+                  </div>
+                </div>
+                <div class="col-md-6">
+                  <div class="mb-2">
+                    <strong class="text-muted d-block mb-1">Active Status:</strong>
+                    <span class="badge ${data.is_active ? 'bg-success' : 'bg-danger'}">${data.is_active ? 'Active' : 'Inactive'}</span>
+                  </div>
+                </div>
+                <div class="col-md-6">
+                  <div class="mb-2">
+                    <strong class="text-muted d-block mb-1">Lead ID:</strong>
+                    <span class="text-muted">#${escapeHtml(data.id || '-')}</span>
+                  </div>
+                </div>
+                
+                <div class="col-12 mt-3">
+                  <h6 class="text-primary border-bottom pb-2 mb-3"><i class="bi bi-journal-text me-2"></i>Notes</h6>
+                  <div class="p-3 bg-light rounded" style="white-space: pre-wrap; word-break: break-word; min-height: 80px;">
+                    ${escapeHtml(data.notes || 'No notes available')}
+                  </div>
+                </div>
+                
+                <div class="col-12 mt-3">
+                  <h6 class="text-primary border-bottom pb-2 mb-3"><i class="bi bi-clock-history me-2"></i>Timestamps</h6>
+                </div>
+                <div class="col-md-6">
+                  <div class="mb-2">
+                    <strong class="text-muted d-block mb-1">Created:</strong>
+                    <span>${escapeHtml(data.created_at || '-')}</span>
+                  </div>
+                </div>
+                <div class="col-md-6">
+                  <div class="mb-2">
+                    <strong class="text-muted d-block mb-1">Last Updated:</strong>
+                    <span>${escapeHtml(data.updated_at || '-')}</span>
+                  </div>
+                </div>
+              </div>
+            `;
+          })
+          .catch(error => {
+            console.error('Error fetching lead data:', error);
             const leadDetails = document.getElementById('leadDetails');
             if (leadDetails) {
               leadDetails.innerHTML = `
@@ -1336,24 +1492,86 @@
                   <i class="bi bi-exclamation-triangle"></i>
                   <strong>Error loading lead data!</strong><br>
                   ${error.message || 'Please try again or contact support if the problem persists.'}
-                  <br><small>Lead ID: ${leadId}</small>
-                  <br><small>Check browser console for more details.</small>
+                  <br><small class="text-muted">Lead ID: ${leadId}</small>
+                  <br><small class="text-muted">Check browser console (F12) for more details.</small>
                 </div>
               `;
             }
           });
       }
       
+      // Store row data for fallback
+      let currentRowData = null;
+      
       // Use event delegation for view buttons (works with dynamically added buttons)
       document.addEventListener('click', function(e) {
         const viewBtn = e.target.closest('.btn-view');
         if (viewBtn && viewBtn.getAttribute('data-bs-target') === '#viewLeadModal') {
+          e.preventDefault();
+          e.stopPropagation();
+          
+          // Get lead ID from button attribute
           currentLeadId = viewBtn.getAttribute('data-lead-id');
+          
+          // If no lead ID, try to get from table row
+          if (!currentLeadId) {
+            const row = viewBtn.closest('tr');
+            if (row) {
+              currentLeadId = row.getAttribute('data-lead-id');
+            }
+          }
+          
+          // If still no lead ID, try to get row data (Name, Email, Phone, Company) as fallback
+          if (!currentLeadId) {
+            const row = viewBtn.closest('tr');
+            if (row) {
+              currentRowData = {
+                name: row.querySelector('[data-label="Name"]')?.textContent?.trim() || '',
+                email: row.querySelector('[data-label="Email"]')?.textContent?.trim() || '',
+                phone: row.querySelector('[data-label="Phone"]')?.textContent?.trim() || '',
+                company: row.querySelector('[data-label="Company"]')?.textContent?.trim() || ''
+              };
+              console.log('Row data found (no ID):', currentRowData);
+            }
+          }
+          
           console.log('View button clicked - Lead ID:', currentLeadId);
           
-          // Fetch data immediately when button is clicked
+          // Show loading state immediately
+          const leadDetails = document.getElementById('leadDetails');
+          if (leadDetails) {
+            leadDetails.innerHTML = `
+              <div class="text-center py-4">
+                <div class="spinner-border text-primary" role="status">
+                  <span class="visually-hidden">Loading...</span>
+                </div>
+                <p class="mt-2 text-muted">Loading lead details...</p>
+              </div>
+            `;
+          }
+          
+          // Open modal programmatically
+          const modalElement = document.getElementById('viewLeadModal');
+          if (modalElement) {
+            const modal = new bootstrap.Modal(modalElement);
+            modal.show();
+          }
+          
+          // Fetch data immediately when button is clicked (if we have lead ID)
           if (currentLeadId) {
-            fetchAndDisplayLeadData(currentLeadId);
+            fetchAndDisplayLeadData(currentLeadId, currentRowData);
+          } else {
+            console.error('No Lead ID found!');
+            if (leadDetails) {
+              leadDetails.innerHTML = `
+                <div class="alert alert-danger">
+                  <i class="bi bi-exclamation-triangle"></i>
+                  <strong>Error!</strong><br>
+                  Lead ID not found. Please try again.
+                  <br><small class="text-muted">Make sure you clicked the eye icon button.</small>
+                </div>
+              `;
+            }
           }
         }
       });
@@ -1365,13 +1583,13 @@
         // Try to get leadId from stored value first (most reliable)
         if (currentLeadId) {
           leadId = currentLeadId;
-          console.log('Using stored Lead ID:', leadId);
+          console.log('Modal opening - Using stored Lead ID:', leadId);
         }
         
         // Try to get leadId from button
         if (!leadId && button) {
           leadId = button.getAttribute('data-lead-id');
-          console.log('Using button Lead ID:', leadId);
+          console.log('Modal opening - Using button Lead ID:', leadId);
         }
         
         // If not found from button, try to find from clicked element
@@ -1379,7 +1597,7 @@
           const clickedBtn = event.target.closest('.btn-view');
           if (clickedBtn) {
             leadId = clickedBtn.getAttribute('data-lead-id');
-            console.log('Using clicked element Lead ID:', leadId);
+            console.log('Modal opening - Using clicked element Lead ID:', leadId);
           }
         }
         
@@ -1388,32 +1606,45 @@
           const triggerBtn = document.querySelector('.btn-view[data-bs-target="#viewLeadModal"]');
           if (triggerBtn) {
             leadId = triggerBtn.getAttribute('data-lead-id');
-            console.log('Using trigger button Lead ID:', leadId);
+            console.log('Modal opening - Using trigger button Lead ID:', leadId);
           }
         }
         
-        console.log('View Lead Modal - Final Lead ID:', leadId);
+        // Last resort: try to get from table row
+        if (!leadId && button) {
+          const row = button.closest('tr');
+          if (row) {
+            leadId = row.getAttribute('data-lead-id');
+            console.log('Modal opening - Using row Lead ID:', leadId);
+          }
+        }
         
-        // If we have a leadId, fetch and display the data
-        if (leadId) {
-          fetchAndDisplayLeadData(leadId);
-        } else {
-          console.error('Lead ID not found!');
+        console.log('View Lead Modal Opening - Final Lead ID:', leadId);
+        
+        // If we have a leadId and data hasn't been fetched yet, fetch it
+        if (leadId && leadId !== currentLeadId) {
+          currentLeadId = leadId;
+          fetchAndDisplayLeadData(leadId, currentRowData);
+        } else if (!leadId) {
+          console.error('Lead ID not found in modal event!');
           const leadDetails = document.getElementById('leadDetails');
-          if (leadDetails) {
+          if (leadDetails && leadDetails.innerHTML.trim() === '' || leadDetails.innerHTML.includes('will be populated')) {
           leadDetails.innerHTML = `
             <div class="alert alert-danger">
               <i class="bi bi-exclamation-triangle"></i>
               <strong>Error!</strong><br>
               Lead ID not found. Please try again.
-                <br><small>Make sure you clicked the eye icon button.</small>
+                <br><small class="text-muted">Make sure you clicked the eye icon button.</small>
             </div>
           `;
         }
         }
+      });
         
-        // Reset stored leadId after use
+      // Reset stored values when modal is closed
+      viewLeadModal.addEventListener('hidden.bs.modal', function() {
         currentLeadId = null;
+        currentRowData = null;
       });
     }
 
