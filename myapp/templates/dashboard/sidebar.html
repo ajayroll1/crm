@@ -177,7 +177,6 @@
       </ul>
     </div>
 
-    {% comment %}
     {% if is_admin or employee_actual_role|lower == 'admin' or user.is_staff or user.is_superuser %}
     <div class="nav-section">
       <h3 class="nav-section-title">PASSWORD</h3>
@@ -191,7 +190,6 @@
       </ul>
     </div>
     {% endif %}
-    {% endcomment %}
   </nav>
   
   <div class="sidebar-footer">
