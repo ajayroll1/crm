@@ -1,22 +1,47 @@
-- name: Deploy to EC2
-  run: |
-    ssh -o StrictHostKeyChecking=no -i ~/.ssh/ec2.pem ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }} << 'EOF'
-      set -e
-      cd ${{ secrets.PROJECT_PATH }}
-      echo "Pulling latest code"
-      git pull origin main
+name: Deploy Django to EC2
 
-      echo "Installing requirements"
-      source venv/bin/activate
-      pip install -r requirements.txt
+on:
+  push:
+    branches:
+      - main
 
-      echo "Running migrations"
-      python manage.py migrate
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
 
-      echo "Collecting static files"
-      python manage.py collectstatic --noinput
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
 
-      echo "Restarting services"
-      sudo systemctl restart gunicorn
-      sudo systemctl restart nginx
-    EOF
+      - name: Setup SSH
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.EC2_KEY }}" > ~/.ssh/ec2.pem
+          chmod 600 ~/.ssh/ec2.pem
+
+      - name: Deploy to EC2
+        run: |
+          ssh -o StrictHostKeyChecking=no \
+              -o UserKnownHostsFile=/dev/null \
+              -i ~/.ssh/ec2.pem \
+              ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }} << 'EOF'
+
+          set -e
+          cd ${{ secrets.PROJECT_PATH }}
+
+          echo "📥 Pulling latest code"
+          git pull origin main
+
+          echo "📦 Installing dependencies"
+          source venv/bin/activate
+          pip install -r requirements.txt
+
+          echo "🎨 Collecting static"
+          python manage.py collectstatic --noinput
+
+          echo "🔄 Restarting services"
+          sudo systemctl restart crm
+          sudo systemctl restart nginx
+
+          echo "✅ Deployment successful"
+          EOF
