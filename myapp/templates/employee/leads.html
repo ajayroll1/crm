@@ -54,6 +54,57 @@
     color: white;
   }
   
+  /* Ensure status dropdown shows all options - NO height restrictions */
+  .dropdown-menu[aria-labelledby^="statusBtn"],
+  .dropdown-menu.show-all-options {
+    max-height: none !important;
+    overflow-y: visible !important;
+    overflow-x: visible !important;
+    display: block !important;
+    min-height: auto !important;
+    height: auto !important;
+  }
+  
+  /* Table wrapper div - height control */
+  #leadsTableWrapper,
+  .table-responsive {
+    max-height: 500px;
+    overflow-y: auto;
+    overflow-x: visible;
+  }
+  
+  /* Ensure dropdown is visible and not clipped by table */
+  .table-responsive .dropdown-menu {
+    position: absolute !important;
+    z-index: 1050 !important;
+    will-change: transform;
+  }
+  
+  /* Remove height from any span elements */
+  span {
+    height: auto !important;
+    max-height: none !important;
+  }
+  
+  /* Status dropdown specific - show all 7 options */
+  td .dropdown-menu.show-all-options {
+    min-width: 150px;
+    max-height: none !important;
+    overflow-y: visible !important;
+    position: absolute !important;
+    z-index: 9999 !important;
+  }
+  
+  /* Prevent table from clipping dropdown */
+  .table {
+    overflow: visible;
+  }
+  
+  .table td {
+    position: relative;
+    overflow: visible;
+  }
+  
   /* Better visibility for search, filter, and export buttons */
   .card-header .btn-primary {
     background-color: var(--primary-color);
@@ -378,8 +429,8 @@
         </div>
       </div>
       <div class="card-body p-0">
-        <div class="table-responsive" style="overflow-x: auto; -webkit-overflow-scrolling: touch;">
-          <table class="table table-hover align-middle mb-0 leads-table">
+        <div class="table-responsive" id="leadsTableWrapper" style="max-height: 500px; overflow-y: auto;">
+          <table class="table table-hover align-middle mb-0">
             <thead class="table-light">
               <tr>
                 <th>Name</th>
@@ -392,71 +443,69 @@
             </thead>
             <tbody>
               {% for lead in leads %}
-              <tr data-lead-id="{{ lead.id }}" data-due="{% if lead.get_full_due_datetime %}{{ lead.get_full_due_datetime|date:'c' }}{% endif %}">
-                <td data-label="Name">{{ lead.name }}</td>
-                <td data-label="Email">
+              <tr data-lead-id="{{ lead.id }}">
+                <td><strong>{{ lead.name }}</strong></td>
+                <td>
                   {% if lead.email %}
-                    {{ lead.email }}
+                    <a href="mailto:{{ lead.email }}">{{ lead.email }}</a>
                   {% else %}
-                    -
+                    <span class="text-muted">-</span>
                   {% endif %}
                 </td>
-                <td data-label="Phone">{{ lead.phone|default:"-" }}</td>
-                <td data-label="Company">
-                  {% if lead.company %}
-                    {{ lead.company }}
+                <td>
+                  {% if lead.phone %}
+                    <a href="tel:{{ lead.phone }}">{{ lead.phone }}</a>
                   {% else %}
-                    -
+                    <span class="text-muted">-</span>
                   {% endif %}
                 </td>
-                <td data-label="Status">
+                <td>{{ lead.company|default:"-" }}</td>
+                <td>
                   <div class="dropdown">
-                    <button class="btn badge {{ lead.conversion_badge|default:'bg-secondary' }} dropdown-toggle status-badge-btn" 
+                    <button class="btn btn-sm badge {{ lead.conversion_badge|default:'bg-secondary' }} dropdown-toggle" 
                             type="button" 
-                            id="statusDropdown{{ lead.id }}" 
+                            id="statusBtn{{ lead.id }}" 
                             data-bs-toggle="dropdown" 
                             aria-expanded="false"
                             data-lead-id="{{ lead.id }}"
-                            data-current-status="{{ lead.conversion_status|default:'Pending' }}"
-                            style="cursor: pointer; border: none; padding: 0.35em 0.65em;">
+                            data-current-status="{{ lead.conversion_status|default:'Pending' }}">
                       {{ lead.conversion_status|default:"Pending" }}
                     </button>
-                    <ul class="dropdown-menu" aria-labelledby="statusDropdown{{ lead.id }}">
-                      <li><a class="dropdown-item status-option" href="#" data-status="Pending" data-lead-id="{{ lead.id }}">Pending</a></li>
-                      <li><a class="dropdown-item status-option" href="#" data-status="Contacted" data-lead-id="{{ lead.id }}">Contacted</a></li>
-                      <li><a class="dropdown-item status-option" href="#" data-status="Qualified" data-lead-id="{{ lead.id }}">Qualified</a></li>
-                      <li><a class="dropdown-item status-option" href="#" data-status="Proposal" data-lead-id="{{ lead.id }}">Proposal</a></li>
-                      <li><a class="dropdown-item status-option" href="#" data-status="Negotiation" data-lead-id="{{ lead.id }}">Negotiation</a></li>
-                      <li><a class="dropdown-item status-option" href="#" data-status="Won" data-lead-id="{{ lead.id }}">Won</a></li>
-                      <li><a class="dropdown-item status-option" href="#" data-status="Lost" data-lead-id="{{ lead.id }}">Lost</a></li>
+                    <ul class="dropdown-menu dropdown-menu-end show-all-options" aria-labelledby="statusBtn{{ lead.id }}" style="max-height: none !important; overflow-y: visible !important; display: block !important; position: absolute !important; z-index: 1050 !important;">
+                      <li><a class="dropdown-item status-change" href="javascript:void(0);" data-status="Pending" data-lead-id="{{ lead.id }}">Pending</a></li>
+                      <li><a class="dropdown-item status-change" href="javascript:void(0);" data-status="Contacted" data-lead-id="{{ lead.id }}">Contacted</a></li>
+                      <li><a class="dropdown-item status-change" href="javascript:void(0);" data-status="Qualified" data-lead-id="{{ lead.id }}">Qualified</a></li>
+                      <li><a class="dropdown-item status-change" href="javascript:void(0);" data-status="Proposal" data-lead-id="{{ lead.id }}">Proposal</a></li>
+                      <li><a class="dropdown-item status-change" href="javascript:void(0);" data-status="Negotiation" data-lead-id="{{ lead.id }}">Negotiation</a></li>
+                      <li><a class="dropdown-item status-change" href="javascript:void(0);" data-status="Won" data-lead-id="{{ lead.id }}">Won</a></li>
+                      <li><a class="dropdown-item status-change" href="javascript:void(0);" data-status="Lost" data-lead-id="{{ lead.id }}">Lost</a></li>
                     </ul>
                   </div>
                 </td>
-                <td data-label="Actions">
-                  <div class="d-flex gap-1 align-items-center">
-                    <button type="button" class="btn btn-sm btn-outline-primary btn-view" 
-                            data-bs-toggle="modal" 
-                            data-bs-target="#viewLeadModal" 
+                <td>
+                  <div class="d-flex gap-2">
+                    <button type="button" 
+                            class="btn btn-sm btn-outline-primary view-lead-btn" 
                             data-lead-id="{{ lead.id }}"
-                            title="View Lead Details">
-                    <i class="bi bi-eye"></i>
-                  </button>
-                    <button type="button" class="btn btn-sm btn-outline-warning btn-notes" 
-                            data-bs-toggle="modal" 
-                            data-bs-target="#notesLeadModal" 
-                            data-lead-id="{{ lead.id }}" 
-                            data-lead-name="{{ lead.name }}" 
-                            title="Add/Update Notes">
-                    <i class="bi bi-journal-text"></i>
-                  </button>
+                            title="View Details">
+                      <i class="bi bi-eye"></i>
+                    </button>
+                    <button type="button" 
+                            class="btn btn-sm btn-outline-warning notes-lead-btn" 
+                            data-lead-id="{{ lead.id }}"
+                            data-lead-name="{{ lead.name }}"
+                            title="Update Notes">
+                      <i class="bi bi-journal-text"></i>
+                    </button>
                   </div>
                 </td>
               </tr>
               {% empty %}
               <tr>
-                <td colspan="6" class="text-center text-muted py-4">
-                  <i class="bi bi-inbox fs-1 d-block mb-2"></i>
-                  No leads found. <a href="{% url 'leads_import_export' %}">Import leads</a>
+                <td colspan="6" class="text-center py-5">
+                  <i class="bi bi-inbox fs-1 text-muted d-block mb-3"></i>
+                  <p class="text-muted mb-0">No leads assigned to you yet.</p>
+                  <p class="text-muted small">Contact administrator to get leads assigned.</p>
                 </td>
               </tr>
               {% endfor %}
@@ -891,18 +940,30 @@
     }
 
 
-    // Status dropdown - Same as admin leads page
-    // Highlight current status in dropdown when opened
-    document.querySelectorAll('.status-badge-btn').forEach(button => {
+    // Status dropdown - Ensure all options are visible when opened
+    document.querySelectorAll('[id^="statusBtn"]').forEach(button => {
       button.addEventListener('show.bs.dropdown', function() {
-        const currentStatus = this.getAttribute('data-current-status');
         const dropdownMenu = this.nextElementSibling;
-        if (dropdownMenu) {
-          // Remove active class from all options
-          dropdownMenu.querySelectorAll('.status-option').forEach(option => {
-            option.classList.remove('active');
+        if (dropdownMenu && dropdownMenu.classList.contains('dropdown-menu')) {
+          // Force show all options - remove any height restrictions
+          dropdownMenu.style.maxHeight = 'none';
+          dropdownMenu.style.overflowY = 'visible';
+          dropdownMenu.style.display = 'block';
+          dropdownMenu.style.position = 'absolute';
+          dropdownMenu.style.zIndex = '9999';
+          
+          // Ensure all 7 options are visible
+          const allOptions = dropdownMenu.querySelectorAll('.dropdown-item');
+          console.log('[DROPDOWN] Total options found:', allOptions.length);
+          allOptions.forEach((option, index) => {
+            option.style.display = 'block';
+            option.style.visibility = 'visible';
+            option.style.opacity = '1';
+            console.log(`[DROPDOWN] Option ${index + 1}:`, option.textContent.trim());
           });
-          // Add active class to current status
+          
+          // Highlight current status
+          const currentStatus = this.getAttribute('data-current-status');
           const currentOption = dropdownMenu.querySelector('[data-status="' + currentStatus + '"]');
           if (currentOption) {
             currentOption.classList.add('active');
@@ -911,26 +972,91 @@
       });
     });
     
-    // Status dropdown click handler - Update lead status
-    // Use event delegation to catch clicks on status options
+    // Status update handler - Works with new table structure
+    // IMPORTANT: This is outside DOMContentLoaded to ensure it's always available
+    console.log('[STATUS UPDATE] Event listener registering...');
+    
     document.addEventListener('click', function(e) {
-      // Check if clicked element is a status option or inside one
-      const statusOption = e.target.closest('.status-option');
+      // Check if clicked element is a status change option
+      const statusOption = e.target.closest('.status-change');
       
       if (statusOption) {
+        console.log('[STATUS UPDATE] ✅ Status option clicked!', statusOption);
         e.preventDefault();
         e.stopPropagation();
+        e.stopImmediatePropagation();
         
-        const leadId = statusOption.getAttribute('data-lead-id');
+        let leadId = statusOption.getAttribute('data-lead-id');
         const newStatus = statusOption.getAttribute('data-status');
-        const statusButton = document.getElementById('statusDropdown' + leadId);
         
-        console.log('Status option clicked:', { leadId: leadId, newStatus: newStatus, statusButton: !!statusButton });
+        // If lead ID not found from option, try to get from table row
+        if (!leadId) {
+          const row = statusOption.closest('tr[data-lead-id]');
+          if (row) {
+            leadId = row.getAttribute('data-lead-id');
+            console.log('[STATUS UPDATE] Got lead ID from table row:', leadId);
+          }
+        }
         
-        if (!leadId || !newStatus || !statusButton) {
-          console.error('Missing data for status update:', { leadId: leadId, newStatus: newStatus, statusButton: !!statusButton });
-          alert('Error: Missing data for status update. Please refresh the page.');
-          return;
+        // Also try to get from status button in the same row
+        if (!leadId) {
+          const row = statusOption.closest('tr');
+          if (row) {
+            const statusBtn = row.querySelector('[id^="statusBtn"]');
+            if (statusBtn) {
+              leadId = statusBtn.getAttribute('data-lead-id');
+              console.log('[STATUS UPDATE] Got lead ID from status button:', leadId);
+            }
+          }
+        }
+        
+        const buttonId = 'statusBtn' + leadId;
+        let statusButton = document.getElementById(buttonId);
+        
+        // If button not found by ID, try to find it by data-lead-id attribute
+        if (!statusButton) {
+          statusButton = document.querySelector(`button[data-lead-id="${leadId}"][id^="statusBtn"]`);
+          console.log('[STATUS UPDATE] 🔍 Button not found by ID, trying data-lead-id:', statusButton);
+        }
+        
+        // If still not found, try to find from the row
+        if (!statusButton) {
+          const row = statusOption.closest('tr');
+          if (row) {
+            statusButton = row.querySelector(`button[id^="statusBtn"]`);
+            console.log('[STATUS UPDATE] 🔍 Button found from row:', statusButton);
+          }
+        }
+        
+        console.log('[STATUS UPDATE] 📊 Data extracted:', { 
+          leadId: leadId, 
+          newStatus: newStatus, 
+          buttonId: buttonId,
+          statusButtonFound: !!statusButton,
+          statusButtonId: statusButton ? statusButton.id : null,
+          statusButtonElement: statusButton
+        });
+        
+        if (!leadId) {
+          console.error('[STATUS UPDATE] ❌ Lead ID missing!');
+          alert('Error: Lead ID not found. Please refresh the page.');
+          return false;
+        }
+        
+        if (!newStatus) {
+          console.error('[STATUS UPDATE] ❌ Status missing!');
+          alert('Error: Status not found. Please refresh the page.');
+          return false;
+        }
+        
+        if (!statusButton) {
+          console.error('[STATUS UPDATE] ❌ Status button not found!', {
+            buttonId: buttonId,
+            searchedFor: 'statusBtn' + leadId,
+            allButtons: Array.from(document.querySelectorAll('[id^="statusBtn"]')).map(b => ({id: b.id, dataLeadId: b.getAttribute('data-lead-id')}))
+          });
+          alert('Error: Status button not found. Button ID: ' + buttonId + '. Please refresh the page.');
+          return false;
         }
         
         // Get current status
@@ -947,20 +1073,41 @@
         statusButton.disabled = true;
         statusButton.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Updating...';
         
-        // Get CSRF token
-        const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]');
-        if (!csrfToken) {
+        // Get CSRF token - try input field first, then cookie
+        let csrfTokenValue = null;
+        const csrfTokenInput = document.querySelector('[name=csrfmiddlewaretoken]');
+        if (csrfTokenInput) {
+          csrfTokenValue = csrfTokenInput.value;
+          console.log('[STATUS UPDATE] CSRF token found in input field');
+        } else {
+          // Try to get from cookie
+          const name = 'csrftoken';
+          const cookies = document.cookie.split(';');
+          for (let i = 0; i < cookies.length; i++) {
+            const cookie = cookies[i].trim();
+            if (cookie.startsWith(name + '=')) {
+              csrfTokenValue = cookie.substring(name.length + 1);
+              console.log('[STATUS UPDATE] CSRF token found in cookie');
+              break;
+            }
+          }
+        }
+        
+        if (!csrfTokenValue) {
+          console.error('[STATUS UPDATE] ❌ CSRF token not found!');
           alert('Error: CSRF token not found. Please refresh the page.');
           statusButton.textContent = originalText;
           statusButton.disabled = false;
-          return;
+          return false;
         }
+        
+        console.log('[STATUS UPDATE] ✅ CSRF token found:', csrfTokenValue.substring(0, 10) + '...');
         
         // Prepare form data
         const formData = new FormData();
         formData.append('lead_id', leadId);
         formData.append('status', newStatus);
-        formData.append('csrfmiddlewaretoken', csrfToken.value);
+        formData.append('csrfmiddlewaretoken', csrfTokenValue);
         
         console.log('Sending status update request:', { lead_id: leadId, status: newStatus });
         
@@ -969,19 +1116,30 @@
           method: 'POST',
           body: formData,
           headers: {
-            'X-CSRFToken': csrfToken.value
-          }
+            'X-CSRFToken': csrfTokenValue,
+            'X-Requested-With': 'XMLHttpRequest'
+          },
+          credentials: 'same-origin'
         })
         .then(response => {
-          console.log('Response status:', response.status);
+          console.log('[STATUS UPDATE] 📡 Response status:', response.status);
+          console.log('[STATUS UPDATE] Response headers:', response.headers);
+          
           if (!response.ok) {
-            throw new Error('HTTP error! status: ' + response.status);
+            return response.json().then(errData => {
+              console.error('[STATUS UPDATE] ❌ Error response:', errData);
+              throw new Error(errData.error || 'HTTP error! status: ' + response.status);
+            }).catch(() => {
+              throw new Error('HTTP error! status: ' + response.status);
+            });
           }
           return response.json();
         })
         .then(data => {
-          console.log('Response data:', data);
+          console.log('[STATUS UPDATE] ✅ Response data:', data);
           if (data.success) {
+            console.log('[STATUS UPDATE] ✅✅ Status updated successfully in database!');
+            
             // Update badge class and text
             const badgeClassMap = {
               'Pending': 'bg-secondary',
@@ -995,45 +1153,266 @@
             
             const badgeClass = data.badge_class || badgeClassMap[newStatus] || 'bg-secondary';
             
-            // Update button
-            statusButton.className = 'btn badge ' + badgeClass + ' dropdown-toggle status-badge-btn';
+            console.log('[STATUS UPDATE] 🎨 Updating UI:', {
+              buttonId: statusButton.id,
+              oldClass: statusButton.className,
+              newClass: 'btn btn-sm badge ' + badgeClass + ' dropdown-toggle',
+              oldText: statusButton.textContent,
+              newText: newStatus
+            });
+            
+            // Store old values for verification
+            const oldClassName = statusButton.className;
+            const oldTextContent = statusButton.textContent;
+            const oldInnerHTML = statusButton.innerHTML;
+            
+            // Update button - preserve all attributes and ensure proper Bootstrap classes
+            // Remove all badge classes first
+            statusButton.classList.remove('bg-secondary', 'bg-info', 'bg-primary', 'bg-warning', 'bg-success', 'bg-danger', 'text-dark');
+            
+            // Add new badge class
+            const badgeClasses = badgeClass.split(' ');
+            badgeClasses.forEach(cls => {
+              if (cls) statusButton.classList.add(cls);
+            });
+            
+            // Ensure base classes are present
+            if (!statusButton.classList.contains('btn')) statusButton.classList.add('btn');
+            if (!statusButton.classList.contains('btn-sm')) statusButton.classList.add('btn-sm');
+            if (!statusButton.classList.contains('badge')) statusButton.classList.add('badge');
+            if (!statusButton.classList.contains('dropdown-toggle')) statusButton.classList.add('dropdown-toggle');
+            
+            // Update text content
             statusButton.textContent = newStatus;
+            statusButton.innerHTML = newStatus; // Also update innerHTML to ensure complete replacement
+            
+            // Update attributes
             statusButton.setAttribute('data-current-status', newStatus);
             statusButton.disabled = false;
             
+            // Ensure dropdown functionality is maintained
+            if (!statusButton.hasAttribute('data-bs-toggle')) {
+              statusButton.setAttribute('data-bs-toggle', 'dropdown');
+            }
+            if (!statusButton.hasAttribute('type')) {
+              statusButton.setAttribute('type', 'button');
+            }
+            if (!statusButton.hasAttribute('aria-expanded')) {
+              statusButton.setAttribute('aria-expanded', 'false');
+            }
+            
+            // Force re-render by triggering a repaint
+            const parent = statusButton.parentElement;
+            if (parent) {
+              const nextSibling = statusButton.nextSibling;
+              parent.removeChild(statusButton);
+              parent.insertBefore(statusButton, nextSibling);
+            }
+            
+            console.log('[STATUS UPDATE] ✅ UI Updated:', {
+              buttonId: statusButton.id,
+              oldClass: oldClassName,
+              newClass: statusButton.className,
+              oldText: oldTextContent,
+              newText: statusButton.textContent,
+              newInnerHTML: statusButton.innerHTML,
+              dataCurrentStatus: statusButton.getAttribute('data-current-status'),
+              classList: Array.from(statusButton.classList)
+            });
+            
             // Close dropdown
             const dropdown = bootstrap.Dropdown.getInstance(statusButton);
-            if (dropdown) dropdown.hide();
+            if (dropdown) {
+              dropdown.hide();
+            } else {
+              // If dropdown instance doesn't exist, manually close it
+              const dropdownMenu = statusButton.nextElementSibling;
+              if (dropdownMenu && dropdownMenu.classList.contains('dropdown-menu')) {
+                dropdownMenu.classList.remove('show');
+                statusButton.setAttribute('aria-expanded', 'false');
+              }
+            }
+            
+            // Verify the update worked
+            setTimeout(() => {
+              const verifyButton = document.getElementById(statusButton.id);
+              if (verifyButton) {
+                console.log('[STATUS UPDATE] 🔍 Verification:', {
+                  buttonId: verifyButton.id,
+                  currentText: verifyButton.textContent,
+                  currentClass: verifyButton.className,
+                  expectedText: newStatus,
+                  match: verifyButton.textContent.trim() === newStatus
+                });
+                
+                if (verifyButton.textContent.trim() !== newStatus) {
+                  console.warn('[STATUS UPDATE] ⚠️ UI not updated correctly, forcing update...');
+                  verifyButton.className = 'btn btn-sm badge ' + badgeClass + ' dropdown-toggle';
+                  verifyButton.innerHTML = newStatus;
+                  verifyButton.setAttribute('data-current-status', newStatus);
+                }
+              }
+            }, 100);
             
             // Show success message
             const alert = document.createElement('div');
             alert.className = 'alert alert-success alert-dismissible fade show position-fixed top-0 start-50 translate-middle-x mt-3';
             alert.style.zIndex = '9999';
-            alert.innerHTML = '<strong>Success!</strong> Status updated to "' + newStatus + '"<button type="button" class="btn-close" data-bs-dismiss="alert"></button>';
+            alert.innerHTML = '<strong>✅ Success!</strong> Status updated to "' + newStatus + '" in database!<button type="button" class="btn-close" data-bs-dismiss="alert"></button>';
             document.body.appendChild(alert);
             
             // Remove alert after 3 seconds
             setTimeout(() => {
-              alert.remove();
+              if (alert.parentNode) {
+                alert.remove();
+              }
             }, 3000);
           } else {
             // Error occurred
-            console.error('Status update failed:', data.error);
-            alert('Error: ' + (data.error || 'Failed to update status'));
+            console.error('[STATUS UPDATE] ❌ Update failed:', data.error);
+            const errorMsg = data.error || 'Failed to update status';
+            
+            if (errorMsg.includes('permission') || errorMsg.includes('not assigned')) {
+              alert('Permission Error: ' + errorMsg + '\n\nThis lead is not assigned to you.');
+            } else {
+              alert('Error: ' + errorMsg);
+            }
+            
             statusButton.textContent = originalText;
             statusButton.disabled = false;
           }
         })
         .catch(error => {
-          console.error('Error updating status:', error);
-          alert('An error occurred while updating status. Please try again.');
+          console.error('[STATUS UPDATE] ❌❌ Error:', error);
+          console.error('[STATUS UPDATE] Error message:', error.message);
+          console.error('[STATUS UPDATE] Error stack:', error.stack);
+          
+          let errorMessage = 'An error occurred while updating status. ';
+          if (error.message) {
+            errorMessage = error.message;
+          }
+          
+          if (errorMessage.includes('permission') || errorMessage.includes('not assigned')) {
+            alert('Permission Error: ' + errorMessage + '\n\nThis lead is not assigned to you.');
+          } else {
+            alert('Error: ' + errorMessage + '\n\nPlease check browser console (F12) for details.');
+          }
+          
           statusButton.textContent = originalText;
           statusButton.disabled = false;
         });
+        
+        return false; // Prevent any default behavior
       }
-    });
+    }, true); // Use capture phase
     
-    // Notes Modal - Load current notes when modal opens
+    console.log('[STATUS UPDATE] ✅ Event listener registered successfully!');
+    
+    // Notes Button - Event delegation to handle clicks
+    document.addEventListener('click', function(e) {
+      const notesBtn = e.target.closest('.notes-lead-btn');
+      if (notesBtn) {
+        e.preventDefault();
+        e.stopPropagation();
+        
+        let leadId = notesBtn.getAttribute('data-lead-id');
+        let leadName = notesBtn.getAttribute('data-lead-name');
+        
+        console.log('[NOTES] Notes button clicked:', { leadId, leadName });
+        
+        // If not found from button, try to get from table row
+        if (!leadId) {
+          const row = notesBtn.closest('tr[data-lead-id]');
+          if (row) {
+            leadId = row.getAttribute('data-lead-id');
+            console.log('[NOTES] Got lead ID from table row:', leadId);
+          }
+        }
+        
+        // Get lead name from row if not found
+        if (!leadName) {
+          const row = notesBtn.closest('tr');
+          if (row) {
+            const nameCell = row.querySelector('td:first-child strong');
+            if (nameCell) {
+              leadName = nameCell.textContent.trim();
+              console.log('[NOTES] Got lead name from row:', leadName);
+            }
+          }
+        }
+        
+        if (!leadId) {
+          console.error('[NOTES] ❌ Lead ID not found!');
+          alert('Error: Lead ID not found. Please refresh the page.');
+          return false;
+        }
+        
+        // Open modal programmatically
+        const notesModal = document.getElementById('notesLeadModal');
+        if (notesModal) {
+          // Set lead ID and name immediately
+          const notesLeadIdField = document.getElementById('notes_lead_id');
+          const notesLeadNameField = document.getElementById('notes_lead_name');
+          const notesTextarea = document.getElementById('notes_textarea');
+          
+          if (notesLeadIdField) notesLeadIdField.value = leadId;
+          if (notesLeadNameField) notesLeadNameField.value = leadName || 'Loading...';
+          if (notesTextarea) notesTextarea.value = '';
+          
+          const modal = new bootstrap.Modal(notesModal);
+          modal.show();
+          
+          // Fetch current notes from API
+          console.log('[NOTES] Fetching data for lead ID:', leadId);
+          fetch(`/leads/${leadId}/get-data/`)
+            .then(response => {
+              if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+              }
+              return response.json();
+            })
+            .then(data => {
+              console.log('[NOTES] ✅ Fetched lead data:', data);
+              
+              if (data.error) {
+                console.error('[NOTES] API Error:', data.error);
+                throw new Error(data.error);
+              }
+              
+              // Update lead name from API (priority) or button attribute (fallback)
+              if (notesLeadNameField) {
+                if (data.name && data.name.trim() !== '') {
+                  notesLeadNameField.value = data.name;
+                } else if (leadName && leadName.trim() !== '') {
+                  notesLeadNameField.value = leadName;
+                } else {
+                  notesLeadNameField.value = 'Unknown Lead';
+                }
+              }
+              
+              // Update notes textarea
+              if (notesTextarea) {
+                if (data.notes && data.notes.trim() !== '') {
+                  notesTextarea.value = data.notes;
+                } else {
+                  notesTextarea.value = '';
+                }
+              }
+            })
+            .catch(error => {
+              console.error('[NOTES] ❌ Error fetching lead notes:', error);
+              // Fallback to button attribute or default
+              if (notesLeadNameField && leadName) {
+                notesLeadNameField.value = leadName;
+              }
+            });
+        }
+        
+        return false;
+      }
+    }, true);
+    
+    // Notes Modal - Load current notes when modal opens (fallback handler)
     const notesLeadModal = document.getElementById('notesLeadModal');
     if (notesLeadModal) {
       notesLeadModal.addEventListener('show.bs.modal', function(event) {
@@ -1048,10 +1427,28 @@
         
         // If not found from button, try to find from clicked element
         if (!leadId && event.target) {
-          const clickedBtn = event.target.closest('.btn-notes');
+          const clickedBtn = event.target.closest('.notes-lead-btn');
           if (clickedBtn) {
             leadId = clickedBtn.getAttribute('data-lead-id');
             leadName = clickedBtn.getAttribute('data-lead-name');
+            console.log('[NOTES MODAL] Found from clicked button:', { leadId, leadName });
+          }
+        }
+        
+        // Also try to get from table row
+        if (!leadId && event.target) {
+          const row = event.target.closest('tr[data-lead-id]');
+          if (row) {
+            leadId = row.getAttribute('data-lead-id');
+            console.log('[NOTES MODAL] Found from table row:', leadId);
+            // Get lead name from row if not found
+            if (!leadName && row) {
+              const nameCell = row.querySelector('td:first-child strong');
+              if (nameCell) {
+                leadName = nameCell.textContent.trim();
+                console.log('[NOTES MODAL] Found name from row:', leadName);
+              }
+            }
           }
         }
         
@@ -1505,37 +1902,48 @@
       
       // Use event delegation for view buttons (works with dynamically added buttons)
       document.addEventListener('click', function(e) {
-        const viewBtn = e.target.closest('.btn-view');
-        if (viewBtn && viewBtn.getAttribute('data-bs-target') === '#viewLeadModal') {
+        const viewBtn = e.target.closest('.view-lead-btn, .btn-view');
+        if (viewBtn) {
           e.preventDefault();
           e.stopPropagation();
           
-          // Get lead ID from button attribute
+          // Get lead ID from button attribute first
           currentLeadId = viewBtn.getAttribute('data-lead-id');
+          console.log('[VIEW] Lead ID from button:', currentLeadId);
           
           // If no lead ID, try to get from table row
           if (!currentLeadId) {
-            const row = viewBtn.closest('tr');
+            const row = viewBtn.closest('tr[data-lead-id]');
             if (row) {
               currentLeadId = row.getAttribute('data-lead-id');
+              console.log('[VIEW] Lead ID from table row:', currentLeadId);
             }
           }
           
-          // If still no lead ID, try to get row data (Name, Email, Phone, Company) as fallback
+          // Also try to get from status button in same row (has data-lead-id)
           if (!currentLeadId) {
             const row = viewBtn.closest('tr');
             if (row) {
-              currentRowData = {
-                name: row.querySelector('[data-label="Name"]')?.textContent?.trim() || '',
-                email: row.querySelector('[data-label="Email"]')?.textContent?.trim() || '',
-                phone: row.querySelector('[data-label="Phone"]')?.textContent?.trim() || '',
-                company: row.querySelector('[data-label="Company"]')?.textContent?.trim() || ''
-              };
-              console.log('Row data found (no ID):', currentRowData);
+              const statusBtn = row.querySelector('[data-lead-id]');
+              if (statusBtn) {
+                currentLeadId = statusBtn.getAttribute('data-lead-id');
+                console.log('[VIEW] Lead ID from status button:', currentLeadId);
+              }
             }
           }
           
-          console.log('View button clicked - Lead ID:', currentLeadId);
+          console.log('[VIEW] ✅ Final Lead ID:', currentLeadId);
+          
+          // Open modal
+          const viewModal = document.getElementById('viewLeadModal');
+          if (viewModal && currentLeadId) {
+            const modal = new bootstrap.Modal(viewModal);
+            modal.show();
+          } else if (viewModal) {
+            // Show modal even without ID, will try to fetch by row data
+            const modal = new bootstrap.Modal(viewModal);
+            modal.show();
+          }
           
           // Show loading state immediately
           const leadDetails = document.getElementById('leadDetails');
@@ -1550,16 +1958,9 @@
             `;
           }
           
-          // Open modal programmatically
-          const modalElement = document.getElementById('viewLeadModal');
-          if (modalElement) {
-            const modal = new bootstrap.Modal(modalElement);
-            modal.show();
-          }
-          
           // Fetch data immediately when button is clicked (if we have lead ID)
           if (currentLeadId) {
-            fetchAndDisplayLeadData(currentLeadId, currentRowData);
+            fetchAndDisplayLeadData(currentLeadId);
           } else {
             console.error('No Lead ID found!');
             if (leadDetails) {
@@ -1568,7 +1969,6 @@
                   <i class="bi bi-exclamation-triangle"></i>
                   <strong>Error!</strong><br>
                   Lead ID not found. Please try again.
-                  <br><small class="text-muted">Make sure you clicked the eye icon button.</small>
                 </div>
               `;
             }
@@ -1594,7 +1994,7 @@
         
         // If not found from button, try to find from clicked element
         if (!leadId && event.target) {
-          const clickedBtn = event.target.closest('.btn-view');
+          const clickedBtn = event.target.closest('.view-lead-btn, .btn-view');
           if (clickedBtn) {
             leadId = clickedBtn.getAttribute('data-lead-id');
             console.log('Modal opening - Using clicked element Lead ID:', leadId);
@@ -1603,7 +2003,7 @@
         
         // Also try to get from the button that triggered the modal
         if (!leadId) {
-          const triggerBtn = document.querySelector('.btn-view[data-bs-target="#viewLeadModal"]');
+          const triggerBtn = document.querySelector('.view-lead-btn[data-lead-id], .btn-view[data-lead-id]');
           if (triggerBtn) {
             leadId = triggerBtn.getAttribute('data-lead-id');
             console.log('Modal opening - Using trigger button Lead ID:', leadId);
@@ -1719,22 +2119,32 @@
     }
 
     // View/Edit actions from table
-    const table = document.querySelector('.leads-table');
+    const table = document.querySelector('table.table-hover');
     const createTabBtn = document.getElementById('create-tab');
     const listTabBtn = document.getElementById('list-tab');
     const leadForm = document.getElementById('createLeadForm');
-    const tableWrapper = document.querySelector('#list .card .table-responsive');
+    const tableWrapper = document.querySelector('#leadsTableWrapper') || document.querySelector('#list .card .table-responsive');
 
     function updateTableScroll() {
       if (!table || !tableWrapper) return;
       const visibleRows = Array.from(table.querySelectorAll('tbody tr')).filter(r => r.style.display !== 'none');
       if (visibleRows.length > 10) {
-        tableWrapper.style.maxHeight = '480px'; // approx height for ~10 rows
+        // Set height on div, not span
+        tableWrapper.style.maxHeight = '500px'; // approx height for ~10 rows
         tableWrapper.style.overflowY = 'auto';
+        tableWrapper.style.height = '500px';
       } else {
-        tableWrapper.style.maxHeight = '';
-        tableWrapper.style.overflowY = '';
+        tableWrapper.style.maxHeight = 'auto';
+        tableWrapper.style.overflowY = 'auto';
+        tableWrapper.style.height = 'auto';
       }
+      
+      // Ensure no span elements have height set
+      const spans = tableWrapper.querySelectorAll('span');
+      spans.forEach(span => {
+        span.style.height = 'auto';
+        span.style.maxHeight = 'none';
+      });
     }
 
     // Initial scroll setup based on current rows
@@ -1752,11 +2162,13 @@
         const minutes = String(d.getMinutes()).padStart(2, '0');
         dueText = `${day}-${month}-${year} ${hours}:${minutes}`;
       }
+      // Get data from new table structure (td elements by index)
+      const cells = tr.querySelectorAll('td');
       return {
-        name: tr.querySelector('[data-label="Name"]').textContent.trim(),
-        email: tr.querySelector('[data-label="Email"]').textContent.trim(),
-        phone: tr.querySelector('[data-label="Phone"]').textContent.trim(),
-        company: tr.querySelector('[data-label="Company"]').textContent.trim(),
+        name: cells[0]?.textContent?.trim() || '',
+        email: cells[1]?.textContent?.trim() || '',
+        phone: cells[2]?.textContent?.trim() || '',
+        company: cells[3]?.textContent?.trim() || '',
         owner: '-', // Will be fetched from API in viewLeadModal
         priority: '-', // Will be fetched from API in viewLeadModal
         notes: '-', // Will be fetched from API in viewLeadModal
@@ -1767,7 +2179,7 @@
 
     if (table) {
       table.addEventListener('click', function (e) {
-        const btnView = e.target.closest('.btn-view');
+        const btnView = e.target.closest('.view-lead-btn, .btn-view');
         const tr = e.target.closest('tr');
         if (!tr) return;
         const data = getRowData(tr);
@@ -1976,5 +2388,6 @@
   </div>
 </div>
 {% endblock %}
+
 
 

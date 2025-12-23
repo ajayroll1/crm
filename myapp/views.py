@@ -3596,28 +3596,111 @@ def update_lead_status(request):
         lead_id = request.POST.get('lead_id')
         status = request.POST.get('status', '').strip()
         
+        print(f"[UPDATE STATUS] ====== Status Update Request ======")
+        print(f"[UPDATE STATUS] User: {request.user.username} ({request.user.email})")
+        print(f"[UPDATE STATUS] Lead ID: {lead_id}")
+        print(f"[UPDATE STATUS] New Status: {status}")
+        
         if not lead_id:
+            print(f"[UPDATE STATUS] ❌ Error: Lead ID is required")
             return JsonResponse({'success': False, 'error': 'Lead ID is required'}, status=400)
         
         if not status:
+            print(f"[UPDATE STATUS] ❌ Error: Status is required")
             return JsonResponse({'success': False, 'error': 'Status is required'}, status=400)
         
         # Validate status value
         valid_statuses = ['Pending', 'Contacted', 'Qualified', 'Proposal', 'Negotiation', 'Won', 'Lost']
         if status not in valid_statuses:
+            print(f"[UPDATE STATUS] ❌ Error: Invalid status '{status}'. Valid: {valid_statuses}")
             return JsonResponse({
                 'success': False, 
                 'error': f'Invalid status. Must be one of: {", ".join(valid_statuses)}'
             }, status=400)
         
         lead = get_object_or_404(Lead, id=lead_id, is_active=True)
+        print(f"[UPDATE STATUS] ✅ Lead found: ID={lead.id}, Name={lead.name}")
+        print(f"[UPDATE STATUS] Current status in DB: '{lead.conversion_status}'")
+        print(f"[UPDATE STATUS] Assigned to: {lead.assigned_to}")
+        
+        # Permission check: If user is not admin/staff, check if lead is assigned to them
+        if not (request.user.is_staff or request.user.is_superuser):
+            # Get employee object for current user
+            employee_obj = None
+            if request.user.is_authenticated:
+                try:
+                    user_email = getattr(request.user, 'email', None)
+                    if user_email:
+                        employee_obj = Employee.objects.filter(email__iexact=user_email).first()
+                        print(f"[UPDATE STATUS] Employee found: {employee_obj}")
+                except Exception as e:
+                    print(f"[UPDATE STATUS] Error finding employee: {str(e)}")
+            
+            if not employee_obj:
+                print(f"[UPDATE STATUS] ❌ Permission denied: Employee not found for user")
+                return JsonResponse({
+                    'success': False, 
+                    'error': 'Employee record not found. Please contact administrator.'
+                }, status=403)
+            
+            if lead.assigned_to != employee_obj:
+                print(f"[UPDATE STATUS] ❌ Permission denied: Lead assigned to {lead.assigned_to}, but employee is {employee_obj}")
+                return JsonResponse({
+                    'success': False, 
+                    'error': 'You do not have permission to update this lead. This lead is not assigned to you.'
+                }, status=403)
+            
+            print(f"[UPDATE STATUS] ✅ Permission granted: Lead is assigned to employee")
         
         # Store old status for logging
         old_status = lead.conversion_status or 'Pending'
+        print(f"[UPDATE STATUS] Old status: '{old_status}' → New status: '{status}'")
         
         # Update conversion_status field in myapp_lead table
+        # Use DIRECT SQL UPDATE - This is guaranteed to update the database
+        from django.db import connection
+        from django.utils import timezone
+        
+        cursor = connection.cursor()
+        
+        # Method 1: Direct SQL UPDATE (most reliable)
+        update_sql = "UPDATE myapp_lead SET conversion_status = %s, updated_at = %s WHERE id = %s AND is_active = 1"
+        cursor.execute(update_sql, [status, timezone.now(), lead_id])
+        rows_affected = cursor.rowcount
+        print(f"[UPDATE STATUS] 🔥 Direct SQL UPDATE executed - Rows affected: {rows_affected}")
+        
+        # Commit the transaction explicitly
+        connection.commit()
+        print(f"[UPDATE STATUS] ✅ Transaction committed")
+        
+        # Method 2: Also use QuerySet.update() for Django ORM consistency
+        updated_count = Lead.objects.filter(id=lead_id, is_active=True).update(conversion_status=status)
+        print(f"[UPDATE STATUS] QuerySet.update() affected {updated_count} row(s)")
+        
+        # Verify with direct SQL query immediately
+        cursor.execute("SELECT conversion_status, updated_at FROM myapp_lead WHERE id = %s", [lead_id])
+        db_check = cursor.fetchone()
+        if db_check:
+            db_status = db_check[0]
+            db_updated = db_check[1]
+            print(f"[UPDATE STATUS] 🔍 Direct SQL verification - Status: '{db_status}', Updated: '{db_updated}'")
+            if db_status != status:
+                print(f"[UPDATE STATUS] ❌❌❌ CRITICAL: Status still not updated! Expected: '{status}', Got: '{db_status}'")
+                # Force update one more time with explicit commit
+                cursor.execute("UPDATE myapp_lead SET conversion_status = %s WHERE id = %s", [status, lead_id])
+                connection.commit()
+                print(f"[UPDATE STATUS] 🔄🔴 Force updated again with explicit commit")
+            else:
+                print(f"[UPDATE STATUS] ✅✅✅ Status successfully updated in database!")
+        
+        # Update the model instance for consistency
         lead.conversion_status = status
         lead.save(update_fields=['conversion_status', 'updated_at'])
+        
+        # Final verification - refresh from database
+        lead.refresh_from_db()
+        print(f"[UPDATE STATUS] ✅✅ Final model check - Status: '{lead.conversion_status}'")
+        print(f"[UPDATE STATUS] Updated at: {lead.updated_at}")
         
         # Get badge class for the status
         status_badge_map = {
@@ -3631,6 +3714,8 @@ def update_lead_status(request):
         }
         badge_class = status_badge_map.get(status, 'bg-secondary')
         
+        print(f"[UPDATE STATUS] ✅✅✅ Status update successful! Returning response...")
+        
         return JsonResponse({
             'success': True,
             'message': f'Lead status updated from "{old_status}" to "{status}" successfully!',
@@ -3641,10 +3726,11 @@ def update_lead_status(request):
         })
         
     except Lead.DoesNotExist:
+        print(f"[UPDATE STATUS] ❌ Lead not found: {lead_id}")
         return JsonResponse({'success': False, 'error': 'Lead not found'}, status=404)
     except Exception as e:
         import traceback
-        print(f"Error updating lead status: {str(e)}")
+        print(f"[UPDATE STATUS] ❌❌❌ Error updating lead status: {str(e)}")
         print(traceback.format_exc())
         return JsonResponse({'success': False, 'error': str(e)}, status=500)
 
@@ -7246,13 +7332,25 @@ def attendance_data_api(request):
       key = f"{emp_id}_{date_str}"
       attendance_data[key] = status
   
-  # Calculate summary statistics
+  # Calculate summary statistics (excluding today's date)
   total_present = 0
   total_absent = 0
   total_half_day = 0
   total_leave = 0
+  total_records = 0
+  today_str = today.strftime('%Y-%m-%d')
   
-  for status in attendance_data.values():
+  for key, status in attendance_data.items():
+    # Extract date from key (format: "empId_YYYY-MM-DD")
+    parts = key.split('_', 1)
+    if len(parts) == 2:
+      date_str = parts[1]
+      # Exclude today's date from summary
+      if date_str == today_str:
+        continue
+    
+    total_records += 1
+    
     if status == 'P':
       total_present += 1
     elif status == 'A':
@@ -7261,8 +7359,6 @@ def attendance_data_api(request):
       total_half_day += 1
     elif status == 'L':
       total_leave += 1
-  
-  total_records = len(attendance_data)
   
   return JsonResponse({
     'employees': employees_data,
@@ -14333,20 +14429,31 @@ def employee_achievements(request):
 def employee_leads(request):
     # Get employee object for current user
     employee_obj = None
+    employee_id = None
     if request.user.is_authenticated:
         try:
             user_email = getattr(request.user, 'email', None)
             if user_email:
                 employee_obj = Employee.objects.filter(email__iexact=user_email).first()
-        except:
+                if employee_obj:
+                    employee_id = employee_obj.id
+                    print(f"[EMPLOYEE LEADS] Employee found: ID={employee_id}, Name={employee_obj.get_full_name()}, Email={user_email}")
+        except Exception as e:
+            print(f"[EMPLOYEE LEADS] Error finding employee: {str(e)}")
             pass
     
-    # Filter leads assigned to this employee (only show leads assigned to them)
-    if employee_obj:
-        leads_list = Lead.objects.filter(is_active=True, assigned_to=employee_obj).order_by('-created_at')
+    # Filter leads directly from myapp_lead table where assigned_to_id matches employee_id
+    # This ensures we get only leads assigned to this specific employee
+    if employee_obj and employee_id:
+        leads_list = Lead.objects.filter(
+            is_active=True, 
+            assigned_to_id=employee_id  # Direct filter by employee ID in database
+        ).order_by('-created_at')
+        print(f"[EMPLOYEE LEADS] Found {leads_list.count()} leads assigned to employee ID {employee_id}")
     else:
         # If no employee found, show empty list
         leads_list = Lead.objects.none()
+        print(f"[EMPLOYEE LEADS] No employee found - showing empty list")
 
     search_query = request.GET.get('search', '')
     if search_query:
