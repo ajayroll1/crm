@@ -1,26 +1,24 @@
-name: Auto Deploy CRM to EC2
+name: CRM Auto Deploy
 
 on:
   push:
-    branches:
-      - main
+    branches: [ main ]
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
 
     steps:
-    - name: Checkout
-      uses: actions/checkout@v3
+    - uses: actions/checkout@v3
 
-    - name: Deploy to EC2 Server
+    - name: Deploy to EC2
       uses: appleboy/ssh-action@v1.0.3
       with:
         host: ${{ secrets.EC2_HOST }}
         username: ${{ secrets.EC2_USER }}
         key: ${{ secrets.EC2_KEY }}
         script: |
-          cd ~/crm
+          cd ${{ secrets.PROJECT_PATH }}
           git pull origin main
           source venv/bin/activate
           python manage.py collectstatic --noinput
