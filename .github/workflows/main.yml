@@ -1,4 +1,4 @@
-name: CRM Auto Deploy
+name: CRM Auto Production Deploy
 
 on:
   push:
@@ -9,26 +9,16 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
 
-    - name: Deploy to EC2
-      uses: appleboy/ssh-action@v1.0.3
-      with:
-        host: ${{ secrets.EC2_HOST }}
-        username: ${{ secrets.EC2_USER }}
-        key: ${{ secrets.EC2_KEY }}
-        script: |
-          if [ ! -d "${{ secrets.PROJECT_PATH }}" ]; then
-            git clone https://github.com/ajayroll1/crm.git ${{ secrets.PROJECT_PATH }}
-          fi
-
-          cd ${{ secrets.PROJECT_PATH }}
-          git pull origin main
-
-          source venv/bin/activate
-          python manage.py migrate --noinput
-          python manage.py collectstatic --noinput
-
-          sudo systemctl daemon-reload
-          sudo systemctl restart gunicorn
-          sudo systemctl restart nginx
+      - name: Deploy to EC2
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ${{ secrets.EC2_USER }}
+          key: ${{ secrets.EC2_KEY }}
+          script: |
+            cd ${{ secrets.PROJECT_PATH }}
+            git reset --hard
+            git pull
+            sudo systemctl restart nginx
